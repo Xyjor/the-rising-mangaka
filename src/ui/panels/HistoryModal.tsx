@@ -1,4 +1,4 @@
-import { describeDate, genreById, magazineById, themeById } from '../../sim'
+import { genreById, magazineById, shortDate, themeById } from '../../sim'
 import { useStore } from '../../state/store'
 import { Modal, money } from '../components'
 
@@ -19,20 +19,17 @@ export function HistoryModal() {
             </tr>
           </thead>
           <tbody>
-            {[...history].reverse().map((r) => {
-              const d = describeDate(r.day)
-              return (
-                <tr key={r.projectId}>
-                  <td className="tiny faint">Y{d.year} M{d.month}</td>
-                  <td><b>{r.title}</b></td>
-                  <td className="small">{genreById(r.genre).name} × {themeById(r.theme).name}</td>
-                  <td className="small">{magazineById(r.magazineId).name}</td>
-                  <td className="num"><b>#{r.rank}</b><span className="faint">/{r.entrants}</span></td>
-                  <td className="num">{r.score}</td>
-                  <td className="num">{money(r.rewards.money)}</td>
-                </tr>
-              )
-            })}
+            {[...history].reverse().map((r) => (
+              <tr key={r.projectId}>
+                <td className="tiny faint">{shortDate(r.day)}</td>
+                <td><b>{r.title}</b></td>
+                <td className="small">{genreById(r.genre).name} × {themeById(r.theme).name}</td>
+                <td className="small">{magazineById(r.magazineId).name}</td>
+                <td className="num"><b>#{r.rank}</b><span className="faint">/{r.entrants}</span></td>
+                <td className="num">{r.score}</td>
+                <td className="num">{money(r.rewards.money)}</td>
+              </tr>
+            ))}
           </tbody>
         </table>
       )}

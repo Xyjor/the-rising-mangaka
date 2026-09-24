@@ -50,6 +50,8 @@ Every change must pass `npx tsc -b`, `npm test`, and `npm run build` before it i
 - Colours come from tokens (`var(--accent)` etc.), never raw hex in components. Both themes must work.
 - Charts: one axis, thin marks, direct label on the last point, hover tooltip, a table view alongside.
 - Every result explains itself (the "show the why" pillar). Never add a hidden modifier without a UI hint.
+- On phones (<= 640 px) the desk renders above the studio scene and the HUD is a two-row strip; the Today control
+  must be visible without scrolling in the drawing phase at 375x667 with the getting-started box dismissed.
 
 ## Balance touchpoints
 
