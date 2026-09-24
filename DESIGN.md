@@ -100,8 +100,8 @@ The editor writes a one-line comment pointing at the weakest component.
   reveals a theme x audience pairing for that magazine's readers.
 
 ### Auto-pause rules
-The clock stops whenever the game needs a decision: a manuscript becomes ready, poll results arrive, or a
-serialisation offer lands. Menus always pause.
+The clock stops whenever the game needs a decision: a manuscript becomes ready, poll results arrive, a
+serialisation offer lands, a serial is cancelled (the desk empties), or a trip ends. Menus always pause.
 
 ## Roadmap
 0. Money sinks. A hit series earns tens of thousands per volume; add studio upgrades (better desk, tools,

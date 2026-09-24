@@ -37,8 +37,8 @@ Every change must pass `npx tsc -b`, `npm test`, and `npm run build` before it i
 - Sim code never imports from `ui/` or `state/`. UI never mutates game state directly; call store actions.
 - Log entries: `addLog(state, kind, text, toast)`. `toast: true` only for things the player must notice; chapter results
   and money events are toasts, daily chatter is not. Identical toasts are de-duplicated by the store.
-- The clock auto-pauses whenever the game needs a decision (manuscript ready, poll result, serialisation offer).
-  Keep it that way for any new blocking decision.
+- The clock auto-pauses whenever the game needs a decision (manuscript ready, poll result, serialisation offer,
+  a serial is cancelled, a trip ends). Keep it that way for any new blocking decision.
 
 ## UI rules (from the design pass)
 
