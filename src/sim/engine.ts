@@ -2,16 +2,16 @@ import { genreThemeKey, genreThemeRating, themeAudienceKey, themeAudienceRating 
 import {
   ASSISTANT_NAMES, AUDIENCES, CANDIDATE_REFRESH_DAYS, CHAPTER_PAGES, EDITOR_TIP_EVERY, GENRES,
   JOB_PAY_PER_DAY, JOB_STAMINA_COST, LOW_STAMINA_THRESHOLD, MAGAZINES, MAX_ASSISTANTS, ONE_SHOT_PAGES,
-  RATING_LABEL, RESULTS_DELAY_DAYS, REST_STAMINA_GAIN, SERIAL_OFFER_MIN_RANK, SERIAL_OFFER_MIN_SCORE,
-  SERIAL_WARNINGS_TO_CANCEL, THEMES, VOLUME_EVERY_CHAPTERS, VOLUME_PRICE, WEEKLY_LIVING_COST,
-  WORK_STAMINA_COST, audienceById, magazineById, placeById, themeById, genreById,
+  RATING_LABEL, RESULTS_DELAY_DAYS, REST_STAMINA_GAIN, SERIAL_CLIMAX_MIN_POPULARITY, SERIAL_CLIMAX_VOLUME_MULT,
+  SERIAL_OFFER_MIN_RANK, SERIAL_OFFER_MIN_SCORE, SERIAL_WARNINGS_TO_CANCEL, THEMES, VOLUME_EVERY_CHAPTERS,
+  VOLUME_PRICE, WEEKLY_LIVING_COST, WORK_STAMINA_COST, audienceById, magazineById, placeById, themeById, genreById,
 } from './data'
 import { clamp, draw, range } from './rng'
 import {
   evaluateChapter, evaluateProject, projectArtQuality, projectStoryQuality, rankScore, stalenessCount,
 } from './scoring'
 import type {
-  Activity, Assistant, AssistantTrait, AudienceId, EditorRel, Focus, GameState, GenreId, LogKind,
+  Activity, Assistant, AssistantTrait, AudienceId, EditorRel, Focus, GameState, GenreId, LogKind, Magazine,
   MagazineId, PendingChapter, Phase, PlaceId, Project, ProjectDraft, Rating, Serial, StatId, ThemeId,
 } from './types'
 
@@ -41,6 +41,7 @@ export function createGame(name: string, seed: number): GameState {
     project: null,
     activity: 'rest',
     recovering: false,
+    lowStaminaWarned: false,
     focus: 'balanced',
     history: [],
     serial: null,
@@ -185,7 +186,7 @@ function grantXp(state: GameState, amount: number): GameState {
     level += 1
     skillPoints += 3
     maxStamina += 5
-    s = addLog(s, 'levelup', `Level ${level}. You gained 3 skill points and more stamina.`, true)
+    s = addLog(s, 'levelup', `Level ${level}. +3 skill points, +5 max stamina. Spend the points in Stats (S).`, true)
   }
   return { ...s, player: { ...s.player, level, xp, skillPoints, maxStamina } }
 }
@@ -194,13 +195,15 @@ function generateCandidates(state: GameState): GameState {
   const { values, seed } = draw(state.seed, 15)
   const lvl = state.player.level
   const candidates: Assistant[] = []
+  // Names are drawn without replacement, and never one already on the payroll.
+  const pool = ASSISTANT_NAMES.filter((n) => !state.assistants.some((a) => a.name === n))
   for (let i = 0; i < 3; i++) {
     const v = values.slice(i * 5, i * 5 + 5)
     const art = 18 + Math.floor(v[1] * 18) + lvl * 3
     const story = 18 + Math.floor(v[2] * 18) + lvl * 3
     candidates.push({
       id: state.nextAssistantId + i,
-      name: ASSISTANT_NAMES[(Math.floor(v[0] * ASSISTANT_NAMES.length) + i * 7) % ASSISTANT_NAMES.length],
+      name: pool.length ? pool.splice(Math.floor(v[0] * pool.length), 1)[0] : ASSISTANT_NAMES[i],
       art,
       story,
       salary: 120 + Math.round((art + story) * 4),
@@ -228,7 +231,18 @@ function restAssistants(state: GameState, gain = 12): GameState {
 }
 
 function restPlayer(state: GameState, gain: number): GameState {
-  return { ...state, player: { ...state.player, stamina: clamp(state.player.stamina + gain, 0, state.player.maxStamina) } }
+  const stamina = clamp(state.player.stamina + gain, 0, state.player.maxStamina)
+  // Recovered means 60% of max: the same line the forced rest after a collapse uses.
+  return {
+    ...state,
+    player: { ...state.player, stamina },
+    lowStaminaWarned: stamina >= state.player.maxStamina * 0.6 ? false : state.lowStaminaWarned,
+  }
+}
+
+/** Forced rest until recovered; work resumes on its own once stamina is back to 60% of max. */
+function collapse(state: GameState, text: string): GameState {
+  return addLog({ ...state, activity: 'rest', recovering: true, lowStaminaWarned: false }, 'warn', text, true)
 }
 
 /** Reveal one unknown notebook cell. Returns the text of what was learned, or null. */
@@ -269,7 +283,7 @@ function bumpEditor(state: GameState, magazineId: MagazineId, amount: number): G
     s = revealed.state
     s = { ...s, editors: { ...s.editors, [magazineId]: { relationship, tips: owed } } }
     if (revealed.text) {
-      s = addLog(s, 'info', `${mag.editor} (${mag.name}) shares a tip: ${revealed.text}. Added to your Notebook.`, true)
+      s = addLog(s, 'info', `${mag.editor} at ${mag.name} passes on a tip: ${revealed.text}. Noted in your Notebook.`, true)
     }
   }
   return s
@@ -300,7 +314,9 @@ function makeProject(state: GameState, kind: Project['kind'], chapter: number, d
 
 export function setActivity(state: GameState, activity: Activity): GameState {
   if (state.trip) return state
-  // Choosing anything by hand ends the forced recovery.
+  // Nobody draws at zero stamina: rest until recovered, then work resumes on its own.
+  if (activity === 'work' && state.player.stamina <= 0) return { ...state, activity: 'rest', recovering: true }
+  // Choosing anything else by hand ends the forced recovery.
   return { ...state, activity, recovering: false }
 }
 
@@ -312,7 +328,9 @@ export function startProject(state: GameState, draft: ProjectDraft): GameState {
   if (state.project || state.trip) return state
   const title = draft.title.trim() || 'Untitled'
   const project = makeProject(state, 'oneshot', 0, { ...draft, title }, null)
-  const next: GameState = { ...state, project, nextProjectId: state.nextProjectId + 1, activity: 'work' }
+  const next: GameState = {
+    ...state, project, nextProjectId: state.nextProjectId + 1, activity: state.recovering ? 'rest' : 'work',
+  }
   return addLog(next, 'info', `Started "${title}". Time to draw.`, false)
 }
 
@@ -364,7 +382,9 @@ export function acceptOffer(state: GameState): GameState {
   }
   const project = makeProject({ ...state, nextProjectId: state.nextProjectId + 1 }, 'serial', 1, o, o.magazineId)
   const s: GameState = {
-    ...state, serial, project, pendingOffer: null, nextProjectId: state.nextProjectId + 2, activity: 'work',
+    ...state, serial, project, pendingOffer: null, nextProjectId: state.nextProjectId + 2,
+    // Drawing starts once the player is back from a trip or recovered; the offer itself is never blocked.
+    activity: state.recovering || state.trip ? 'rest' : 'work',
   }
   return addLog(s, 'series', `"${o.title}" is now serialised in ${magazineById(o.magazineId).name}. Chapter 1 is due.`, true)
 }
@@ -378,15 +398,34 @@ export function declineOffer(state: GameState): GameState {
 export function endSerial(state: GameState): GameState {
   const ser = state.serial
   if (!ser || ser.status !== 'running') return state
-  const bonusFans = Math.round(ser.popularity * 20)
+  const mag = magazineById(ser.magazineId)
+  // Loyal readers scale with how much of a first volume has polled, so accept-and-wrap earns nothing.
+  const earned = Math.min(1, ser.results.length / VOLUME_EVERY_CHAPTERS)
+  const bonusFans = Math.round(ser.popularity * 20 * earned)
+  // A climax volume needs a shipped volume behind it and real popularity (starting popularity is 50).
+  const climax = ser.results.length >= VOLUME_EVERY_CHAPTERS && ser.popularity >= SERIAL_CLIMAX_MIN_POPULARITY
+  const copies = climax ? Math.round(volumeCopies(state, mag, ser.popularity) * SERIAL_CLIMAX_VOLUME_MULT) : 0
+  const money = copies * VOLUME_PRICE
   let s: GameState = {
     ...state,
-    serial: { ...ser, status: 'ended', endedDay: state.day },
+    serial: {
+      ...ser,
+      status: 'ended',
+      endedDay: state.day,
+      volumes: ser.volumes + (climax ? 1 : 0),
+      totalCopies: ser.totalCopies + copies,
+      totalMoney: ser.totalMoney + money,
+    },
     project: state.project?.kind === 'serial' ? null : state.project,
     activity: 'rest',
-    player: { ...state.player, fans: state.player.fans + bonusFans },
+    player: { ...state.player, fans: state.player.fans + bonusFans, money: state.player.money + money },
   }
-  s = addLog(s, 'series', `You wrapped up "${ser.title}" after ${ser.chaptersSent} chapters. Loyal readers: +${bonusFans} fans.`, true)
+  const text = climax
+    ? `You wrapped up "${ser.title}" after ${ser.chaptersSent} chapters on a high. The final volume sold ${copies} copies: +¥${money}. Loyal readers: +${bonusFans} fans.`
+    : bonusFans > 0
+      ? `You wrapped up "${ser.title}" after ${ser.chaptersSent} chapters. Loyal readers: +${bonusFans} fans.`
+      : `You dropped "${ser.title}" before it found readers.`
+  s = addLog(s, 'series', text, true)
   return archiveSerialIfDone(s)
 }
 
@@ -427,6 +466,8 @@ function finishTrip(state: GameState): GameState {
   const trip = state.trip!
   const place = placeById(trip.placeId)
   let s: GameState = { ...state, trip: null }
+  // A project started or accepted while away picks up as soon as the player is home.
+  if (s.project?.status === 'drawing' && !s.recovering) s = { ...s, activity: 'work' }
   let text = ''
   switch (place.id) {
     case 'library': {
@@ -452,7 +493,11 @@ function finishTrip(state: GameState): GameState {
       text = 'Pacing +2.'
       break
     case 'hot-spring':
-      s = { ...s, player: { ...s.player, maxStamina: s.player.maxStamina + 3, stamina: s.player.maxStamina + 3 } }
+      s = {
+        ...s,
+        player: { ...s.player, maxStamina: s.player.maxStamina + 3, stamina: s.player.maxStamina + 3 },
+        lowStaminaWarned: false,
+      }
       text = 'Fully rested. Max stamina +3.'
       break
   }
@@ -504,16 +549,18 @@ function workDay(state: GameState): GameState {
     const done = { ...project, pagesDone: project.pagesTarget }
     if (done.kind === 'oneshot') {
       s = { ...s, project: { ...done, status: 'ready' }, activity: 'rest' }
-      s = addLog(s, 'success', `Manuscript for "${done.title}" is complete. Pick a magazine.`, true)
+      s = addLog(s, 'success', `Manuscript for "${done.title}" is complete. Press M to pitch it to a magazine.`, true)
     } else {
       s = sendChapter({ ...s, project: done })
     }
-  } else if (stamina === 0) {
-    // Collapse: forced rest until recovered, then back to the desk automatically.
-    s = { ...s, activity: 'rest', recovering: true }
-    s = addLog(s, 'warn', 'You collapsed from exhaustion. Resting until you recover, then back to the desk.', true)
-  } else if (stamina < LOW_STAMINA_THRESHOLD && state.player.stamina >= LOW_STAMINA_THRESHOLD) {
-    s = addLog(s, 'warn', 'Stamina is low. Progress is halved.', true)
+  }
+  // Stamina is checked whether or not the day finished a manuscript: a chapter done at zero still means a collapse.
+  if (stamina === 0) {
+    s = s.project?.status === 'drawing'
+      ? collapse(s, 'You collapsed from exhaustion. Resting until you recover, then back to the desk.')
+      : { ...s, recovering: true, lowStaminaWarned: false }
+  } else if (stamina < LOW_STAMINA_THRESHOLD && !s.lowStaminaWarned) {
+    s = addLog({ ...s, lowStaminaWarned: true }, 'warn', 'Stamina is low: pages come at half speed. Rest (R) to recover.', true)
   }
   return s
 }
@@ -542,6 +589,11 @@ function archiveSerialIfDone(state: GameState): GameState {
   return { ...state, serial: null, serials: [...state.serials, ser] }
 }
 
+/** Copies a volume sells: (fans + circulation x 20) x popularity. */
+export function volumeCopies(state: GameState, mag: Magazine, popularity: number): number {
+  return Math.round((state.player.fans + mag.circulation * 20) * (popularity / 100))
+}
+
 function resolveChapters(state: GameState): GameState {
   let s = state
   while (s.serial && s.serial.pending.length && s.serial.pending[0].resultsDay <= s.day) {
@@ -566,16 +618,16 @@ function resolveChapters(state: GameState): GameState {
       serial,
       player: { ...s.player, money: s.player.money + result.rewards.money, fans: s.player.fans + result.rewards.fans },
     }
-    s = addLog(s, 'series', `"${ser.title}" ch.${result.chapter} ranked #${result.rank} of ${result.entrants} (score ${result.score}).`, true)
+    s = addLog(s, 'series', `"${ser.title}" chapter ${result.chapter} placed #${result.rank} of ${result.entrants}, score ${result.score}. +¥${result.rewards.money}.`, true)
     s = grantXp(s, result.rewards.xp)
     s = bumpEditor(s, ser.magazineId, result.rank <= 3 ? 2 : 1)
 
     if (serial.results.length % VOLUME_EVERY_CHAPTERS === 0) {
-      const copies = Math.round((s.player.fans + mag.circulation * 20) * (popularity / 100))
+      const copies = volumeCopies(s, mag, popularity)
       const money = copies * VOLUME_PRICE
       serial = { ...serial, volumes: serial.volumes + 1, totalCopies: serial.totalCopies + copies, totalMoney: serial.totalMoney + money }
       s = { ...s, serial, player: { ...s.player, money: s.player.money + money } }
-      s = addLog(s, 'money', `Volume ${serial.volumes} of "${ser.title}" sold ${copies.toLocaleString()} copies: +¥${money.toLocaleString()}.`, true)
+      s = addLog(s, 'money', `Volume ${serial.volumes} of "${ser.title}" sold ${copies} copies: +¥${money}.`, true)
     }
 
     if (serial.status === 'running' && warnings >= SERIAL_WARNINGS_TO_CANCEL) {
@@ -588,7 +640,7 @@ function resolveChapters(state: GameState): GameState {
         activity: 'rest',
         player: { ...s.player, fans: s.player.fans - lost },
       }
-      s = addLog(s, 'warn', `${mag.name} cancelled "${ser.title}" after three weak chapters. Fans -${lost}.`, true)
+      s = addLog(s, 'warn', `${mag.name} cancelled "${ser.title}" after ${SERIAL_WARNINGS_TO_CANCEL} weak chapters. Fans -${lost}. A one-shot that places top ${SERIAL_OFFER_MIN_RANK} or scores ${SERIAL_OFFER_MIN_SCORE}+ earns a new offer.`, true)
     }
     s = archiveSerialIfDone(s)
   }
@@ -603,16 +655,15 @@ export function tick(state: GameState): GameState {
     s = restPlayer(s, 8)
     s = restAssistants(s)
     if (s.day >= endsDay) s = finishTrip(s)
-  } else if (s.activity === 'job') {
+  } else if (s.activity === 'job' && s.player.stamina > 0) {
+    // Same stamina rules as drawing: half pay when low, and hitting zero forces rest.
+    const stamina = clamp(s.player.stamina - JOB_STAMINA_COST, 0, s.player.maxStamina)
     s = {
       ...s,
-      player: {
-        ...s.player,
-        money: s.player.money + JOB_PAY_PER_DAY,
-        stamina: clamp(s.player.stamina - JOB_STAMINA_COST, 0, s.player.maxStamina),
-      },
+      player: { ...s.player, money: s.player.money + Math.round(JOB_PAY_PER_DAY * staminaFactor(s)), stamina },
     }
     s = restAssistants(s)
+    if (stamina === 0) s = collapse(s, 'You collapsed after the shift. Resting until you recover.')
   } else {
     const p = s.project
     // An exhausted mangaka sleeps through the day, whatever the plan was.
@@ -621,6 +672,8 @@ export function tick(state: GameState): GameState {
     else {
       s = restPlayer(s, REST_STAMINA_GAIN)
       s = restAssistants(s)
+      // A shift chosen at zero stamina is slept through and pays nothing.
+      if (s.activity === 'job') s = addLog({ ...s, activity: 'rest' }, 'warn', 'Too exhausted for a shift. You slept instead.', false)
       if (s.recovering && s.player.stamina >= s.player.maxStamina * 0.6) {
         const backToWork = !!s.project && s.project.status === 'drawing'
         s = { ...s, recovering: false, activity: backToWork ? 'work' : 'rest' }

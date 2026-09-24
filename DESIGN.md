@@ -78,10 +78,13 @@ The editor writes a one-line comment pointing at the weakest component.
 - A one-shot that ranks top 3 or scores 65+ earns a serialisation offer from that magazine (one serial at a time).
 - Chapters are 16 pages. A finished chapter goes to the weekly poll automatically and the next chapter starts at once.
   Chapter results never block play: they arrive as toasts and in the Series panel.
-- **Popularity** (0-100) is a moving average of poll placement. Three consecutive weak chapters (bottom 30%) cancel
-  the series and cost 10% of fans. Every 4 chapters a **volume** ships; copies = (fans + circulation x 20) x popularity.
+- **Popularity** (0-100) is a moving average of poll placement. Three consecutive weak chapters (roughly the bottom
+  quarter, rank > ceil(0.7 x entrants)) cancel the series and cost 10% of fans. Every 4 chapters a **volume** ships;
+  copies = (fans + circulation x 20) x popularity.
 - Freshness erodes 2 points per chapter after chapter 8, so every series has a natural arc. The player can wrap a
   series up at any time and converts popularity into loyal fans.
+- Wrapping up with popularity 50 or higher after at least one volume has shipped sells a final volume at 1.5x copies;
+  wrapping before any chapter has polled earns nothing.
 
 ### Staff
 - Up to 3 assistants. Three candidates rotate every 4 weeks. No hiring fee, weekly salary.
@@ -90,6 +93,7 @@ The editor writes a one-line comment pointing at the weakest component.
 
 ### Part-time job
 - A third daily activity: earns money, costs a little stamina, draws nothing. The money lifeline.
+  Same stamina rules as drawing: pay is halved when low, nothing at zero, and hitting zero forces rest.
 
 ### Trips and training
 - Library / Reader survey reveal Notebook cells. Classes add +2 to a stat. Hot spring restores and raises max stamina.

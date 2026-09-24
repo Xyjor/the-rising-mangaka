@@ -1,6 +1,7 @@
 import { genreThemeRating, themeAudienceRating } from './compat'
 import {
-  MAGAZINE_MISMATCH_PENALTY, RATING_SCORE, SCORE_WEIGHTS, STALENESS_PENALTY, magazineById,
+  MAGAZINE_MISMATCH_PENALTY, RATING_SCORE, SCORE_WEIGHTS, STALENESS_PENALTY, audienceById, genreById,
+  magazineById, themeById,
 } from './data'
 import { clamp, draw, gaussian } from './rng'
 import type {
@@ -41,7 +42,17 @@ export function rankScore(rank: number, entrants: number): number {
   return Math.round(100 * (1 - (rank - 1) / (entrants - 1)))
 }
 
-function editorComment(b: ScoreBreakdown, score: number): string {
+interface CommentContext {
+  mismatch: number
+  staleness: number
+  genre: GenreId
+  theme: ThemeId
+  audience: AudienceId
+  magAudience: AudienceId
+}
+
+/** One line from the editor that names the weakest component and a lever the player actually has. */
+function editorComment(b: ScoreBreakdown, score: number, ctx: CommentContext): string {
   const entries: [keyof ScoreBreakdown, number][] = [
     ['art', b.art], ['story', b.story], ['pacing', b.pacing],
     ['audienceFit', b.audienceFit], ['freshness', b.freshness],
@@ -49,14 +60,18 @@ function editorComment(b: ScoreBreakdown, score: number): string {
   entries.sort((a, z) => a[1] - z[1])
   const weakest = entries[0][0]
   const lines: Record<keyof ScoreBreakdown, string> = {
-    art: 'The linework is holding you back. Readers noticed the rough panels.',
-    story: 'The premise is fine, but the plot loses them halfway. Tighten the script.',
-    pacing: 'Scenes drag. Cut a page, earn a cliffhanger.',
-    audienceFit: 'This theme is not landing with the readers of that magazine.',
-    freshness: 'Readers have seen this pairing before. Surprise them next time.',
+    art: 'The linework is holding you back. Put skill points into Art, or hire a careful assistant.',
+    story: 'The premise is fine, but the plot loses them halfway. Put points into Story, or draw with story focus.',
+    pacing: 'Scenes drag. Raise Pacing with skill points or the Editing Seminar.',
+    audienceFit: ctx.mismatch > 0
+      ? `Our readers are ${audienceById(ctx.magAudience).name}; you drew this for ${audienceById(ctx.audience).name}. Pitch it to a magazine that matches.`
+      : `${themeById(ctx.theme).name} does not land with ${audienceById(ctx.audience).name} readers.`,
+    freshness: ctx.staleness > 0
+      ? 'Readers have seen this pairing from you before. Surprise them next time.'
+      : `${genreById(ctx.genre).name} and ${themeById(ctx.theme).name} never clicked. Try another pairing; the rating is in your Notebook.`,
   }
   const opener =
-    score >= 80 ? 'Excellent work.' : score >= 60 ? 'Solid.' : score >= 40 ? 'Not bad, but.' : 'Rough one.'
+    score >= 80 ? 'Excellent work. One nitpick:' : score >= 60 ? 'Solid.' : score >= 40 ? 'Not bad.' : 'Rough one.'
   return `${opener} ${lines[weakest]}`
 }
 
@@ -154,7 +169,9 @@ export function evaluateProject(
     },
     genreThemeRating: genreThemeRating(state.worldSeed, project.genre, project.theme),
     themeAudienceRating: themeAudienceRating(state.worldSeed, project.theme, project.audience),
-    editorComment: editorComment(breakdown, score),
+    editorComment: editorComment(breakdown, score, {
+      mismatch, staleness, genre: project.genre, theme: project.theme, audience: project.audience, magAudience: mag.audience,
+    }),
     pages: project.pagesDone,
   }
   return { result, seed }
