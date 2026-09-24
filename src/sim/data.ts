@@ -41,22 +41,22 @@ export const MAGAZINES: Magazine[] = [
   {
     id: 'weekly-bolt', name: 'Weekly Bolt', audience: 'teens',
     pageRate: 110, circulation: 180, rivalMean: 58, entrants: 12,
-    blurb: 'The big weekly. Fierce polls, huge readership.', editor: 'Tanaka',
+    blurb: 'The big weekly. Twelve rivals in every poll and the biggest readership in town.', editor: 'Tanaka',
   },
   {
     id: 'monthly-petal', name: 'Monthly Petal', audience: 'young-adults',
     pageRate: 130, circulation: 90, rivalMean: 52, entrants: 8,
-    blurb: 'Romance-leaning monthly with loyal readers.', editor: 'Sato',
+    blurb: 'A quieter book for young adults. Fewer rivals, a little more per page.', editor: 'Sato',
   },
   {
     id: 'ultra-seinen', name: 'Ultra Seinen', audience: 'adults',
     pageRate: 150, circulation: 70, rivalMean: 62, entrants: 8,
-    blurb: 'Prestige anthology. Pays well, expects craft.', editor: 'Kuroda',
+    blurb: 'Prestige anthology for grown-ups. Best page rate going, and the toughest rivals.', editor: 'Kuroda',
   },
   {
     id: 'kids-comic', name: 'Kids Comic Go!', audience: 'kids',
     pageRate: 90, circulation: 120, rivalMean: 45, entrants: 10,
-    blurb: 'Friendly polls and a forgiving readership.', editor: 'Mori',
+    blurb: 'Bright, loud, and forgiving. The easiest polls to win, the lowest page rate.', editor: 'Mori',
   },
 ]
 
@@ -70,10 +70,10 @@ export const PLACES: Place[] = [
 ]
 
 export const TRAITS: Record<AssistantTrait, { name: string; blurb: string }> = {
-  fast: { name: 'Fast', blurb: '+30% pages per day' },
-  careful: { name: 'Careful', blurb: '+8 to their quality contribution' },
-  inspiring: { name: 'Inspiring', blurb: 'You lose 1 less stamina per working day' },
-  steady: { name: 'Steady', blurb: 'Never tires' },
+  fast: { name: 'Fast', blurb: 'Draws 30% more pages a day' },
+  careful: { name: 'Careful', blurb: 'Their pages score 8 higher in art and story' },
+  inspiring: { name: 'Inspiring', blurb: 'Working costs you 4 stamina a day instead of 5' },
+  steady: { name: 'Steady', blurb: 'Never tires, never slows down' },
 }
 
 export const ASSISTANT_NAMES = [
@@ -109,6 +109,10 @@ export const MAX_ASSISTANTS = 3
 export const CANDIDATE_REFRESH_DAYS = 28
 export const VOLUME_EVERY_CHAPTERS = 4
 export const VOLUME_PRICE = 2
+/** Wrapping a serial at this popularity or higher (after at least one volume) ships a final volume. */
+export const SERIAL_CLIMAX_MIN_POPULARITY = 50
+/** The final volume sells this many times the copies of a regular volume. */
+export const SERIAL_CLIMAX_VOLUME_MULT = 1.5
 export const SERIAL_WARNINGS_TO_CANCEL = 3
 export const SERIAL_OFFER_MIN_RANK = 3
 export const SERIAL_OFFER_MIN_SCORE = 65

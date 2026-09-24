@@ -227,6 +227,8 @@ export interface GameState {
   activity: Activity
   /** true while forced to rest after collapsing; work resumes automatically once recovered */
   recovering: boolean
+  /** true once the low-stamina warning has fired; cleared when stamina recovers to 60% of max */
+  lowStaminaWarned: boolean
   focus: Focus
   history: PollResult[]
   serial: Serial | null
