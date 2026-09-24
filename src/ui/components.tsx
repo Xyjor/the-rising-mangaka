@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { RATING_LABEL } from '../sim'
 import type { ChapterResult, Rating } from '../sim'
 import { Icon } from './Icon'
@@ -30,8 +30,8 @@ export function Pips({ rating, title }: { rating: Rating | null; title?: string 
     <span
       className={`pips ${unknown ? 'unknown' : ''}`}
       data-r={unknown ? undefined : rating}
-      title={title ?? (unknown ? 'Unknown' : RATING_LABEL[rating])}
-      aria-label={unknown ? 'Unknown rating' : `${RATING_LABEL[rating]} rating`}
+      title={title ?? (unknown ? 'Untested' : RATING_LABEL[rating])}
+      aria-label={unknown ? 'Untested pairing' : `${RATING_LABEL[rating]} rating`}
     >
       <i /><i /><i /><i /><i />
     </span>
@@ -39,43 +39,69 @@ export function Pips({ rating, title }: { rating: Rating | null; title?: string 
 }
 
 export function RatingText({ rating }: { rating: Rating | null }) {
-  if (rating === null) return <span className="faint">Unknown</span>
+  if (rating === null) return <span className="faint">Untested</span>
   return (
-    <span style={{ color: `var(--rating-${rating})`, fontWeight: 800 }}>{RATING_LABEL[rating]}</span>
+    <span style={{ color: `var(--rating-${rating}-text)`, fontWeight: 800 }}>{RATING_LABEL[rating]}</span>
   )
 }
 
+/**
+ * A native <dialog> opened with showModal(): the browser keeps focus inside, makes the rest of
+ * the page inert and routes Escape through onCancel. Without `onClose` the dialog is a decision
+ * the player must make (poll result, offer), so Escape and backdrop clicks do nothing and a
+ * forced close (Chromium's close watcher on a second Escape) re-opens it.
+ */
 export function Modal({
-  title, sub, children, footer, onClose, narrow = false, closeLabel = 'Close',
+  title, sub, children, footer, onClose, narrow = false, closeLabel = 'Close', describedBy,
 }: {
   title: string; sub?: string; children: ReactNode; footer?: ReactNode
-  onClose?: () => void; narrow?: boolean; closeLabel?: string
+  onClose?: () => void; narrow?: boolean; closeLabel?: string; describedBy?: string
 }) {
+  const ref = useRef<HTMLDialogElement>(null)
+  const id = useId()
   useEffect(() => {
-    if (!onClose) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+    const d = ref.current!
+    const opener = document.activeElement as HTMLElement | null
+    if (!d.open) d.showModal()
+    // React does not emit the autofocus attribute and its own autoFocus call runs before
+    // showModal (while the dialog is display:none), so focus the first useful control here.
+    const first = d.querySelector<HTMLElement>('[data-autofocus]')
+      ?? d.querySelector<HTMLElement>('.modal-body .choice')
+      ?? d.querySelector<HTMLElement>('.modal-body button:not(:disabled), .modal-body input, .modal-body select')
+      ?? d.querySelector<HTMLElement>('.modal-foot .btn.primary:not(:disabled)')
+      ?? d
+    first.focus()
+    return () => {
+      if (d.open) d.close()
+      if (opener?.isConnected) opener.focus()
+    }
+  }, [])
 
   return (
-    <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget && onClose) onClose() }}>
-      <div className={`modal ${narrow ? 'narrow' : ''}`} role="dialog" aria-modal="true" aria-label={title}>
-        <div className="modal-head">
-          <div>
-            <h2>{title}</h2>
-            {sub && <div className="small muted">{sub}</div>}
-          </div>
-          {onClose && (
-            <button className="btn ghost icon" onClick={onClose} aria-label={closeLabel} title={`${closeLabel} (Esc)`}>
-              <Icon name="close" />
-            </button>
-          )}
+    <dialog
+      ref={ref}
+      className={`modal ${narrow ? 'narrow' : ''}`}
+      aria-labelledby={id}
+      aria-describedby={describedBy}
+      tabIndex={-1}
+      onCancel={(e) => { e.preventDefault(); onClose?.() }}
+      onClose={() => { if (onClose) onClose(); else ref.current?.showModal() }}
+      onMouseDown={(e) => { if (e.target === e.currentTarget && onClose) onClose() }}
+    >
+      <div className="modal-head">
+        <div>
+          <h2 id={id}>{title}</h2>
+          {sub && <div className="small muted">{sub}</div>}
         </div>
-        <div className="modal-body">{children}</div>
-        {footer && <div className="modal-foot">{footer}</div>}
+        {onClose && (
+          <button className="btn ghost icon" onClick={onClose} aria-label={closeLabel} title={`${closeLabel} (Esc)`}>
+            <Icon name="close" />
+          </button>
+        )}
       </div>
-    </div>
+      <div className="modal-body">{children}</div>
+      {footer && <div className="modal-foot">{footer}</div>}
+    </dialog>
   )
 }
 
