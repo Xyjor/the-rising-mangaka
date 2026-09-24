@@ -85,7 +85,13 @@ export function Modal({
       aria-describedby={describedBy}
       tabIndex={-1}
       onCancel={(e) => { e.preventDefault(); onClose?.() }}
-      onClose={() => { if (onClose) onClose(); else ref.current?.showModal() }}
+      // `close` is dispatched asynchronously; a stale one (StrictMode's effect cleanup + re-run
+      // closes and re-opens before it fires) arrives while the dialog is open again. Ignore it.
+      onClose={() => {
+        const d = ref.current
+        if (!d || d.open) return
+        if (onClose) onClose(); else d.showModal()
+      }}
       onMouseDown={(e) => { if (e.target === e.currentTarget && onClose) onClose() }}
     >
       <div className="modal-head">

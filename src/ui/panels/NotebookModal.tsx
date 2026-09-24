@@ -25,7 +25,7 @@ export function NotebookModal() {
             {[0, 1, 2, 3, 4].map((r) => (
               <span key={r}><i style={{ background: `var(--rating-${r})` }} />{LETTER[r]} {RATING_LABEL[r]}</span>
             ))}
-            <span><i style={{ border: '1.5px dashed var(--line)' }} />Untested</span>
+            <span><i style={{ border: '1px dashed var(--ink-3)' }} />Untested</span>
           </div>
         </div>
 
