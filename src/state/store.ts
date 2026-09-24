@@ -1,7 +1,10 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import type { PersistStorage, StorageValue } from 'zustand/middleware'
 import * as sim from '../sim'
 import type { Activity, Focus, GameState, LogKind, MagazineId, PlaceId, ProjectDraft, StatId } from '../sim'
+import { upgradeSave } from '../sim/migrate'
+import { claim, isOwner, startTabLock } from './tabLock'
 
 export type Speed = 0 | 1 | 2 | 3
 export type RunSpeed = Exclude<Speed, 0>
@@ -13,6 +16,11 @@ export interface Toast { id: number; kind: LogKind; text: string }
 
 export const SPEED_MS: Record<RunSpeed, number> = { 1: 1000, 2: 500, 3: 220 }
 const SAVE_VERSION = 2
+export const SAVE_KEY = 'rising-mangaka-save'
+/** How long the save waits for more changes before it is written. */
+const SAVE_DEBOUNCE_MS = 800
+/** The log is trimmed to what the EventLog shows; the live state keeps the full log. */
+const SAVED_LOG_ENTRIES = 80
 
 interface Store {
   game: GameState | null
@@ -23,8 +31,12 @@ interface Store {
   theme: ThemeMode
   /** -1 when the player dismissed tips */
   tutorialStep: number
+  /** True while another tab owns the save: this tab mirrors it and its clock never runs. */
+  readOnly: boolean
 
   newGame: (name: string) => void
+  /** Claim the save for this tab and reload the latest state from storage. */
+  takeOver: () => void
   abandonGame: () => void
   tick: () => void
   setSpeed: (s: Speed) => void
@@ -64,6 +76,87 @@ function mergeToasts(current: Toast[], added: Toast[]): Toast[] {
   return [...current, ...fresh].slice(-5)
 }
 
+/** The slice of the store that reaches localStorage. */
+interface Persisted {
+  game: GameState | null
+  theme: ThemeMode
+  resumeSpeed: RunSpeed
+  tutorialStep: number
+}
+
+/**
+ * Debounced, de-duplicated, single-writer save storage. Zustand's persist calls setItem on every set();
+ * this only accepts a value when one of the persisted fields changed by reference, writes it after a short
+ * quiet period (at once when a game starts, ends or is replaced), and never writes while another tab owns
+ * the save. The saved log is trimmed to what the EventLog shows.
+ */
+let lastAccepted: Persisted | null = null
+let pending: { name: string; value: StorageValue<Persisted> } | null = null
+let flushTimer: ReturnType<typeof setTimeout> | null = null
+
+function cancelFlush() {
+  if (flushTimer !== null) clearTimeout(flushTimer)
+  flushTimer = null
+}
+
+function flush() {
+  cancelFlush()
+  const job = pending
+  pending = null
+  if (!job || !isOwner()) return
+  const { name, value } = job
+  const game = value.state.game
+  const state: Persisted = { ...value.state, game: game && { ...game, log: game.log.slice(-SAVED_LOG_ENTRIES) } }
+  try {
+    localStorage.setItem(name, JSON.stringify({ version: value.version, state }))
+  } catch {
+    /* quota or privacy mode: the game keeps running unsaved */
+  }
+}
+
+const saveStorage: PersistStorage<Persisted> = {
+  getItem: (name) => {
+    try {
+      const raw = localStorage.getItem(name)
+      return raw ? (JSON.parse(raw) as StorageValue<Persisted>) : null
+    } catch {
+      return null
+    }
+  },
+  setItem: (name, value) => {
+    if (!isOwner()) return
+    const s = value.state
+    const last = lastAccepted
+    if (
+      last &&
+      s.game === last.game &&
+      s.theme === last.theme &&
+      s.resumeSpeed === last.resumeSpeed &&
+      s.tutorialStep === last.tutorialStep
+    ) return
+    const gameReplaced =
+      !!s.game !== !!last?.game || (!!s.game && !!last?.game && s.game.worldSeed !== last.game.worldSeed)
+    lastAccepted = s
+    pending = { name, value }
+    if (gameReplaced) {
+      flush()
+      return
+    }
+    cancelFlush()
+    flushTimer = setTimeout(flush, SAVE_DEBOUNCE_MS)
+  },
+  removeItem: (name) => {
+    cancelFlush()
+    pending = null
+    lastAccepted = null
+    try {
+      localStorage.removeItem(name)
+    } catch {
+      /* nothing to remove */
+    }
+  },
+}
+
 export const useStore = create<Store>()(
   persist(
     (set, get) => {
@@ -89,6 +182,17 @@ export const useStore = create<Store>()(
         toasts: [],
         theme: 'auto',
         tutorialStep: 0,
+        readOnly: false,
+
+        takeOver: () => {
+          claim()
+          // Drop any write the read-only tab queued from local-only changes, then load the owner's save before
+          // flipping the flag so nothing stale can overwrite it.
+          cancelFlush()
+          pending = null
+          void useStore.persist.rehydrate()
+          set({ readOnly: false })
+        },
 
         newGame: (name) => {
           const seed = (Date.now() ^ (Math.random() * 0xffffffff)) | 0
@@ -152,9 +256,17 @@ export const useStore = create<Store>()(
       }
     },
     {
-      name: 'rising-mangaka-save',
+      name: SAVE_KEY,
       version: SAVE_VERSION,
-      partialize: (s) => ({ game: s.game, theme: s.theme, resumeSpeed: s.resumeSpeed, tutorialStep: s.tutorialStep }),
+      storage: saveStorage,
+      partialize: (s): Persisted => ({ game: s.game, theme: s.theme, resumeSpeed: s.resumeSpeed, tutorialStep: s.tutorialStep }),
+      merge: (persisted, current) => {
+        const p = (persisted ?? {}) as Partial<Store>
+        const merged: Store = { ...current, ...p, game: p.game ? upgradeSave(p.game) : null }
+        // What just loaded is the baseline for the reference check, so opening a modal after a reload does not write.
+        lastAccepted = { game: merged.game, theme: merged.theme, resumeSpeed: merged.resumeSpeed, tutorialStep: merged.tutorialStep }
+        return merged
+      },
       migrate: (persisted, version) => {
         const p = (persisted ?? {}) as Partial<Store>
         const base = {
@@ -170,3 +282,19 @@ export const useStore = create<Store>()(
     },
   ),
 )
+
+// ---------- browser wiring: flush on leave, one writer tab at a time ----------
+
+if (typeof window !== 'undefined') {
+  // A debounced write must not be lost when the tab closes or goes to the background.
+  window.addEventListener('pagehide', flush)
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') flush()
+  })
+
+  // Only the owner tab writes the save and runs the clock; the others mirror it read-only.
+  startTabLock((owner) => useStore.setState(owner ? { readOnly: false } : { readOnly: true, speed: 0 }))
+  window.addEventListener('storage', (e) => {
+    if (e.key === SAVE_KEY && useStore.getState().readOnly) void useStore.persist.rehydrate()
+  })
+}

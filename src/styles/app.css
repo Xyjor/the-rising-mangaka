@@ -373,3 +373,13 @@
 .title-card { width: min(520px, 100%); display: flex; flex-direction: column; gap: 18px; text-align: center; }
 .title-card h1 { font-family: var(--font-display); font-size: clamp(44px, 9vw, 72px); line-height: 0.95; letter-spacing: 0.03em; }
 .title-card h1 span { display: block; color: var(--accent); }
+
+/* ---------- tab lock banner ---------- */
+.tab-banner {
+  display: flex; align-items: center; justify-content: center; gap: 12px; padding: 8px 16px;
+  background: var(--gold-soft); border-bottom: 2px solid var(--gold);
+  font-size: 13px; font-weight: 700;
+}
+
+/* The banner is a fourth grid child of .app; give it its own row so hud, main and log keep theirs. */
+.app:has(> .tab-banner) { grid-template-rows: auto auto 1fr auto; }
