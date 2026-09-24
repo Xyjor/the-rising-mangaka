@@ -1,9 +1,11 @@
 import { useState } from 'react'
-import { describeDate } from '../sim'
+import { shortDate } from '../sim'
 import { useStore } from '../state/store'
 
+const EMPTY: never[] = []
+
 export function EventLog() {
-  const log = useStore((s) => s.game?.log ?? [])
+  const log = useStore((s) => s.game?.log ?? EMPTY)
   const [open, setOpen] = useState(false)
   const entries = open ? log.slice(-80).reverse() : log.slice(-1)
 
@@ -16,16 +18,13 @@ export function EventLog() {
         </button>
       </div>
       <ul>
-        {entries.map((e) => {
-          const d = describeDate(e.day)
-          return (
-            <li key={e.id} data-kind={e.kind}>
-              <span className="dot" aria-hidden />
-              <span className="day">Y{d.year} M{d.month} W{d.week} D{d.day}</span>
-              <span>{e.text}</span>
-            </li>
-          )
-        })}
+        {entries.map((e) => (
+          <li key={e.id} data-kind={e.kind}>
+            <span className="dot" aria-hidden />
+            <span className="day">{shortDate(e.day, { week: true })}</span>
+            <span>{e.text}</span>
+          </li>
+        ))}
       </ul>
     </section>
   )

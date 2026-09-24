@@ -85,6 +85,16 @@ export function describeDate(day: number): DateParts {
   }
 }
 
+/** Prose date for logs and tables: 'Month 4', 'Month 4, week 4, day 4', 'Year 2, month 1'. The year is only named after the first one. */
+export function shortDate(day: number, opts: { week?: boolean } = {}): string {
+  const d = describeDate(day)
+  const parts = [`month ${d.month}`]
+  if (d.year > 1) parts.unshift(`year ${d.year}`)
+  if (opts.week) parts.push(`week ${d.week}`, `day ${d.day}`)
+  const text = parts.join(', ')
+  return text.charAt(0).toUpperCase() + text.slice(1)
+}
+
 export function staminaFactor(state: GameState): number {
   const s = state.player.stamina
   if (s <= 0) return 0
