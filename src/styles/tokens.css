@@ -9,11 +9,11 @@
   --paper-3: #e6e0d3;
   --ink: #16161a;
   --ink-2: #4a4a52;
-  --ink-3: #8a8a94;
+  --ink-3: #66666f;
   --line: #d9d3c5;
   --line-strong: #16161a;
 
-  --accent: #e5484d;
+  --accent: #cc383d;
   --accent-ink: #ffffff;
   --accent-soft: #fde4e5;
   --blue: #2f5ecf;
@@ -30,6 +30,19 @@
   --rating-2: #c9b400;
   --rating-3: #3fa66c;
   --rating-4: #2f5ecf;
+
+  /* Text-on-paper variants of the accent and rating colours: the fills above are for
+     chips, bars and cells; these pass 4.5:1 as text on --paper and on the *-soft fills.
+     scripts/contrast.ts checks every pair. */
+  --accent-text: #b2302f;
+  --blue-text: #2449a8;
+  --green-text: #23784a;
+  --purple-text: #6a3fd9;
+  --rating-0-text: #b8302c;
+  --rating-1-text: #9a5a00;
+  --rating-2-text: #6f6300;
+  --rating-3-text: #23784a;
+  --rating-4-text: #2449a8;
 
   --shadow-1: 0 1px 2px rgba(22, 22, 26, 0.08), 0 2px 8px rgba(22, 22, 26, 0.06);
   --shadow-2: 0 4px 16px rgba(22, 22, 26, 0.12), 0 12px 40px rgba(22, 22, 26, 0.1);
@@ -63,7 +76,7 @@
     --paper-3: #2a2d38;
     --ink: #f2efe6;
     --ink-2: #b9b6ad;
-    --ink-3: #7e7c78;
+    --ink-3: #a19e97;
     --line: #33364a;
     --line-strong: #f2efe6;
     --accent-soft: #3a1f22;
@@ -74,6 +87,15 @@
     --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
     --shadow-2: 0 4px 16px rgba(0, 0, 0, 0.5), 0 12px 40px rgba(0, 0, 0, 0.4);
     --shadow-ink: 4px 4px 0 var(--ink);
+    --accent-text: #ff7370;
+    --blue-text: #8fa9ff;
+    --green-text: #6fd39a;
+    --purple-text: #b9a2ff;
+    --rating-0-text: #ff7370;
+    --rating-1-text: var(--rating-1);
+    --rating-2-text: var(--rating-2);
+    --rating-3-text: var(--rating-3);
+    --rating-4-text: #8fa9ff;
     --halftone: radial-gradient(rgba(242, 239, 230, 0.12) 1px, transparent 1.2px);
     color-scheme: dark;
   }
@@ -85,7 +107,7 @@
   --paper-3: #2a2d38;
   --ink: #f2efe6;
   --ink-2: #b9b6ad;
-  --ink-3: #7e7c78;
+  --ink-3: #a19e97;
   --line: #33364a;
   --line-strong: #f2efe6;
   --accent-soft: #3a1f22;
@@ -96,6 +118,15 @@
   --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
   --shadow-2: 0 4px 16px rgba(0, 0, 0, 0.5), 0 12px 40px rgba(0, 0, 0, 0.4);
   --shadow-ink: 4px 4px 0 var(--ink);
+  --accent-text: #ff7370;
+  --blue-text: #8fa9ff;
+  --green-text: #6fd39a;
+  --purple-text: #b9a2ff;
+  --rating-0-text: #ff7370;
+  --rating-1-text: var(--rating-1);
+  --rating-2-text: var(--rating-2);
+  --rating-3-text: var(--rating-3);
+  --rating-4-text: #8fa9ff;
   --halftone: radial-gradient(rgba(242, 239, 230, 0.12) 1px, transparent 1.2px);
   color-scheme: dark;
 }

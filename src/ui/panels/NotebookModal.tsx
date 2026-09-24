@@ -23,9 +23,9 @@ export function NotebookModal() {
           </div>
           <div className="legend">
             {[0, 1, 2, 3, 4].map((r) => (
-              <span key={r}><i style={{ background: `var(--rating-${r})` }} />{RATING_LABEL[r]}</span>
+              <span key={r}><i style={{ background: `var(--rating-${r})` }} />{LETTER[r]} {RATING_LABEL[r]}</span>
             ))}
-            <span><i style={{ border: '1.5px dashed var(--line)' }} />Unknown</span>
+            <span><i style={{ border: '1px dashed var(--ink-3)' }} />Untested</span>
           </div>
         </div>
 
@@ -59,8 +59,9 @@ function Row({ label, cells }: { label: string; cells: { key: string; r: number 
     <>
       <div className="hdr row">{label}</div>
       {cells.map((c) => (
-        <div key={c.key} className="nb-cell" data-r={c.r} title={`${c.title}: ${c.r === undefined ? 'Unknown' : RATING_LABEL[c.r]}`}>
-          {c.r === undefined ? '?' : LETTER[c.r]}
+        <div key={c.key} className="nb-cell" data-r={c.r} title={`${c.title}: ${c.r === undefined ? 'Untested' : RATING_LABEL[c.r]}`}>
+          <span aria-hidden="true">{c.r === undefined ? '?' : LETTER[c.r]}</span>
+          <span className="sr-only">{c.title}: {c.r === undefined ? 'Untested' : RATING_LABEL[c.r]}</span>
         </div>
       ))}
     </>

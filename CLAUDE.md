@@ -46,7 +46,8 @@ Every change must pass `npx tsc -b`, `npm test`, and `npm run build` before it i
 - Labels are sentence case (`.lbl` class), never tracked all-caps. No middle-dot `·` separators in copy; use commas
   or sentences.
 - Buttons say what they do ("Submit manuscript", "Wrap up the series"). Errors and empty states say what to do next.
-- Touch targets are at least 44px on coarse pointers (`base.css` handles `.btn` and `.seg button`).
+- Touch targets are at least 44px on coarse pointers (`base.css` handles `.btn`, `.seg button`, `.steps button`,
+  `.toast button` and `.hud-bar.as-button`).
 - Colours come from tokens (`var(--accent)` etc.), never raw hex in components. Both themes must work.
 - Charts: one axis, thin marks, direct label on the last point, hover tooltip, a table view alongside.
 - Every result explains itself (the "show the why" pillar). Never add a hidden modifier without a UI hint.

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useLayoutEffect } from 'react'
 import { getPhase } from '../sim'
 import { SPEED_MS, useStore } from '../state/store'
 import { EventLog } from './EventLog'
@@ -21,7 +21,8 @@ import { StudioScene } from './scene/StudioScene'
 
 function useTheme() {
   const theme = useStore((s) => s.theme)
-  useEffect(() => {
+  // Layout effect so the saved theme lands before the first paint (index.html pre-applies it too).
+  useLayoutEffect(() => {
     const root = document.documentElement
     if (theme === 'auto') root.removeAttribute('data-theme')
     else root.setAttribute('data-theme', theme)
