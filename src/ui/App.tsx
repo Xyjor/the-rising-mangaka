@@ -50,11 +50,14 @@ function useHotkeys() {
       const target = e.target as HTMLElement | null
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT')) return
       if (e.ctrlKey || e.metaKey || e.altKey) return
+      if (e.repeat) return
       const st = useStore.getState()
       if (!st.game) return
       const phase = getPhase(st.game)
       const blocked = st.modal !== 'none' || !!st.game.pendingResult || !!st.game.pendingOffer
       if (blocked) return
+      const trip = !!st.game.trip
+      const canPickActivity = !trip && (phase === 'idle' || phase === 'drawing' || phase === 'submitted')
       switch (e.key.toLowerCase()) {
         case ' ': e.preventDefault(); st.togglePause(); break
         case '1': case '2': case '3': st.setSpeed(Number(e.key) as 1 | 2 | 3); break
@@ -65,9 +68,9 @@ function useHotkeys() {
         case 'h': st.openModal('history'); break
         case 'a': st.openModal('staff'); break
         case 't': st.openModal('trips'); break
-        case 'w': if (phase === 'drawing') st.setActivity('work'); break
-        case 'r': st.setActivity('rest'); break
-        case 'j': st.setActivity('job'); break
+        case 'w': if (!trip && phase === 'drawing') st.setActivity('work'); break
+        case 'r': if (canPickActivity) st.setActivity('rest'); break
+        case 'j': if (canPickActivity) st.setActivity('job'); break
       }
     }
     window.addEventListener('keydown', onKey)

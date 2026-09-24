@@ -20,7 +20,7 @@ export function TripsModal() {
               <div className="place" key={pl.id}>
                 <div className="name">{pl.name}</div>
                 <button className="btn sm primary" disabled={busy || !canAfford} onClick={() => startTrip(pl.id)}>
-                  {busy ? 'Away' : canAfford ? `Go, ${money(pl.cost)}` : 'Too pricey'}
+                  {busy ? 'Away' : canAfford ? `Go, ${money(pl.cost)}` : `Need ${money(pl.cost - game.player.money)} more`}
                 </button>
                 <div className="meta">{pl.days} days. {pl.blurb}</div>
                 <div className="effect">{pl.effect}</div>

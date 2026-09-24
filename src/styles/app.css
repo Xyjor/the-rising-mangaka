@@ -159,10 +159,6 @@
 .warnings i { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid var(--accent); }
 .warnings i.on { background: var(--accent); }
 
-.serial-status { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; }
-.serial-status .k { font-size: 12px; font-weight: 700; color: var(--ink-3); }
-.serial-status .v { font-weight: 800; }
-
 /* ---------- rank chart ---------- */
 .rank-chart { width: 100%; height: auto; display: block; overflow: visible; }
 .rank-chart .grid { stroke: var(--line); stroke-width: 1; }

@@ -1,12 +1,12 @@
-import { xpToNext } from '../../sim'
+import { SCORE_WEIGHTS, xpToNext } from '../../sim'
 import type { StatId } from '../../sim'
 import { useStore } from '../../state/store'
 import { Bar, Modal, compact, money } from '../components'
 
 const STATS: { id: StatId; name: string; blurb: string; tone: string }[] = [
-  { id: 'art', name: 'Art', blurb: 'Panel quality and drawing speed', tone: 'blue' },
-  { id: 'story', name: 'Story', blurb: 'Script quality and drawing speed', tone: 'purple' },
-  { id: 'pacing', name: 'Pacing', blurb: 'Reader engagement in polls', tone: 'gold' },
+  { id: 'art', name: 'Art', blurb: `Art score in polls (${Math.round(SCORE_WEIGHTS.art * 100)}%), and pages per day`, tone: 'blue' },
+  { id: 'story', name: 'Story', blurb: `Story score in polls (${Math.round(SCORE_WEIGHTS.story * 100)}%), and pages per day`, tone: 'purple' },
+  { id: 'pacing', name: 'Pacing', blurb: `Pacing score in polls (${Math.round(SCORE_WEIGHTS.pacing * 100)}%). Raise it with points or the Editing Seminar`, tone: 'gold' },
 ]
 
 export function StatsModal() {

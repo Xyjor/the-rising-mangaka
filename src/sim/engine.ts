@@ -118,6 +118,18 @@ export function studioPagesPerDay(state: GameState): number {
   return basePagesPerDay(state) + state.assistants.reduce((sum, a) => sum + assistantPagesPerDay(a), 0)
 }
 
+/** Expected pages the studio will draw on the next working day, mirroring workDay/tick (no noise). */
+export function expectedPagesToday(state: GameState): number {
+  if (state.player.stamina <= 0) return 0
+  const player = basePagesPerDay(state) * staminaFactor(state)
+  const staff = state.assistants.reduce((sum, a) => {
+    if (a.trait === 'steady') return sum + assistantPagesPerDay(a)
+    const eff = a.stamina <= 0 ? 0 : a.stamina < LOW_STAMINA_THRESHOLD ? 0.5 : 1
+    return sum + assistantPagesPerDay(a) * eff
+  }, 0)
+  return player + staff
+}
+
 export function weeklyCosts(state: GameState): number {
   return WEEKLY_LIVING_COST + state.assistants.reduce((sum, a) => sum + a.salary, 0)
 }

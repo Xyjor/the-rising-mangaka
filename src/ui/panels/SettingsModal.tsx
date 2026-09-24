@@ -1,5 +1,6 @@
-import { Fragment, useState } from 'react'
+import { Fragment } from 'react'
 import { useStore } from '../../state/store'
+import { ConfirmRow } from '../ConfirmRow'
 import { Modal } from '../components'
 
 const KEYS: [string, string][] = [
@@ -13,7 +14,6 @@ export function SettingsModal() {
   const theme = useStore((s) => s.theme)
   const setTheme = useStore((s) => s.setTheme)
   const abandon = useStore((s) => s.abandonGame)
-  const [confirm, setConfirm] = useState(false)
 
   return (
     <Modal title="Settings" onClose={closeModal} narrow>
@@ -43,9 +43,7 @@ export function SettingsModal() {
             <div style={{ fontWeight: 800 }}>Start over</div>
             <div className="tiny faint">Deletes this save. There is no undo.</div>
           </div>
-          {confirm
-            ? <div className="row"><button className="btn ghost sm" onClick={() => setConfirm(false)}>Keep playing</button><button className="btn primary sm" onClick={abandon}>Yes, delete save</button></div>
-            : <button className="btn sm" onClick={() => setConfirm(true)}>New game…</button>}
+          <ConfirmRow label="New game…" confirmLabel="Yes, delete save" cancelLabel="Keep playing" onConfirm={abandon} />
         </div>
       </div>
     </Modal>

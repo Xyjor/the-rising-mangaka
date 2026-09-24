@@ -27,10 +27,15 @@ export function SeriesModal() {
   )
 }
 
+// Kept beside SeriesDetail so the header import stays untouched; ESM hoists it like any other import.
+import { SERIAL_WARNINGS_TO_CANCEL, VOLUME_EVERY_CHAPTERS } from '../../sim'
+
 function SeriesDetail({ ser }: { ser: Serial }) {
   const mag = magazineById(ser.magazineId)
   const started = describeDate(ser.startedDay)
   const best = ser.results.reduce((b, r) => Math.min(b, r.rank), Infinity)
+  const untilVolume = VOLUME_EVERY_CHAPTERS - (ser.results.length % VOLUME_EVERY_CHAPTERS)
+  const warningsLeft = SERIAL_WARNINGS_TO_CANCEL - ser.warnings
   const statusChip = ser.status === 'running' ? <span className="chip green">Running</span>
     : ser.status === 'ended' ? <span className="chip blue">Completed</span> : <span className="chip accent">Cancelled</span>
   return (
@@ -49,6 +54,20 @@ function SeriesDetail({ ser }: { ser: Serial }) {
         <div className="head"><span>Popularity</span><b className="num">{ser.popularity}</b></div>
         <Bar value={ser.popularity} tone={ser.popularity >= 60 ? 'green' : ser.popularity >= 40 ? 'gold' : 'accent'} thick label="Popularity" />
         <p className="tiny muted">A moving average of recent poll placements. Three weak chapters in a row and the magazine pulls the plug.</p>
+      </div>
+
+      <div className="row wrap small muted">
+        <span className="warnings" role="img" aria-label={`${ser.warnings} of ${SERIAL_WARNINGS_TO_CANCEL} warnings`}>
+          {Array.from({ length: SERIAL_WARNINGS_TO_CANCEL }, (_, i) => <i key={i} className={i < ser.warnings ? 'on' : ''} />)}
+        </span>
+        <span>
+          {ser.warnings === 0
+            ? 'Safe'
+            : ser.warnings === SERIAL_WARNINGS_TO_CANCEL - 1
+              ? 'One more weak chapter cancels it'
+              : `${ser.warnings} warning${ser.warnings === 1 ? '' : 's'}. ${warningsLeft} more weak chapters in a row cancel it`}
+        </span>
+        <span>Next volume in {untilVolume} chapter{untilVolume === 1 ? '' : 's'}</span>
       </div>
 
       <div className="rewards" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))' }}>

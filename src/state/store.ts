@@ -105,10 +105,14 @@ export const useStore = create<Store>()(
           const added = newToasts(game, next)
           if (added.length) patch.toasts = mergeToasts(toasts, added)
           // Auto-pause whenever the game needs a decision from the player.
+          const deskEmptied = !!game.project && !next.project && !next.pendingResult
+          const tripEnded = !!game.trip && !next.trip
           const needsDecision =
             !!next.pendingResult ||
             (!!next.pendingOffer && !game.pendingOffer) ||
-            (sim.getPhase(game) === 'drawing' && sim.getPhase(next) === 'ready')
+            (sim.getPhase(game) === 'drawing' && sim.getPhase(next) === 'ready') ||
+            deskEmptied ||
+            tripEnded
           if (needsDecision) patch.speed = 0
           set(patch)
         },
@@ -120,7 +124,13 @@ export const useStore = create<Store>()(
           set({ speed: speed === 0 ? resumeSpeed : 0 })
         },
 
-        openModal: (m) => set({ modal: m }),
+        openModal: (m) => {
+          const g = get().game
+          if (!g || g.pendingResult || g.pendingOffer) return
+          if (m === 'wizard' && (g.project || g.trip)) return
+          if (m === 'submit' && sim.getPhase(g) !== 'ready') return
+          set({ modal: m })
+        },
         closeModal: () => set({ modal: 'none' }),
 
         startProject: (d) => apply((g) => sim.startProject(g, d), { close: true, resume: true }),
