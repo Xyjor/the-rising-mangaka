@@ -4,6 +4,7 @@ import {
 } from '../../sim'
 import { useStore } from '../../state/store'
 import { Icon } from '../Icon'
+import { NextGoal } from '../NextGoal'
 import { Bar, RankChart, money } from '../components'
 
 const COACH: Record<string, string> = {
@@ -27,6 +28,7 @@ export function DeskPanel() {
 
   return (
     <aside className="desk">
+      <NextGoal />
       {tutorialStep !== -1 && !game.trip && (
         <div className="coach" role="note">
           <Icon name="sparkle" />

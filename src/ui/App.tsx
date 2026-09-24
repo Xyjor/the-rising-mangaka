@@ -5,6 +5,7 @@ import { EventLog } from './EventLog'
 import { Hud } from './Hud'
 import { Toasts } from './Toasts'
 import { TitleScreen } from './TitleScreen'
+import { CareerModal } from './panels/CareerModal'
 import { DeskPanel } from './panels/DeskPanel'
 import { HistoryModal } from './panels/HistoryModal'
 import { NewMangaWizard } from './panels/NewMangaWizard'
@@ -109,6 +110,7 @@ export function App() {
       {free && modal === 'staff' && <StaffModal />}
       {free && modal === 'trips' && <TripsModal />}
       {free && modal === 'series' && <SeriesModal />}
+      {free && modal === 'career' && <CareerModal />}
     </div>
   )
 }
