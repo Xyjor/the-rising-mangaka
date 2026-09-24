@@ -345,3 +345,6 @@
   background: var(--gold-soft); border-bottom: 2px solid var(--gold);
   font-size: 13px; font-weight: 700;
 }
+
+/* The banner is a fourth grid child of .app; give it its own row so hud, main and log keep theirs. */
+.app:has(> .tab-banner) { grid-template-rows: auto auto 1fr auto; }

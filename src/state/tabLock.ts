@@ -10,7 +10,8 @@ export const STALE_MS = 6000
 
 export interface OwnerRecord { tabId: string; at: number }
 
-export const tabId: string = crypto.randomUUID()
+// randomUUID only exists in secure contexts; plain http over a LAN must not take the app down at module load.
+export const tabId: string = globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2)
 
 function storage(): Storage | null {
   try {

@@ -186,8 +186,12 @@ export const useStore = create<Store>()(
 
         takeOver: () => {
           claim()
-          set({ readOnly: false })
+          // Drop any write the read-only tab queued from local-only changes, then load the owner's save before
+          // flipping the flag so nothing stale can overwrite it.
+          cancelFlush()
+          pending = null
           void useStore.persist.rehydrate()
+          set({ readOnly: false })
         },
 
         newGame: (name) => {
