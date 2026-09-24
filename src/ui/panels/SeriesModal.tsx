@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import { audienceById, describeDate, genreById, magazineById, themeById } from '../../sim'
+import {
+  SERIAL_OFFER_MIN_RANK, SERIAL_OFFER_MIN_SCORE, audienceById, describeDate, genreById, magazineById, themeById,
+} from '../../sim'
 import type { Serial } from '../../sim'
 import { useStore } from '../../state/store'
 import { Bar, Modal, RankChart, compact, money } from '../components'
@@ -13,11 +15,15 @@ export function SeriesModal() {
 
   return (
     <Modal title="Series" sub="Weekly chapter polls, popularity, and volume sales." onClose={closeModal}>
-      {!ser ? <p className="muted">No serialised work yet. A strong one-shot earns an offer.</p> : (
+      {!ser ? (
+        <p className="muted">
+          No serialised work yet. Finish top {SERIAL_OFFER_MIN_RANK} in a magazine poll, or score {SERIAL_OFFER_MIN_SCORE}+, and that magazine will offer you a serial. Kids Comic Go! is the easiest place to start.
+        </p>
+      ) : (
         <div className="col" style={{ gap: 16 }}>
           {all.length > 1 && (
-            <div className="seg sm" role="tablist" style={{ alignSelf: 'flex-start', flexWrap: 'wrap' }}>
-              {all.map((s, i) => <button key={s.id} role="tab" aria-pressed={i === pick} onClick={() => setPick(i)}>{s.title}</button>)}
+            <div className="seg sm" role="group" aria-label="Series" style={{ alignSelf: 'flex-start', flexWrap: 'wrap' }}>
+              {all.map((s, i) => <button key={s.id} aria-pressed={i === pick} onClick={() => setPick(i)}>{s.title}</button>)}
             </div>
           )}
           <SeriesDetail ser={ser} />

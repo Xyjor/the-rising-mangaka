@@ -10,6 +10,10 @@ import { clamp, draw, range } from './rng'
 import {
   evaluateChapter, evaluateProject, projectArtQuality, projectStoryQuality, rankScore, stalenessCount,
 } from './scoring'
+// previewSubmission's estimator (kept on its own lines so the import lists above merge cleanly)
+import { RANK_MULTIPLIER, RIVAL_SCORE_SD } from './data'
+import { binomialAtMost, normalCdf } from './rng'
+import { estimateScore } from './scoring'
 import type {
   Activity, Assistant, AssistantTrait, AudienceId, EditorRel, Focus, GameState, GenreId, LogKind, Magazine,
   MagazineId, PendingChapter, Phase, PlaceId, Project, ProjectDraft, Rating, Serial, StatId, ThemeId,
@@ -170,6 +174,12 @@ export interface SubmissionPreview {
   staleness: number
   minMoney: number
   maxMoney: number
+  /** estimateScore: untested pairings assumed Good, no pacing noise */
+  expectedScore: number
+  /** likely finishing band (about 1.5 sd either side of the mean rank), 1..entrants+1 */
+  expectedRank: { low: number; high: number }
+  /** chance the poll ends in a serialisation offer, 0..1 */
+  offerChance: number
 }
 
 export function previewSubmission(state: GameState, magazineId: MagazineId): SubmissionPreview | null {
@@ -177,6 +187,11 @@ export function previewSubmission(state: GameState, magazineId: MagazineId): Sub
   if (!p) return null
   const mag = magazineById(magazineId)
   const combo = previewCombo(state, p.genre, p.theme, p.audience)
+  const score = estimateScore(state, p, magazineId)
+  const pr = 1 - normalCdf((score - mag.rivalMean) / RIVAL_SCORE_SD)
+  const n = mag.entrants
+  const mean = 1 + pr * n
+  const sd = Math.sqrt(n * pr * (1 - pr))
   return {
     magazineId,
     mismatch: mag.audience !== p.audience,
@@ -186,8 +201,14 @@ export function previewSubmission(state: GameState, magazineId: MagazineId): Sub
     audienceFit: combo.themeAudience,
     freshness: combo.genreTheme,
     staleness: combo.staleness,
-    minMoney: Math.round(mag.pageRate * p.pagesDone * 0.7),
-    maxMoney: Math.round(mag.pageRate * p.pagesDone * 2),
+    minMoney: Math.round(mag.pageRate * p.pagesDone * RANK_MULTIPLIER.weak),
+    maxMoney: Math.round(mag.pageRate * p.pagesDone * RANK_MULTIPLIER.first),
+    expectedScore: score,
+    expectedRank: {
+      low: clamp(Math.round(mean - 1.5 * sd), 1, n + 1),
+      high: clamp(Math.round(mean + 1.5 * sd), 1, n + 1),
+    },
+    offerChance: score >= SERIAL_OFFER_MIN_SCORE ? 1 : binomialAtMost(n, SERIAL_OFFER_MIN_RANK - 1, pr),
   }
 }
 

@@ -46,3 +46,22 @@ export function hashString(input: string): number {
 export function clamp(v: number, min: number, max: number): number {
   return v < min ? min : v > max ? max : v
 }
+
+/** Standard normal CDF, Abramowitz and Stegun 26.2.17 (error under 7.5e-8). */
+export function normalCdf(z: number): number {
+  const t = 1 / (1 + 0.2316419 * Math.abs(z))
+  const d = 0.3989423 * Math.exp((-z * z) / 2)
+  const p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))))
+  return z > 0 ? 1 - p : p
+}
+
+/** P(X <= k) for X ~ Binomial(n, p). */
+export function binomialAtMost(n: number, k: number, p: number): number {
+  let total = 0
+  let coeff = 1
+  for (let i = 0; i <= Math.min(k, n); i++) {
+    if (i > 0) coeff = (coeff * (n - i + 1)) / i
+    total += coeff * p ** i * (1 - p) ** (n - i)
+  }
+  return total
+}

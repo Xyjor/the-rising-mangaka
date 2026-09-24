@@ -1,8 +1,9 @@
-import { genreThemeRating, themeAudienceRating } from './compat'
+import { genreThemeKey, genreThemeRating, themeAudienceKey, themeAudienceRating } from './compat'
 import {
-  MAGAZINE_MISMATCH_PENALTY, RATING_SCORE, SCORE_WEIGHTS, STALENESS_PENALTY, audienceById, genreById,
-  magazineById, themeById,
+  MAGAZINE_MISMATCH_PENALTY, PODIUM_RANK, RANK_MULTIPLIER, RATING_SCORE, RIVAL_SCORE_SD, SCORE_WEIGHTS,
+  STALENESS_PENALTY, WEAK_RANK_FRACTION, audienceById, genreById, magazineById, themeById,
 } from './data'
+import type { RankTier } from './data'
 import { clamp, draw, gaussian } from './rng'
 import type {
   AudienceId, ChapterResult, GameState, GenreId, MagazineId, PendingChapter, PollResult, Project,
@@ -112,14 +113,41 @@ function rankAgainstRivals(magazineId: MagazineId, score: number, values: number
   const mag = magazineById(magazineId)
   let beaten = 0
   for (let i = 0; i < mag.entrants; i++) {
-    const rival = mag.rivalMean + gaussian(values[offset + i * 2], values[offset + i * 2 + 1]) * 12
+    const rival = mag.rivalMean + gaussian(values[offset + i * 2], values[offset + i * 2 + 1]) * RIVAL_SCORE_SD
     if (rival > score) beaten++
   }
   return 1 + beaten
 }
 
+/** Reward tier for a poll placement. `entrants` includes the player's own work. */
+export function rankTier(rank: number, entrants: number): RankTier {
+  return rank === 1 ? 'first' : rank <= PODIUM_RANK ? 'podium' : rank <= Math.ceil(entrants / 2) ? 'mid' : 'weak'
+}
+
+/** First rank that counts as a weak chapter (the cancellation line). */
+export const weakRankLine = (entrants: number) => Math.ceil(entrants * WEAK_RANK_FRACTION)
+
 function rankMultiplier(rank: number, entrants: number): number {
-  return rank === 1 ? 2 : rank <= 3 ? 1.4 : rank <= Math.ceil(entrants / 2) ? 1 : 0.7
+  return RANK_MULTIPLIER[rankTier(rank, entrants)]
+}
+
+/**
+ * Best guess at a one-shot's poll score before it is submitted. Pure, no RNG: pacing noise is
+ * ignored and pairings the player has not tested yet are assumed to rate Good.
+ */
+export function estimateScore(state: GameState, project: Project, magazineId: MagazineId): number {
+  const mag = magazineById(magazineId)
+  const knownFit = state.notebook.themeAudience[themeAudienceKey(project.theme, project.audience)]
+  const knownFresh = state.notebook.genreTheme[genreThemeKey(project.genre, project.theme)]
+  const mismatch = mag.audience === project.audience ? 0 : MAGAZINE_MISMATCH_PENALTY
+  const staleness = stalenessCount(state, project.genre, project.theme) * STALENESS_PENALTY
+  return weightedScore({
+    art: Math.round(projectArtQuality(project)),
+    story: Math.round(projectStoryQuality(project)),
+    pacing: state.player.stats.pacing,
+    audienceFit: clamp((knownFit !== undefined ? RATING_SCORE[knownFit] : 60) - mismatch, 0, 100),
+    freshness: clamp((knownFresh !== undefined ? RATING_SCORE[knownFresh] : 60) - staleness, 0, 100),
+  })
 }
 
 /**

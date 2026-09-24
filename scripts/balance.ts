@@ -1,8 +1,8 @@
 // Balance readout: simulate a career and print the numbers.
 // Run with: npx vite-node scripts/balance.ts [seed]
 import {
-  acceptOffer, createGame, dismissResult, getPhase, hireAssistant, setActivity, startProject, submitProject,
-  tick, tickMany,
+  acceptOffer, createGame, dismissResult, getPhase, hireAssistant, previewSubmission, setActivity, startProject,
+  submitProject, tick, tickMany,
 } from '../src/sim/index'
 import type { GameState } from '../src/sim/index'
 
@@ -30,12 +30,14 @@ for (let i = 0; i < combos.length; i++) {
   s = startProject(s, { title: 'W' + i, ...c })
   while (getPhase(s) !== 'ready') s = autoDay(s)
   const days = s.day - start
+  const est = previewSubmission(s, mags[i % 4])!
   s = submitProject(s, mags[i % 4])
   s = tickMany(s, 7)
   const r = s.pendingResult!
   const b = r.breakdown
   console.log(
-    `work ${i}: ${days}d | ${c.genre}/${c.theme}/${c.audience} @${mags[i % 4]} | score ${r.score} rank ${r.rank}/${r.entrants}` +
+    `work ${i}: ${days}d | ${c.genre}/${c.theme}/${c.audience} @${mags[i % 4]}` +
+    ` | est ${est.expectedRank.low}-${est.expectedRank.high} p(offer) ${est.offerChance.toFixed(2)} | score ${r.score} rank ${r.rank}/${r.entrants}` +
     ` | +¥${r.rewards.money} +${r.rewards.fans}f +${r.rewards.xp}xp | art ${b.art} story ${b.story} pace ${b.pacing} fit ${b.audienceFit} fresh ${b.freshness}` +
     ` | ¥${s.player.money} L${s.player.level} sp${s.player.skillPoints} offer:${s.pendingOffer ? 'yes' : 'no'}`,
   )
