@@ -1,32 +1,37 @@
-# React + TypeScript + Vite
+# The Rising Mangaka
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A manga-career management game inspired by Kairosoft's *The Manga Works*, rebuilt with a modern, transparent,
+low-friction interface. Plan a manga, draw it page by page, pitch it to a magazine, read the poll results, and
+climb from one-shots to a serialised hit with a studio of assistants.
 
-Currently, two official plugins are available:
+## Play it locally
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm install
+npm run dev
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Then open http://localhost:5173. Saves live in your browser.
+
+## Design pillars
+
+1. **Show the why.** Every poll result explains its score component by component.
+2. **Discovery, not grinding.** Hidden genre, theme, and audience pairings are recorded in a Notebook as you learn them.
+3. **Never interrupt.** Events go to a log and toasts. The clock pauses only when you need to decide something.
+4. **One screen, one job.** A persistent HUD, one studio view, one contextual desk panel.
+5. **Hybrid look.** A pixel-art studio scene with clean, modern management panels.
+
+See [DESIGN.md](DESIGN.md) for the systems, formulas, and roadmap, and [CLAUDE.md](CLAUDE.md) for the code
+conventions.
+
+## Stack
+
+Vite, React 19, TypeScript, Zustand. The simulation is a pure, seeded TypeScript library under `src/sim` with
+Vitest tests; the UI never touches game rules directly.
+
+```bash
+npm test                              # simulation tests
+npx tsc -b                            # type check
+npm run build                         # production build
+npx vite-node scripts/balance.ts 42   # balance readout for a seed
+```
