@@ -24,7 +24,8 @@ Every change must pass `npx tsc -b`, `npm test`, and `npm run build` before it i
   - `compat.ts` hidden compatibility ratings. `scoring.ts` poll scoring. `engine.ts` commands + `tick()`.
   - Add a unit test in `src/sim/__tests__/engine.test.ts` for every new rule.
 - `src/state/store.ts` — Zustand store. Wraps the sim, owns the real-time clock speed, modal state, toasts,
-  and persists `game` to localStorage (`persist` version = `SAVE_VERSION`; bump it and migrate when `GameState` changes).
+  and persists `game` to localStorage (`persist` version = `SAVE_VERSION`; new `GameState` fields default through
+  `src/sim/migrate.ts` `upgradeSave`; bump `SAVE_VERSION` only for shape changes that cannot be defaulted).
   Sim commands go through the `apply()` helper so toasts and auto-resume stay consistent.
 - `src/ui/` — React 19 components. `App.tsx` (shell, clock, hotkeys), `Hud.tsx`, `panels/*` (modals and the desk
   panel), `scene/StudioScene.tsx` (pixel-art canvas, 192×108 logical pixels, sprites as string maps),

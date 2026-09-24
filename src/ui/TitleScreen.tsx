@@ -35,7 +35,7 @@ export function TitleScreen() {
           </label>
           <button className="btn primary lg block" type="submit">Open your studio</button>
         </form>
-        <p className="tiny faint">Saves automatically in this browser.</p>
+        <p className="tiny faint">Saves automatically in this browser (one tab at a time).</p>
       </div>
     </div>
   )

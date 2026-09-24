@@ -3,6 +3,7 @@ import { getPhase } from '../sim'
 import { SPEED_MS, useStore } from '../state/store'
 import { EventLog } from './EventLog'
 import { Hud } from './Hud'
+import { TabBanner } from './TabBanner'
 import { Toasts } from './Toasts'
 import { TitleScreen } from './TitleScreen'
 import { DeskPanel } from './panels/DeskPanel'
@@ -34,8 +35,9 @@ function useGameClock() {
   const modal = useStore((s) => s.modal)
   const blocked = useStore((s) => !!s.game?.pendingResult || !!s.game?.pendingOffer)
   const hasGame = useStore((s) => !!s.game)
+  const readOnly = useStore((s) => s.readOnly)
   const tick = useStore((s) => s.tick)
-  const running = hasGame && speed > 0 && modal === 'none' && !blocked
+  const running = hasGame && speed > 0 && modal === 'none' && !blocked && !readOnly
   useEffect(() => {
     if (!running || speed === 0) return
     const id = window.setInterval(tick, SPEED_MS[speed])
@@ -81,6 +83,8 @@ export function App() {
   const modal = useStore((s) => s.modal)
   const hasResult = useStore((s) => !!s.game?.pendingResult)
   const hasOffer = useStore((s) => !!s.game?.pendingOffer)
+  const phase = useStore((s) => (s.game ? getPhase(s.game) : 'idle'))
+  const trip = useStore((s) => !!s.game?.trip)
   const running = useGameClock()
   useHotkeys()
 
@@ -88,7 +92,8 @@ export function App() {
 
   const free = !hasResult && !hasOffer
   return (
-    <div className="app">
+    <div className="app" data-running={running}>
+      <TabBanner />
       <Hud />
       <div className="main">
         <div className="studio">
@@ -100,8 +105,8 @@ export function App() {
       <Toasts />
       {hasResult && <ResultsModal />}
       {!hasResult && hasOffer && <OfferModal />}
-      {free && modal === 'wizard' && <NewMangaWizard />}
-      {free && modal === 'submit' && <SubmitModal />}
+      {free && modal === 'wizard' && phase === 'idle' && !trip && <NewMangaWizard />}
+      {free && modal === 'submit' && phase === 'ready' && <SubmitModal />}
       {free && modal === 'notebook' && <NotebookModal />}
       {free && modal === 'stats' && <StatsModal />}
       {free && modal === 'history' && <HistoryModal />}
