@@ -108,8 +108,11 @@ The clock stops whenever the game needs a decision: a manuscript becomes ready, 
 serialisation offer lands, a serial is cancelled (the desk empties), or a trip ends. Menus always pause.
 
 ## Roadmap
-0. Money sinks. A hit series earns tens of thousands per volume; add studio upgrades (better desk, tools,
-   a bigger room for more assistants) so money keeps mattering. Consider a smaller HUD on phones.
+0. Money sinks. Shipped: hiring needs two weeks of that salary in the bank; a week that ends below zero makes
+   assistants quit and charges an overdraft fee (5% of the debt, at least ¥50), and a week that ends with less
+   than one week of costs warns first. Still to do: studio tiers that gate assistant slots with rent, equipment
+   purchases with stated effects, a volume curve that flattens with fans (sqrt), a smaller HUD on phones shipped
+   separately.
 1. Awards (year end), anime adaptation offers, merchandise, conventions.
 2. Rival mangaka with visible careers and head-to-head polls.
 3. Random events with choices (fan letters, illness, editor requests).

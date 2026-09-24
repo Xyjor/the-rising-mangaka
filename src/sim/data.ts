@@ -106,6 +106,11 @@ export const LOW_STAMINA_THRESHOLD = 20
 export const JOB_PAY_PER_DAY = 120
 export const JOB_STAMINA_COST = 3
 export const MAX_ASSISTANTS = 3
+/** weeks of a candidate's salary you must have in the bank before hiring them */
+export const HIRE_RUNWAY_WEEKS = 2
+/** a week that ends below zero charges this share of the debt as a fee */
+export const OVERDRAFT_FEE_RATE = 0.05
+export const OVERDRAFT_FEE_MIN = 50
 export const CANDIDATE_REFRESH_DAYS = 28
 export const VOLUME_EVERY_CHAPTERS = 4
 export const VOLUME_PRICE = 2
