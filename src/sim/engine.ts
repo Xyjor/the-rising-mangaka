@@ -1,7 +1,8 @@
 import { genreThemeKey, genreThemeRating, themeAudienceKey, themeAudienceRating } from './compat'
 import {
   ASSISTANT_NAMES, AUDIENCES, CANDIDATE_REFRESH_DAYS, CHAPTER_PAGES, EDITOR_TIP_EVERY, GENRES,
-  JOB_PAY_PER_DAY, JOB_STAMINA_COST, LOW_STAMINA_THRESHOLD, MAGAZINES, MAX_ASSISTANTS, ONE_SHOT_PAGES,
+  HIRE_RUNWAY_WEEKS, JOB_PAY_PER_DAY, JOB_STAMINA_COST, LOW_STAMINA_THRESHOLD, MAGAZINES, MAX_ASSISTANTS,
+  ONE_SHOT_PAGES, OVERDRAFT_FEE_MIN, OVERDRAFT_FEE_RATE,
   RATING_LABEL, RESULTS_DELAY_DAYS, REST_STAMINA_GAIN, SERIAL_OFFER_MIN_RANK, SERIAL_OFFER_MIN_SCORE,
   SERIAL_WARNINGS_TO_CANCEL, THEMES, VOLUME_EVERY_CHAPTERS, VOLUME_PRICE, WEEKLY_LIVING_COST,
   WORK_STAMINA_COST, audienceById, magazineById, placeById, themeById, genreById,
@@ -393,6 +394,8 @@ export function endSerial(state: GameState): GameState {
 export function hireAssistant(state: GameState, candidateId: number): GameState {
   const c = state.candidates.find((a) => a.id === candidateId)
   if (!c || state.assistants.length >= MAX_ASSISTANTS) return state
+  // Two weeks of that hire's salary in the bank: allows one early hire, blocks the day-one triple hire.
+  if (state.player.money < c.salary * HIRE_RUNWAY_WEEKS) return state
   const s: GameState = {
     ...state,
     assistants: [...state.assistants, c],
@@ -635,6 +638,18 @@ export function tick(state: GameState): GameState {
     s = addLog(s, 'money', s.assistants.length
       ? `Weekly costs: -¥${cost} (living ¥${WEEKLY_LIVING_COST}, salaries ¥${cost - WEEKLY_LIVING_COST}).`
       : `Weekly living costs: -¥${cost}.`, false)
+    if (s.player.money < 0) {
+      // Unpaid assistants quit before the fee is computed, so the tight-week check below uses the new roster.
+      if (s.assistants.length) {
+        s = { ...s, assistants: [] }
+        s = addLog(s, 'warn', 'Your assistants quit: you could not pay them this week.', true)
+      }
+      const fee = Math.max(OVERDRAFT_FEE_MIN, Math.round(-s.player.money * OVERDRAFT_FEE_RATE))
+      s = { ...s, player: { ...s.player, money: s.player.money - fee } }
+      s = addLog(s, 'money', `Overdraft fee: -¥${fee}. You are ¥${-s.player.money} in debt. Part-time work pays ¥${JOB_PAY_PER_DAY} a day.`, true)
+    } else if (s.player.money < weeklyCosts(s)) {
+      s = addLog(s, 'warn', `Money is tight: ¥${s.player.money} left and next week costs ¥${weeklyCosts(s)}. Part-time work pays ¥${JOB_PAY_PER_DAY} a day.`, true)
+    }
   }
 
   if (s.day >= s.candidatesRefreshDay) s = generateCandidates(s)

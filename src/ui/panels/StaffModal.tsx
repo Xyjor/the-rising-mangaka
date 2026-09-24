@@ -1,4 +1,4 @@
-import { MAX_ASSISTANTS, TRAITS, WEEKLY_LIVING_COST, assistantPagesPerDay, weeklyCosts } from '../../sim'
+import { HIRE_RUNWAY_WEEKS, MAX_ASSISTANTS, TRAITS, WEEKLY_LIVING_COST, assistantPagesPerDay, weeklyCosts } from '../../sim'
 import type { Assistant } from '../../sim'
 import { useStore } from '../../state/store'
 import { Icon } from '../Icon'
@@ -63,6 +63,7 @@ export function StaffModal() {
   const full = game.assistants.length >= MAX_ASSISTANTS
   const refreshIn = Math.max(0, game.candidatesRefreshDay - game.day)
   const costs = weeklyCosts(game)
+  const runway = Math.max(0, Math.floor(game.player.money / costs))
 
   return (
     <Modal title="Staff" sub="Assistants draw pages alongside you and add their own skill to every page." onClose={closeModal}>
@@ -70,10 +71,13 @@ export function StaffModal() {
         <section className="col" style={{ gap: 10 }}>
           <div className="row between wrap">
             <div className="panel-title">Your studio <span className="small muted" style={{ fontFamily: 'var(--font-ui)', letterSpacing: 0 }}>({game.assistants.length} of {MAX_ASSISTANTS})</span></div>
-            <span className="small muted">Weekly costs {money(costs)}: living {money(WEEKLY_LIVING_COST)}, salaries {money(costs - WEEKLY_LIVING_COST)}</span>
+            <span className="small muted">
+              Weekly costs {money(costs)}: living {money(WEEKLY_LIVING_COST)}, salaries {money(costs - WEEKLY_LIVING_COST)}.{' '}
+              <span className={runway <= 1 ? 'warn-text' : undefined}>Runway: {runway} week{runway === 1 ? '' : 's'}</span>
+            </span>
           </div>
           {game.assistants.length === 0
-            ? <p className="muted small">Nobody yet. Hiring costs nothing up front, only a weekly salary.</p>
+            ? <p className="muted small">Nobody yet. Hiring costs nothing up front, only a weekly salary. You need {HIRE_RUNWAY_WEEKS} weeks of that salary in the bank to hire.</p>
             : (
               <div className="people-grid">
                 {game.assistants.map((a) => (
@@ -92,9 +96,18 @@ export function StaffModal() {
             ? <p className="muted small">Nobody is looking right now. Check back later.</p>
             : (
               <div className="people-grid">
-                {game.candidates.map((a) => (
-                  <Person key={a.id} a={a} actionLabel={full ? 'Studio is full' : 'Hire'} disabled={full} action={() => hire(a.id)} />
-                ))}
+                {game.candidates.map((a) => {
+                  const short = game.player.money < a.salary * HIRE_RUNWAY_WEEKS
+                  return (
+                    <Person
+                      key={a.id}
+                      a={a}
+                      actionLabel={full ? 'Full, let someone go first' : short ? `Need ${money(a.salary * HIRE_RUNWAY_WEEKS)} in the bank` : 'Hire'}
+                      disabled={full || short}
+                      action={() => hire(a.id)}
+                    />
+                  )
+                })}
               </div>
             )}
         </section>
