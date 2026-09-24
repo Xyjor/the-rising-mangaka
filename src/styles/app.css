@@ -196,30 +196,17 @@
 @keyframes toast-in { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
 
 /* ---------- wizard ---------- */
-.wizard { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 18px; }
-@media (max-width: 700px) { .wizard { grid-template-columns: 1fr; } }
-.steps { display: flex; gap: 6px; margin-bottom: 14px; }
+.wizard { display: block; }
+.wizard .choice-grid { max-width: 760px; }
+.steps { display: flex; gap: 6px; list-style: none; padding: 0; margin: 0 0 14px; }
 .steps button {
   flex: 1; min-height: 36px; padding: 6px; border-radius: 8px; border: 2px solid var(--line); background: var(--paper);
   font-size: 12px; font-weight: 800; color: var(--ink-3);
 }
 .steps button[aria-current='step'] { border-color: var(--ink); color: var(--ink); background: var(--paper-2); }
 .steps button[data-done='true'] { color: var(--green); border-color: var(--green); }
-.preview-card { position: sticky; top: 0; display: flex; flex-direction: column; gap: 10px; }
-.preview-card .cover {
-  aspect-ratio: 3 / 4; border-radius: var(--radius-m); border: 2px solid var(--line-strong);
-  background: var(--paper-2);
-  background-image: var(--halftone); background-size: var(--halftone-size);
-  display: flex; flex-direction: column; justify-content: flex-end; padding: 12px; gap: 4px;
-  position: relative; overflow: hidden;
-}
-.preview-card .cover .t { font-family: var(--font-display); font-size: 24px; line-height: 1; word-break: break-word; }
-.preview-card .cover .g { font-size: 12px; font-weight: 700; color: var(--ink-2); }
-.preview-card .cover .stamp {
-  position: absolute; top: 10px; right: -18px; transform: rotate(20deg);
-  background: var(--accent); color: #fff; font-size: 10px; font-weight: 900; letter-spacing: 0.06em;
-  padding: 3px 28px;
-}
+.steps button[aria-disabled='true'] { opacity: 0.55; cursor: default; }
+.steps button .pick { display: block; font-size: 11px; font-weight: 700; color: var(--ink-2); }
 .know { display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
 .know .k { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .know .k .l { color: var(--ink-2); font-weight: 700; }

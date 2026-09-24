@@ -1,16 +1,13 @@
 import { useState } from 'react'
 import {
-  MAGAZINES, MAGAZINE_MISMATCH_PENALTY, STALENESS_PENALTY, audienceById, genreById, previewSubmission,
-  themeById,
+  MAGAZINES, MAGAZINE_MISMATCH_PENALTY, SERIAL_OFFER_MIN_RANK, SERIAL_OFFER_MIN_SCORE, STALENESS_PENALTY,
+  audienceById, previewSubmission,
 } from '../../sim'
 import type { MagazineId } from '../../sim'
 import { useStore } from '../../state/store'
 import { Icon } from '../Icon'
 import { Bar, Modal, Pips, RatingText, money } from '../components'
-
-function rivalWord(mean: number): string {
-  return mean >= 60 ? 'Fierce' : mean >= 50 ? 'Tough' : 'Friendly'
-}
+import { comboLabel, oddsWord, rivalWord } from '../labels'
 
 export function SubmitModal() {
   const game = useStore((s) => s.game)!
@@ -45,7 +42,7 @@ export function SubmitModal() {
           <div>
             <div className="display" style={{ fontSize: 24 }}>{p.title}</div>
             <div className="tiny muted">
-              {genreById(p.genre).name}, {themeById(p.theme).name}, for {audienceById(p.audience).name}. {p.pagesTarget} pages.
+              {comboLabel(p.genre, p.theme, p.audience)}. {p.pagesTarget} pages.
             </div>
           </div>
           <div className="metric">
@@ -72,17 +69,22 @@ export function SubmitModal() {
           </div>
         </section>
 
-        <div className="mag-list" role="radiogroup" aria-label="Magazines">
+        <div className="mag-list" role="group" aria-label="Magazines">
           {MAGAZINES.map((m) => {
             const mismatch = m.audience !== p.audience
+            const est = previewSubmission(game, m.id)!
             return (
-              <button key={m.id} className="mag" role="radio" aria-checked={choice === m.id} aria-pressed={choice === m.id} onClick={() => setChoice(m.id)}>
+              <button key={m.id} className="mag" aria-pressed={choice === m.id} onClick={() => setChoice(m.id)}>
                 <span className="name">{m.name}</span>
                 <span className="chip">{audienceById(m.audience).name}</span>
                 <span className="meta">
                   <span>{money(m.pageRate)} a page</span>
                   <span>{m.circulation}k readers</span>
-                  <span>{m.entrants} rivals, {rivalWord(m.rivalMean).toLowerCase()}</span>
+                  <span>{m.entrants} {rivalWord(m.rivalMean).toLowerCase()} rivals</span>
+                </span>
+                <span className="meta" style={{ gridColumn: '1 / -1' }}>
+                  <span>Likely rank #{est.expectedRank.low} to #{est.expectedRank.high} of {m.entrants + 1}.</span>
+                  <span>Serial offer: {oddsWord(est.offerChance)}.</span>
                 </span>
                 <span className="tiny faint">{m.blurb}</span>
                 {mismatch
@@ -91,6 +93,9 @@ export function SubmitModal() {
               </button>
             )
           })}
+          <p className="tiny faint">
+            A top-{SERIAL_OFFER_MIN_RANK} finish, or a score of {SERIAL_OFFER_MIN_SCORE} or more, earns a serial offer. Estimates assume untested pairings rate Good.
+          </p>
         </div>
       </div>
     </Modal>

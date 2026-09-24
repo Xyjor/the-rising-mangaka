@@ -113,6 +113,13 @@ export const SERIAL_WARNINGS_TO_CANCEL = 3
 export const SERIAL_OFFER_MIN_RANK = 3
 export const SERIAL_OFFER_MIN_SCORE = 65
 export const EDITOR_TIP_EVERY = 3
+/** Spread of rival poll scores around a magazine's rivalMean. */
+export const RIVAL_SCORE_SD = 12
+export type RankTier = 'first' | 'podium' | 'mid' | 'weak'
+export const PODIUM_RANK = 3
+/** A chapter ranking below ceil(entrants x this) counts as weak. */
+export const WEAK_RANK_FRACTION = 0.7
+export const RANK_MULTIPLIER: Record<RankTier, number> = { first: 2, podium: 1.4, mid: 1, weak: 0.7 }
 
 export function genreById(id: GenreId): Genre { return GENRES.find((g) => g.id === id)! }
 export function themeById(id: ThemeId): Theme { return THEMES.find((t) => t.id === id)! }
