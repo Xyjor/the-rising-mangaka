@@ -6,6 +6,7 @@ import {
 import { useStore } from '../../state/store'
 import { useShallow } from 'zustand/react/shallow'
 import { Icon } from '../Icon'
+import { NextGoal } from '../NextGoal'
 import { Bar, money } from '../components'
 import { ConfirmRow } from '../ConfirmRow'
 const COACH: Record<string, string> = {
@@ -27,6 +28,7 @@ export function DeskPanel() {
 
   return (
     <aside className="desk">
+      <NextGoal />
       {tutorialStep !== -1 && !game.trip && (
         <div className="coach" role="note">
           <Icon name="sparkle" />

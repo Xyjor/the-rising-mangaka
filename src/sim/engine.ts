@@ -19,6 +19,7 @@ import type {
   Activity, Assistant, AssistantTrait, AudienceId, EditorRel, Focus, GameState, GenreId, LogKind, Magazine,
   MagazineId, PendingChapter, Phase, PlaceId, Project, ProjectDraft, Rating, Serial, StatId, ThemeId,
 } from './types'
+import { pendingMilestones } from './milestones'
 
 const TRAIT_LIST: AssistantTrait[] = ['fast', 'careful', 'inspiring', 'steady']
 
@@ -63,6 +64,7 @@ export function createGame(name: string, seed: number): GameState {
     nextProjectId: 1,
     nextLogId: 1,
     nextAssistantId: 1,
+    milestonesDone: [],
   }
   state = generateCandidates(state)
   return addLog(state, 'info', `Welcome, ${name}. Your studio is ready. Plan your first manga.`, false)
@@ -787,11 +789,23 @@ export function tick(state: GameState): GameState {
   }
 
   s = resolveChapters(s)
+  s = awardMilestones(s)
   return s
 }
 
 export function tickMany(state: GameState, days: number): GameState {
   let s = state
   for (let i = 0; i < days; i++) s = tick(s)
+  return s
+}
+
+/** Last step of tick: award every milestone whose rule just became true. Consumes no RNG. */
+function awardMilestones(state: GameState): GameState {
+  let s = state
+  for (const m of pendingMilestones(s)) {
+    s = { ...s, milestonesDone: [...(s.milestonesDone ?? []), m.id] }
+    s = addLog(s, 'success', `Milestone: ${m.title}. +${m.xp} XP.`, true)
+    s = grantXp(s, m.xp)
+  }
   return s
 }

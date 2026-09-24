@@ -1,4 +1,5 @@
 // Pure simulation types. No React, no DOM.
+import type { MilestoneId } from './milestones'
 
 export type GenreId =
   | 'action' | 'romance' | 'comedy' | 'horror' | 'sports'
@@ -245,6 +246,8 @@ export interface GameState {
   nextProjectId: number
   nextLogId: number
   nextAssistantId: number
+  /** ids of milestones already awarded, in the order they landed */
+  milestonesDone: MilestoneId[]
 }
 
 export type Phase = 'idle' | 'drawing' | 'ready' | 'submitted'

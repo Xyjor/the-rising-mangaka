@@ -117,3 +117,44 @@ serialisation offer lands, a serial is cancelled (the desk empties), or a trip e
 2. Rival mangaka with visible careers and head-to-head polls.
 3. Random events with choices (fan letters, illness, editor requests).
 4. Save slots, achievements, sound, mobile polish.
+
+### Milestones
+A visible ladder of 18 career goals. The next unreached goal sits at the top of the desk ("Next goal") and the
+Career panel lists the whole ladder. Milestones are checked at the end of every tick, consume no RNG, and each
+pays XP once (total 1,840 XP, about two extra levels over a career). A hire or a wrap-up made through a command is
+awarded on the next tick, at most one day later.
+
+| Id | Title | XP | Rule |
+|----|-------|----|------|
+| first-manuscript | First manuscript | 40 | a one-shot reached ready (or was submitted, polled, or is in history) |
+| first-poll | First poll | 40 | one poll result in history |
+| top-half | Top half | 60 | any poll placement with rank <= ceil(entrants / 2) |
+| podium | On the podium | 80 | any poll placement with rank <= SERIAL_OFFER_MIN_RANK |
+| fans-1k | A thousand fans | 80 | fans >= 1,000 |
+| first-hire | First hire | 60 | one assistant employed |
+| first-serial | Serialised | 100 | a serial running or archived |
+| first-volume | First volume | 100 | volumes across all serials >= 1 |
+| level-5 | Level 5 | 100 | level >= 5 |
+| fans-5k | Five thousand fans | 100 | fans >= 5,000 |
+| chapters-10 | Ten chapters | 100 | chapters sent across all serials >= 10 |
+| money-50k | Fifty thousand | 100 | money >= 50,000 |
+| three-assistants | Full studio | 80 | three assistants employed |
+| fans-20k | Twenty thousand fans | 150 | fans >= 20,000 |
+| big-league | Big league | 150 | a serial (running or archived) in Weekly Bolt or Ultra Seinen |
+| chapters-50 | Fifty chapters | 150 | chapters sent across all serials >= 50 |
+| graceful-exit | Graceful exit | 150 | an archived serial with status ended and popularity >= 50 |
+| fans-100k | A hundred thousand fans | 200 | fans >= 100,000 |
+
+## Tick order
+The final hook order inside `tick()`:
+
+1. Trip, part-time job, or the work-or-rest branch (pages, stamina, assistants).
+2. Weekly costs (living cost and salaries, with the overdraft rules).
+3. Candidate refresh.
+4. One-shot poll result and serialisation offer.
+5. `resolveChapters` (chapter polls, volumes, warnings, cancellation, archiving).
+6. `awardMilestones`.
+7. Return.
+
+Future hooks (events, year review, anime) go between `resolveChapters` and `awardMilestones` so milestones see
+their effects the same day.
