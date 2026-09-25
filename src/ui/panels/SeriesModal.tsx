@@ -4,7 +4,8 @@ import {
 } from '../../sim'
 import type { Serial } from '../../sim'
 import { useStore } from '../../state/store'
-import { Bar, Modal, RankChart, compact, money } from '../components'
+import { Bar, Modal, RankChart } from '../components'
+import { compact, money } from '../format'
 
 export function SeriesModal() {
   const game = useStore((s) => s.game)!

@@ -111,17 +111,6 @@ export function Modal({
   )
 }
 
-export function money(n: number): string {
-  const v = Math.round(n)
-  return v < 0 ? `-¥${Math.abs(v).toLocaleString()}` : `¥${v.toLocaleString()}`
-}
-
-export function compact(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
-  if (n >= 10_000) return `${(n / 1000).toFixed(1)}k`
-  return Math.round(n).toLocaleString()
-}
-
 /**
  * Chapter ranks over time. One axis (rank, 1 at the top), thin line, round markers,
  * a direct label on the last point, and a hover tooltip per point.

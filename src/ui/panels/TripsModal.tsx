@@ -1,6 +1,7 @@
 import { PLACES, getPhase } from '../../sim'
 import { useStore } from '../../state/store'
-import { Modal, money } from '../components'
+import { Modal } from '../components'
+import { money } from '../format'
 
 export function TripsModal() {
   const game = useStore((s) => s.game)!

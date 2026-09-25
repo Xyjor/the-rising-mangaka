@@ -7,7 +7,8 @@ import { useStore } from '../../state/store'
 import { useShallow } from 'zustand/react/shallow'
 import { Icon } from '../Icon'
 import { NextGoal } from '../NextGoal'
-import { Bar, money } from '../components'
+import { Bar } from '../components'
+import { money } from '../format'
 import { ConfirmRow } from '../ConfirmRow'
 const COACH: Record<string, string> = {
   idle: 'Every career starts with one page. Plan your first manga: pick a genre, a theme, and who it is for.',

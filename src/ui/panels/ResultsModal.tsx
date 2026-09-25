@@ -5,7 +5,8 @@ import {
 } from '../../sim'
 import type { RankTier, ScoreBreakdown } from '../../sim'
 import { useStore } from '../../state/store'
-import { Bar, Modal, Pips, compact, money } from '../components'
+import { Bar, Modal, Pips } from '../components'
+import { compact, money } from '../format'
 
 const ITEMS: { key: keyof ScoreBreakdown; label: string; tone: string }[] = [
   { key: 'art', label: 'Art', tone: 'blue' },

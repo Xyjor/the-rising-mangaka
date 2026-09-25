@@ -6,7 +6,8 @@ import {
 import type { MagazineId } from '../../sim'
 import { useStore } from '../../state/store'
 import { Icon } from '../Icon'
-import { Bar, Modal, Pips, RatingText, money } from '../components'
+import { Bar, Modal, Pips, RatingText } from '../components'
+import { money } from '../format'
 import { comboLabel, oddsWord, rivalWord } from '../labels'
 
 export function SubmitModal() {

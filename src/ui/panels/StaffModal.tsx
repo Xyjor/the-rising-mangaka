@@ -5,7 +5,8 @@ import type { Assistant } from '../../sim'
 import { useStore } from '../../state/store'
 import { ConfirmRow } from '../ConfirmRow'
 import { Icon } from '../Icon'
-import { Bar, Modal, money } from '../components'
+import { Bar, Modal } from '../components'
+import { money } from '../format'
 
 import { LOOK_HAIRS, LOOK_SHIRTS } from '../looks'
 

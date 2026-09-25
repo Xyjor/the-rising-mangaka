@@ -1,6 +1,7 @@
 import { CHAPTER_PAGES, SERIAL_WARNINGS_TO_CANCEL, VOLUME_EVERY_CHAPTERS, magazineById } from '../../sim'
 import { useStore } from '../../state/store'
-import { Modal, money } from '../components'
+import { Modal } from '../components'
+import { money } from '../format'
 import { comboLabel, rivalWord } from '../labels'
 
 export function OfferModal() {

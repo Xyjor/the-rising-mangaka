@@ -1,6 +1,7 @@
 import { genreById, magazineById, shortDate, themeById } from '../../sim'
 import { useStore } from '../../state/store'
-import { Modal, money } from '../components'
+import { Modal } from '../components'
+import { money } from '../format'
 
 export function HistoryModal() {
   const history = useStore((s) => s.game!.history)

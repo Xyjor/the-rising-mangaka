@@ -1,7 +1,8 @@
 import { LOW_STAMINA_THRESHOLD, describeDate, weeklyCosts, xpToNext } from '../sim'
 import { useStore } from '../state/store'
 import { Icon } from './Icon'
-import { Bar, compact, money } from './components'
+import { Bar } from './components'
+import { compact, money } from './format'
 
 export function Hud() {
   const game = useStore((s) => s.game)!

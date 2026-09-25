@@ -1,7 +1,8 @@
 import { SCORE_WEIGHTS, xpToNext } from '../../sim'
 import type { StatId } from '../../sim'
 import { useStore } from '../../state/store'
-import { Bar, Modal, compact, money } from '../components'
+import { Bar, Modal } from '../components'
+import { compact, money } from '../format'
 
 const STATS: { id: StatId; name: string; blurb: string; tone: string }[] = [
   { id: 'art', name: 'Art', blurb: `Art score in polls (${Math.round(SCORE_WEIGHTS.art * 100)}%), and pages per day`, tone: 'blue' },
