@@ -1,12 +1,11 @@
 // Which sounds a change of game state makes. Pure: it compares two states field by field (never the log's wording),
 // so the same rules hear a day's tick and a player's command alike. Framework-free; the store plays what it returns.
-import { PODIUM_RANK, doneIds, getPhase, weakRankLine } from '../sim'
+import { PODIUM_RANK, doneIds, getPhase, isPayDay, weakRankLine } from '../sim'
 import type { GameState, Serial } from '../sim'
 import type { CueId } from './types'
 
 /** At most this many cues play for one change; `page` plays only when nothing else does. */
 const MAX_CUES = 2
-const WEEK = 7
 
 /** Every serial in a state: the one on the desk, then the archive. */
 function allSerials(s: GameState): Serial[] {
@@ -21,6 +20,7 @@ function serialPairs(prev: GameState, next: GameState): [Serial | undefined, Ser
 
 /** A serial got a new chapter result: top for the podium, weak below the weak line, else plain. */
 function chapterCue(pairs: [Serial | undefined, Serial][]): CueId | null {
+  // Only the newest result is heard when several resolve in one transition.
   const grown = pairs.find(([b, a]) => a.results.length > (b?.results.length ?? 0))
   if (!grown) return null
   const r = grown[1].results[grown[1].results.length - 1]
@@ -28,13 +28,10 @@ function chapterCue(pairs: [Serial | undefined, Serial][]): CueId | null {
   return r.rank > weakRankLine(r.entrants) ? 'chapter-weak' : 'chapter'
 }
 
-/** An anime's weekly pay landed: a new day that ends a week on air for a signed deal, and money rose. */
+/** An anime's weekly pay landed: a new day that is a signed deal's pay day, and money rose. */
 function animePaid(prev: GameState, next: GameState): boolean {
   if (next.day !== prev.day + 1 || next.player.money <= prev.player.money) return false
-  return next.anime.some((d) => {
-    const onAir = next.day - d.airsDay
-    return onAir > 0 && next.day <= d.endsDay && onAir % WEEK === 0
-  })
+  return next.anime.some((d) => isPayDay(d, next.day))
 }
 
 /** Money for something made or bought: a volume shipped, equipment bought, or an anime's weekly pay. */
@@ -52,6 +49,7 @@ function warned(prev: GameState, next: GameState): boolean {
  * The cues for going from `prev` to `next`, most important first, at most two. Silent when the two states are not one
  * step of play apart (another world, or a gap other than zero or one day, as after loading another save or tickMany),
  * and on the tick a poll result lands, whose reveal owns that moment (a level-up or milestone on that tick still toasts).
+ * A cancellation plays alone: the warnings that land with it would only repeat the bad news.
  */
 export function cuesForTransition(prev: GameState, next: GameState): CueId[] {
   const days = next.day - prev.day
@@ -59,13 +57,14 @@ export function cuesForTransition(prev: GameState, next: GameState): CueId[] {
   if (!prev.pendingResult && next.pendingResult) return []
 
   const pairs = serialPairs(prev, next)
+  if (pairs.some(([b, a]) => a.status === 'cancelled' && b?.status !== 'cancelled')) return ['cancel']
+
   const phaseWas = getPhase(prev)
   const phase = getPhase(next)
   const newReview = next.yearReviews.length > prev.yearReviews.length ? next.yearReviews[next.yearReviews.length - 1] : null
 
   // In priority order.
   const heard: (CueId | null)[] = [
-    pairs.some(([b, a]) => a.status === 'cancelled' && b?.status !== 'cancelled') ? 'cancel' : null,
     prev.pendingOffer && next.serial && next.serial.id !== prev.serial?.id ? 'serialised' : null,
     next.pendingOffer && !next.pendingResult && (prev.pendingResult || !prev.pendingOffer) ? 'offer' : null,
     newReview && newReview.awards.length > 0 ? 'award' : null,

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
-  ANIME_STUDIOS, acceptOffer, animeTick, animeVolumeMult, createGame, declineAnime, endSerial, signAnime, studioLook,
-  tick, tickMany,
+  ANIME_STUDIOS, acceptOffer, animeTick, animeVolumeMult, createGame, declineAnime, endSerial, isPayDay, signAnime,
+  studioLook, tick, tickMany,
 } from '../index'
 import type { AnimeDeal, AnimeStudioId, ChapterResult, GameState, LogEntry } from '../index'
 import { KIDS_OFFER, noDeadline } from '../../test/fixtures'
@@ -178,6 +178,11 @@ describe('anime deals', () => {
     expect(paydays).toEqual([149, 156, 163, 170, 177, 184, 191, 198, 205, 212, 219, 226])
     expect(s.player.fans).toBe(4800)
     expect(s.player.money).toBe(3000 + 2000 + 6000)
+  })
+
+  it('isPayDay: Kumo on day 100 pays on days 149 to 226, a week apart, never on the premiere (142) or after the finale', () => {
+    const days = [142, 148, 149, 150, 156, 219, 226, 233]
+    expect(days.map((d) => isPayDay(KUMO_AT_100, d))).toEqual([false, false, true, false, true, true, true, false])
   })
 
   it('Hoshi pays +900 fans and ¥1,000 at the end of each of its 24 weeks: 21,600 fans and ¥24,000', () => {

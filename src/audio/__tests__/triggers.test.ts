@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
-  acceptOffer, addLog, buyEquipment, createGame, dismissResult, doneIds, getPhase, grantXp, hireAssistant, startProject,
-  startTrip, submitProject, tick, tickMany,
+  acceptOffer, addLog, buyEquipment, createGame, dismissResult, doneIds, getPhase, grantXp, hireAssistant, setActivity,
+  startProject, startTrip, submitProject, tick, tickMany,
 } from '../../sim'
 import type { AnimeDeal, AwardId, ChapterResult, GameState, Serial, YearReview } from '../../sim'
 import { DRAFT, KIDS_OFFER, drawUntilReady, withPendingResult } from '../../test/fixtures'
@@ -180,11 +180,29 @@ describe('cuesForTransition: the other cues', () => {
     expect(cues(prev, withSerial(prev, { status: 'cancelled' }))).toEqual(['cancel'])
   })
 
-  it('plays cancel with the weak chapter that archived a cancelled serial', () => {
+  it('plays cancel alone when a weak chapter archives a cancelled serial', () => {
     const prev = serialGame()
     const cancelled: Serial = { ...prev.serial!, status: 'cancelled', results: [chapterResult(11, 12)] }
     const next = addLog({ ...prev, serial: null, serials: [cancelled] }, 'warn', 'Cancelled.', true)
-    expect(cues(prev, next)).toEqual(['cancel', 'chapter-weak'])
+    expect(cues(prev, next)).toEqual(['cancel'])
+  })
+
+  it('plays cancel alone when a third missed issue cancels the serial, over its warning toasts', () => {
+    // Past the 4-chapter grace, resting at the desk: Kids chapter 5 misses days 21, 42 and 63, warnings 1, 2 and 3.
+    const g = setActivity(serialGame(), 'rest')
+    const r = chapterResult(4, 10)
+    const start: GameState = {
+      ...g,
+      serial: { ...g.serial!, results: [1, 2, 3, 4].map((chapter) => ({ ...r, chapter })), chaptersSent: 4 },
+      project: { ...g.project!, chapter: 5 },
+      player: { ...g.player, money: 10000 },
+    }
+    const [prev, next] = stepInto(start, (s) => !s.serial)
+    expect(next.day).toBe(63)
+    expect(next.serials[0].status).toBe('cancelled')
+    // the missed-issue warning and the cancellation both land as warning toasts on this tick
+    expect(next.log.filter((e) => e.id >= prev.nextLogId && e.kind === 'warn' && e.toast)).toHaveLength(2)
+    expect(cues(prev, next)).toEqual(['cancel'])
   })
 
   it('does not replay cancel for a serial already archived as cancelled', () => {

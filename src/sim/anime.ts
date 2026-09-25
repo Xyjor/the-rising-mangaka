@@ -37,6 +37,12 @@ function boostOn(d: AnimeDeal, day: number): boolean {
   return d.airsDay <= day && day <= d.tailEndsDay
 }
 
+/** Is `day` a pay day for the deal: the end of a week on air, from a week after the premiere up to the finale? */
+export function isPayDay(d: AnimeDeal, day: number): boolean {
+  const onAir = day - d.airsDay
+  return onAir > 0 && day <= d.endsDay && onAir % WEEK === 0
+}
+
 /** How many times the copies `serialId`'s volumes sell today: the deal's multiplier while its boost is on, else 1. */
 export function animeVolumeMult(s: GameState, serialId: number): number {
   const d = s.anime.find((x) => x.serialId === serialId && boostOn(x, s.day))
@@ -100,10 +106,10 @@ function dealDay(state: GameState, d: AnimeDeal): GameState {
     }
     s = addLog(s, 'series', `The "${title}" anime premieres today${lift}. It brings ${weekly}.${boost}`, true)
   }
-  const onAir = s.day - d.airsDay
-  if (onAir > 0 && s.day <= d.endsDay && onAir % WEEK === 0) {
+  if (isPayDay(d, s.day)) {
     s = { ...s, player: { ...s.player, fans: s.player.fans + st.weeklyFans, money: s.player.money + st.weeklyMoney } }
-    const text = `The "${title}" anime, week ${onAir / WEEK} of ${st.runsWeeks}: +${num(st.weeklyFans)} fans, +${yen(st.weeklyMoney)}.`
+    const week = (s.day - d.airsDay) / WEEK
+    const text = `The "${title}" anime, week ${week} of ${st.runsWeeks}: +${num(st.weeklyFans)} fans, +${yen(st.weeklyMoney)}.`
     s = addLog(s, 'money', text, false)
   }
   if (s.day === d.endsDay) {
