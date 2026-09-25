@@ -7,6 +7,7 @@ import type { RankTier, ScoreBreakdown } from '../../sim'
 import { useStore } from '../../state/store'
 import { Bar, Modal, Pips, Reward } from '../components'
 import { compact, money } from '../format'
+import { payWhy } from '../labels'
 
 const ITEMS: { key: keyof ScoreBreakdown; label: string; tone: string }[] = [
   { key: 'art', label: 'Art', tone: 'blue' },
@@ -112,6 +113,7 @@ export function ResultsModal() {
           <Reward value={`+${compact(r.rewards.fans)}`} label="Fans" />
           <Reward value={`+${r.rewards.xp}`} label="XP" />
         </section>
+        <p className="tiny muted">{payWhy(r)}</p>
 
         {pendingOffer ? (
           <p className="small ok-text">{mag.name} wants to serialise this. The offer is next.</p>

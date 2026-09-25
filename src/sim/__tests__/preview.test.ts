@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
-  GENRES, MAGAZINES, PODIUM_RANK, RANK_MULTIPLIER, THEMES, binomialAtMost, createGame, estimateScore,
-  evaluateProject, genreThemeRating, magazineById, normalCdf, previewSubmission, rankTier,
+  GENRES, MAGAZINES, PODIUM_RANK, THEMES, binomialAtMost, createGame, estimateScore,
+  genreThemeRating, normalCdf, previewSubmission, rankTier,
   startProject, submitProject, themeAudienceRating, tickMany, weakRankLine,
 } from '../index'
 import type { GameState, GenreId, ThemeId } from '../index'
@@ -82,23 +82,16 @@ describe('submission preview', () => {
     expect(PODIUM_RANK).toBe(3)
   })
 
-  it('quotes the same pay floor and ceiling the poll would hand out', () => {
+  it('quotes the pay floor and ceiling pollPay would hand out at the estimated score', () => {
+    // Base seed-42 Kids Comic manuscript: 20 pages, 10 rivals (11 entrants counting the player),
+    // estimated score 45 (same figure the "reproduces the worked examples" test derives above).
     const base = drawUntilReady(startProject(createGame('Rin', 42), kidsDraft))
-    const mag = magazineById('kids-comic')
-    const pages = base.project!.pagesDone
     const pv = previewSubmission(base, 'kids-comic')!
-    expect(pv.minMoney).toBe(Math.round(mag.pageRate * pages * RANK_MULTIPLIER.weak))
-    expect(pv.maxMoney).toBe(Math.round(mag.pageRate * pages * RANK_MULTIPLIER.first))
-
-    const strong = withQuality(base, 100, 100)
-    const top = evaluateProject(strong, strong.project!, 'kids-comic').result
-    expect(top.rank).toBe(1)
-    expect(top.rewards.money).toBe(pv.maxMoney)
-
-    const feeble = withQuality(base, 0, 0)
-    const bottom = evaluateProject(feeble, feeble.project!, 'kids-comic').result
-    expect(bottom.rank).toBeGreaterThan(Math.ceil(bottom.entrants / 2))
-    expect(bottom.rewards.money).toBe(pv.minMoney)
+    expect(pv.expectedScore).toBe(45)
+    // minMoney: last of 11 entrants, weak tier (70%): 90 x 20 x 45 x 70 / 8000 = 5,670,000 / 8000 = 708.75 -> 709
+    expect(pv.minMoney).toBe(709)
+    // maxMoney: 1st of 11 entrants, first tier (200%): 90 x 20 x 45 x 200 / 8000 = 16,200,000 / 8000 = 2,025
+    expect(pv.maxMoney).toBe(2025)
   })
 
   it('lets a fresh player reach the serial gate at Kids Comic with a well-matched combo', () => {

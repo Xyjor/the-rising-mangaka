@@ -12,9 +12,9 @@ import {
   evaluateChapter, evaluateProject, projectArtQuality, projectStoryQuality, rankScore, stalenessCount,
 } from './scoring'
 // previewSubmission's estimator (kept on its own lines so the import lists above merge cleanly)
-import { RANK_MULTIPLIER, RIVAL_SCORE_SD } from './data'
+import { RIVAL_SCORE_SD } from './data'
 import { binomialAtMost, normalCdf } from './rng'
-import { estimateScore } from './scoring'
+import { estimateScore, pollPay } from './scoring'
 import type {
   Activity, Assistant, AssistantTrait, AudienceId, EditorRel, Focus, GameState, GenreId, LogKind, Magazine,
   MagazineId, PendingChapter, Phase, PlaceId, Project, ProjectDraft, Rating, Serial, StatId, ThemeId,
@@ -204,8 +204,8 @@ export function previewSubmission(state: GameState, magazineId: MagazineId): Sub
     audienceFit: combo.themeAudience,
     freshness: combo.genreTheme,
     staleness: combo.staleness,
-    minMoney: Math.round(mag.pageRate * p.pagesDone * RANK_MULTIPLIER.weak),
-    maxMoney: Math.round(mag.pageRate * p.pagesDone * RANK_MULTIPLIER.first),
+    minMoney: pollPay(mag, p.pagesDone, score, mag.entrants + 1, mag.entrants + 1),
+    maxMoney: pollPay(mag, p.pagesDone, score, 1, mag.entrants + 1),
     expectedScore: score,
     expectedRank: {
       low: clamp(Math.round(mean - 1.5 * sd), 1, n + 1),

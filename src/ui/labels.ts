@@ -1,7 +1,10 @@
 // Short words the pitch, offer, series, desk and stats screens share. Pure functions of sim data, no React.
-import { MAGAZINES, SERIAL_WARNINGS_TO_CANCEL, audienceById, genreById, magazineById, suitedFocus, themeById } from '../sim'
-import type { AudienceId, GenreId, MagazineId, ScoreBreakdown, ThemeId } from '../sim'
-import { plural } from './format'
+import {
+  MAGAZINES, PAY_FULL_RATE_SCORE, SERIAL_WARNINGS_TO_CANCEL, audienceById, genreById, magazineById, rankTier,
+  suitedFocus, themeById,
+} from '../sim'
+import type { AudienceId, GenreId, MagazineId, PollResult, RankTier, ScoreBreakdown, ThemeId } from '../sim'
+import { money, plural } from './format'
 
 /** How a magazine's rivals feel, from its typical rival score. */
 export function rivalWord(mean: number): string {
@@ -16,6 +19,26 @@ export function oddsWord(chance: number): string {
 /** "Action, Samurai, for Teens" */
 export function comboLabel(genre: GenreId, theme: ThemeId, audience: AudienceId): string {
   return `${genreById(genre).name}, ${themeById(theme).name}, for ${audienceById(audience).name}`
+}
+
+/** The rank-tier clause `payWhy` appends after the score is scaled. */
+const PAY_TIER_PHRASE: Record<RankTier, string> = {
+  first: 'times 2 for first place',
+  podium: 'times 1.4 for the podium',
+  mid: 'times 1 for mid-table',
+  weak: 'times 0.7 for a weak finish',
+}
+
+/**
+ * Explains a poll payout: the page rate, how the score scaled it against `PAY_FULL_RATE_SCORE`, and the
+ * rank-tier multiplier. e.g. "20 pages at ¥90, scaled by your score (52; 80 earns the full rate), times 1.4
+ * for the podium."
+ */
+export function payWhy(result: PollResult): string {
+  const mag = magazineById(result.magazineId)
+  const tier = rankTier(result.rank, result.entrants)
+  return `${plural(result.pages, 'page')} at ${money(mag.pageRate)}, scaled by your score `
+    + `(${result.score}; ${PAY_FULL_RATE_SCORE} earns the full rate), ${PAY_TIER_PHRASE[tier]}.`
 }
 
 /** The serial-status warning line: safe, a countdown, or the last-chance message. */

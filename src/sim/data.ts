@@ -141,6 +141,10 @@ export const PODIUM_RANK = 3
 /** A chapter ranking below ceil(entrants x this) counts as weak. */
 export const WEAK_RANK_FRACTION = 0.7
 export const RANK_MULTIPLIER: Record<RankTier, number> = { first: 2, podium: 1.4, mid: 1, weak: 0.7 }
+/** Same tiers as `RANK_MULTIPLIER`, as integer percentages, for `pollPay`'s integer arithmetic. */
+export const RANK_MULTIPLIER_PCT: Record<RankTier, number> = { first: 200, podium: 140, mid: 100, weak: 70 }
+/** The poll score that earns the full per-page rate in `pollPay`; below it pay scales down, above it up. */
+export const PAY_FULL_RATE_SCORE = 80
 
 export function genreById(id: GenreId): Genre { return GENRES.find((g) => g.id === id)! }
 export function themeById(id: ThemeId): Theme { return THEMES.find((t) => t.id === id)! }

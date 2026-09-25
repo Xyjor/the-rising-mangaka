@@ -1,12 +1,13 @@
 import { genreThemeKey, genreThemeRating, themeAudienceKey, themeAudienceRating } from './compat'
 import {
-  MAGAZINE_MISMATCH_PENALTY, PACING_NOISE_SD, PODIUM_RANK, RANK_MULTIPLIER, RATING_SCORE, RIVAL_SCORE_SD,
-  SCORE_WEIGHTS, STALENESS_PENALTY, WEAK_RANK_FRACTION, audienceById, genreById, magazineById, themeById,
+  MAGAZINE_MISMATCH_PENALTY, PACING_NOISE_SD, PAY_FULL_RATE_SCORE, PODIUM_RANK, RANK_MULTIPLIER,
+  RANK_MULTIPLIER_PCT, RATING_SCORE, RIVAL_SCORE_SD, SCORE_WEIGHTS, STALENESS_PENALTY, WEAK_RANK_FRACTION,
+  audienceById, genreById, magazineById, themeById,
 } from './data'
 import type { RankTier } from './data'
 import { clamp, draw, gaussian } from './rng'
 import type {
-  AudienceId, ChapterResult, Focus, GameState, GenreId, MagazineId, PendingChapter, PollResult, Project,
+  AudienceId, ChapterResult, Focus, GameState, GenreId, Magazine, MagazineId, PendingChapter, PollResult, Project,
   ScoreBreakdown, ScoreWeights, Serial, ThemeId,
 } from './types'
 
@@ -143,6 +144,16 @@ function rankMultiplier(rank: number, entrants: number): number {
 }
 
 /**
+ * Money paid for a poll placement: the page rate scaled by the score against `PAY_FULL_RATE_SCORE`
+ * (the score that earns the full per-page rate), times the rank-tier multiplier. Every factor is an
+ * integer and the multiplier is a percentage, so the single division at the end is exact for x.5 cases.
+ */
+export function pollPay(mag: Magazine, pages: number, score: number, rank: number, entrants: number): number {
+  const pct = RANK_MULTIPLIER_PCT[rankTier(rank, entrants)]
+  return Math.round((mag.pageRate * pages * score * pct) / (PAY_FULL_RATE_SCORE * 100))
+}
+
+/**
  * Best guess at a one-shot's poll score before it is submitted. Pure, no RNG: pacing noise is
  * ignored and pairings the player has not tested yet are assumed to rate Good.
  */
@@ -202,7 +213,7 @@ export function evaluateProject(
     breakdown,
     penalties: { magazineMismatch: mismatch, staleness },
     rewards: {
-      money: Math.round(mag.pageRate * project.pagesDone * mult),
+      money: pollPay(mag, project.pagesDone, score, rank, entrants),
       fans: Math.round(mag.circulation * 10 * (score / 100) * mult),
       xp: Math.round(30 + score * 0.8),
     },
@@ -248,7 +259,7 @@ export function evaluateChapter(
     entrants,
     breakdown,
     rewards: {
-      money: Math.round(mag.pageRate * pc.pages * mult),
+      money: pollPay(mag, pc.pages, score, rank, entrants),
       fans: Math.round(mag.circulation * 6 * (score / 100) * mult),
       xp: Math.round(20 + score * 0.5),
     },
