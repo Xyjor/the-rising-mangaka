@@ -85,8 +85,8 @@ describe('pitch forecast', () => {
   it('Kids Comic Go!, quality 100/100, Great and Great: the offer is certain and first place all but so', () => {
     const s = pitch(KIDS_DRAFT, 100, 100, { genreTheme: { 'action|samurai': 3 }, themeAudience: { 'samurai|kids': 3 } })
     const f = forecastPoll(s, s.project!, 'kids-comic')
-    // 3500 + 1500 + 10 x pacing + 1600 + 1600 -> 84 to 86, every outcome at or above 65
-    expect(f.offerChance).toBeCloseTo(1, 9)
+    // 3500 + 1500 + 10 x pacing + 1600 + 1600 -> 84 to 86, every outcome at or above 65: exactly 1, no rounding dust
+    expect(f.offerChance).toBe(1)
     expect(f.expectedRank).toEqual({ low: 1, high: 1 })
     // The pay range only counts outcomes above 1e-9. At 84 (P 0.0833) each rival is above with
     // p = 1 - normalCdf(37 / 8) = 1.9e-6: rank 2 is 0.0833 x 10p = 1.6e-6 (in), rank 3 is 0.0833 x 45p^2 = 1.3e-11
@@ -107,7 +107,7 @@ describe('pitch forecast', () => {
     // 8 rivals at 62 +- 8 still put this 4th or lower about 27% of the time (a top 3 alone would be about 0.73),
     // but every score clears 65
     expect(f.expectedRank).toEqual({ low: 1, high: 4 })
-    expect(f.offerChance).toBeCloseTo(1, 9)
+    expect(f.offerChance).toBe(1)
   })
 
   it('forecasts no offer while a serial runs, and says why', () => {

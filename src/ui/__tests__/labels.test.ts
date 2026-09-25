@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { PollResult } from '../../sim'
-import { offerLabel, payWhy, warningText } from '../labels'
+import { likelyLine, offerLabel, payWhy, warningText } from '../labels'
 
 describe('warningText', () => {
   it('reads Safe with no warnings', () => {
@@ -72,10 +72,28 @@ describe('offerLabel', () => {
 
   it('is certain only when every outcome clears 65, and never rounds a near miss up to 100%', () => {
     expect(offerLabel({ offerChance: 1, offerBlocked: null })).toBe('certain: this clears 65')
+    expect(offerLabel({ offerChance: 1 - 1e-12, offerBlocked: null })).toBe('likely, 99%')
     expect(offerLabel({ offerChance: 0.9996, offerBlocked: null })).toBe('likely, 99%')
   })
 
   it('names the running serial that blocks an offer', () => {
     expect(offerLabel({ offerChance: 0, offerBlocked: 'serial' }, 'Magic Club')).toBe('none while "Magic Club" runs')
+  })
+})
+
+describe('likelyLine', () => {
+  it('gives the likely score and rank as ranges', () => {
+    expect(likelyLine({ scoreRange: { low: 52, high: 53 }, expectedRank: { low: 2, high: 5 } }, 11)).toBe(
+      'Likely score 52 to 53. Likely rank #2 to #5 of 11.',
+    )
+  })
+
+  it('names a single value when both ends meet', () => {
+    expect(likelyLine({ scoreRange: { low: 52, high: 52 }, expectedRank: { low: 1, high: 1 } }, 11)).toBe(
+      'Likely score 52. Likely rank #1 of 11.',
+    )
+    expect(likelyLine({ scoreRange: { low: 85, high: 86 }, expectedRank: { low: 1, high: 1 } }, 11)).toBe(
+      'Likely score 85 to 86. Likely rank #1 of 11.',
+    )
   })
 })

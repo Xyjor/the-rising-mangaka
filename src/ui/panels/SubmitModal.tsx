@@ -8,7 +8,7 @@ import { useStore } from '../../state/store'
 import { Icon } from '../Icon'
 import { Metric, Modal, Pips, RatingText } from '../components'
 import { money } from '../format'
-import { comboLabel, offerLabel, rivalWord } from '../labels'
+import { comboLabel, likelyLine, offerLabel, rivalWord } from '../labels'
 
 export function SubmitModal() {
   const game = useStore((s) => s.game)!
@@ -72,9 +72,7 @@ export function SubmitModal() {
                   <span>{m.entrants} {rivalWord(m.rivalMean).toLowerCase()} rivals</span>
                 </span>
                 <span className="meta" style={{ gridColumn: '1 / -1' }}>
-                  <span>
-                    Likely score {est.scoreRange.low} to {est.scoreRange.high}. Likely rank #{est.expectedRank.low} to #{est.expectedRank.high} of {m.entrants + 1}.
-                  </span>
+                  <span>{likelyLine(est, m.entrants + 1)}</span>
                   <span>Serial offer: {offerLabel(est, serialTitle)}.</span>
                   <span>Pays about {money(est.expectedPay)} ({money(est.payRange.low)} to {money(est.payRange.high)}).</span>
                   <span>Rivals usually score {m.rivalMean - RIVAL_SCORE_SD} to {m.rivalMean + RIVAL_SCORE_SD}.</span>

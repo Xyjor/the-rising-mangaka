@@ -6,7 +6,7 @@ import { genreThemeKey, themeAudienceKey } from './compat'
 import {
   PACING_NOISE_SD, RATING_PRIOR, RIVAL_SCORE_SD, SERIAL_OFFER_MIN_RANK, SERIAL_OFFER_MIN_SCORE, magazineById,
 } from './data'
-import { normalCdf } from './rng'
+import { clamp, normalCdf } from './rng'
 import {
   computeBreakdown, pollPay, projectArtQuality, projectStoryQuality, stalenessCount, weightedScore,
 } from './scoring'
@@ -119,7 +119,8 @@ export function forecastPoll(state: GameState, project: Project, magazineId: Mag
   const entrants = mag.entrants + 1
   const rankDist = new Array<number>(entrants).fill(0)
   let meanScore = 0
-  let offer = 0
+  // The chance of no offer, summed over scores under 65 only, so a manuscript that always clears 65 is exactly 1.
+  let miss = 0
   let expectedPay = 0
   let payLow = Infinity
   let payHigh = -Infinity
@@ -128,7 +129,7 @@ export function forecastPoll(state: GameState, project: Project, magazineId: Mag
     meanScore += ps * score
     const above = rivalsAboveDist(score, means)
     const topFinish = above.slice(0, SERIAL_OFFER_MIN_RANK).reduce((a, b) => a + b, 0)
-    offer += ps * (score >= SERIAL_OFFER_MIN_SCORE ? 1 : topFinish)
+    if (score < SERIAL_OFFER_MIN_SCORE) miss += ps * (1 - topFinish)
     above.forEach((pk, k) => {
       const joint = ps * pk
       const pay = pollPay(mag, project.pagesDone, score, k + 1, entrants)
@@ -148,7 +149,7 @@ export function forecastPoll(state: GameState, project: Project, magazineId: Mag
     scoreRange: { low: percentile(scoreDist, RANGE_LOW), high: percentile(scoreDist, RANGE_HIGH) },
     rankDist,
     expectedRank: { low: percentile(rankDist, RANGE_LOW) + 1, high: percentile(rankDist, RANGE_HIGH) + 1 },
-    offerChance: offerBlocked ? 0 : Math.min(1, offer),
+    offerChance: offerBlocked ? 0 : clamp(1 - miss, 0, 1),
     offerBlocked,
     expectedPay,
     payRange: { low: payLow, high: payHigh },

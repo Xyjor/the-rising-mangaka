@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  GENRES, MAGAZINES, PODIUM_RANK, THEMES, binomialAtMost, createGame, forecastPoll,
+  GENRES, MAGAZINES, PODIUM_RANK, THEMES, createGame, forecastPoll,
   genreThemeRating, normalCdf, previewSubmission, rankTier,
   startProject, submitProject, themeAudienceRating, tickMany, weakRankLine,
 } from '../index'
@@ -31,13 +31,10 @@ describe('submission preview', () => {
     expect(byId['kids-comic']).toBeGreaterThan(byId['weekly-bolt'])
   })
 
-  it('has a normal CDF and binomial tail that match the tables', () => {
+  it('has a normal CDF that matches the tables', () => {
     expect(Math.abs(normalCdf(0) - 0.5)).toBeLessThan(1e-4)
     expect(Math.abs(normalCdf(1.96) - 0.975)).toBeLessThan(1e-4)
     expect(Math.abs(normalCdf(-1.96) - 0.025)).toBeLessThan(1e-4)
-    expect(Math.abs(binomialAtMost(10, 2, 0.338) - 0.288)).toBeLessThan(1e-3)
-    expect(binomialAtMost(10, 10, 0.5)).toBeCloseTo(1, 10)
-    expect(binomialAtMost(10, -1, 0.5)).toBe(0)
   })
 
   it('tiers ranks the same way rewards do', () => {

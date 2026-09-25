@@ -18,14 +18,24 @@ export function oddsWord(chance: number): string {
 
 /**
  * The serial-offer odds on the pitch screen: "likely, 48%", "under 1%", "certain: this clears 65", or
- * "none while "Magic Club" runs" when the running serial `serialTitle` rules an offer out. A chance short of
- * certain never reads 100%.
+ * "none while "Magic Club" runs" when the running serial `serialTitle` rules an offer out. The forecast returns
+ * exactly 1 when every outcome clears 65; any chance short of that never reads 100%.
  */
 export function offerLabel(p: Pick<Forecast, 'offerChance' | 'offerBlocked'>, serialTitle = ''): string {
   if (p.offerBlocked === 'serial') return `none while "${serialTitle}" runs`
-  if (p.offerChance >= 1 - 1e-9) return `certain: this clears ${SERIAL_OFFER_MIN_SCORE}`
+  if (p.offerChance === 1) return `certain: this clears ${SERIAL_OFFER_MIN_SCORE}`
   if (p.offerChance < 0.01) return 'under 1%'
   return `${oddsWord(p.offerChance)}, ${Math.min(99, Math.round(p.offerChance * 100))}%`
+}
+
+/** "52 to 53" (with `prefix` on each end, e.g. "#2 to #5"), or just "52" when both ends meet. */
+function span(r: { low: number; high: number }, prefix = ''): string {
+  return r.low === r.high ? `${prefix}${r.low}` : `${prefix}${r.low} to ${prefix}${r.high}`
+}
+
+/** "Likely score 52 to 53. Likely rank #2 to #5 of 11." A range whose ends meet names the one value. */
+export function likelyLine(f: Pick<Forecast, 'scoreRange' | 'expectedRank'>, entrants: number): string {
+  return `Likely score ${span(f.scoreRange)}. Likely rank ${span(f.expectedRank, '#')} of ${entrants}.`
 }
 
 /** "Action, Samurai, for Teens" */

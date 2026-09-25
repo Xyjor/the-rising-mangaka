@@ -3,7 +3,7 @@ import { acceptOffer, createGame, startProject, submitProject } from '../index'
 import type { ChapterResult, GameState, PollResult } from '../index'
 import { CARELESS, SENSIBLE, STRESS_BOLT, botStep, firstSixMean, runBot } from '../bot'
 import type { BotRun } from '../bot'
-import { DRAFT, drawUntilReady, withPendingResult } from '../../test/fixtures'
+import { DRAFT, drawUntilReady, withPendingResult, withReadyOneShot } from '../../test/fixtures'
 
 const OFFER = { magazineId: 'kids-comic', title: 'Magic Club', genre: 'fantasy', theme: 'magic', audience: 'kids' } as const
 
@@ -104,6 +104,35 @@ describe('balance bot', () => {
     // against rivals at 47, about a 0.99 chance of an offer; the best of the rest, Monthly Petal with magic for young
     // adults untested, is about 0.38
     expect(plan.target).toBe('kids-comic')
+  })
+
+  it('breaks a tie between certain offers on expected pay', () => {
+    // Seed 42 at art 85, story 85, pacing 80, with action x samurai and samurai for every audience rated Perfect.
+    const g = createGame('Rin', 42)
+    const s: GameState = {
+      ...g,
+      player: { ...g.player, stats: { art: 85, story: 85, pacing: 80 } },
+      notebook: {
+        genreTheme: { 'action|samurai': 4 },
+        themeAudience: { 'samurai|kids': 4, 'samurai|teens': 4, 'samurai|young-adults': 4, 'samurai|adults': 4 },
+      },
+    }
+    // Art focus (Bolt, Kids) draws art 85 x 1.25 -> 100, story 85 x 0.8 = 68; story focus (Petal, Ultra) the reverse.
+    // Fit and freshness 100 everywhere:
+    // Weekly Bolt 3500 + 1020 + 1600 + 1000 + 2000 = 9120 -> 91, Kids Comic Go! 3500 + 1020 + 800 + 2000 + 2000 = 9320
+    // -> 93, Monthly Petal 1020 + 3500 + 800 + 2000 + 2000 = 9320 -> 93, Ultra Seinen 1020 + 3500 + 1600 + 1000 + 2000
+    // = 9120 -> 91. Pacing noise moves these by about a point, so every magazine clears 65: all four offers are certain.
+    // First place is all but sure (91 is 3.6 sd above Ultra's 62), paying page rate x 20 x score x 200 / 8000:
+    // Bolt 55 x 91 = 5005, Kids 45 x 93 = 4185, Petal 65 x 93 = 6045, Ultra 75 x 91 = 6825. Ultra pays most.
+    expect(SENSIBLE.planDraft(s)).toMatchObject({
+      draft: { genre: 'action', theme: 'samurai', audience: 'adults' }, target: 'ultra-seinen',
+    })
+    // The same tie on the desk: an adults manuscript at 100/100 clears 65 everywhere (25 off fit outside Ultra):
+    // Bolt 3500 + 1500 + 1600 + 750 + 2000 = 9350 -> 55 x 94 = 5170, Kids 3500 + 1500 + 800 + 1500 + 2000 = 9300
+    // -> 45 x 93 = 4185, Petal 1500 + 3500 + 800 + 1500 + 2000 = 9300 -> 65 x 93 = 6045,
+    // Ultra 1500 + 3500 + 1600 + 1000 + 2000 = 9600 -> 75 x 96 = 7200.
+    const ready = withReadyOneShot(s, { title: 'Blade Club', genre: 'action', theme: 'samurai', audience: 'adults' }, 100, 100)
+    expect(SENSIBLE.pickMagazine(ready)).toBe('ultra-seinen')
   })
 
   it('sensible drops a pairing it has used in each of its last three one-shots', () => {

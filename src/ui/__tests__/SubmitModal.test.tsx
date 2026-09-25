@@ -46,6 +46,17 @@ describe('SubmitModal forecast lines', () => {
     expect(bolt.getByText('Rivals usually score 50 to 66.')).toBeTruthy()
   })
 
+  it('names one rank when the likely range is a single place, and a certain offer', () => {
+    // quality 100/100 with both pairings Great at Kids: 84 to 86, p10/p90 85 and 86, first place at both percentiles
+    const g = createGame('Rin', 1)
+    const notebook = { genreTheme: { 'action|samurai': 3 as const }, themeAudience: { 'samurai|kids': 3 as const } }
+    useStore.setState({ game: withReadyOneShot({ ...g, notebook }, KIDS_DRAFT, 100, 100) })
+    render(<SubmitModal />)
+    const kids = card(/Kids Comic Go!/)
+    expect(kids.getByText('Likely score 85 to 86. Likely rank #1 of 11.')).toBeTruthy()
+    expect(kids.getByText('Serial offer: certain: this clears 65.')).toBeTruthy()
+  })
+
   it('explains the wide range only while a pairing is untested', () => {
     const { unmount } = render(<SubmitModal />)
     expect(screen.queryByText(FOOTNOTE)).toBeNull()

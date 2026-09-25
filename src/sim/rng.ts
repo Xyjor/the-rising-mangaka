@@ -54,14 +54,3 @@ export function normalCdf(z: number): number {
   const p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))))
   return z > 0 ? 1 - p : p
 }
-
-/** P(X <= k) for X ~ Binomial(n, p). */
-export function binomialAtMost(n: number, k: number, p: number): number {
-  let total = 0
-  let coeff = 1
-  for (let i = 0; i <= Math.min(k, n); i++) {
-    if (i > 0) coeff = (coeff * (n - i + 1)) / i
-    total += coeff * p ** i * (1 - p) ** (n - i)
-  }
-  return total
-}
