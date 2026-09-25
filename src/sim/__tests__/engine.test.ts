@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import {
   CHAPTER_PAGES, JOB_PAY_PER_DAY, LOW_STAMINA_THRESHOLD, MAGAZINE_MISMATCH_PENALTY, ONE_SHOT_PAGES,
-  RATING_SCORE, REST_STAMINA_GAIN, SERIAL_CLIMAX_VOLUME_MULT, VOLUME_PRICE, WEEKLY_LIVING_COST,
-  WORK_STAMINA_COST, acceptOffer, createGame, declineOffer, describeDate, dismissResult, endSerial,
+  PACING_NOISE_SD, RATING_SCORE, REST_STAMINA_GAIN, SERIAL_CLIMAX_VOLUME_MULT, VOLUME_PRICE, WEEKLY_LIVING_COST,
+  WORK_STAMINA_COST, acceptOffer, clamp, createGame, declineOffer, describeDate, dismissResult, endSerial,
   evaluateChapter, evaluateProject, fireAssistant, genreThemeRating, getPhase, hireAssistant, magazineById,
   previewCombo, previewSubmission, projectArtQuality, serialFatigue, setActivity, spendSkillPoint,
   stalenessCount, startProject, startTrip, submitProject, themeAudienceKey, tick, tickMany, volumeCopies,
 } from '../index'
 import type { Assistant, AssistantTrait, GameState, PendingChapter } from '../index'
+import { draw, gaussian } from '../rng'
 import { DRAFT as draft, drawUntilReady as drawUntilReadyFrom, withStats } from '../../test/fixtures'
 
 /** Thin wrapper keeping this file's default-argument call sites (`drawUntilReady()`) working. */
@@ -508,6 +509,29 @@ describe('rules', () => {
     expect(match.penalties.magazineMismatch).toBe(0)
     expect(miss.penalties.magazineMismatch).toBe(MAGAZINE_MISMATCH_PENALTY)
     expect(miss.breakdown.audienceFit).toBe(match.breakdown.audienceFit - MAGAZINE_MISMATCH_PENALTY)
+  })
+
+  it('draws exactly 2 + entrants x 2 values from the seed for a one-shot poll, and scores pacing noise at PACING_NOISE_SD', () => {
+    const s = drawUntilReady()
+    const mag = magazineById('kids-comic')
+    const { values, seed: wantSeed } = draw(s.seed, 2 + mag.entrants * 2)
+    const { result, seed } = evaluateProject(s, s.project!, 'kids-comic')
+    // RNG discipline: a poll always draws 2 + entrants x 2 values, whatever the pacing/rival scale is.
+    expect(seed).toBe(wantSeed)
+    const expectedPacing = clamp(Math.round(s.player.stats.pacing + gaussian(values[0], values[1]) * PACING_NOISE_SD), 0, 100)
+    expect(result.breakdown.pacing).toBe(expectedPacing)
+  })
+
+  it('draws exactly 2 + entrants x 2 values from the seed for a chapter poll, and scores pacing noise at PACING_NOISE_SD', () => {
+    const s = acceptOffer(dismissResult(strongOneShot()))
+    const ser = s.serial!
+    const pc: PendingChapter = { chapter: 1, pages: CHAPTER_PAGES, artQ: 50, storyQ: 50, submittedDay: s.day, resultsDay: s.day + 7 }
+    const mag = magazineById(ser.magazineId)
+    const { values, seed: wantSeed } = draw(s.seed, 2 + mag.entrants * 2)
+    const { result, seed } = evaluateChapter(s, ser, pc)
+    expect(seed).toBe(wantSeed)
+    const expectedPacing = clamp(Math.round(s.player.stats.pacing + gaussian(values[0], values[1]) * PACING_NOISE_SD), 0, 100)
+    expect(result.breakdown.pacing).toBe(expectedPacing)
   })
 
   it('applies each assistant trait over one working day', () => {

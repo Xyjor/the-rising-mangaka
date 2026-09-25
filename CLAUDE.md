@@ -68,6 +68,6 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
 
 ## Balance touchpoints
 
-Starting stats 34/38/30, rivals score 45–62, weekly living cost 400, one-shot 20 pages (~17 days solo),
+Starting stats 34/38/30, rivals score 47 to 62, spread 8, weekly living cost 400, one-shot 20 pages (~17 days solo),
 chapter 16 pages. If you change formulas, re-run the balance script and keep one-shot scores in the 40–55 range
 for a fresh player.

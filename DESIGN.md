@@ -59,7 +59,7 @@ Each component is scored 0–100:
 |--------------|------------------------------------------|
 | Art          | accumulated art quality                  |
 | Story        | accumulated story quality                |
-| Pacing       | Pacing stat + noise                      |
+| Pacing       | Pacing stat + noise (Gaussian, sd `PACING_NOISE_SD`) |
 | Audience fit | theme×audience rating, magazine mismatch |
 | Freshness    | genre×theme rating, staleness penalty    |
 
@@ -80,7 +80,8 @@ story focus suits Monthly Petal and Ultra Seinen. For a fresh player drawing a k
 the pitch screen, the wizard's audience step, the results breakdown ("weight N%") and the stats screen all show the
 weights, so the modifier is never hidden.
 
-Rank = 1 + number of rivals scoring higher. Rewards scale with score and rank.
+Rank = 1 + number of rivals scoring higher, each drawn as `magazine.rivalMean + Gaussian noise (sd RIVAL_SCORE_SD)`
+(see CLAUDE.md balance touchpoints for the current rival score range and spread). Rewards scale with score and rank.
 The editor writes a one-line comment on the component that cost the most points at that magazine
 (`biggestLoss`: the largest weight × (100 − component), ties in the order art, story, pacing, fit, freshness).
 

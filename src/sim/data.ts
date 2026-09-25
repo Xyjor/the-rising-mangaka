@@ -62,7 +62,7 @@ export const MAGAZINES: Magazine[] = [
   },
   {
     id: 'kids-comic', name: 'Kids Comic Go!', audience: 'kids',
-    pageRate: 90, circulation: 120, rivalMean: 45, entrants: 10,
+    pageRate: 90, circulation: 120, rivalMean: 47, entrants: 10,
     taste: { art: 35, story: 15, pacing: 10, audienceFit: 20, freshness: 20 },
     tasteLine: 'Readers love bright art, and a manga made for them.',
     blurb: 'Bright, loud, and forgiving. The easiest polls to win, the lowest page rate.', editor: 'Mori',
@@ -133,7 +133,9 @@ export const SERIAL_OFFER_MIN_RANK = 3
 export const SERIAL_OFFER_MIN_SCORE = 65
 export const EDITOR_TIP_EVERY = 3
 /** Spread of rival poll scores around a magazine's rivalMean. */
-export const RIVAL_SCORE_SD = 12
+export const RIVAL_SCORE_SD = 8
+/** Spread of the pacing component's random noise around the player's pacing stat. */
+export const PACING_NOISE_SD = 4
 export type RankTier = 'first' | 'podium' | 'mid' | 'weak'
 export const PODIUM_RANK = 3
 /** A chapter ranking below ceil(entrants x this) counts as weak. */

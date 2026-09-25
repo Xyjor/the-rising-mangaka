@@ -42,8 +42,14 @@ describe('submission preview', () => {
     expect(estimateScore(kids, kids.project!, 'kids-comic')).toBe(50)
     const pk = previewSubmission(kids, 'kids-comic')!
     expect(pk.expectedScore).toBe(50)
+    // Kids rivalMean 47, RIVAL_SCORE_SD 8: z = (50-47)/8 = 0.375, pr = 1 - normalCdf(0.375) = 0.35383.
+    // mean = 1 + 0.35383x10 = 4.5383, sd = sqrt(10x0.35383x0.64617) = 1.5122.
+    // low = round(4.5383 - 1.5x1.5122) = round(2.271) = 2, high = round(4.5383 + 1.5x1.5122) = round(6.807) = 7.
     expect(pk.expectedRank).toEqual({ low: 2, high: 7 })
-    expect(Math.abs(pk.offerChance - 0.29)).toBeLessThanOrEqual(0.02)
+    // offerChance = binomialAtMost(10, SERIAL_OFFER_MIN_RANK-1=2, pr=0.35383):
+    // P(0) = 0.64617^10 = 0.012692, P(1) = 10x0.35383x0.64617^9 = 0.069517, P(2) = 45x0.35383^2x0.64617^8 = 0.171272
+    // sum = 0.253481
+    expect(Math.abs(pk.offerChance - 0.2534)).toBeLessThanOrEqual(0.01)
 
     // Bolt weighs art 35, story 15, pacing 20, fit 10, freshness 20; kids manga in a teens magazine, fit 60 - 25:
     // 50x35 + 51x15 + 30x20 + 35x10 + 60x20 = 1750 + 765 + 600 + 350 + 1200 = 4665
@@ -51,7 +57,10 @@ describe('submission preview', () => {
     expect(estimateScore(bolt, bolt.project!, 'weekly-bolt')).toBe(47)
     const pb = previewSubmission(bolt, 'weekly-bolt')!
     expect(pb.expectedScore).toBe(47)
-    expect(pb.expectedRank).toEqual({ low: 9, high: 13 })
+    // Bolt rivalMean 58 (unchanged), RIVAL_SCORE_SD 8: z = (47-58)/8 = -1.375, pr = normalCdf(1.375) = 0.915404.
+    // mean = 1 + 0.915404x12 = 11.9849, sd = sqrt(12x0.915404x0.084596) = 0.96412.
+    // low = round(11.9849 - 1.5x0.96412) = round(10.539) = 11, high = round(11.9849 + 1.5x0.96412) = round(13.431) = 13.
+    expect(pb.expectedRank).toEqual({ low: 11, high: 13 })
   })
 
   it('has a normal CDF and binomial tail that match the tables', () => {

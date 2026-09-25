@@ -196,15 +196,22 @@ describe('balance bot', () => {
       'action/samurai/teens', 'mystery/detective/adults', 'horror/cooking/kids',
       'romance/school/teens', 'action/samurai/teens', 'scifi/space/young-adults',
     ])
-    // the old balance script's seed-42 readout, scored with each magazine's taste:
-    // Bolt   {37,33,27,60,80}:  37x35 + 33x15 + 27x20 + 60x10 + 80x20  = 4530 -> 45, 8 of 12 rivals above
-    // Kids   {37,35,26,55,100}: 37x35 + 35x15 + 26x10 + 55x20 + 100x20 = 5180 -> 52, 5 of 10 rivals above
-    // Petal  {40,34,24,15,20}:  40x15 + 34x35 + 24x10 + 15x20 + 20x20  = 2730 -> 27, all 8 rivals above
-    // Ultra  {39,35,29,55,80}:  39x15 + 35x35 + 29x20 + 55x10 + 80x20  = 4540 -> 45, all 8 rivals above
-    // Bolt   {38,34,32,60,80}:  38x35 + 34x15 + 32x20 + 60x10 + 80x20  = 4680 -> 47, 10 of 12 rivals above
-    // Kids   {38,33,25,15,100}: 38x35 + 33x15 + 25x10 + 15x20 + 100x20 = 4375 -> 44, 9 of 10 rivals above
-    expect(run.oneShots.slice(0, 6).map((o) => o.score)).toEqual([45, 52, 27, 45, 47, 44])
-    expect(run.oneShots.slice(0, 6).map((o) => o.rank)).toEqual([9, 6, 9, 9, 11, 10])
+    // Task 8 poll calibration: PACING_NOISE_SD 6->4, RIVAL_SCORE_SD 12->8, Kids rivalMean 45->47. The bot never
+    // spends on pacing (stats stay 38/34/30 the whole run, see below), so the pacing component below is
+    // clamp(round(30 + gaussian(u0,u1) x 4), 0, 100); art/story/audienceFit/freshness are unaffected by this
+    // task, so they are unchanged from the pre-Task-8 readout. Scores re-derived by hand from the same raw
+    // gaussian draws (via a throwaway instrumented run, discarded after use), re-applying the score/rank
+    // formulas at the new constants; the Weekly Bolt (rivalMean 58, RIVAL_SCORE_SD 8) and Kids Comic
+    // (rivalMean 47, RIVAL_SCORE_SD 8) rival lists are now tighter around their means, so a below-mean player
+    // score is beaten by more of them than under the old, wider spread.
+    // Bolt   {37,33,28,60,80}:  37x35 + 33x15 + 28x20 + 60x10 + 80x20  = 4550 -> 46, 12 of 12 rivals above (rank 13)
+    // Kids   {37,35,27,55,100}: 37x35 + 35x15 + 27x10 + 55x20 + 100x20 = 5195 -> 52, 4 of 10 rivals above (rank 5)
+    // Petal  {40,34,26,15,20}:  40x15 + 34x35 + 26x10 + 15x20 + 20x20  = 2750 -> 28, all 8 rivals above (rank 9)
+    // Ultra  {39,35,29,55,80}:  39x15 + 35x35 + 29x20 + 55x10 + 80x20  = 4540 -> 45, all 8 rivals above (rank 9)
+    // Bolt   {38,34,31,60,80}:  38x35 + 34x15 + 31x20 + 60x10 + 80x20  = 4660 -> 47, 11 of 12 rivals above (rank 12)
+    // Kids   {38,33,27,15,100}: 38x35 + 33x15 + 27x10 + 15x20 + 100x20 = 4395 -> 44, all 10 rivals above (rank 11)
+    expect(run.oneShots.slice(0, 6).map((o) => o.score)).toEqual([46, 52, 28, 45, 47, 44])
+    expect(run.oneShots.slice(0, 6).map((o) => o.rank)).toEqual([13, 5, 9, 9, 12, 11])
     expect(run.serials).toHaveLength(1)
     expect(run.serials[0]).toMatchObject({ magazineId: 'weekly-bolt', startedDay: run.oneShots[5].day })
     expect(run.final.player.stats).toEqual({ art: 38, story: 34, pacing: 30 })

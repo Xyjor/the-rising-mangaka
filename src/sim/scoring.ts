@@ -1,7 +1,7 @@
 import { genreThemeKey, genreThemeRating, themeAudienceKey, themeAudienceRating } from './compat'
 import {
-  MAGAZINE_MISMATCH_PENALTY, PODIUM_RANK, RANK_MULTIPLIER, RATING_SCORE, RIVAL_SCORE_SD, SCORE_WEIGHTS,
-  STALENESS_PENALTY, WEAK_RANK_FRACTION, audienceById, genreById, magazineById, themeById,
+  MAGAZINE_MISMATCH_PENALTY, PACING_NOISE_SD, PODIUM_RANK, RANK_MULTIPLIER, RATING_SCORE, RIVAL_SCORE_SD,
+  SCORE_WEIGHTS, STALENESS_PENALTY, WEAK_RANK_FRACTION, audienceById, genreById, magazineById, themeById,
 } from './data'
 import type { RankTier } from './data'
 import { clamp, draw, gaussian } from './rng'
@@ -181,7 +181,7 @@ export function evaluateProject(
     magazineId,
     staleness: stalenessCount(state, project.genre, project.theme),
     fatigue: 0,
-    pacingNoise: gaussian(values[0], values[1]) * 6,
+    pacingNoise: gaussian(values[0], values[1]) * PACING_NOISE_SD,
   })
   const score = weightedScore(breakdown, mag.taste)
   const rank = rankAgainstRivals(magazineId, score, values, 2)
@@ -234,7 +234,7 @@ export function evaluateChapter(
     magazineId: serial.magazineId,
     staleness: 0,
     fatigue: serialFatigue(pc.chapter),
-    pacingNoise: gaussian(values[0], values[1]) * 6,
+    pacingNoise: gaussian(values[0], values[1]) * PACING_NOISE_SD,
   })
   const score = weightedScore(breakdown, mag.taste)
   const rank = rankAgainstRivals(serial.magazineId, score, values, 2)
