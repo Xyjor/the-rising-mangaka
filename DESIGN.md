@@ -154,8 +154,11 @@ Forecast calibration is a balance band: over year one the offer chances quoted a
 - **Popularity** (0-100) is a moving average of poll placement, minus 10 for each missed issue. Three warnings in a
   row (a weak chapter, roughly the bottom quarter with rank > ceil(0.7 x entrants), or a missed issue) cancel the
   series and cost 10% of fans; the log says "after 3 warnings in a row" whichever mix it was. Every 4 chapters a **volume** ships;
-  copies = (fans + circulation x 20) x popularity, times an anime deal's multiplier while its boost lasts (see Anime
-  adaptations).
+  copies = round((circulation x 20 + 40 x sqrt(fans)) x popularity / 100), times an anime deal's multiplier while its
+  boost lasts (see Anime adaptations), at ¥2 a copy (`VOLUME_PRICE`). Fans count through their square root, so a big
+  following keeps selling more without running away with the economy: at Kids Comic Go! (circulation 120) and
+  popularity 80, 2,500 fans sell (2,400 + 2,000) x 0.8 = 3,520 copies and 10,000 fans (2,400 + 4,000) x 0.8 = 5,120.
+  `volumeCopies` in engine.ts is the one place the curve lives.
 - **Grace period**: every new series' first `SERIAL_GRACE_CHAPTERS` (4) results never add a warning, even when weak;
   popularity still moves normally during grace. The earliest a weak chapter can warn is a series' 5th result, so the
   earliest cancellation by weak chapters alone is its 7th result. Applies to every new series, not only a mangaka's
@@ -176,9 +179,10 @@ Forecast calibration is a balance band: over year one the offer chances quoted a
   it shows the rhythm ("Every 21 days"), the working days a chapter takes at the player's pace, "Rest days could make
   you miss issues." when tight and "You will miss issues at this pace: hire help first." when late. The Series panel
   lists the rhythm and the missed issues.
-- The balance bots hire help when the chapter on the desk is late, a desk is free in their studio (they never move or
-  buy equipment, so the apartment's one desk is theirs), and the bank holds two weeks of the candidate's salary on top
-  of two weeks of current costs; they pick the most pages per day per yen of salary.
+- The balance bots hire help when the chapter on the desk is late, a desk is free in their studio, and the bank holds
+  two weeks of the candidate's salary on top of two weeks of current costs; they pick the most pages per day per yen of
+  salary. With the apartment's one desk taken, the sensible bot moves to the studio flat first, but only when the bank
+  still covers that hire after the move-in (two weeks of the flat's costs, rent included).
 - Freshness erodes 2 points per chapter after chapter 8, so every series has a natural arc. The player can wrap a
   series up at any time and converts popularity into loyal fans.
 - Wrapping up with popularity 50 or higher after at least one volume has shipped sells a final volume at 1.5x copies;
@@ -196,33 +200,37 @@ Forecast calibration is a balance band: over year one the offer chances quoted a
 A money sink whose every effect is stated where it is sold (the Studio panel, from the desk's Studio button) and listed
 again under the reward tiles in Stats. `src/sim/studio.ts`; no RNG.
 - **Tiers.** A new career starts in the apartment. Moving goes one tier up at a time, never down, and costs the next
-  tier's move-in; the panel asks to confirm a move ("Yes, move in for ¥5,000" or "Stay here"), and the next tier's line
+  tier's move-in; the panel asks to confirm a move ("Yes, move in for ¥20,000" or "Stay here"), and the next tier's line
   says "You cannot move back down." Equipment is a single click. The tier's rent is part of the weekly costs (living + rent + salaries), and the weekly log line names
   it when it is not zero ("Weekly costs: -¥550 (living ¥400, rent ¥150)."). `hireAssistant` refuses once every desk is
   taken, on top of the rule that the bank must hold two weeks of that salary.
 
-| Tier | Desks | Rent/week | Move-in |
-|---|---|---|---|
-| Apartment | 1 | ¥0 | ¥0 |
-| Studio flat | 2 | ¥150 | ¥5,000 |
-| Studio loft | 3 | ¥350 | ¥15,000 (from the flat) |
+| Tier | Desks | Rent/week | Move-in (base) | Move-in at scale 4 |
+|---|---|---|---|---|
+| Apartment | 1 | ¥0 | ¥0 | ¥0 |
+| Studio flat | 2 | ¥150 | ¥5,000 | ¥20,000 |
+| Studio loft | 3 | ¥350 | ¥15,000 (from the flat) | ¥60,000 (from the flat) |
 
 - **Equipment** is bought once and kept. A piece cannot be bought twice, without the money, or (the pen tablet) below
   the studio flat. Effects sum over everything owned; page multipliers multiply (drafting table and tablet: x1.265).
   Art and story bonuses go on the player's own samples of every working day (clamped to 100), never the assistants'.
   The page multiplier is part of `basePagesPerDay`, so the desk's pace, the ETA and the chapter deadline all include it.
 
-| Equipment | Price | Effect |
-|---|---|---|
-| Coffee machine | ¥2,000 | Resting restores 3 more stamina a day (the rest branch, not trips) |
-| Daylight lamp | ¥2,500 | Art +3 on your pages |
-| Reference shelf | ¥3,000 | Story +3 on your pages |
-| Ergonomic chair | ¥4,000 | Drawing costs 1 less stamina a day (min 2); adds to an Inspiring assistant's 1 |
-| Drafting table | ¥7,000 | 10% more pages a day |
-| Pen tablet | ¥12,000, needs the flat | 15% more pages a day, art +2 |
+| Equipment | Base price | Price at scale 4 | Effect |
+|---|---|---|---|
+| Coffee machine | ¥2,000 | ¥8,000 | Resting restores 3 more stamina a day (the rest branch, not trips) |
+| Daylight lamp | ¥2,500 | ¥10,000 | Art +3 on your pages |
+| Reference shelf | ¥3,000 | ¥12,000 | Story +3 on your pages |
+| Ergonomic chair | ¥4,000 | ¥16,000 | Drawing costs 1 less stamina a day (min 2); adds to an Inspiring assistant's 1 |
+| Drafting table | ¥7,000 | ¥28,000 | 10% more pages a day |
+| Pen tablet | ¥12,000, needs the flat | ¥48,000 | 15% more pages a day, art +2 |
 
-- **Prices** go through `equipmentPrice(id)` and `moveInCost(tier)`: the base price times `EQUIPMENT_PRICE_SCALE`
-  (1 today), rounded to the nearest ¥100. The panel and the tests read the helpers, never the base prices.
+- **Prices** go through `equipmentPrice(id)` and `moveInCost(tier)`: the base price times `EQUIPMENT_PRICE_SCALE`,
+  rounded to the nearest ¥100. The panel and the tests read the helpers, never the base prices. The scale is
+  S1 / 9000 rounded to 0.25 and clamped to 0.75-4, where S1 is the sensible balance bot's median money at day 336 with
+  its shopping switched off (seeds 1-20; `npm run balance` prints it). After the square-root volume curve S1 is
+  ¥127,356, so S1 / 9000 = 14.15 and the scale is the clamp's 4. The Full studio milestone (three assistants) needs
+  the loft: ¥80,000 in move-ins at this scale (¥20,000 for the flat, ¥60,000 for the loft), then ¥350 a week.
 - **Saves** from before studios start in a studio with a desk for every assistant they have (3: loft, 2: flat,
   otherwise the apartment) and no equipment.
 - `studioLook(s)` is what the studio scene will draw: the tier, its desks, the owned list itself (the same array, so
@@ -305,7 +313,9 @@ are left to answer. `src/sim/anime.ts`; no RNG.
 
 Signed on day 100, Kumo airs on day 142, ends on day 226 and boosts volumes from day 142 to day 310 (12 payouts:
 +4,800 fans and +¥6,000, plus the ¥2,000 fee); Hoshi airs on day 212, ends on day 380 and boosts volumes from day 212
-to day 548 (24 payouts: +21,600 fans and +¥24,000). The balance bots never sign, so every offer lapses for them.
+to day 548 (24 payouts: +21,600 fans and +¥24,000). The sensible balance bot signs every offer the day it lands:
+Hoshi Animation while the serial has fewer than 12 results, Studio Kumo after that. The careless bot and the stress
+case let it lapse.
 
 ### Year end and awards
 Every `DAYS_PER_YEAR` (336) days the year closes: `closeYear` (`src/sim/year.ts`) runs when `day % 336 === 0` and
@@ -357,12 +367,13 @@ running.
 ## Roadmap
 0. Money sinks. Shipped: hiring needs two weeks of that salary in the bank; a week that ends below zero makes
    assistants quit and charges an overdraft fee (5% of the debt, at least ¥50), and a week that ends with less
-   than one week of costs warns first; studio tiers gate assistant desks with rent, and equipment has stated effects
-   (see Studio and equipment). Still to do: a volume curve that flattens with fans (sqrt), a smaller HUD on phones
-   shipped separately.
-1. Awards (year end), merchandise, conventions. Shipped: anime adaptation offers (see Anime adaptations) and
-   year-end awards with a year review (see Year end and awards).
-2. Rival mangaka with visible careers and head-to-head polls.
+   than one week of costs warns first; studio tiers gate assistant desks with rent, equipment has stated effects and
+   prices scaled to what a career earns (see Studio and equipment); volume sales flatten with fans (the square-root
+   curve, see Serialisation); the smaller HUD on phones shipped separately.
+1. Awards and success. Shipped: year-end awards with a year review (see Year end and awards), anime adaptation offers
+   (see Anime adaptations) and conventions (an event-only trip, see Random events). Merchandise is not built.
+2. Rival mangaka. Shipped: one named rival per world with a visible career (a magazine and series, craft growing at
+   every year end) and head-to-head results in every poll they share (see Named rival).
 3. Random events with choices. Shipped: six events as desk cards (see Random events).
 4. Save slots, achievements, sound, mobile polish.
 
@@ -420,37 +431,50 @@ the same day; a milestone that lands on the closing day counts toward the new ye
 decisions through the same commands the store calls, then ticks. The game never plays itself, so `index.ts` does not
 export them.
 - **Sensible** plays the way the interface teaches. For each magazine it plans the best known pairing for that
-  magazine's readers, drawn with the focus the magazine suits, and keeps the magazine with the best forecast odds (ties:
-  higher expected pay, then the softer field). It spends every point as it arrives (every third on pacing, the rest on
-  art or story, whichever its target magazine weighs higher), takes shifts while money is under two weeks of costs,
-  hires when a chapter will miss its issue, and wraps a serial up at 16 results with popularity 50 or more.
+  magazine's readers, drawn with the focus the magazine suits and the studio's equipment (its art and story bonuses,
+  inside the clamp, as on a drawn page), and keeps the magazine with the best forecast odds (ties: higher expected pay,
+  then the softer field). It spends every point as it arrives (every third on pacing, the rest on art or story,
+  whichever its target magazine weighs higher), takes shifts while money is under two weeks of costs, hires when a
+  chapter will miss its issue (moving to the flat when the apartment's desk is taken, see Serialisation), and wraps a
+  serial up at 16 results with popularity 50 or more. It answers a random event 'a' when that answer can be given and
+  leaves two weeks of costs in the bank (costs after answering, so a raise counts the new salary), else 'b'; signs an
+  anime offer the day it lands (Hoshi Animation under 12 results, else Studio Kumo); buys the cheapest equipment its
+  studio may have once the bank holds the price plus four weeks of costs, one piece a day; and reads the year review.
 - **Careless** ignores the Notebook, the odds and the stats screen: every choice is a hash of the world seed and the
-  project id, the focus is balanced, and it never spends points.
+  project id, the focus is balanced, and it never spends points. It answers every event 'b' (the answer that costs no
+  money), lets anime offers lapse, never buys or moves, and reads the year review.
 - **Stress case** draws six fixed one-shots rotating Weekly Bolt, Kids Comic Go!, Monthly Petal and Ultra Seinen
   without spending points, then is forced into a Weekly Bolt serial with balanced focus; it declines organic offers
-  and never wraps up.
+  and never wraps up. It leaves events and anime offers to lapse, never buys or moves, and reads the year review.
 
 `npm run balance -- [from=1] [to=20] [--detail seed]` prints a line per seed per bot, then one line per balance-band row
-(`--detail` adds every one-shot and chapter of that seed). The runs and the row measurements live in
-`src/sim/balance.ts`; the script prints them and `src/sim/__tests__/balance.test.ts` asserts them (the bots run once
-per test file), so the readout and the test cannot disagree. Each seed is played three ways: year one (336 days) for
-weeks in debt and calibration; up to the 6th one-shot (at most three years) for the first score, the first offer, the
-first-six mean and the money at the 6th; until the first serial ends or reaches 8 results (at most three years). The
-stress case plays 480 days.
+(`--detail` adds every one-shot and chapter of that seed). The runs, the row measurements and the targets (`BANDS`)
+live in `src/sim/balance.ts`; the script prints them and `src/sim/__tests__/balance.test.ts` asserts them (the bots run
+once per test file), so the readout and the test cannot disagree. Each seed is played three ways: year one (336 days)
+for weeks in debt, calibration and every Package 2 row; up to the 6th one-shot (at most three years) for the first
+score, the first offer, the first-six mean and the money at the 6th; until the first serial ends or reaches 8 results
+(at most three years). The stress case plays 480 days. Two lines only the script prints: anime offers within two
+years (the sensible bot played until its first offer, at most 672 days) and S1 (the sensible bot's money at day 336
+with its shopping switched off), which sets `EQUIPMENT_PRICE_SCALE`.
 
-### Balance bands (Package 1, seeds 1 to 20)
+### Balance bands (seeds 1 to 20)
 
-| Measure | Target |
-|---|---|
-| Sensible bot, first one-shot score | 40–55 on ≥ 13/20; median 44–52 |
-| Sensible minus careless, mean score of first 6 one-shots | ≥ 8 |
-| Sensible bot, organic offer within first 6 one-shots | ≥ 16/20; median first offer at one-shot ≤ 3 |
-| Careless bot, organic offer within 6 | ≤ 6/20 |
-| Sensible bot's first serial reaches 8 results | ≥ 14/20 |
-| Stress case (forced Weekly Bolt, no points, balanced) | cancelled on ≥ 15/20, never before its 5th result |
-| Careless bot money at its 6th result | < ¥3,000 on ≥ 15/20 |
-| Forecast calibration (Σ offer chances vs offers seen, year one) | within ±30% |
-| Sensible bot weeks in debt, year one | 0 on ≥ 18/20 |
+| Package | Measure | Target |
+|---|---|---|
+| 1 | Sensible bot, first one-shot score | 40–55 on ≥ 13/20; median 44–52 |
+| 1 | Sensible minus careless, mean score of first 6 one-shots | ≥ 8 |
+| 1 | Sensible bot, organic offer within first 6 one-shots | ≥ 16/20; median first offer at one-shot ≤ 3 |
+| 1 | Careless bot, organic offer within 6 | ≤ 6/20 |
+| 1 | Sensible bot's first serial reaches 8 results | ≥ 14/20 |
+| 1 | Stress case (forced Weekly Bolt, no points, balanced) | cancelled on ≥ 15/20, never before its 5th result |
+| 1 | Careless bot money at its 6th result | < ¥3,000 on ≥ 15/20 |
+| 1 | Forecast calibration (Σ offer chances vs offers seen, year one) | within ±30% |
+| 1 | Sensible bot weeks in debt, year one | 0 on ≥ 18/20 |
+| 2 | Events per year (sensible, mean events that land in year one) | 8–13 |
+| 2 | Rival met in year one (sensible) | ≥ 16/20; bot wins 35–75% of meetings (all seeds pooled) |
+| 2 | Award or near miss in year one (sensible) | ≥ 16/20; Golden Pen in year one ≤ 5/20 |
+| 2 | Equipment owned at day 336 (sensible, buying) | 2–3 items on ≥ 12/20 |
+| 2, script only | Anime offer within two years (sensible) | 6–16 of 20 |
 
 balance.test thresholds change only with owner sign-off. When a rule change pushes a row out of its band, tune a
 knob, not the threshold, in this order: the Kids Comic Go! rival mean (45–49), `SERIAL_GRACE_CHAPTERS` (4–6), Kids
@@ -464,4 +488,9 @@ the starting stats, the page noise and the hidden ratings, so the first-score ro
 Package 1 raised the starting art from 38 to 40 (story 34 and pacing 30 unchanged): the median first score on seeds
 1–20 went from 43 to 44 and over seeds 1–100 from 47 to 48, the middle of the band.
 
-Package 2 adds rows for events, the rival, awards and equipment, and re-asserts every Package 1 row.
+Package 2 re-asserts every Package 1 row and adds its own. On seeds 1–20 every Package 1 row passes, and of the
+Package 2 rows the events (11.1 a year, 8 to 15 per seed), the rival met (20/20) and an award or near miss (20/20)
+pass. Three parts are out of band and not asserted yet: the sensible bot wins 87% of its year-one meetings with the
+rival, the Golden Pen goes to 18 of 20 in year one, and the bot owns 4 or 5 pieces of equipment at day 336 (the scale
+is clamped at 4 while S1 / 9000 is 14.15); anime offers come within two years on 20 of 20 (all in year one, days 211
+to 310). No knob in the list above reaches them: the fix is an owner decision.

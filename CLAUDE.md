@@ -82,12 +82,17 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
 
 Starting stats 34/40/30 (story/art/pacing), rivals score 47 to 62, spread 8, the named rival starts at craft 50 in
 Kids Comic Go! (+4 at every year end, in `closeYear`, max 76), a year is 336 days (`DAYS_PER_YEAR`), weekly living
-cost 400 plus studio rent (flat 150, loft 350), one-shot 20 pages (~17 days solo), chapter 16 pages. Equipment prices
-and move-in costs go through `equipmentPrice` and `moveInCost` (`EQUIPMENT_PRICE_SCALE`).
+cost 400 plus studio rent (flat 150, loft 350), one-shot 20 pages (~17 days solo), chapter 16 pages. A volume sells
+round((circulation x 20 + 40 x sqrt(fans)) x popularity / 100) copies at ¥2 (`volumeCopies`, the one place the curve
+lives). Equipment prices and move-in costs go through `equipmentPrice` and `moveInCost`: base x `EQUIPMENT_PRICE_SCALE`
+(4: S1 / 9000 = 14.15, clamped to 0.75-4, where S1 is the sensible bot's median money at day 336 buying nothing,
+¥127,356; `npm run balance` prints S1, so re-derive the scale when the economy moves).
 
-`src/sim/__tests__/balance.test.ts` asserts the Package 1 balance bands (DESIGN.md "Balance bots and bands") over
-seeds 1–20 as part of `npm test`, including a fresh player's first one-shot score (40–55 on 13 of 20 seeds, median
-44–52). The bot runs and row measurements live in `src/sim/balance.ts`, shared with `npm run balance`, which prints
-the same numbers per seed. If you change formulas or constants, run both. balance.test thresholds change only with
+`src/sim/__tests__/balance.test.ts` asserts the balance bands (DESIGN.md "Balance bots and bands") over seeds 1–20
+as part of `npm test`: every Package 1 row, including a fresh player's first one-shot score (40–55 on 13 of 20 seeds,
+median 44–52), and the Package 2 rows (events, the rival, awards, equipment; three parts are skipped while out of
+band, pending an owner decision). The targets (`BANDS`), the bot runs and the row measurements live in
+`src/sim/balance.ts`, shared with `npm run balance`, which prints the same numbers per seed plus anime offers within
+two years and S1. If you change formulas or constants, run both. balance.test thresholds change only with
 owner sign-off: when a row fails, tune the knobs DESIGN.md lists, in order (the first-score row is tuned through the
 starting stats), record the change as a ruling, and re-derive by hand every test literal the change moves.
