@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
+import { CUES } from '../cues'
 import { playVoices } from '../synth'
 import type { Voice } from '../types'
 import {
-  FakeAudioContext, FakeBiquad, FakeBufferSource, FakeGain, FakeOscillator, type FakeParam, type FakeSource,
+  FakeAudioContext, FakeBiquad, FakeBufferSource, FakeGain, FakeOscillator, FakeParam, type FakeSource,
 } from './fakeAudio'
 
 const r = (x: number) => Math.round(x * 1e6) / 1e6
@@ -70,8 +71,8 @@ describe('playVoices', () => {
   it('plays noise from one shared, seeded buffer, sped up by the pitch', () => {
     const fake = new FakeAudioContext()
     const noise: Voice[] = [
-      { wave: 'noise', freq: 0, at: 0, dur: 0.05, gain: 0.2, filter: { type: 'bandpass', freq: 2000 } },
-      { wave: 'noise', freq: 0, at: 0.1, dur: 0.05, gain: 0.2 },
+      { wave: 'noise', at: 0, dur: 0.05, gain: 0.2, filter: { type: 'bandpass', freq: 2000 } },
+      { wave: 'noise', at: 0.1, dur: 0.05, gain: 0.2 },
     ]
     play(fake, noise, 0, 12)
     play(fake, noise, 1)
@@ -112,11 +113,11 @@ describe('playVoices', () => {
     expect(dest.disconnected).toBe(false)
   })
 
-  it('returns a stop that fades and stops every voice now, once', () => {
+  it('returns a stop that holds each envelope where it is, fades it and stops every voice now, once', () => {
     const fake = new FakeAudioContext()
     const { stop } = play(fake, [
       { wave: 'triangle', freq: 440, at: 0, dur: 1, gain: 0.1 },
-      { wave: 'noise', freq: 0, at: 0.5, dur: 1, gain: 0.1 },
+      { wave: 'noise', at: 0.5, dur: 1, gain: 0.1 },
     ], 0)
     fake.currentTime = 0.2
     stop()
@@ -125,11 +126,37 @@ describe('playVoices', () => {
     expect(noise.stops).toEqual([1.5, 0.25])
     for (const src of [tone, noise]) {
       expect(trace(envOf(src).gain).slice(-2)).toEqual([
-        ['cancelScheduledValues', null, 0.2],
+        ['cancelAndHoldAtTime', null, 0.2],
         ['setTargetAtTime', 0, 0.2],
       ])
     }
     stop()
     expect(tone.stops).toHaveLength(2)
+  })
+
+  it('without cancelAndHoldAtTime, pins the current value before fading, so the level never jumps', () => {
+    const fake = new FakeAudioContext({ cancelAndHold: false })
+    const { stop } = play(fake, [{ wave: 'triangle', freq: 440, at: 0, dur: 1, gain: 0.1 }], 0)
+    const gain = envOf(fake.sources[0]).gain
+    expect(gain.cancelAndHoldAtTime).toBeUndefined()
+    fake.currentTime = 0.2
+    gain.value = 0.07 // what the browser reports mid-envelope
+    stop()
+    expect(trace(gain).slice(-3)).toEqual([
+      ['cancelScheduledValues', null, 0.2],
+      ['setValueAtTime', 0.07, 0.2],
+      ['setTargetAtTime', 0, 0.2],
+    ])
+  })
+
+  it('plays every cue at any pitch without a Web Audio range error', () => {
+    expect(() => new FakeParam(1).exponentialRampToValueAtTime(0, 1)).toThrow(RangeError)
+    for (const [id, cue] of Object.entries(CUES)) {
+      for (const pitch of [-12, 0, 12]) {
+        const fake = new FakeAudioContext()
+        expect(() => play(fake, [...cue.voices], 0, pitch), `${id} at ${pitch}`).not.toThrow()
+        expect(fake.sources).toHaveLength(cue.voices.length)
+      }
+    }
   })
 })

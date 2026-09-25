@@ -1,6 +1,6 @@
 // Cue recipes: data only. Every tone sits on the C major pentatonic scale (C D E G A), every voice peaks at or
 // below 0.3 gain, and every cue is over within a second (the drumroll within 2.4 s). The synth plays them.
-import type { CueDef, CueId, Voice } from './types'
+import type { CueDef, CueId, NoiseVoice, ToneVoice, Voice } from './types'
 
 /** Equal-tempered frequency of a MIDI note (69 = A4 = 440 Hz). */
 export function midiToHz(m: number): number {
@@ -12,14 +12,15 @@ const C5 = midiToHz(72), D5 = midiToHz(74), E5 = midiToHz(76), G5 = midiToHz(79)
 const C6 = midiToHz(84), E6 = midiToHz(88), G6 = midiToHz(91), A6 = midiToHz(93), C7 = midiToHz(96)
 
 // Voice shorthands. Squares are bright, so they sit lower in level than triangles and sines.
-const tri = (freq: number, at: number, dur: number, gain = 0.18, extra?: Partial<Voice>): Voice =>
+type Extra = Partial<Pick<ToneVoice, 'to' | 'attack' | 'filter'>>
+const tri = (freq: number, at: number, dur: number, gain = 0.18, extra?: Extra): ToneVoice =>
   ({ wave: 'triangle', freq, at, dur, gain, ...extra })
-const sq = (freq: number, at: number, dur: number, gain = 0.07, extra?: Partial<Voice>): Voice =>
+const sq = (freq: number, at: number, dur: number, gain = 0.07, extra?: Extra): ToneVoice =>
   ({ wave: 'square', freq, at, dur, gain, ...extra })
-const sine = (freq: number, at: number, dur: number, gain = 0.12, extra?: Partial<Voice>): Voice =>
+const sine = (freq: number, at: number, dur: number, gain = 0.12, extra?: Extra): ToneVoice =>
   ({ wave: 'sine', freq, at, dur, gain, ...extra })
-const noise = (at: number, dur: number, gain: number, filter: NonNullable<Voice['filter']>, attack = 0.003): Voice =>
-  ({ wave: 'noise', freq: 0, at, dur, gain, attack, filter })
+const noise = (at: number, dur: number, gain: number, filter: NonNullable<Voice['filter']>, attack = 0.003): NoiseVoice =>
+  ({ wave: 'noise', at, dur, gain, attack, filter })
 
 /** 30 snare-like hits 70 ms apart, each a little louder than the last: about 2.1 s. */
 const DRUMROLL: Voice[] = Array.from({ length: 30 }, (_, i) =>

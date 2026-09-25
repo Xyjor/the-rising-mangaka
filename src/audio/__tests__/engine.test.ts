@@ -168,12 +168,35 @@ describe('sound engine', () => {
     expect(fake.sources).toHaveLength(25)
   })
 
-  it('never lets a multi-voice cue take the count above 24', () => {
+  it('caps by the voices sounding together, not by the voices in a cue', () => {
     const { fake, engine } = setup()
     engine.unlock()
     for (let i = 0; i < 40; i++) engine.play('fanfare')
-    // Seven voices each: 7, 14, 21 fit; 28 would not.
-    expect(fake.sources).toHaveLength(21)
+    // Fanfare: four 80 ms squares one after another (0-0.08, 0.09-0.17, 0.18-0.26, 0.27-0.35 s), then three voices
+    // together from 0.36 s (C6 to 0.86, C4 and G4 to 0.91). Its peak is 3, so 8 fanfares peak at 24 and a 9th would
+    // make 27. 8 fanfares of 7 voices each is 56 sources.
+    expect(fake.sources).toHaveLength(8 * 7)
+  })
+
+  it('plays bars over a drumroll: drumroll at 150 ms, bars at 350 and 600 ms', () => {
+    const { fake, engine, at } = setup()
+    engine.unlock()
+    at(150)
+    engine.play('drumroll')
+    at(350)
+    engine.play('bar')
+    at(600)
+    engine.play('bar')
+    expect(fake.sources).toHaveLength(32)
+  })
+
+  it('starts a drumroll while a chapter cue is still sounding', () => {
+    const { fake, engine, at } = setup()
+    engine.unlock()
+    engine.play('chapter')
+    at(100) // the chapter's last note sounds until 420 ms
+    engine.play('drumroll')
+    expect(fake.sources).toHaveLength(3 + 30)
   })
 
   it('plays for 300 ms after unlock while resume is pending, then waits for a running context', () => {
@@ -204,8 +227,33 @@ describe('sound engine', () => {
     fake.currentTime = 0.5
     stop()
     for (const hit of hits) expect(hit.stops.at(-1)).toBeCloseTo(0.55, 6)
+    // The clock is still at 0 ms, where the first hit would sound: unstopped, only 23 bars would fit beside it.
     for (let i = 0; i < 24; i++) engine.play('bar')
-    expect(fake.sources).toHaveLength(54)
+    expect(fake.sources).toHaveLength(30 + 24)
+  })
+
+  it('restarts the grace when unmuting, so a cue played right away is scheduled while resume is pending', () => {
+    const { fake, engine, at } = setup({ resumes: false })
+    engine.unlock()
+    at(5000)
+    engine.setPrefs(MUTED)
+    engine.setPrefs(DEFAULT_SOUND)
+    expect(fake.state).toBe('suspended')
+    engine.play('click')
+    expect(fake.sources).toHaveLength(1)
+    at(5301)
+    engine.play('bar')
+    expect(fake.sources).toHaveLength(1)
+  })
+
+  it('restarts the grace on resume()', () => {
+    const { fake, engine, at } = setup({ resumes: false })
+    engine.unlock()
+    engine.suspend()
+    at(9000)
+    engine.resume()
+    engine.play('click')
+    expect(fake.sources).toHaveLength(1)
   })
 
   it('turns the music bus off with the music pref and ducks it by level', () => {

@@ -8,11 +8,16 @@ export type ParamEvent =
   | { kind: 'value'; value: number }
   | { kind: 'setValueAtTime' | 'linearRampToValueAtTime' | 'exponentialRampToValueAtTime'; value: number; time: number }
   | { kind: 'setTargetAtTime'; value: number; time: number; timeConstant: number }
-  | { kind: 'cancelScheduledValues'; time: number }
+  | { kind: 'cancelScheduledValues' | 'cancelAndHoldAtTime'; time: number }
 
 export class FakeParam {
   readonly events: ParamEvent[] = []
   #value: number
+  /** Present by default; a context made with `cancelAndHold: false` removes it (as in Firefox). */
+  cancelAndHoldAtTime: ((time: number) => FakeParam) | undefined = (time) => {
+    this.events.push({ kind: 'cancelAndHoldAtTime', time })
+    return this
+  }
 
   constructor(value: number) {
     this.#value = value
@@ -31,7 +36,7 @@ export class FakeParam {
   get target(): number {
     for (let i = this.events.length - 1; i >= 0; i--) {
       const e = this.events[i]
-      if (e.kind !== 'cancelScheduledValues') return e.value
+      if ('value' in e) return e.value
     }
     return this.#value
   }
@@ -46,7 +51,9 @@ export class FakeParam {
     return this
   }
 
+  /** Throws like the real API: an exponential ramp cannot reach zero, a negative or a non-finite value. */
   exponentialRampToValueAtTime(value: number, time: number): this {
+    if (!(value > 0) || !Number.isFinite(value)) throw new RangeError(`exponential ramp target ${value} is not positive`)
     this.events.push({ kind: 'exponentialRampToValueAtTime', value, time })
     return this
   }
@@ -177,12 +184,14 @@ export class FakeAudioContext {
   readonly nodes: FakeNode[] = []
   readonly buffers: FakeBuffer[] = []
   readonly calls: FakeCall[] = []
-  /** Whether resume() reaches 'running'. False models a resume that is still pending. */
+  /** Whether resume() reaches 'running'. False models a resume that is still pending until the test sets `state`. */
   resumes: boolean
+  readonly #cancelAndHold: boolean
 
-  constructor(o: { state?: AudioContextState; resumes?: boolean } = {}) {
+  constructor(o: { state?: AudioContextState; resumes?: boolean; cancelAndHold?: boolean } = {}) {
     this.state = o.state ?? 'running'
     this.resumes = o.resumes ?? true
+    this.#cancelAndHold = o.cancelAndHold ?? true
   }
 
   createGain(): FakeGain {
@@ -234,6 +243,9 @@ export class FakeAudioContext {
   }
 
   #track<T extends FakeNode>(node: T): T {
+    if (!this.#cancelAndHold) {
+      for (const field of Object.values(node)) if (field instanceof FakeParam) field.cancelAndHoldAtTime = undefined
+    }
     this.nodes.push(node)
     return node
   }

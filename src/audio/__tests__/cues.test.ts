@@ -91,10 +91,7 @@ describe('cue recipes', () => {
 
   it('makes bar a 70 ms triangle C5', () => {
     expect(CUES.bar.voices).toHaveLength(1)
-    const [v] = CUES.bar.voices
-    expect(v.wave).toBe('triangle')
-    expect(v.freq).toBeCloseTo(523.251, 3)
-    expect(v.dur).toBe(0.07)
+    expect(CUES.bar.voices[0]).toMatchObject({ wave: 'triangle', freq: expect.closeTo(523.251, 3), dur: 0.07 })
   })
 
   it('makes stamp a low noise thud under a sine falling from 80 to 40 Hz', () => {

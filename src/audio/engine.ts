@@ -28,9 +28,12 @@ export interface SoundEngineOptions {
   now?: () => number
 }
 
-/** Most voices that may be playing or scheduled at once. */
+/** Most voices that may sound at the same moment. */
 export const MAX_VOICES = 24
-/** For this long after unlock(), cues play even while resume() is pending, so the unlocking click is heard. */
+/**
+ * For this long after unlock() or any other resume, cues play even while resume() is pending, so the cue of the
+ * gesture that woke the context is not lost.
+ */
 export const UNLOCK_GRACE_MS = 300
 export const FX_LEVEL = 0.8
 export const MUSIC_LEVEL = 0.5
@@ -41,10 +44,30 @@ const DUCK_GLIDE = 0.08
 const noop = () => {}
 const GAPS: Record<string, number> = Object.fromEntries(Object.entries(CUES).map(([id, cue]) => [id, cue.gapMs]))
 
+/** When a voice sounds, in now() ms: from s (start) to e (end). */
+interface Span {
+  s: number
+  e: number
+}
+
 interface Playing {
-  /** Scheduled end of each voice, in now() ms. */
-  ends: number[]
+  spans: Span[]
   stopped: boolean
+}
+
+/**
+ * The most spans sounding at the same moment from `t` on. The count only rises where a span starts, so checking each
+ * span's start (or `t`, for spans already sounding) finds the peak.
+ */
+function peakOverlap(spans: readonly Span[], t: number): number {
+  let peak = 0
+  for (const span of spans) {
+    const at = Math.max(span.s, t)
+    let n = 0
+    for (const other of spans) if (other.s <= at && at < other.e) n++
+    peak = Math.max(peak, n)
+  }
+  return peak
 }
 
 export function createSoundEngine(o: SoundEngineOptions): SoundEngine {
@@ -57,7 +80,8 @@ export function createSoundEngine(o: SoundEngineOptions): SoundEngine {
   let graph: Graph | null = null
   let created = false
   let disposed = false
-  let unlockedAt = Number.NEGATIVE_INFINITY
+  /** When the context was last asked to resume: the start of the grace. */
+  let wokeAt = Number.NEGATIVE_INFINITY
   let playing: Playing[] = []
 
   const levels = () => ({
@@ -70,10 +94,18 @@ export function createSoundEngine(o: SoundEngineOptions): SoundEngine {
     if (ctx) param.setTargetAtTime(value, ctx.currentTime, timeConstant)
   }
 
-  /** Voices played and not yet ended or stopped. Forgets plays that are over. */
-  function activeVoices(t: number): number {
-    playing = playing.filter((p) => !p.stopped && p.ends.some((e) => e > t))
-    return playing.reduce((n, p) => n + p.ends.filter((e) => e > t).length, 0)
+  /** Resumes the context and starts the grace, so a cue played right away is scheduled while resume() is pending. */
+  const wake = () => {
+    if (!ctx) return
+    wokeAt = now()
+    void ctx.resume().catch(noop)
+  }
+
+  /** The peak of live voices plus `add`, from `t` on. Forgets plays that have ended or were stopped. */
+  function peakWith(t: number, add: readonly Span[]): number {
+    playing = playing.filter((p) => !p.stopped && p.spans.some((span) => span.e > t))
+    const live = playing.flatMap((p) => p.spans.filter((span) => span.e > t))
+    return peakOverlap([...live, ...add], t)
   }
 
   return {
@@ -89,22 +121,20 @@ export function createSoundEngine(o: SoundEngineOptions): SoundEngine {
         if (ctx) graph = buildGraph(ctx, { ...levels(), music: musicLevel() })
       }
       if (!ctx) return
-      unlockedAt = now()
       if (prefs.muted) {
         if (ctx.state === 'running') void ctx.suspend().catch(noop)
       } else if (ctx.state !== 'running') {
-        void ctx.resume().catch(noop)
+        wake()
       }
     },
 
     play(cue, opts) {
       if (!ctx || !graph || prefs.muted) return noop
       const t = now()
-      if (ctx.state !== 'running' && t - unlockedAt > UNLOCK_GRACE_MS) return noop
+      if (ctx.state !== 'running' && t - wokeAt > UNLOCK_GRACE_MS) return noop
       const def = CUES[cue]
-      const active = activeVoices(t)
-      // A cue always fits into a silent engine (the 30-hit drumroll needs that); otherwise it must fit under the cap.
-      if (active > 0 && active + def.voices.length > MAX_VOICES) return noop
+      const spans = def.voices.map((v) => ({ s: t + v.at * 1000, e: t + (v.at + v.dur) * 1000 }))
+      if (peakWith(t, spans) > MAX_VOICES) return noop
       if (!limiter.allow(cue, t)) return noop
 
       let pitch = opts?.pitch ?? 0
@@ -114,7 +144,7 @@ export function createSoundEngine(o: SoundEngineOptions): SoundEngine {
         pitch += def.vary[turn % def.vary.length]
       }
       const stopVoices = playVoices(ctx, graph.fx, def.voices, ctx.currentTime, pitch)
-      const entry: Playing = { ends: def.voices.map((v) => t + (v.at + v.dur) * 1000), stopped: false }
+      const entry: Playing = { spans, stopped: false }
       playing.push(entry)
       return () => {
         if (entry.stopped || disposed) return
@@ -130,7 +160,7 @@ export function createSoundEngine(o: SoundEngineOptions): SoundEngine {
       glide(graph.master.gain, levels().master, LEVEL_GLIDE)
       glide(graph.music.gain, musicLevel(), LEVEL_GLIDE)
       if (prefs.muted && !wasMuted) void ctx.suspend().catch(noop)
-      else if (!prefs.muted && wasMuted) void ctx.resume().catch(noop)
+      else if (!prefs.muted && wasMuted) wake()
     },
 
     levels,
@@ -149,7 +179,7 @@ export function createSoundEngine(o: SoundEngineOptions): SoundEngine {
     },
 
     resume() {
-      if (ctx && !prefs.muted) void ctx.resume().catch(noop)
+      if (!prefs.muted) wake()
     },
 
     dispose() {

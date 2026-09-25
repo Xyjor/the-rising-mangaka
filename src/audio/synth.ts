@@ -85,11 +85,23 @@ export function playVoices(
     stopped = true
     const t = ctx.currentTime
     for (const { src, env } of live) {
-      env.gain.cancelScheduledValues(t)
+      holdAt(env.gain, t)
       env.gain.setTargetAtTime(0, t, STOP_FADE)
       src.stop(t + STOP_AFTER)
     }
   }
+}
+
+/** Drops a param's automation after `t` but keeps its level at `t`, so a fade from there starts without a jump. */
+function holdAt(param: AudioParam, t: number) {
+  // Firefox has no cancelAndHoldAtTime.
+  if (typeof param.cancelAndHoldAtTime === 'function') {
+    param.cancelAndHoldAtTime(t)
+    return
+  }
+  const value = param.value
+  param.cancelScheduledValues(t)
+  param.setValueAtTime(value, t)
 }
 
 function startVoice(ctx: BaseAudioContext, dest: AudioNode, v: Voice, at: number, ratio: number, index: number) {

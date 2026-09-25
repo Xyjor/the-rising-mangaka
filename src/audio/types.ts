@@ -7,21 +7,33 @@ export type CueId =
   | 'levelup' | 'milestone' | 'warn' | 'cancel' | 'offer' | 'serialised' | 'event' | 'award'
   | 'drumroll' | 'bar' | 'stamp' | 'fanfare' | 'jingle-up' | 'jingle-mid' | 'jingle-down'
 
-/** One enveloped tone or noise burst inside a cue. Times are seconds from the start of the cue. */
-export interface Voice {
-  wave: 'square' | 'triangle' | 'sine' | 'noise'
-  /** Oscillator frequency in Hz. Noise ignores it (cues write 0); shape noise with `filter`. */
-  freq: number
-  /** Glide target in Hz, reached as the voice ends. Tones only. */
-  to?: number
+/** What every voice has. Times are seconds from the start of the cue. */
+interface VoiceShape {
   at: number
   dur: number
-  /** Peak gain, at most 0.3. */
+  /** Peak gain, above 0 and at most 0.3. */
   gain: number
   /** Seconds from silence to peak (default 0.005). */
   attack?: number
   filter?: { type: BiquadFilterType; freq: number; q?: number }
 }
+
+/** An oscillator note. */
+export interface ToneVoice extends VoiceShape {
+  wave: 'square' | 'triangle' | 'sine'
+  /** Frequency in Hz. */
+  freq: number
+  /** Glide target in Hz (above 0), reached as the voice ends. */
+  to?: number
+}
+
+/** A burst of white noise, shaped by its filter. */
+export interface NoiseVoice extends VoiceShape {
+  wave: 'noise'
+}
+
+/** One enveloped tone or noise burst inside a cue. */
+export type Voice = ToneVoice | NoiseVoice
 
 export interface CueDef {
   voices: readonly Voice[]
