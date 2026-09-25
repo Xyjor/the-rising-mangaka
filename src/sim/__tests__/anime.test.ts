@@ -283,20 +283,22 @@ describe('anime volume boost', () => {
     const aired = tick(base)
     // The poll is the one input the RNG decides: chapter 4 places #1 of 11 at score 69. From there by hand:
     // popularity round(70 x 0.65 + 100 x 0.35) = 81; fans 0 + round(120 x 6 x 0.69 x 2) = 994;
-    // copies round((994 + 120 x 20) x 0.81) = round(2,749.14) = 2,749; with the anime round(2,749 x 1.3) = 3,574.
+    // copies round((120 x 20 + 40 x sqrt(994)) x 0.81) = round((2,400 + 40 x 31.52777) x 0.81)
+    // = round(3,661.1106 x 0.81) = round(2,965.4996) = 2,965; with the anime round(2,965 x 1.3) = round(3,854.5) = 3,855.
     expect(plain.serial!.results[3]).toMatchObject({ rank: 1, entrants: 11, score: 69 })
     expect([plain.serial!.popularity, plain.player.fans]).toEqual([81, 994])
     expect(plain.serial!.volumes).toBe(1)
-    expect(plain.serial!.totalCopies).toBe(2749)
-    expect(aired.serial!.totalCopies).toBe(3574)
+    expect(plain.serial!.totalCopies).toBe(2965)
+    expect(aired.serial!.totalCopies).toBe(3855)
     expect(aired.log.find((e) => e.text.startsWith('Volume 1'))!.text)
-      .toBe('Volume 1 of "Magic Club" sold 3574 copies (1.3x with the anime): +¥7148.')
+      .toBe('Volume 1 of "Magic Club" sold 3855 copies (1.3x with the anime): +¥7710.')
     expect(plain.log.find((e) => e.text.startsWith('Volume 1'))!.text)
-      .toBe('Volume 1 of "Magic Club" sold 2749 copies: +¥5498.')
+      .toBe('Volume 1 of "Magic Club" sold 2965 copies: +¥5930.')
   })
 
-  it('the wrap-up volume sells 1.5x times the anime\'s 1.3x once it has premiered: 19,344 copies instead of 14,880', () => {
-    // Kids Comic Go! circulation 120: (10,000 fans + 120 x 20) x 80% = 9,920 copies a volume
+  it('the wrap-up volume sells 1.5x times the anime\'s 1.3x once it has premiered: 9,984 copies instead of 7,680', () => {
+    // Kids Comic Go! circulation 120: (120 x 20 + 40 x sqrt(10,000)) x 80% = (2,400 + 4,000) x 0.8 = 5,120 copies a
+    // volume; the wrap-up sells 5,120 x 1.5 = 7,680, and 7,680 x 1.3 = 9,984 with the anime (x ¥2: 15,360 and 19,968)
     const s0 = signed('kumo')
     // day 200: on air (142 to 226), inside the boost
     const s: GameState = {
@@ -311,14 +313,14 @@ describe('anime volume boost', () => {
     const sold = (x: GameState) => (x.serial ?? x.serials[0]).totalCopies - 15_000
     const plain = endSerial({ ...s, anime: [] })
     const aired = endSerial(s)
-    expect(sold(plain)).toBe(14_880)
-    expect(sold(aired)).toBe(19_344)
-    expect(aired.player.money - s.player.money).toBe(38_688)
-    expect(aired.log.at(-1)!.text).toContain('The final volume sold 19344 copies (1.3x with the anime): +¥38688.')
+    expect(sold(plain)).toBe(7680)
+    expect(sold(aired)).toBe(9984)
+    expect(aired.player.money - s.player.money).toBe(19_968)
+    expect(aired.log.at(-1)!.text).toContain('The final volume sold 9984 copies (1.3x with the anime): +¥19968.')
     // signed but the day before the premiere: no boost yet, deal or not
     const early = endSerial({ ...s, day: 141 })
-    expect(sold(early)).toBe(14_880)
-    expect(early.log.at(-1)!.text).toContain('The final volume sold 14880 copies: +¥29760.')
+    expect(sold(early)).toBe(7680)
+    expect(early.log.at(-1)!.text).toContain('The final volume sold 7680 copies: +¥15360.')
   })
 })
 

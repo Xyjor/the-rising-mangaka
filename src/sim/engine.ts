@@ -678,9 +678,13 @@ function animeNote(mult: number): string {
   return mult === 1 ? '' : ` (${mult}x with the anime)`
 }
 
-/** Copies a volume sells: (fans + circulation x 20) x popularity. An anime deal multiplies it (`animeVolumeMult`). */
+/**
+ * Copies a volume sells: round((circulation x 20 + 40 x sqrt(fans)) x popularity / 100). Fans help less and less
+ * (the square root), so a big following no longer runs away with the economy. An anime deal multiplies it
+ * (`animeVolumeMult`), and a wrap-up volume sells 1.5 times it.
+ */
 export function volumeCopies(state: GameState, mag: Magazine, popularity: number): number {
-  return Math.round((state.player.fans + mag.circulation * 20) * (popularity / 100))
+  return Math.round(((mag.circulation * 20 + 40 * Math.sqrt(state.player.fans)) * popularity) / 100)
 }
 
 function resolveChapters(state: GameState): GameState {

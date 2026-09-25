@@ -802,6 +802,20 @@ describe('rules', () => {
     expect(run('fast').project!.pagesDone).toBeGreaterThan(run('careful').project!.pagesDone)
   })
 
+  it('sells round((circulation x 20 + 40 x sqrt(fans)) x popularity / 100) copies a volume', () => {
+    const s = createGame('Rin', 1)
+    const withFans = (fans: number) => ({ ...s, player: { ...s.player, fans } })
+    const kids = magazineById('kids-comic') // circulation 120
+    // no fans: (2,400 + 0) x 50 / 100 = 1,200
+    expect(volumeCopies(s, kids, 50)).toBe(1200)
+    // 2,500 fans: (2,400 + 40 x 50) x 80 / 100 = 4,400 x 0.8 = 3,520
+    expect(volumeCopies(withFans(2500), kids, 80)).toBe(3520)
+    // 1,000 fans: 40 x sqrt(1,000) = 1,264.91; (2,400 + 1,264.91) x 0.65 = 2,382.19, rounds to 2,382
+    expect(volumeCopies(withFans(1000), kids, 65)).toBe(2382)
+    // 10,000 fans at Weekly Bolt (circulation 180): (3,600 + 40 x 100) x 70 / 100 = 7,600 x 0.7 = 5,320
+    expect(volumeCopies(withFans(10_000), magazineById('weekly-bolt'), 70)).toBe(5320)
+  })
+
   it('ships a volume after the fourth result with copies from fans, circulation and popularity', () => {
     let s = acceptOffer(dismissResult(strongOneShot()))
     let guard = 0
