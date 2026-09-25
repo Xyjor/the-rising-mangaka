@@ -53,12 +53,12 @@ describe('magazine taste', () => {
   })
 
   it('rewards a plan made for Kids Comic Go! and punishes one that ignores it', () => {
-    // art focus (38 x 1.25 = 47.5, 34 x 0.8 = 27.2), Great fit, Great freshness:
-    // 48x35 + 27x15 + 30x10 + 80x20 + 80x20 = 1680 + 405 + 300 + 1600 + 1600 = 5585
-    expect(weightedScore(b(48, 27, 30, 80, 80), taste('kids-comic'))).toBe(56)
-    // story focus (38 x 0.8 = 30.4, 34 x 1.25 = 42.5), Good fit minus the 25 mismatch, Meh freshness:
-    // 30x35 + 43x15 + 30x10 + 15x20 + 40x20 = 1050 + 645 + 300 + 300 + 800 = 3095
-    expect(weightedScore(b(30, 43, 30, 15, 40), taste('kids-comic'))).toBe(31)
+    // art focus (40 x 1.25 = 50, 34 x 0.8 = 27.2), Great fit, Great freshness:
+    // 50x35 + 27x15 + 30x10 + 80x20 + 80x20 = 1750 + 405 + 300 + 1600 + 1600 = 5655, 56.55 rounds up
+    expect(weightedScore(b(50, 27, 30, 80, 80), taste('kids-comic'))).toBe(57)
+    // story focus (40 x 0.8 = 32, 34 x 1.25 = 42.5), Good fit minus the 25 mismatch, Meh freshness:
+    // 32x35 + 43x15 + 30x10 + 15x20 + 40x20 = 1120 + 645 + 300 + 300 + 800 = 3165, 31.65 rounds up
+    expect(weightedScore(b(32, 43, 30, 15, 40), taste('kids-comic'))).toBe(32)
   })
 
   it('scores one-shots and chapters with the magazine they run in', () => {
@@ -92,12 +92,13 @@ describe('magazine taste', () => {
       kidsGap += score(art, 'kids-comic') - score(story, 'kids-comic')
       petalGap += score(story, 'monthly-petal') - score(art, 'monthly-petal')
     }
-    // art focus moves art by 38 x (1.25 - 0.8) = +17.1 and story by 34 x (0.8 - 1.25) = -15.3.
-    // Kids: (35 x 17.1 - 15 x 15.3) / 100 = 3.69; Petal: (35 x 15.3 - 15 x 17.1) / 100 = 2.79 the other way
-    expect(kidsGap / 20).toBeGreaterThanOrEqual(3.2)
-    expect(kidsGap / 20).toBeLessThanOrEqual(4.2)
-    expect(petalGap / 20).toBeGreaterThanOrEqual(2.3)
-    expect(petalGap / 20).toBeLessThanOrEqual(3.3)
+    // art focus moves art by 40 x (1.25 - 0.8) = +18 and story by 34 x (0.8 - 1.25) = -15.3.
+    // Kids: (35 x 18 - 15 x 15.3) / 100 = 4.005; Petal: (35 x 15.3 - 15 x 18) / 100 = 2.655 the other way.
+    // Each is asserted within about 0.5 of that expectation (page noise and rounding move the measured mean).
+    expect(kidsGap / 20).toBeGreaterThanOrEqual(3.5)
+    expect(kidsGap / 20).toBeLessThanOrEqual(4.5)
+    expect(petalGap / 20).toBeGreaterThanOrEqual(2.15)
+    expect(petalGap / 20).toBeLessThanOrEqual(3.15)
   })
 })
 

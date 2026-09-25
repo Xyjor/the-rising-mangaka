@@ -15,7 +15,7 @@ const LATE = 'You will miss issues at this pace: hire help first.'
 const TIGHT = 'Rest days could make you miss issues.'
 
 /**
- * Seed 1 (art 38, story 34: 0.5 + 36 x 0.02 = 1.22 pages a day) with a Kids Comic Go! serial, chapter 3 on the desk
+ * Seed 1 (art 40, story 34: 0.5 + 37 x 0.02 = 1.24 pages a day) with a Kids Comic Go! serial, chapter 3 on the desk
  * with `pagesDone` of 16 drawn, due in `daysLeft` days.
  */
 function chapterDue(daysLeft: number, pagesDone = 12): GameState {
@@ -38,7 +38,7 @@ beforeEach(() => {
 
 describe('desk: the serial chapter deadline', () => {
   it('says when the chapter is due and whether the studio is on track', () => {
-    // 4 pages left / 1.22 = 3.3, so 4 working days; 4 x 1.25 = 5 is not more than 5 days left
+    // 4 pages left / 1.24 = 3.2, so 4 working days; 4 x 1.25 = 5 is not more than 5 days left
     useStore.setState({ game: chapterDue(5) })
     render(<DeskPanel />)
     expect(screen.getByText('Chapter 3 due in 5 days. About 4 working days left: on track.')).toBeTruthy()
@@ -58,7 +58,7 @@ describe('desk: the serial chapter deadline', () => {
     expect(screen.getByText('Chapter 3 due in 3 days. About 4 working days left: at this pace you will miss the issue.'))
       .toBeTruthy()
     unmount()
-    // 1 page left / 1.22 = 0.8, so 1 working day; 1 x 1.25 = 1.25 is more than 1 day left, so tight
+    // 1 page left / 1.24 = 0.8, so 1 working day; 1 x 1.25 = 1.25 is more than 1 day left, so tight
     useStore.setState({ game: chapterDue(1, 15) })
     render(<DeskPanel />)
     expect(screen.getByText('Chapter 3 due in 1 day. About 1 working day left: tight, rest days could make you miss it.'))
@@ -68,21 +68,21 @@ describe('desk: the serial chapter deadline', () => {
 
 describe('offer: the chapter deadline and the studio pace', () => {
   it('shows the deadline tile and the working days a chapter takes', () => {
-    // 16 / 1.22 = 13.1, so 14 working days against 21; 14 x 1.25 = 17.5 still fits, so no caution
+    // 16 / 1.24 = 12.9, so 13 working days against 21; 13 x 1.25 = 16.25 still fits, so no caution
     useStore.setState({ game: offerFrom('kids-comic') })
     render(<OfferModal />)
     const terms = within(document.querySelector<HTMLElement>('.terms')!)
     expect(terms.getByText('Every 21 days')).toBeTruthy()
-    expect(screen.getByText('At your pace a chapter takes about 14 working days.')).toBeTruthy()
+    expect(screen.getByText('At your pace a chapter takes about 13 working days.')).toBeTruthy()
     expect(screen.queryByText(TIGHT)).toBeNull()
     expect(screen.queryByText(LATE)).toBeNull()
   })
 
   it('cautions, without the late warning, when a chapter fits only without rest days', () => {
-    // 14 working days against Weekly Bolt's 14: fits, but 14 x 1.25 = 17.5 does not
+    // 13 working days against Weekly Bolt's 14: fits, but 13 x 1.25 = 16.25 does not
     useStore.setState({ game: offerFrom('weekly-bolt') })
     render(<OfferModal />)
-    expect(screen.getByText('At your pace a chapter takes about 14 working days.')).toBeTruthy()
+    expect(screen.getByText('At your pace a chapter takes about 13 working days.')).toBeTruthy()
     expect(screen.getByText(TIGHT)).toBeTruthy()
     expect(screen.queryByText(LATE)).toBeNull()
   })

@@ -487,34 +487,33 @@ describe('chapter deadlines', () => {
     expect(missLogs(s)).toHaveLength(0)
   })
 
-  it('reports the deadline: 16 pages at 1.22 a day is 14 working days; on track, tight or late by the days left', () => {
-    // Stats 38 art, 34 story: 0.5 + 36 x 0.02 = 1.22 pages a day; 16 / 1.22 = 13.1, so 14 working days.
+  it('reports the deadline: 16 pages at 1.24 a day is 13 working days; on track, tight or late by the days left', () => {
+    // Stats 40 art, 34 story: 0.5 + 37 x 0.02 = 1.24 pages a day; 16 / 1.24 = 12.9, so 13 working days.
     const s = kidsSerial()
     const at = (day: number) => chapterDeadline({ ...s, day })
-    expect(at(0)).toEqual({ dueDay: 21, daysLeft: 21, workDaysLeft: 14, status: 'on-track' })
-    // 14 x 1.25 = 17.5: 18 days left is on track, 17 is tight
-    expect(at(3)!.status).toBe('on-track')
-    expect(at(4)!.status).toBe('tight')
-    expect(at(5)).toEqual({ dueDay: 21, daysLeft: 16, workDaysLeft: 14, status: 'tight' })
-    // 14 working days in 14 days is still tight; 13 is late
-    expect(at(7)!.status).toBe('tight')
-    expect(at(8)).toEqual({ dueDay: 21, daysLeft: 13, workDaysLeft: 14, status: 'late' })
-    // 4 pages left: 4 / 1.22 = 3.3, so 4 working days
+    expect(at(0)).toEqual({ dueDay: 21, daysLeft: 21, workDaysLeft: 13, status: 'on-track' })
+    // 13 x 1.25 = 16.25: 17 days left is on track, 16 is tight
+    expect(at(4)!.status).toBe('on-track')
+    expect(at(5)).toEqual({ dueDay: 21, daysLeft: 16, workDaysLeft: 13, status: 'tight' })
+    // 13 working days in 13 days is still tight; 12 is late
+    expect(at(8)!.status).toBe('tight')
+    expect(at(9)).toEqual({ dueDay: 21, daysLeft: 12, workDaysLeft: 13, status: 'late' })
+    // 4 pages left: 4 / 1.24 = 3.2, so 4 working days
     expect(chapterDeadline({ ...s, project: { ...s.project!, pagesDone: 12 } })!.workDaysLeft).toBe(4)
   })
 
   it('counts working days for a page count at the studio pace, and rates them against the days left', () => {
     const s = createGame('Rin', 4)
-    // 1.22 pages a day: 16 / 1.22 = 13.1 -> 14, 20 / 1.22 = 16.4 -> 17, 4 / 1.22 = 3.3 -> 4
-    expect(chapterWorkDays(s, 16)).toBe(14)
+    // 1.24 pages a day: 16 / 1.24 = 12.9 -> 13, 20 / 1.24 = 16.1 -> 17, 4 / 1.24 = 3.2 -> 4
+    expect(chapterWorkDays(s, 16)).toBe(13)
     expect(chapterWorkDays(s, 20)).toBe(17)
     expect(chapterWorkDays(s, 4)).toBe(4)
-    // 14 x 1.25 = 17.5
-    expect(deadlineStatus(14, 21)).toBe('on-track')
-    expect(deadlineStatus(14, 18)).toBe('on-track')
-    expect(deadlineStatus(14, 17)).toBe('tight')
-    expect(deadlineStatus(14, 14)).toBe('tight')
-    expect(deadlineStatus(14, 13)).toBe('late')
+    // 13 x 1.25 = 16.25
+    expect(deadlineStatus(13, 21)).toBe('on-track')
+    expect(deadlineStatus(13, 17)).toBe('on-track')
+    expect(deadlineStatus(13, 16)).toBe('tight')
+    expect(deadlineStatus(13, 13)).toBe('tight')
+    expect(deadlineStatus(13, 12)).toBe('late')
   })
 
   it('reports no deadline without a running serial chapter on the desk', () => {

@@ -38,7 +38,7 @@ export function createGame(name: string, seed: number): GameState {
       level: 1,
       xp: 0,
       skillPoints: 0,
-      stats: { story: 34, art: 38, pacing: 30 },
+      stats: { story: 34, art: 40, pacing: 30 },
       stamina: 100,
       maxStamina: 100,
       money: 3000,

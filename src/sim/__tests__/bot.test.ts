@@ -60,8 +60,8 @@ describe('balance bot', () => {
     // a fresh seed-42 career plans its first one-shot for Kids Comic Go! (art 35%, story 15%)
     expect(SENSIBLE.planDraft(s).target).toBe('kids-comic')
     const next = botStep({ ...s, player: { ...s.player, skillPoints: 5 } }, SENSIBLE)
-    // 5 art 40, 4 art 42, 3 pacing 32, 2 art 44, 1 art 46
-    expect(next.player.stats).toEqual({ art: 46, story: 34, pacing: 32 })
+    // from art 40: 5 art 42, 4 art 44, 3 pacing 32, 2 art 46, 1 art 48
+    expect(next.player.stats).toEqual({ art: 48, story: 34, pacing: 32 })
     expect(next.player.skillPoints).toBe(0)
   })
 
@@ -69,15 +69,16 @@ describe('balance bot', () => {
     const petal = { ...OFFER, magazineId: 'monthly-petal', audience: 'young-adults' } as const
     const s = acceptOffer({ ...createGame('Rin', 42), pendingOffer: petal })
     const next = botStep({ ...s, player: { ...s.player, skillPoints: 5 } }, SENSIBLE)
-    // 5 story 36, 4 story 38, 3 pacing 32, 2 story 40, 1 story 42
-    expect(next.player.stats).toEqual({ art: 38, story: 42, pacing: 32 })
+    // from story 34: 5 story 36, 4 story 38, 3 pacing 32, 2 story 40, 1 story 42; art stays at the starting 40
+    expect(next.player.stats).toEqual({ art: 40, story: 42, pacing: 32 })
   })
 
   it('sensible favours story while its one-shot waits on a Monthly Petal poll', () => {
     // with nothing pitched the next plan would aim at Kids Comic Go! (art); the manuscript already sent decides
     const sent = submitProject(drawUntilReady(startProject(createGame('Rin', 42), DRAFT)), 'monthly-petal')
     const next = botStep({ ...sent, player: { ...sent.player, skillPoints: 5 } }, SENSIBLE)
-    expect(next.player.stats).toEqual({ art: 38, story: 42, pacing: 32 })
+    // the same spend as above: story 34 -> 42 and pacing 30 -> 32, art stays at 40
+    expect(next.player.stats).toEqual({ art: 40, story: 42, pacing: 32 })
   })
 
   it('sensible draws with the focus the magazine weighs higher', () => {
@@ -93,16 +94,20 @@ describe('balance bot', () => {
   it('careless never spends its points', () => {
     const run = runBot(42, CARELESS, { days: 200 })
     expect(run.final.player.skillPoints).toBeGreaterThanOrEqual(3)
-    expect(run.final.player.stats).toEqual({ art: 38, story: 34, pacing: 30 })
+    // createGame's starting stats, untouched
+    expect(run.final.player.stats).toEqual({ art: 40, story: 34, pacing: 30 })
   })
 
   it('sensible plans the best known pairing for the magazine with the best odds', () => {
     const s = withMagicNotebook(createGame('Rin', 42))
     const plan = SENSIBLE.planDraft(s)
     expect(plan.draft).toMatchObject({ genre: 'fantasy', theme: 'magic', audience: 'kids' })
-    // art focus at Kids Comic Go!: 48x35 + 27x15 + 30x10 + 80x20 + 100x20 = 5985 at pacing 30, a forecast of 59 to 60
-    // against rivals at 47, about a 0.99 chance of an offer; the best of the rest, Monthly Petal with magic for young
-    // adults untested, is about 0.38
+    // art focus at Kids Comic Go! (40 x 1.25 = 50, 34 x 0.8 = 27.2): 50x35 + 27x15 + 30x10 + 80x20 + 100x20 = 6055
+    // at pacing 30 (61), a forecast of 60 to 61 against 10 rivals at 47: at 61 each finishes above with
+    // 1 - Phi(14 / 8) = 0.04, so at most 2 of 10 above (a top-3 finish) is about 0.99. The best of the rest, Monthly
+    // Petal (story focus: art 32, story 43) with magic for young adults untested, scores (4285 + 20 x fit) / 100 = 47,
+    // 51, 55, 59 or 63 over the five fit ratings; a top-3 finish against 8 rivals at 52 is then about 0.006, 0.09,
+    // 0.42, 0.82 or 0.98, which the prior 0.15/0.25/0.3/0.2/0.1 weighs to about 0.41
     expect(plan.target).toBe('kids-comic')
   })
 
@@ -148,9 +153,14 @@ describe('balance bot', () => {
 
   it('sensible pitches the seed-42 teens manuscript where an offer is least unlikely', () => {
     const s = drawUntilReady(startProject(createGame('Rin', 42), DRAFT))
-    // art 37, story 33, pacing 30, both pairings untested (so spread over every rating), 25 off fit outside teens.
-    // Forecast offer chances: Kids Comic Go! about 0.04 (scores 31 to 48 against rivals at 47), Monthly Petal about
-    // 0.01 (30 to 47 against 52), Weekly Bolt and Ultra Seinen under 0.001 (34 to 48 against 58, 31 to 45 against 62)
+    // Drawn with balanced focus from art 40, story 34 (quality 38.8 and 33.3 with the page noise, components 39 and 33),
+    // pacing 30, both pairings untested, 25 off fit outside teens. The middle case (both pairings Good, 60) against each
+    // field, so Kids Comic Go! has the best odds of a top-3 finish:
+    // Kids   39x35 + 33x15 + 30x10 + 35x20 + 60x20 = 4060 -> 41 against rivals at 47 (6 short, the closest)
+    // Bolt   39x35 + 33x15 + 30x20 + 60x10 + 60x20 = 4260 -> 43 against 58 (15 short)
+    // Petal  39x15 + 33x35 + 30x10 + 35x20 + 60x20 = 3940 -> 39 against 52 (13 short)
+    // Ultra  39x15 + 33x35 + 30x20 + 35x10 + 60x20 = 3890 -> 39 against 62 (23 short)
+    // Even both Perfect (fit 75 or 100, freshness 100) only reaches 57 at Kids, 55 at Bolt and Petal, 51 at Ultra.
     expect(SENSIBLE.pickMagazine(s)).toBe('kids-comic')
   })
 
@@ -226,19 +236,20 @@ describe('balance bot', () => {
       cand(103, 'Quick', 30, 360, 'fast'), // 0.39 x 1.3 = 0.507 a day, 0.507 / 360 = 0.00141 per yen: best value
     ]
     const serial = acceptOffer({ ...createGame('Rin', 42), pendingOffer: OFFER })
-    // Stats 38/34 draw 1.22 pages a day: 16 pages is 14 working days, so 13 days left is late and 14 only tight.
+    // Stats 40/34 draw 0.5 + 37 x 0.02 = 1.24 pages a day: 16 / 1.24 = 12.9, so 13 working days; 12 days left is
+    // late and 13 only tight.
     const at = (daysLeft: number, money: number, s: GameState = serial): GameState =>
       ({ ...s, candidates, serial: { ...s.serial!, nextDueDay: s.day + daysLeft }, player: { ...s.player, money } })
     const hired = (s: GameState) => botStep(s, SENSIBLE).assistants.map((a) => a.name)
     // with every candidate affordable, the best value wins over the most pages (Big) and the cheapest (Cheap)
-    expect(hired(at(13, 100000))).toEqual(['Quick'])
+    expect(hired(at(12, 100000))).toEqual(['Quick'])
     // Quick needs 2 x 360 + 2 x 400 weekly costs = 1520 in the bank
-    expect(hired(at(13, 1520))).toEqual(['Quick'])
+    expect(hired(at(12, 1520))).toEqual(['Quick'])
     // one yen short of Quick: Cheap (2 x 280 + 800 = 1360) is the best value still affordable
-    expect(hired(at(13, 1519))).toEqual(['Cheap'])
-    expect(hired(at(13, 1359))).toEqual([])
+    expect(hired(at(12, 1519))).toEqual(['Cheap'])
+    expect(hired(at(12, 1359))).toEqual([])
     // tight is not late: no hire, however rich
-    expect(hired(at(14, 100000))).toEqual([])
+    expect(hired(at(13, 100000))).toEqual([])
     // no hire without a serial chapter on the desk
     expect(hired({ ...createGame('Rin', 42), candidates, player: { ...createGame('Rin', 42).player, money: 100000 } })).toEqual([])
     // every desk taken: 16 pages still cannot be drawn in one day, but there is no room for a fourth
@@ -255,25 +266,29 @@ describe('balance bot', () => {
       'action/samurai/teens', 'mystery/detective/adults', 'horror/cooking/kids',
       'romance/school/teens', 'action/samurai/teens', 'scifi/space/young-adults',
     ])
-    // Task 8 poll calibration: PACING_NOISE_SD 6->4, RIVAL_SCORE_SD 12->8, Kids rivalMean 45->47. The bot never
-    // spends on pacing (stats stay 38/34/30 the whole run, see below), so the pacing component below is
-    // clamp(round(30 + gaussian(u0,u1) x 4), 0, 100); art/story/audienceFit/freshness are unaffected by this
-    // task, so they are unchanged from the pre-Task-8 readout. Scores re-derived by hand from the same raw
-    // gaussian draws (via a throwaway instrumented run, discarded after use), re-applying the score/rank
-    // formulas at the new constants; the Weekly Bolt (rivalMean 58, RIVAL_SCORE_SD 8) and Kids Comic
-    // (rivalMean 47, RIVAL_SCORE_SD 8) rival lists are now tighter around their means, so a below-mean player
-    // score is beaten by more of them than under the old, wider spread.
-    // Bolt   {37,33,28,60,80}:  37x35 + 33x15 + 28x20 + 60x10 + 80x20  = 4550 -> 46, 12 of 12 rivals above (rank 13)
-    // Kids   {37,35,27,55,100}: 37x35 + 35x15 + 27x10 + 55x20 + 100x20 = 5195 -> 52, 4 of 10 rivals above (rank 5)
-    // Petal  {40,34,26,15,20}:  40x15 + 34x35 + 26x10 + 15x20 + 20x20  = 2750 -> 28, all 8 rivals above (rank 9)
-    // Ultra  {39,35,29,55,80}:  39x15 + 35x35 + 29x20 + 55x10 + 80x20  = 4540 -> 45, all 8 rivals above (rank 9)
-    // Bolt   {38,34,31,60,80}:  38x35 + 34x15 + 31x20 + 60x10 + 80x20  = 4660 -> 47, 11 of 12 rivals above (rank 12)
-    // Kids   {38,33,27,15,100}: 38x35 + 33x15 + 27x10 + 15x20 + 100x20 = 4395 -> 44, all 10 rivals above (rank 11)
-    expect(run.oneShots.slice(0, 6).map((o) => o.score)).toEqual([46, 52, 28, 45, 47, 44])
-    expect(run.oneShots.slice(0, 6).map((o) => o.rank)).toEqual([13, 5, 9, 9, 12, 11])
+    // The bot never spends points (stats stay 40/34/30 the whole run, see below), so the pacing component below is
+    // clamp(round(30 + gaussian(u0,u1) x 4), 0, 100) (Task 8: PACING_NOISE_SD 4, RIVAL_SCORE_SD 8, Kids rivalMean 47).
+    // Task 13 raised the starting art 38 -> 40. At 1.24 pages a day instead of 1.22 every one-shot still takes the
+    // same drawing days, so the polls land on the same days (24, 48, 72, 96, 122, 149) with the same raw draws: pacing,
+    // fit, freshness and the rival scores are unchanged, story is unchanged, and every drawn art component is 2 higher
+    // (37 -> 39, 37 -> 39, 40 -> 42, 39 -> 41, 38 -> 40, 38 -> 40). Components and rival scores read from a throwaway
+    // instrumented run (discarded after use); weighted scores and ranks re-derived by hand:
+    // Bolt   {39,33,28,60,80}:  39x35 + 33x15 + 28x20 + 60x10 + 80x20  = 4620 -> 46, all 12 rivals above (lowest
+    //        46.1; rank 13)
+    // Kids   {39,35,27,55,100}: 39x35 + 35x15 + 27x10 + 55x20 + 100x20 = 5260 -> 53, 3 of 10 above (58.8, 57.4, 55.6;
+    //        the next is 52.6; rank 4)
+    // Petal  {42,34,26,15,20}:  42x15 + 34x35 + 26x10 + 15x20 + 20x20  = 2780 -> 28, all 8 rivals above (rank 9)
+    // Ultra  {41,35,29,55,80}:  41x15 + 35x35 + 29x20 + 55x10 + 80x20  = 4570 -> 46, all 8 rivals above (lowest
+    //        54.4; rank 9)
+    // Bolt   {40,34,31,60,80}:  40x35 + 34x15 + 31x20 + 60x10 + 80x20  = 4730 -> 47, 11 of 12 above (only 44.1 is
+    //        below; rank 12)
+    // Kids   {40,33,27,15,100}: 40x35 + 33x15 + 27x10 + 15x20 + 100x20 = 4465 -> 45, 9 of 10 above (only 44.7 is
+    //        below; rank 10)
+    expect(run.oneShots.slice(0, 6).map((o) => o.score)).toEqual([46, 53, 28, 46, 47, 45])
+    expect(run.oneShots.slice(0, 6).map((o) => o.rank)).toEqual([13, 4, 9, 9, 12, 10])
     expect(run.serials).toHaveLength(1)
     expect(run.serials[0]).toMatchObject({ magazineId: 'weekly-bolt', startedDay: run.oneShots[5].day })
-    expect(run.final.player.stats).toEqual({ art: 38, story: 34, pacing: 30 })
+    expect(run.final.player.stats).toEqual({ art: 40, story: 34, pacing: 30 })
   })
 })
 
