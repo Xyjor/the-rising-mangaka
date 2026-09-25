@@ -126,13 +126,18 @@ export function computeBreakdown(state: GameState, input: BreakdownInput, rating
   }
 }
 
+/** The rival when they run in `magazineId`, else null: the one check the polls and the pitch forecast share. */
+export function rivalIn(rival: Rival | null, magazineId: MagazineId): Rival | null {
+  return rival && rival.magazineId === magazineId ? rival : null
+}
+
 /**
  * Each rival entrant's mean score in a magazine's poll, one per entrant: the named rival's craft for entrant 0 when the
  * rival runs in this magazine, the magazine's rivalMean for everyone else. The polls and the pitch forecast both use it.
  */
 export function rivalMeans(mag: Magazine, rival: Rival | null): number[] {
-  const craft = rival && rival.magazineId === mag.id ? rival.craft : null
-  return Array.from({ length: mag.entrants }, (_, i) => (i === 0 && craft !== null ? craft : mag.rivalMean))
+  const here = rivalIn(rival, mag.id)
+  return Array.from({ length: mag.entrants }, (_, i) => (i === 0 && here ? here.craft : mag.rivalMean))
 }
 
 /** A poll's field: the player's rank, and where the named rival placed (null when the rival is elsewhere). */
@@ -155,10 +160,11 @@ export function pollField(
     (mean, i) => mean + gaussian(values[offset + i * 2], values[offset + i * 2 + 1]) * RIVAL_SCORE_SD,
   )
   const rank = 1 + scores.filter((x) => x > score).length
-  if (!rival || rival.magazineId !== magazineId) return { rank, rival: null }
+  const here = rivalIn(rival, magazineId)
+  if (!here) return { rank, rival: null }
   const own = scores[0]
   const above = scores.slice(1).filter((x) => x > own).length + (score > own ? 1 : 0)
-  return { rank, rival: { name: rival.name, score: clamp(Math.round(own), 0, 100), rank: 1 + above } }
+  return { rank, rival: { name: here.name, score: clamp(Math.round(own), 0, 100), rank: 1 + above } }
 }
 
 /** Reward tier for a poll placement. `entrants` includes the player's own work. */

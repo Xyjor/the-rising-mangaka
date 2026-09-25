@@ -1,8 +1,9 @@
-import { EVENT_GAP_DAYS, magazineById } from './data'
+import { DAYS_PER_YEAR, EVENT_GAP_DAYS, magazineById } from './data'
 import { createGame, describeDate } from './engine'
 import { makeRival } from './rival'
 import { hashString } from './rng'
 import type { GameState, Serial, StudioTierId } from './types'
+import { yearSnapshot } from './year'
 
 /**
  * Fill any top-level or player field a saved game predates with the createGame default.
@@ -30,6 +31,9 @@ export function upgradeSave(g: GameState): GameState {
     nextEventDay: g.nextEventDay ?? g.day + EVENT_GAP_DAYS,
     // Studios: a save from before them keeps every assistant it has, so it starts in a studio with a desk for each.
     studio: g.studio ?? { tier: studioTierFor(up.assistants.length), owned: [] },
+    // The year end: a save from before it starts its year on the current year's first day with today's figures, so the
+    // review's deltas count from loading. `yearReviews`, `reviewUnread` and `awards` default through the createGame base.
+    yearStart: g.yearStart ?? { ...yearSnapshot(up), day: Math.floor(g.day / DAYS_PER_YEAR) * DAYS_PER_YEAR },
   }
 }
 

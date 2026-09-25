@@ -1,5 +1,5 @@
 import type {
-  AnimeStudio, AnimeStudioId, AssistantTrait, Audience, AudienceId, Equipment, EquipmentId, Genre, GenreId, Magazine, MagazineId, Place, PlaceId,
+  AnimeStudio, AnimeStudioId, AssistantTrait, Award, AwardId, Audience, AudienceId, Equipment, EquipmentId, Genre, GenreId, Magazine, MagazineId, Place, PlaceId,
   ScoreWeights, StudioTier, StudioTierId, Theme, ThemeId,
 } from './types'
 
@@ -140,6 +140,8 @@ export const SCORE_WEIGHTS: ScoreWeights = {
   art: 25, story: 25, pacing: 15, audienceFit: 15, freshness: 20,
 }
 
+/** Days in a year: twelve months of four weeks. The year closes (awards, review, rival growth) on every multiple. */
+export const DAYS_PER_YEAR = 336
 export const ONE_SHOT_PAGES = 20
 export const CHAPTER_PAGES = 16
 export const RESULTS_DELAY_DAYS = 7
@@ -262,6 +264,32 @@ export const ANIME_STUDIOS: readonly AnimeStudio[] = [
   },
 ]
 
+/**
+ * The awards handed out at every year end (year.ts), in the order the review lists them. The Rookie Prize is for
+ * year one only; the others come round every year. A near miss is listed only when the award was not won.
+ */
+export const AWARDS: readonly Award[] = [
+  {
+    id: 'rookie', name: 'Rookie Prize', rule: 'a serial started or a #1 one-shot, in year one only',
+    need: 1, near: 3, prize: { money: 3000, fans: 500, xp: 100 },
+  },
+  {
+    id: 'readers', name: "Readers' Choice",
+    rule: 'a serial with 8 or more chapter results in the year, averaging rank 3.0 or better',
+    need: 3, near: 4.5, prize: { money: 5000, fans: 2000, xp: 150 },
+  },
+  {
+    id: 'critics', name: "Critics' Prize", rule: 'a poll score of 75 or more',
+    need: 75, near: 68, prize: { money: 4000, fans: 1000, xp: 150 },
+  },
+  {
+    id: 'golden-pen', name: 'Golden Pen', rule: '20,000 copies sold in the year',
+    need: 20_000, near: 12_000, prize: { money: 8000, fans: 3000, xp: 200 },
+  },
+]
+/** The Readers' Choice judges a serial only once it has this many chapter results in the year. */
+export const READERS_CHOICE_MIN_RESULTS = 8
+
 export function genreById(id: GenreId): Genre { return GENRES.find((g) => g.id === id)! }
 export function themeById(id: ThemeId): Theme { return THEMES.find((t) => t.id === id)! }
 export function audienceById(id: AudienceId): Audience { return AUDIENCES.find((a) => a.id === id)! }
@@ -269,4 +297,5 @@ export function magazineById(id: MagazineId): Magazine { return MAGAZINES.find((
 export function placeById(id: PlaceId): Place { return PLACES.find((p) => p.id === id)! }
 export function studioTierById(id: StudioTierId): StudioTier { return STUDIO_TIERS.find((t) => t.id === id)! }
 export function equipmentById(id: EquipmentId): Equipment { return EQUIPMENT.find((e) => e.id === id)! }
+export function awardById(id: AwardId): Award { return AWARDS.find((a) => a.id === id)! }
 export function animeStudioById(id: AnimeStudioId): AnimeStudio { return ANIME_STUDIOS.find((a) => a.id === id)! }

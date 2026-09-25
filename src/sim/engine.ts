@@ -1,6 +1,6 @@
 import { genreThemeKey, genreThemeRating, themeAudienceKey, themeAudienceRating } from './compat'
 import {
-  ASSISTANT_NAMES, AUDIENCES, CANDIDATE_REFRESH_DAYS, CHAPTER_PAGES, DEADLINE_REST_FACTOR, EDITOR_TIP_EVERY,
+  ASSISTANT_NAMES, AUDIENCES, CANDIDATE_REFRESH_DAYS, CHAPTER_PAGES, DAYS_PER_YEAR, DEADLINE_REST_FACTOR, EDITOR_TIP_EVERY,
   EVENT_FIRST_DAY, GENRES,
   HIRE_RUNWAY_WEEKS, JOB_PAY_PER_DAY, JOB_STAMINA_COST, LOW_STAMINA_THRESHOLD, MAGAZINES, MIN_WORK_STAMINA_COST,
   ONE_SHOT_PAGES, OVERDRAFT_FEE_MIN, OVERDRAFT_FEE_RATE,
@@ -21,11 +21,12 @@ import { forecastPoll } from './forecast'
 import type { Forecast } from './forecast'
 import type {
   Activity, Assistant, AssistantTrait, AudienceId, EditorRel, Focus, GameState, GenreId, Magazine,
-  MagazineId, PendingChapter, Phase, Project, ProjectDraft, Rating, Serial, StatId, ThemeId,
+  MagazineId, PendingChapter, Phase, Player, Project, ProjectDraft, Rating, Serial, StatId, ThemeId,
 } from './types'
 import { pendingMilestones } from './milestones'
 import { makeRival } from './rival'
 import { equipmentEffects, studioSlots, studioTier } from './studio'
+import { closeYear } from './year'
 
 const TRAIT_LIST: AssistantTrait[] = ['fast', 'careful', 'inspiring', 'steady']
 
@@ -35,22 +36,23 @@ export function createGame(name: string, seed: number): GameState {
   const editors = {} as Record<MagazineId, EditorRel>
   for (const m of MAGAZINES) editors[m.id] = { relationship: 0, tips: 0 }
   const worldSeed = (seed * 7919) | 0
+  const player: Player = {
+    name,
+    level: 1,
+    xp: 0,
+    skillPoints: 0,
+    stats: { story: 34, art: 40, pacing: 30 },
+    stamina: 100,
+    maxStamina: 100,
+    money: 3000,
+    fans: 0,
+  }
   let state: GameState = {
     version: 2,
     seed: seed | 0,
     worldSeed,
     day: 0,
-    player: {
-      name,
-      level: 1,
-      xp: 0,
-      skillPoints: 0,
-      stats: { story: 34, art: 40, pacing: 30 },
-      stamina: 100,
-      maxStamina: 100,
-      money: 3000,
-      fans: 0,
-    },
+    player,
     project: null,
     activity: 'rest',
     recovering: false,
@@ -80,6 +82,10 @@ export function createGame(name: string, seed: number): GameState {
     anime: [],
     animeOffer: null,
     animeOfferedFor: [],
+    yearStart: { day: 0, money: player.money, fans: player.fans, level: player.level, copies: 0, volumes: 0 },
+    yearReviews: [],
+    reviewUnread: null,
+    awards: [],
   }
   state = generateCandidates(state)
   return addLog(state, 'info', `Welcome, ${name}. Your studio is ready. Plan your first manga.`, false)
@@ -96,7 +102,7 @@ export interface DateParts { year: number; month: number; week: number; day: num
 
 export function describeDate(day: number): DateParts {
   return {
-    year: Math.floor(day / 336) + 1,
+    year: Math.floor(day / DAYS_PER_YEAR) + 1,
     month: (Math.floor(day / 28) % 12) + 1,
     week: (Math.floor(day / 7) % 4) + 1,
     day: (day % 7) + 1,
@@ -870,6 +876,7 @@ export function tick(state: GameState): GameState {
 
   s = resolveChapters(s)
   s = checkDeadline(s)
+  s = closeYear(s)
   s = animeTick(s)
   s = eventTick(s)
   s = awardMilestones(s)

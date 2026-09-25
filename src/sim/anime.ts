@@ -1,7 +1,7 @@
 // Anime adaptations: a hit serial is offered one adaptation by two studios, waiting on the desk as a card (never a
 // popup). A signed deal pays fans and money at the end of every week on air, lifts popularity once at the premiere
 // if the series still runs, and multiplies the serial's volume copies from the premiere until `tailWeeks` after the
-// finale (`animeVolumeMult`, read by the engine's volume sales). Runs in tick() after checkDeadline, before eventTick
+// finale (`animeVolumeMult`, read by the engine's volume sales). Runs in tick() after closeYear, before eventTick
 // (DESIGN.md "Tick order"). No RNG. No imports from engine.ts: engine imports this file.
 //
 // The offer is for a running series: wrapping it up withdraws a waiting offer at once (endSerial calls

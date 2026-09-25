@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
-  acceptOffer, createGame, dismissResult, startProject, submitProject, tickMany,
+  acceptOffer, closeYear, createGame, dismissResult, startProject, submitProject, tickMany,
 } from '../../sim'
 import type { GameState } from '../../sim'
 import { draw } from '../../sim/rng'
@@ -108,6 +108,28 @@ describe('store auto-pause', () => {
     useStore.getState().declineAnime()
     expect(useStore.getState().game!.animeOffer).toBeNull()
     expect(useStore.getState().game!.anime).toEqual([])
+  })
+
+  it('keeps the clock running through the year end: a toast and a desk card, no pause', () => {
+    load({ ...createGame('Rin', 9), day: 335, nextEventDay: 10_000 })
+    useStore.getState().tick()
+    const g = useStore.getState().game!
+    expect(g.day).toBe(336)
+    expect(g.reviewUnread).toBe(1)
+    expect(useStore.getState().speed).toBe(1)
+    expect(useStore.getState().toasts.map((t) => t.text))
+      .toContain('Year 1 is over. No awards this year. Your year in review is on the desk.')
+  })
+
+  it('reading the year review clears the desk card, and the review modal needs a review to open', () => {
+    load({ ...createGame('Rin', 9), nextEventDay: 10_000 })
+    useStore.getState().openModal('year')
+    expect(useStore.getState().modal).toBe('none')
+    load(closeYear({ ...createGame('Rin', 9), day: 336 }))
+    useStore.getState().openModal('year')
+    expect(useStore.getState().modal).toBe('year')
+    useStore.getState().markReviewRead()
+    expect(useStore.getState().game!.reviewUnread).toBeNull()
   })
 
   it('refuses to open the wizard or the pitch in the wrong phase', () => {

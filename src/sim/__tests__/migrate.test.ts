@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { RIVAL_SERIES, acceptOffer, createGame } from '../index'
+import { RIVAL_SERIES, acceptOffer, closeYear, createGame } from '../index'
 import type { GameState, Serial } from '../index'
 import { upgradeSave } from '../migrate'
 
@@ -119,6 +119,44 @@ describe('upgradeSave', () => {
     expect(up.anime).toEqual(anime)
     expect(up.animeOffer).toEqual({ serialId: 1, expiresDay: 40 })
     expect(up.animeOfferedFor).toEqual([7, 1])
+  })
+
+  it('gives a save from before the year end a year start from its current values, no reviews and no awards', () => {
+    const old = (day: number): GameState => {
+      const g = runningOnDay30()
+      const serial = { ...g.serial!, totalCopies: 9000, volumes: 2 }
+      const save = {
+        ...g, day, player: { ...g.player, money: 12_345, fans: 2100, level: 5 }, serial,
+        serials: [{ ...serial, id: 99, status: 'ended', totalCopies: 4000, volumes: 1 }],
+      } as Partial<GameState>
+      delete save.yearStart
+      delete save.yearReviews
+      delete save.reviewUnread
+      delete save.awards
+      return save as GameState
+    }
+    // day 700 is in year three (700 / 336 = 2.08), which began on day 672; copies 9,000 + 4,000, volumes 2 + 1
+    const up = upgradeSave(old(700))
+    expect(up.yearStart).toEqual({ day: 672, money: 12_345, fans: 2100, level: 5, copies: 13_000, volumes: 3 })
+    expect(up.yearReviews).toEqual([])
+    expect(up.reviewUnread).toBeNull()
+    expect(up.awards).toEqual([])
+    // day 335 is still year one; day 336 is the first day of year two
+    expect(upgradeSave(old(335)).yearStart.day).toBe(0)
+    expect(upgradeSave(old(336)).yearStart.day).toBe(336)
+  })
+
+  it('keeps the year start, reviews, unread review and awards a newer save already has', () => {
+    const g = createGame('Rin', 4)
+    const yearStart = { day: 336, money: 800, fans: 40, level: 3, copies: 500, volumes: 1 }
+    const review = closeYear({ ...g, day: 336 }).yearReviews[0]
+    const up = upgradeSave({
+      ...g, day: 400, yearStart, yearReviews: [review], reviewUnread: 1, awards: [{ id: 'critics', year: 1 }],
+    })
+    expect(up.yearStart).toEqual(yearStart)
+    expect(up.yearReviews).toEqual([review])
+    expect(up.reviewUnread).toBe(1)
+    expect(up.awards).toEqual([{ id: 'critics', year: 1 }])
   })
 
   it('keeps the event, event seed and next roll a newer save already has', () => {

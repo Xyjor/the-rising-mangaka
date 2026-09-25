@@ -8,7 +8,7 @@ import {
 } from './data'
 import { clamp, normalCdf } from './rng'
 import {
-  computeBreakdown, pollPay, projectArtQuality, projectStoryQuality, rivalMeans, stalenessCount, weightedScore,
+  computeBreakdown, pollPay, projectArtQuality, projectStoryQuality, rivalIn, rivalMeans, stalenessCount, weightedScore,
 } from './scoring'
 import type { GameState, MagazineId, Project, Rating } from './types'
 
@@ -112,7 +112,7 @@ export function forecastPoll(state: GameState, project: Project, magazineId: Mag
 
   const means = rivalMeans(mag, state.rival)
   // The named rival, when it runs here, is entrant 0: beaten when it scores under the player (normalCdf of the gap).
-  const rival = state.rival.magazineId === magazineId ? state.rival : null
+  const rival = rivalIn(state.rival, magazineId)
   let beatRival = 0
   const entrants = mag.entrants + 1
   const rankDist = new Array<number>(entrants).fill(0)

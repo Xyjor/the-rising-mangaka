@@ -4,7 +4,7 @@
 import { animeOnShow } from './anime'
 import { addLog, yen } from './core'
 import { STUDIO_TIERS, equipmentById, equipmentPrice, moveInCost, studioTierById } from './data'
-import type { EquipmentId, GameState, StudioTier, StudioTierId } from './types'
+import type { AwardId, EquipmentId, GameState, StudioTier, StudioTierId } from './types'
 
 /** The most volumes the studio shelf shows. */
 const SHELF_VOLUMES = 24
@@ -88,7 +88,7 @@ export function buyEquipment(s: GameState, id: EquipmentId): GameState {
   return addLog(next, 'money', `You bought the ${e.name.toLowerCase()}: ${yen(-price)}. ${e.effect}.`, true)
 }
 
-/** What the studio scene draws: the room, its desks, the equipment, the volumes on the shelf and an anime poster. */
+/** What the studio scene draws: the room, its desks, the equipment, the volumes on the shelf, an anime poster, trophies. */
 export interface StudioLook {
   tier: StudioTierId
   desks: number
@@ -98,12 +98,14 @@ export interface StudioLook {
   volumes: number
   /** an anime poster on the wall: from a premiere until that deal's volume boost ends */
   animePoster: boolean
+  /** a trophy for every award won, oldest first (the same award won twice is two trophies); a new array each call */
+  trophies: AwardId[]
 }
 
 export function studioLook(s: GameState): StudioLook {
   const shipped = s.serials.reduce((sum, x) => sum + x.volumes, s.serial?.volumes ?? 0)
   return {
     tier: s.studio.tier, desks: studioSlots(s), equipment: s.studio.owned, volumes: Math.min(SHELF_VOLUMES, shipped),
-    animePoster: animeOnShow(s),
+    animePoster: animeOnShow(s), trophies: s.awards.map((a) => a.id),
   }
 }

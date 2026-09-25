@@ -4,11 +4,12 @@
 // for reference. Both read these functions, so the readout and the tests cannot drift apart. Pure: no clock, no
 // random source; every run is a deterministic function of its seed.
 import { CARELESS, OPENING_ONE_SHOTS, SENSIBLE, STRESS_BOLT, firstSixMean, runBot } from './bot'
+import { DAYS_PER_YEAR } from './data'
 import type { BotPolicy, BotRun } from './bot'
 import type { GameState } from './types'
 
 /** One in-game year. */
-export const YEAR = 336
+export const YEAR = DAYS_PER_YEAR
 /** Runs judged on the first six one-shots or the first serial get three years, so a long serial cannot cut them short. */
 export const LONG = 3 * YEAR
 /** The first serial's target in the balance bands. */

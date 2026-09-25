@@ -318,6 +318,76 @@ export interface AnimeDeal {
 /** The adaptation offer waiting on the desk: answerable up to and including `expiresDay`. */
 export interface AnimeOffer { serialId: number; expiresDay: number }
 
+// ---------- the year end ----------
+
+export type AwardId = 'rookie' | 'readers' | 'critics' | 'golden-pen'
+
+/** An award handed out at the year end (see year.ts). */
+export interface Award {
+  id: AwardId
+  name: string
+  /** what wins it, as the year review words it after "Won for" */
+  rule: string
+  /** the bar to win: a rank for the Rookie Prize and the Readers' Choice (lower is better), else a score or copies */
+  need: number
+  /** the bar for a near miss, on the same scale */
+  near: number
+  prize: Rewards
+}
+
+/** An award the player won, and the year it was won for. */
+export interface AwardWon { id: AwardId; year: number }
+
+/** An award missed by a little: what the player had against what it needed. */
+export interface NearMiss { id: AwardId; have: number; need: number }
+
+/**
+ * Where the career stood when the year began, the baseline of the year review's deltas. `copies` and `volumes` are
+ * totals across the running serial and every past one.
+ */
+export interface YearStart { day: number; money: number; fans: number; level: number; copies: number; volumes: number }
+
+/** The rival's year: this year's head to head, and the craft and magazine before and after the year end. */
+export interface YearRival {
+  name: string
+  wins: number
+  losses: number
+  fromMagazine: MagazineId
+  toMagazine: MagazineId
+  craftBefore: number
+  craftAfter: number
+  /** the series the rival draws next year: a new one after a move */
+  series: string
+}
+
+/** One closed year, as the desk card and the year review show it (see `buildYearReview`). */
+export interface YearReview {
+  /** the year that closed, from 1 */
+  year: number
+  /** one-shot poll results this year */
+  oneShots: number
+  /** this year's best one-shot, by rank and then score; null without one */
+  bestOneShot: { title: string; rank: number; entrants: number; score: number } | null
+  /** chapter poll results this year, across every serial */
+  chapters: number
+  volumes: number
+  copies: number
+  /** the best poll score this year, one-shots and chapters alike; null without a poll */
+  bestScore: number | null
+  /** money and fans gained over the year, prizes included (they are paid before the next year starts) */
+  moneyDelta: number
+  fansDelta: number
+  levelFrom: number
+  levelTo: number
+  /** awards won, in `AWARDS` order */
+  awards: AwardId[]
+  /** awards missed by a little, in `AWARDS` order; an award won is never a near miss */
+  nearMisses: NearMiss[]
+  rival: YearRival
+  /** the award the rival took: the Rookie Prize in year one when the player did not win it */
+  rivalAward: AwardId | null
+}
+
 // ---------- misc ----------
 
 export interface Notebook {
@@ -401,6 +471,14 @@ export interface GameState {
   animeOffer: AnimeOffer | null
   /** ids of the serials an adaptation was ever offered for: studios ask once per series */
   animeOfferedFor: number[]
+  /** where the career stood when this year began: the year review counts from here */
+  yearStart: YearStart
+  /** every closed year, oldest first */
+  yearReviews: YearReview[]
+  /** the year whose review waits unread on the desk, or null */
+  reviewUnread: number | null
+  /** every award won, oldest first */
+  awards: AwardWon[]
 }
 
 export type Phase = 'idle' | 'drawing' | 'ready' | 'submitted'
