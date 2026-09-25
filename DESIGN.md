@@ -188,14 +188,42 @@ Forecast calibration is a balance band: over year one the offer chances quoted a
 ### Trips and training
 - Library / Reader survey reveal Notebook cells. Classes add +2 to a stat. Hot spring restores and raises max stamina.
 - The player is away for the trip's length; nothing is drawn.
+- Two trips are reached only by answering a random event, and the Trips panel does not list them: the Comic
+  Convention (2 days, ¥500, fans on return) and the Manga Masterclass (3 days, ¥400, +3 to the lowest stat).
 
 ### Editors
 - Each magazine has an editor. Every result raises the relationship; every 3 points the editor shares a tip that
   reveals a theme x audience pairing for that magazine's readers.
 
+### Random events
+One decision at a time, shown as a card on the desk and never as a popup (pillar 3). The card names both answers with
+every effect they have, and says how many days are left to answer. `src/sim/events.ts`.
+- **The roll.** On days where day % 7 is 3, from `nextEventDay` on (day 28 in a new career), with no event waiting and
+  no trip under way, two values are drawn from `eventSeed`: the first under 0.35 lands an event, the second picks it
+  from the eligible pool, in the table's order. `eventSeed` is its own stream (`hashString('events:' + worldSeed)`),
+  so an event landing or not never moves the main `seed`. A landed event expires 7 days later and the next roll waits
+  14 days. It toasts and pauses the clock once, the day it lands.
+- **Ignoring one.** The day after it expires, the event lapses: a log line, nothing else.
+- **Money and trips.** An answer that costs more than the player has is disabled and says what it needs, so an event
+  never takes money below zero. A waiting event survives a trip: the card stays on the desk and every answer except a
+  new trip can be given while away.
+
+| Event | Eligible | A | B |
+|---|---|---|---|
+| Fan letter | fans ≥ 300 | Write back: stamina −5, fans + clamp(round(fans × 0.02), 50, 1,500) | Keep it: stamina +8 |
+| Cold | always | See a doctor: −¥300, stamina +25 | Tea and an early night: stamina +8 |
+| Convention | fans ≥ 1,000, money ≥ ¥500 | Book a table: 2-day trip, ¥500; on return fans + min(5,000, 150 + round(fans × 0.04)) | Skip it |
+| Raise | the first assistant who has not asked yet | Give the raise: salary becomes round(salary × 1.2 / 10) × 10, their art and story +3 | Not this year: their max stamina −10 |
+| Reprint | a serial, running or archived, with a volume | Approve: + round(average copies a volume × 0.25) × VOLUME_PRICE | Colour page: stamina −12, + round(average copies a volume × 0.4) × VOLUME_PRICE |
+| Workshop | level ≥ 3, money ≥ ¥400 | Attend: 3-day trip, ¥400; on return +3 to the lowest stat (ties: art, story, pacing) | Decline |
+
+Stamina changes clamp to 0..max stamina. Each assistant asks for a raise once, whatever the answer. A reprint is for
+the running serial when it has shipped a volume, else the latest archived one that has.
+
 ### Auto-pause rules
 The clock stops whenever the game needs a decision: a manuscript becomes ready, poll results arrive, a
-serialisation offer lands, a serial is cancelled (the desk empties), or a trip ends. Menus always pause.
+serialisation offer lands, a serial is cancelled (the desk empties), a trip ends, or a random event lands. Menus
+always pause.
 
 ## Roadmap
 0. Money sinks. Shipped: hiring needs two weeks of that salary in the bank; a week that ends below zero makes
@@ -205,7 +233,7 @@ serialisation offer lands, a serial is cancelled (the desk empties), or a trip e
    separately.
 1. Awards (year end), anime adaptation offers, merchandise, conventions.
 2. Rival mangaka with visible careers and head-to-head polls.
-3. Random events with choices (fan letters, illness, editor requests).
+3. Random events with choices. Shipped: six events as desk cards (see Random events).
 4. Save slots, achievements, sound, mobile polish.
 
 ### Milestones
@@ -245,11 +273,12 @@ The final hook order inside `tick()`:
 5. One-shot poll result and serialisation offer.
 6. `resolveChapters` (chapter polls, volumes, warnings, cancellation, archiving).
 7. `checkDeadline` (a serial chapter not in by its due day misses the issue; warnings and cancellation).
-8. `awardMilestones`.
-9. Return.
+8. `eventTick` (an unanswered event past its last day lapses; the weekly random-event roll).
+9. `awardMilestones`.
+10. Return.
 
-Future hooks (events, year review, anime) go between `checkDeadline` and `awardMilestones` so milestones see
-their effects the same day.
+Future hooks (year review `closeYear`, then `animeTick`) go between `checkDeadline` and `eventTick`, so events and
+milestones see their effects the same day.
 
 ## Balance bots and bands
 

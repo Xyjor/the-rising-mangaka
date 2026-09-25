@@ -1,6 +1,7 @@
-import { magazineById } from './data'
+import { EVENT_GAP_DAYS, magazineById } from './data'
 import { createGame, describeDate } from './engine'
 import { makeRival } from './rival'
+import { hashString } from './rng'
 import type { GameState, Serial } from './types'
 
 /**
@@ -23,5 +24,9 @@ export function upgradeSave(g: GameState): GameState {
     serials: up.serials.map(fix),
     // The rival comes from the save's own world seed (never createGame('', 0)'s), grown by the whole years played.
     rival: g.rival ?? makeRival(g.worldSeed, describeDate(g.day).year - 1),
+    // Random events: the save's own world's event seed (the one a new career there starts with), the first roll two
+    // weeks from the day of loading. `event` defaults to null through the createGame base.
+    eventSeed: g.eventSeed ?? (hashString(`events:${g.worldSeed}`) | 0),
+    nextEventDay: g.nextEventDay ?? g.day + EVENT_GAP_DAYS,
   }
 }

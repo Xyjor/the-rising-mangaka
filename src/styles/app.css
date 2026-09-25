@@ -199,6 +199,7 @@
 .log li[data-kind='series'] .dot { background: var(--blue); }
 .log li[data-kind='staff'] .dot { background: var(--purple); }
 .log li[data-kind='trip'] .dot { background: var(--green); }
+.log li[data-kind='event'] .dot { background: var(--gold); }
 .log.collapsed ul { max-height: 24px; overflow: hidden; }
 @media (max-width: 640px) {
   .log { padding: 4px 12px; max-height: 30vh; }
@@ -236,6 +237,7 @@
 .toast[data-kind='money'] { border-color: var(--gold); box-shadow: 4px 4px 0 var(--gold); }
 .toast[data-kind='staff'] { border-color: var(--purple); box-shadow: 4px 4px 0 var(--purple); }
 .toast[data-kind='trip'] { border-color: var(--green); box-shadow: 4px 4px 0 var(--green); }
+.toast[data-kind='event'] { border-color: var(--gold); box-shadow: 4px 4px 0 var(--gold); background: var(--gold-soft); }
 .toast .ico { display: inline-flex; flex: none; color: var(--ink-2); margin-top: 1px; }
 .toast button {
   margin-left: auto; border: 0; background: transparent; color: var(--ink-3);

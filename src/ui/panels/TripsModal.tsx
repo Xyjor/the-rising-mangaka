@@ -15,7 +15,7 @@ export function TripsModal() {
       <div className="col" style={{ gap: 14 }}>
         {phase === 'drawing' && <p className="small warn-text">You are mid-manuscript. The pages will wait, but the calendar will not.</p>}
         <div className="place-list">
-          {PLACES.map((pl) => {
+          {PLACES.filter((pl) => !pl.eventOnly).map((pl) => {
             const canAfford = game.player.money >= pl.cost
             return (
               <div className="place" key={pl.id}>

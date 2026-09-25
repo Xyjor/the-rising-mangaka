@@ -76,6 +76,15 @@ export const PLACES: Place[] = [
   { id: 'writing-workshop', name: 'Writing Workshop', days: 4, cost: 600, blurb: 'Structure, dialogue, endings.', effect: 'Story +2' },
   { id: 'editing-seminar', name: 'Editing Seminar', days: 4, cost: 600, blurb: 'Panel flow and page turns.', effect: 'Pacing +2' },
   { id: 'hot-spring', name: 'Hot Spring', days: 3, cost: 400, blurb: 'Steam, silence, and no deadlines.', effect: 'Full stamina, max stamina +3' },
+  // Reached only by answering a random event (events.ts); the Trips panel leaves them out.
+  {
+    id: 'convention', name: 'Comic Convention', days: 2, cost: 500, blurb: 'A table in the artist alley and a queue of readers.',
+    effect: 'Fans +150 plus 4% of your fans, at most +5,000', eventOnly: true,
+  },
+  {
+    id: 'masterclass', name: 'Manga Masterclass', days: 3, cost: 400, blurb: 'A veteran mangaka works on your weakest skill.',
+    effect: '+3 to your lowest stat', eventOnly: true,
+  },
 ]
 
 export const TRAITS: Record<AssistantTrait, { name: string; blurb: string }> = {
@@ -178,6 +187,17 @@ export const RANK_MULTIPLIER: Record<RankTier, number> = { first: 2, podium: 1.4
 export const RANK_MULTIPLIER_PCT: Record<RankTier, number> = { first: 200, podium: 140, mid: 100, weak: 70 }
 /** The poll score that earns the full per-page rate in `pollPay`; below it pay scales down, above it up. */
 export const PAY_FULL_RATE_SCORE = 80
+
+/** Random events (events.ts): a new career rolls its first event no earlier than this day... */
+export const EVENT_FIRST_DAY = 28
+/** ...rolls happen only on days where day % 7 is this... */
+export const EVENT_ROLL_WEEKDAY = 3
+/** ...each roll lands an event with this chance... */
+export const EVENT_CHANCE = 0.35
+/** ...the player has this many days after it lands to answer it... */
+export const EVENT_ANSWER_DAYS = 7
+/** ...and the next roll waits until this many days after it landed. */
+export const EVENT_GAP_DAYS = 14
 
 export function genreById(id: GenreId): Genre { return GENRES.find((g) => g.id === id)! }
 export function themeById(id: ThemeId): Theme { return THEMES.find((t) => t.id === id)! }

@@ -1,6 +1,7 @@
 import { genreThemeKey, genreThemeRating, themeAudienceKey, themeAudienceRating } from './compat'
 import {
-  ASSISTANT_NAMES, AUDIENCES, CANDIDATE_REFRESH_DAYS, CHAPTER_PAGES, DEADLINE_REST_FACTOR, EDITOR_TIP_EVERY, GENRES,
+  ASSISTANT_NAMES, AUDIENCES, CANDIDATE_REFRESH_DAYS, CHAPTER_PAGES, DEADLINE_REST_FACTOR, EDITOR_TIP_EVERY,
+  EVENT_FIRST_DAY, GENRES,
   HIRE_RUNWAY_WEEKS, JOB_PAY_PER_DAY, JOB_STAMINA_COST, LOW_STAMINA_THRESHOLD, MAGAZINES, MAX_ASSISTANTS,
   ONE_SHOT_PAGES, OVERDRAFT_FEE_MIN, OVERDRAFT_FEE_RATE,
   RATING_LABEL, RESULTS_DELAY_DAYS, REST_STAMINA_GAIN, SERIAL_CLIMAX_MIN_POPULARITY, SERIAL_CLIMAX_VOLUME_MULT,
@@ -10,7 +11,8 @@ import {
   VOLUME_PRICE, WEEKLY_LIVING_COST, WORK_STAMINA_COST, audienceById, magazineById, placeById, themeById, genreById,
 } from './data'
 import { addLog, grantXp } from './core'
-import { clamp, draw, range } from './rng'
+import { STAT_NAME, conventionFans, eventTick, lowestStat } from './events'
+import { clamp, draw, hashString, range } from './rng'
 import {
   evaluateChapter, evaluateProject, projectArtQuality, projectStoryQuality, rankScore, stalenessCount, weakRankLine,
 } from './scoring'
@@ -69,6 +71,9 @@ export function createGame(name: string, seed: number): GameState {
     nextAssistantId: 1,
     milestonesDone: [],
     rival: makeRival(worldSeed, 0),
+    event: null,
+    eventSeed: hashString(`events:${worldSeed}`) | 0,
+    nextEventDay: EVENT_FIRST_DAY,
   }
   state = generateCandidates(state)
   return addLog(state, 'info', `Welcome, ${name}. Your studio is ready. Plan your first manga.`, false)
@@ -541,6 +546,18 @@ function finishTrip(state: GameState): GameState {
       }
       text = 'Fully rested. Max stamina +3.'
       break
+    case 'convention': {
+      const gain = conventionFans(s.player.fans)
+      s = { ...s, player: { ...s.player, fans: s.player.fans + gain } }
+      text = `Fans +${gain}.`
+      break
+    }
+    case 'masterclass': {
+      const stat = lowestStat(s.player.stats)
+      s = { ...s, player: { ...s.player, stats: { ...s.player.stats, [stat]: Math.min(100, s.player.stats[stat] + 3) } } }
+      text = `${STAT_NAME[stat]} +3.`
+      break
+    }
   }
   return addLog(s, 'trip', `Back from the ${place.name}. ${text}`, true)
 }
@@ -829,6 +846,7 @@ export function tick(state: GameState): GameState {
 
   s = resolveChapters(s)
   s = checkDeadline(s)
+  s = eventTick(s)
   s = awardMilestones(s)
   return s
 }

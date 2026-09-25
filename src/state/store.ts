@@ -53,6 +53,8 @@ interface Store {
   hireAssistant: (id: number) => void
   fireAssistant: (id: number) => void
   startTrip: (p: PlaceId) => void
+  /** Answer the random event waiting on the desk. */
+  resolveEvent: (choice: 'a' | 'b') => void
   setActivity: (a: Activity) => void
   setFocus: (f: Focus) => void
   spendSkillPoint: (s: StatId) => void
@@ -217,7 +219,8 @@ export const useStore = create<Store>()(
             (!!next.pendingOffer && !game.pendingOffer) ||
             (sim.getPhase(game) === 'drawing' && sim.getPhase(next) === 'ready') ||
             deskEmptied ||
-            tripEnded
+            tripEnded ||
+            (!!next.event && !game.event)
           if (needsDecision) patch.speed = 0
           set(patch)
         },
@@ -247,6 +250,7 @@ export const useStore = create<Store>()(
         hireAssistant: (id) => apply((g) => sim.hireAssistant(g, id)),
         fireAssistant: (id) => apply((g) => sim.fireAssistant(g, id)),
         startTrip: (p) => apply((g) => sim.startTrip(g, p), { close: true, resume: true }),
+        resolveEvent: (c) => apply((g) => sim.resolveEvent(g, c)),
         setActivity: (a) => apply((g) => sim.setActivity(g, a)),
         setFocus: (f) => apply((g) => sim.setFocus(g, f)),
         spendSkillPoint: (s) => apply((g) => sim.spendSkillPoint(g, s)),

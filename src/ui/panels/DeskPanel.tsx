@@ -6,6 +6,7 @@ import {
 import type { DeadlineStatus } from '../../sim'
 import { useStore } from '../../state/store'
 import { useShallow } from 'zustand/react/shallow'
+import { EventCard } from '../EventCard'
 import { Icon } from '../Icon'
 import { NextGoal } from '../NextGoal'
 import { Metric, WarningPips } from '../components'
@@ -32,6 +33,8 @@ export function DeskPanel() {
   return (
     <aside className="desk">
       <NextGoal />
+      {/* On phones cards.css moves this after the project card, so "Today" stays in view. */}
+      <EventCard />
       {tutorialStep !== -1 && !game.trip && (
         <div className="coach" role="note">
           <Icon name="sparkle" />

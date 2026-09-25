@@ -30,6 +30,8 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   (`src/sim/rng.ts`). Every state change is a pure function `(state, input) => state` that returns a new object.
   - `types.ts` all domain types. `data.ts` content (genres, themes, audiences, magazines, places, constants).
   - `compat.ts` hidden compatibility ratings. `scoring.ts` poll scoring. `engine.ts` commands + `tick()`.
+  - `core.ts` state helpers shared by the engine and its tick hooks (`addLog`, `grantXp`, `xpToNext`, `startTrip`).
+    `events.ts` random events (the weekly roll on its own `eventSeed`, the answers). Hook files never import engine.ts.
   - Add a unit test in `src/sim/__tests__/engine.test.ts` for every new rule.
 - `src/state/store.ts` — Zustand store. Wraps the sim, owns the real-time clock speed, modal state, toasts,
   and persists `game` to localStorage (`persist` version = `SAVE_VERSION`; new `GameState` fields default through
@@ -41,7 +43,8 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   Tests live in `src/ui/__tests__`; see the UI-test docblock rule under Commands above.
 - `src/test/` — shared test-only helpers: `dom.ts` (happy-dom setup, imported for side effects) and `fixtures.ts`
   (game-state builders such as `withPendingResult`, shared across UI test files).
-- `src/styles/tokens.css` (design tokens, light + dark), `base.css` (primitives), `app.css` (layout and panels).
+- `src/styles/tokens.css` (design tokens, light + dark), `base.css` (primitives), `app.css` (layout and panels),
+  `cards.css` (desk cards; on phones they follow the project card).
 
 ## Conventions
 
@@ -50,7 +53,9 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
 - Log entries: `addLog(state, kind, text, toast)`. `toast: true` only for things the player must notice; chapter results
   and money events are toasts, daily chatter is not. Identical toasts are de-duplicated by the store.
 - The clock auto-pauses whenever the game needs a decision (manuscript ready, poll result, serialisation offer,
-  a serial is cancelled, a trip ends). Keep it that way for any new blocking decision.
+  a serial is cancelled, a trip ends, a random event lands). Keep it that way for any new blocking decision.
+- Game-driven moments (random events) are desk cards, never popups: a component that returns null when empty,
+  imports its own stylesheet (`src/styles/cards.css`), uses `card flat desk-card`, toasts on arrival and pauses once.
 
 ## UI rules (from the design pass)
 

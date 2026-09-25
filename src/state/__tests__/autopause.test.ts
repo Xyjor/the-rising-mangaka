@@ -3,6 +3,7 @@ import {
   acceptOffer, createGame, dismissResult, startProject, submitProject, tickMany,
 } from '../../sim'
 import type { GameState } from '../../sim'
+import { draw } from '../../sim/rng'
 import { useStore } from '../store'
 import { DRAFT, drawUntilReady, withStats } from '../../test/fixtures'
 
@@ -56,6 +57,26 @@ describe('store auto-pause', () => {
     }
     expect(useStore.getState().game!.trip).toBeNull()
     expect(useStore.getState().speed).toBe(0)
+  })
+
+  it('stops the clock once when a random event lands, and answering it clears the desk card', () => {
+    // the first event seed whose first draw hits (under 0.35)
+    let eventSeed = 1
+    while (draw(eventSeed, 1).values[0] >= 0.35) eventSeed++
+    // day 30 with the roll due: tomorrow is day 31, a roll day, and a fresh career can only catch a cold
+    load({ ...createGame('Rin', 9), day: 30, nextEventDay: 0, eventSeed })
+    const st = useStore.getState()
+    st.tick()
+    expect(useStore.getState().game!.event).toMatchObject({ id: 'cold', day: 31 })
+    expect(useStore.getState().speed).toBe(0)
+    expect(useStore.getState().toasts.map((t) => t.text)).toContain('You caught a cold. Answer on your desk within 7 days.')
+    // the event is still waiting the next day, but it only paused the clock the day it landed
+    useStore.setState({ speed: 1 })
+    st.tick()
+    expect(useStore.getState().game!.event).not.toBeNull()
+    expect(useStore.getState().speed).toBe(1)
+    st.resolveEvent('b')
+    expect(useStore.getState().game!.event).toBeNull()
   })
 
   it('refuses to open the wizard or the pitch in the wrong phase', () => {

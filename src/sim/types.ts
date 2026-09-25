@@ -208,11 +208,15 @@ export interface Assistant {
   trait: AssistantTrait
   /** sprite palette variant */
   look: number
+  /** true once this assistant has asked for a raise, whatever the answer: each assistant asks once */
+  raised?: boolean
 }
 
 // ---------- trips ----------
 
-export type PlaceId = 'library' | 'survey' | 'art-class' | 'writing-workshop' | 'editing-seminar' | 'hot-spring'
+export type PlaceId =
+  | 'library' | 'survey' | 'art-class' | 'writing-workshop' | 'editing-seminar' | 'hot-spring'
+  | 'convention' | 'masterclass'
 
 export interface Place {
   id: PlaceId
@@ -221,6 +225,8 @@ export interface Place {
   cost: number
   blurb: string
   effect: string
+  /** reached only by answering a random event, never listed in the Trips panel */
+  eventOnly?: boolean
 }
 
 export interface Trip { placeId: PlaceId; startedDay: number; endsDay: number }
@@ -234,7 +240,24 @@ export interface Notebook {
   themeAudience: Partial<Record<string, Rating>>
 }
 
-export type LogKind = 'info' | 'success' | 'warn' | 'money' | 'levelup' | 'series' | 'staff' | 'trip'
+export type LogKind = 'info' | 'success' | 'warn' | 'money' | 'levelup' | 'series' | 'staff' | 'trip' | 'event'
+
+// ---------- random events ----------
+
+export type EventId = 'letter' | 'cold' | 'convention' | 'raise' | 'reprint' | 'workshop'
+
+/** A random event waiting on the desk for an answer (see events.ts). */
+export interface GameEvent {
+  id: EventId
+  /** the day it arrived */
+  day: number
+  /** the last day it can be answered; the day after, it lapses and nothing happens */
+  expiresDay: number
+  /** the assistant asking for a raise */
+  assistantId?: number
+  /** the serial whose volumes get a reprint */
+  serialId?: number
+}
 
 export interface LogEntry {
   id: number
@@ -279,6 +302,12 @@ export interface GameState {
   milestonesDone: MilestoneId[]
   /** the named rival mangaka and the magazine they run in */
   rival: Rival
+  /** the random event waiting on the desk, or null */
+  event: GameEvent | null
+  /** rolling RNG seed for random events only, so they never move the main `seed` stream */
+  eventSeed: number
+  /** no event is rolled before this day */
+  nextEventDay: number
 }
 
 export type Phase = 'idle' | 'drawing' | 'ready' | 'submitted'

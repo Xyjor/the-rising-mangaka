@@ -1,0 +1,15 @@
+/* Desk cards: game-driven moments (random events now) that wait on the desk instead of opening a popup. */
+
+.desk-card { display: flex; flex-direction: column; gap: 8px; padding: 12px; }
+
+/* On phones the desk card follows the project card, so "Today" stays in view without scrolling (CLAUDE.md). */
+@media (max-width: 640px) {
+  .desk > .desk-card { order: 1; }
+  .desk > .quick-nav { order: 2; }
+}
+
+.card.flat.event-card { border-color: var(--gold); }
+.event-choices { display: flex; flex-direction: column; gap: 8px; }
+.event-choice { display: flex; flex-direction: column; gap: 4px; }
+/* Answers state every effect, so their labels wrap instead of overflowing the desk. */
+.event-choice .btn { white-space: normal; text-align: center; }

@@ -60,4 +60,27 @@ describe('upgradeSave', () => {
     const rival = { name: 'Mikoto Sakuraba', craft: 71, magazineId: 'weekly-bolt', seriesTitle: 'Thunder Relay' } as const
     expect(upgradeSave({ ...createGame('Rin', 4), day: 700, rival }).rival).toEqual(rival)
   })
+
+  it("gives a save from before random events its own world's event seed, a first roll two weeks out and no event", () => {
+    const old = (seed: number): GameState => {
+      const g = { ...createGame('Rin', seed), day: 30 } as Partial<GameState>
+      delete g.event
+      delete g.eventSeed
+      delete g.nextEventDay
+      return g as GameState
+    }
+    // seed 4 is world 31676: FNV-1a of "events:31676" is 1148715873, under 2^31 so the same as a signed int
+    const up = upgradeSave(old(4))
+    expect(up).toMatchObject({ eventSeed: 1148715873, nextEventDay: 44, event: null })
+    // the same seed a new career in that world starts with, so the upgraded save rolls the same events
+    expect(up.eventSeed).toBe(createGame('Rin', 4).eventSeed)
+    // seed 1 is world 7919: FNV-1a of "events:7919" is 2653888552, which is -1641078744 as a signed 32-bit int
+    expect(upgradeSave(old(1)).eventSeed).toBe(-1641078744)
+  })
+
+  it('keeps the event, event seed and next roll a newer save already has', () => {
+    const event = { id: 'letter', day: 31, expiresDay: 38 } as const
+    const up = upgradeSave({ ...createGame('Rin', 4), day: 33, event, eventSeed: 12345, nextEventDay: 45 })
+    expect(up).toMatchObject({ event, eventSeed: 12345, nextEventDay: 45 })
+  })
 })

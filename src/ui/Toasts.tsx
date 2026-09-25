@@ -5,6 +5,7 @@ import type { IconName } from './Icon'
 
 const ICON: Record<string, IconName> = {
   info: 'info', success: 'check', warn: 'alert', money: 'yen', levelup: 'star', series: 'book', staff: 'people', trip: 'map',
+  event: 'sparkle',
 }
 
 function ToastItem({ id, kind, text }: { id: number; kind: string; text: string }) {
