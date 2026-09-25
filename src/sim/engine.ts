@@ -9,6 +9,7 @@ import {
   VOLUME_EVERY_CHAPTERS,
   VOLUME_PRICE, WEEKLY_LIVING_COST, WORK_STAMINA_COST, audienceById, magazineById, placeById, themeById, genreById,
 } from './data'
+import { addLog, grantXp } from './core'
 import { clamp, draw, range } from './rng'
 import {
   evaluateChapter, evaluateProject, projectArtQuality, projectStoryQuality, rankScore, stalenessCount, weakRankLine,
@@ -16,8 +17,8 @@ import {
 import { forecastPoll } from './forecast'
 import type { Forecast } from './forecast'
 import type {
-  Activity, Assistant, AssistantTrait, AudienceId, EditorRel, Focus, GameState, GenreId, LogKind, Magazine,
-  MagazineId, PendingChapter, Phase, PlaceId, Project, ProjectDraft, Rating, Serial, StatId, ThemeId,
+  Activity, Assistant, AssistantTrait, AudienceId, EditorRel, Focus, GameState, GenreId, Magazine,
+  MagazineId, PendingChapter, Phase, Project, ProjectDraft, Rating, Serial, StatId, ThemeId,
 } from './types'
 import { pendingMilestones } from './milestones'
 import { makeRival } from './rival'
@@ -78,10 +79,6 @@ export function createGame(name: string, seed: number): GameState {
 export function getPhase(state: GameState): Phase {
   if (!state.project) return 'idle'
   return state.project.status
-}
-
-export function xpToNext(level: number): number {
-  return 100 + (level - 1) * 60
 }
 
 export interface DateParts { year: number; month: number; week: number; day: number }
@@ -242,26 +239,6 @@ export function previewSubmission(state: GameState, magazineId: MagazineId): Sub
 }
 
 // ---------- internals ----------
-
-function addLog(state: GameState, kind: LogKind, text: string, toast: boolean): GameState {
-  const entry = { id: state.nextLogId, day: state.day, kind, text, toast }
-  const log = state.log.length >= 300 ? [...state.log.slice(-299), entry] : [...state.log, entry]
-  return { ...state, log, nextLogId: state.nextLogId + 1 }
-}
-
-function grantXp(state: GameState, amount: number): GameState {
-  let { level, xp, skillPoints, maxStamina } = state.player
-  xp += amount
-  let s = state
-  while (xp >= xpToNext(level)) {
-    xp -= xpToNext(level)
-    level += 1
-    skillPoints += 3
-    maxStamina += 5
-    s = addLog(s, 'levelup', `Level ${level}. +3 skill points, +5 max stamina. Spend the points in Stats (S).`, true)
-  }
-  return { ...s, player: { ...s.player, level, xp, skillPoints, maxStamina } }
-}
 
 function generateCandidates(state: GameState): GameState {
   const { values, seed } = draw(state.seed, 15)
@@ -522,19 +499,6 @@ export function fireAssistant(state: GameState, id: number): GameState {
   if (!a) return state
   const s: GameState = { ...state, assistants: state.assistants.filter((x) => x.id !== id) }
   return addLog(s, 'staff', `${a.name} left the studio.`, false)
-}
-
-export function startTrip(state: GameState, placeId: PlaceId): GameState {
-  if (state.trip) return state
-  const place = placeById(placeId)
-  if (state.player.money < place.cost) return state
-  const s: GameState = {
-    ...state,
-    trip: { placeId, startedDay: state.day, endsDay: state.day + place.days },
-    activity: 'rest',
-    player: { ...state.player, money: state.player.money - place.cost },
-  }
-  return addLog(s, 'trip', `Off to the ${place.name} for ${place.days} days.`, false)
 }
 
 // ---------- time ----------

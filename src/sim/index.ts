@@ -1,6 +1,7 @@
 export * from './types'
 export * from './data'
 export * from './compat'
+export * from './core'
 export * from './scoring'
 export * from './engine'
 export * from './forecast'
