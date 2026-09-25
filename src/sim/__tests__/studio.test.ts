@@ -46,6 +46,14 @@ describe('studio data', () => {
     ])
   })
 
+  it('sells at four times the base prices: EQUIPMENT_PRICE_SCALE is 4 (S1 = ¥127,356, S1 / 9000 = 14.15, clamped)', () => {
+    expect(EQUIPMENT_PRICE_SCALE).toBe(4)
+    // 2,000, 2,500, 3,000, 4,000, 7,000 and 12,000 times 4
+    expect(EQUIPMENT_IDS.map((id) => equipmentPrice(id))).toEqual([8000, 10_000, 12_000, 16_000, 28_000, 48_000])
+    // the apartment is free; 5,000 x 4 for the flat, 15,000 x 4 for the loft
+    expect(STUDIO_TIERS.map((t) => moveInCost(t.id))).toEqual([0, 20_000, 60_000])
+  })
+
   it('prices are the base price times the price scale, rounded to the nearest ¥100', () => {
     for (const e of EQUIPMENT) {
       expect(equipmentPrice(e.id) % 100).toBe(0)
@@ -130,7 +138,7 @@ describe('studio tiers', () => {
     const loft = moveStudio(withMoney(s, moveInCost('loft')), 'loft')
     expect(loft.studio.tier).toBe('loft')
     expect(loft.player.money).toBe(0)
-    // at today's price scale the log reads "-¥15,000"
+    // at today's price scale (4) the log reads "-¥60,000"
     expect(loft.log.at(-1)!.text).toBe(`You moved into the studio loft: -${yen(moveInCost('loft'))}. Rent is ¥350 a week, and it has 3 desks for assistants.`)
   })
 

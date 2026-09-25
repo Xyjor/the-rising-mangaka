@@ -185,8 +185,12 @@ export const EQUIPMENT: Equipment[] = [
   },
 ]
 
-/** Scales every equipment price and move-in cost (see `equipmentPrice`, `moveInCost`). */
-export const EQUIPMENT_PRICE_SCALE = 1
+/**
+ * Scales every equipment price and move-in cost (see `equipmentPrice`, `moveInCost`): S1 / 9000 rounded to 0.25 and
+ * clamped to 0.75-4, where S1 is the sensible balance bot's median money at day 336 buying nothing over seeds 1-20
+ * (`npm run balance` prints it). S1 = ¥127,356 gives 14.15, clamped to 4.
+ */
+export const EQUIPMENT_PRICE_SCALE = 4
 
 /** What a piece of equipment costs: its base price times `EQUIPMENT_PRICE_SCALE`, rounded to the nearest ¥100. */
 export function equipmentPrice(id: EquipmentId): number {
