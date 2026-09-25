@@ -26,7 +26,8 @@ Plan manga  →  Draw pages (days pass)  →  Submit to a magazine  →  Reader 
 ```
 
 ### Time
-- 1 tick = 1 day. 7 days = 1 week, 4 weeks = 1 month, 12 months = 1 year.
+- 1 tick = 1 day. 7 days = 1 week, 4 weeks = 1 month, 12 months = 1 year (336 days, `DAYS_PER_YEAR`). Every year
+  ends with awards and a year review (see Year end and awards).
 - Speeds: paused / 1x / 2x / 3x. Opening any modal pauses. Closing restores previous speed.
 
 ### Player
@@ -88,16 +89,21 @@ The named rival (below) is entrant 0 of the magazine it runs in, drawn around it
 
 ### Named rival
 Every world has one named rival mangaka (`rival.ts`): the name (`RIVAL_NAMES`) and series title (`RIVAL_SERIES`, three
-per magazine) come from a hash of the world seed, so making the rival consumes no RNG. Craft is
-`min(RIVAL_MAX_CRAFT 76, RIVAL_START_CRAFT 50 + RIVAL_YEARLY_GROWTH 4 × whole years)`, and the rival runs in the
-magazine with the highest rivalMean at most craft − 2, else Kids Comic Go! (50 Kids, 54 and 58 Petal, 62 Bolt,
-66 Ultra). In that magazine's polls (`pollField`) the rival takes entrant 0's draw slots, so a poll still draws
-`2 + entrants × 2` values and the other magazines' polls are unchanged. The rival's rank is 1 + other entrants above
-it + 1 if the player scored higher; results store `{ name, score, rank }` (score rounded, 0 to 100). The pitch screen
-marks the rival's magazine ("Rival: name", "Beat first name: N%"), the results screen says where the rival placed and
-whether the player finished ahead or behind, the series table has a Rival column, and the Career screen shows the
-series, the usual score range (craft ± 8) and the head-to-head record (`rivalRecord`: a win is a better rank). Saves
-from before the rival get the one their world would have by the save's day (`upgradeSave`).
+per magazine) come from a hash of the world seed, so making the rival consumes no RNG. A new career's rival has craft
+`RIVAL_START_CRAFT` 50. At every year end (`closeYear`, see Year end and awards) `growRival` adds
+`RIVAL_YEARLY_GROWTH` 4, capped at `RIVAL_MAX_CRAFT` 76, so after n years the rival is `makeRival(worldSeed, n)`:
+craft `min(76, 50 + 4n)`. The rival runs in the magazine with the highest rivalMean at most craft − 2, else Kids
+Comic Go! (50 Kids, 54 and 58 Petal, 62 Bolt, 66 Ultra); when growth moves them, they take that magazine's series
+(the same hash), a log line says so, and the year review tells it. In that magazine's polls (`pollField`) the rival
+takes entrant 0's draw slots, so a poll still draws `2 + entrants × 2` values and the other magazines' polls are
+unchanged. The polls and the pitch forecast share one check for whether the rival runs in a magazine (`rivalIn`).
+The rival's rank is 1 + other entrants above it + 1 if the player scored higher; results store `{ name, score, rank }`
+(score rounded, 0 to 100). The pitch screen marks the rival's magazine ("Rival: name", "Beat first name: N%"), the
+results screen says where the rival placed and whether the player finished ahead or behind, the series table has a
+Rival column, and the Career screen shows the series, the usual score range (craft ± 8) and the head-to-head record
+(`rivalRecord`: a win is a better rank). Saves
+from before the rival get the one their world would have by the save's day (`upgradeSave`, `makeRival` with the
+whole years played).
 The editor writes a one-line comment on the component that cost the most points at that magazine
 (`biggestLoss`: the largest weight × (100 − component), ties in the order art, story, pacing, fit, freshness).
 
@@ -301,10 +307,48 @@ Signed on day 100, Kumo airs on day 142, ends on day 226 and boosts volumes from
 +4,800 fans and +¥6,000, plus the ¥2,000 fee); Hoshi airs on day 212, ends on day 380 and boosts volumes from day 212
 to day 548 (24 payouts: +21,600 fans and +¥24,000). The balance bots never sign, so every offer lapses for them.
 
+### Year end and awards
+Every `DAYS_PER_YEAR` (336) days the year closes: `closeYear` (`src/sim/year.ts`) runs when `day % 336 === 0` and
+`day > 0`, after `checkDeadline` and before `animeTick`. No RNG.
+- **This year.** `yearStart` is the baseline `{day, money, fans, level, copies, volumes}` (copies and volumes are
+  totals across the running serial and every past one). The year's poll results are those with a day in
+  (`yearStart.day`, closing day]: the polls run before `closeYear` in the same tick, so a result landing on the
+  closing day counts for the year that closes (year one counts days 1 to 336, year two days 337 to 672). A serial
+  counts as started this year from `yearStart.day` on: commands run between ticks, so one accepted on a closing day
+  starts the new year. A new career takes its baseline on day 0.
+- **Awards.** `buildYearReview` judges each award in the table's order. A near miss is listed only when the award was
+  not won. The Readers' Choice takes the serial with the best average rank among those with 8 or more results this
+  year; a near miss shows that average rounded up to one decimal, so a miss never reads as the 3.0 that wins.
+
+| Award | Rule | Near miss | Prize |
+|---|---|---|---|
+| Rookie Prize (year 1 only) | a serial started, or a #1 one-shot | best one-shot #3 or better | ¥3,000, 500 fans, 100 XP |
+| Readers' Choice | a serial with ≥ 8 results this year, average rank ≤ 3.0 | average ≤ 4.5 | ¥5,000, 2,000 fans, 150 XP |
+| Critics' Prize | best score this year ≥ 75 (one-shots and chapters) | ≥ 68 | ¥4,000, 1,000 fans, 150 XP |
+| Golden Pen | copies sold this year ≥ 20,000 | ≥ 12,000 | ¥8,000, 3,000 fans, 200 XP |
+
+- **The close.** Prizes are paid first (money, fans, and XP through `grantXp`; a log line each) and counted in the
+  closing year's review; then the review is filed (`yearReviews`, `reviewUnread` = its year), the rival grows, and
+  the new `yearStart` is taken, so next year's deltas start clean. When the player missed year one's Rookie Prize,
+  the rival won it (`rivalAward`). The review holds the year's one-shots, best one-shot, chapters, volumes, copies,
+  best score, money and fans gained, the level before and after, the awards, the near misses, and the rival's year
+  (this year's head to head, craft and magazine before and after). A fresh career left alone for year one pays 48
+  weeks of living costs (days 7 to 336): −¥19,200, no awards, and the rival takes the Rookie Prize and moves up to
+  Monthly Petal at craft 54.
+- **On screen.** One toast: "Year 1 is over. You won the Rookie Prize. Your year in review is on the desk." (or "No
+  awards this year"). The year end never pauses the clock. The review waits on the desk as a card ("Year 1 in review:
+  2 awards, 1 near miss.", "Read the year review") until the review modal is opened, which marks it read. The modal
+  shows the year in numbers, the awards with their prizes and what wins them (or, with none, what to aim for next
+  year), the near misses ("Golden Pen: 12,400 copies of 20,000."), and the rival's year. Career lists every award won
+  and a line for each past year. `studioLook` lists a trophy per award won, for the scene.
+- **Saves** from before the year end start their year on its first day (`floor(day / 336) × 336`) with the current
+  money, fans, level, copies and volumes, so the first review's deltas count from loading; no reviews, no awards.
+
 ### Auto-pause rules
 The clock stops whenever the game needs a decision: a manuscript becomes ready, poll results arrive, a
 serialisation offer lands, a serial is cancelled (the desk empties), a trip ends, a random event lands, or an anime
-offer lands. Menus always pause.
+offer lands. Menus always pause. The year end is not a decision: it toasts and leaves a desk card, and the clock keeps
+running.
 
 ## Roadmap
 0. Money sinks. Shipped: hiring needs two weeks of that salary in the bank; a week that ends below zero makes
@@ -312,7 +356,8 @@ offer lands. Menus always pause.
    than one week of costs warns first; studio tiers gate assistant desks with rent, and equipment has stated effects
    (see Studio and equipment). Still to do: a volume curve that flattens with fans (sqrt), a smaller HUD on phones
    shipped separately.
-1. Awards (year end), merchandise, conventions. Shipped: anime adaptation offers (see Anime adaptations).
+1. Awards (year end), merchandise, conventions. Shipped: anime adaptation offers (see Anime adaptations) and
+   year-end awards with a year review (see Year end and awards).
 2. Rival mangaka with visible careers and head-to-head polls.
 3. Random events with choices. Shipped: six events as desk cards (see Random events).
 4. Save slots, achievements, sound, mobile polish.
@@ -354,14 +399,16 @@ The final hook order inside `tick()`:
 5. One-shot poll result and serialisation offer.
 6. `resolveChapters` (chapter polls, volumes, warnings, cancellation, archiving).
 7. `checkDeadline` (a serial chapter not in by its due day misses the issue; warnings and cancellation).
-8. `animeTick` (a waiting anime offer whose series stopped running is withdrawn, one past its last day lapses; each
+8. `closeYear` (on day % 336 == 0, day > 0: awards and prizes, the year review, the rival's growth, the new year's
+   baseline).
+9. `animeTick` (a waiting anime offer whose series stopped running is withdrawn, one past its last day lapses; each
    deal's premiere, weekly pay, finale and end of boost; a new offer to a running hit).
-9. `eventTick` (an unanswered event past its last day lapses; the weekly random-event roll).
-10. `awardMilestones`.
-11. Return.
+10. `eventTick` (an unanswered event past its last day lapses; the weekly random-event roll).
+11. `awardMilestones`.
+12. Return.
 
-The future year review `closeYear` goes between `checkDeadline` and `animeTick`, so the anime, events and milestones
-see its effects the same day.
+`closeYear` runs before `animeTick`, `eventTick` and `awardMilestones`, so they see the prizes and the grown rival
+the same day; a milestone that lands on the closing day counts toward the new year.
 
 ## Balance bots and bands
 

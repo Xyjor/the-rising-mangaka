@@ -34,7 +34,9 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
     and `num`/`yen`, locale-free thousands commas for log lines).
     `events.ts` random events (the weekly roll on its own `eventSeed`, the answers). `studio.ts` studio tiers (desks,
     rent) and equipment (effects, buying, moving, `studioLook`). `anime.ts` anime adaptation offers and deals
-    (`animeTick`, signing, `animeVolumeMult`). Hook files never import engine.ts.
+    (`animeTick`, signing, `animeVolumeMult`). `rival.ts` the named rival (`makeRival`, `growRival`, the head to
+    head). `year.ts` the year end (`closeYear`: awards, prizes, the year review, the rival's growth). Hook files never
+    import engine.ts.
   - Add a unit test in `src/sim/__tests__/engine.test.ts` for every new rule.
 - `src/state/store.ts` — Zustand store. Wraps the sim, owns the real-time clock speed, modal state, toasts,
   and persists `game` to localStorage (`persist` version = `SAVE_VERSION`; new `GameState` fields default through
@@ -57,10 +59,10 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   and money events are toasts, daily chatter is not. Identical toasts are de-duplicated by the store.
 - The clock auto-pauses whenever the game needs a decision (manuscript ready, poll result, serialisation offer,
   a serial is cancelled, a trip ends, a random event or an anime offer lands). Keep it that way for any new blocking
-  decision.
-- Game-driven moments (random events, anime offers) are desk cards, never popups: a component that returns null when
-  empty, imports its own stylesheet (`src/styles/cards.css`), uses `card flat desk-card`, toasts on arrival and pauses
-  once.
+  decision. The year end is not a decision: it toasts and leaves its review on the desk, and the clock keeps running.
+- Game-driven moments (random events, anime offers, the year review) are desk cards, never popups: a component that
+  returns null when empty, imports its own stylesheet (`src/styles/cards.css`), uses `card flat desk-card`, toasts on
+  arrival and pauses once (the year review only toasts).
 
 ## UI rules (from the design pass)
 
@@ -79,9 +81,9 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
 ## Balance touchpoints
 
 Starting stats 34/40/30 (story/art/pacing), rivals score 47 to 62, spread 8, the named rival starts at craft 50 in
-Kids Comic Go! (+4 a year, max 76), weekly living cost 400 plus studio rent (flat 150, loft 350), one-shot 20 pages
-(~17 days solo), chapter 16 pages. Equipment prices and move-in costs go through `equipmentPrice` and `moveInCost`
-(`EQUIPMENT_PRICE_SCALE`).
+Kids Comic Go! (+4 at every year end, in `closeYear`, max 76), a year is 336 days (`DAYS_PER_YEAR`), weekly living
+cost 400 plus studio rent (flat 150, loft 350), one-shot 20 pages (~17 days solo), chapter 16 pages. Equipment prices
+and move-in costs go through `equipmentPrice` and `moveInCost` (`EQUIPMENT_PRICE_SCALE`).
 
 `src/sim/__tests__/balance.test.ts` asserts the Package 1 balance bands (DESIGN.md "Balance bots and bands") over
 seeds 1–20 as part of `npm test`, including a fresh player's first one-shot score (40–55 on 13 of 20 seeds, median
