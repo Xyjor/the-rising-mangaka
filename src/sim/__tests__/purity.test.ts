@@ -4,7 +4,10 @@ import { describe, expect, it } from 'vitest'
 
 // The simulation must be deterministic and locale-free: no clocks, no random source, no locale formatting.
 // The pattern is assembled from fragments so a grep for the forbidden names over src/sim stays empty.
-const FILES = ['engine.ts', 'rng.ts', 'scoring.ts', 'data.ts', 'compat.ts', 'milestones.ts', 'migrate.ts', 'bot.ts', 'forecast.ts']
+const FILES = [
+  'engine.ts', 'rng.ts', 'scoring.ts', 'data.ts', 'compat.ts', 'milestones.ts', 'migrate.ts', 'bot.ts', 'forecast.ts',
+  'balance.ts',
+]
 const FORBIDDEN = new RegExp(
   ['toLocale' + 'String', 'Intl' + '\\.', 'Math' + '\\.random', 'new ' + 'Date\\(', 'Date' + '\\.now'].join('|'),
 )
