@@ -36,6 +36,10 @@ export interface Magazine {
   rivalMean: number
   /** number of competing works in a poll */
   entrants: number
+  /** how this magazine's readers weigh each poll component, integer percentages summing to 100 */
+  taste: ScoreWeights
+  /** one sentence on what the readers want, shown wherever the player picks a magazine or an audience */
+  tasteLine: string
   blurb: string
   editor: string
 }
@@ -85,6 +89,9 @@ export interface ScoreBreakdown {
   audienceFit: number
   freshness: number
 }
+
+/** Poll weights per component, integer percentages that sum to 100. */
+export type ScoreWeights = Readonly<Record<keyof ScoreBreakdown, number>>
 
 export interface Rewards { money: number; fans: number; xp: number }
 

@@ -55,12 +55,39 @@ describe('balance bot', () => {
     expect(run.oneShots).toHaveLength(1)
   })
 
-  it('sensible spends every point: every third point on pacing, the rest on art', () => {
+  it('sensible spends every point: every third point on pacing, the rest on art while it aims at Kids Comic Go!', () => {
     const s = createGame('Rin', 42)
+    // a fresh seed-42 career plans its first one-shot for Kids Comic Go! (art 35%, story 15%)
+    expect(SENSIBLE.planDraft(s).target).toBe('kids-comic')
     const next = botStep({ ...s, player: { ...s.player, skillPoints: 5 } }, SENSIBLE)
     // 5 art 40, 4 art 42, 3 pacing 32, 2 art 44, 1 art 46
     expect(next.player.stats).toEqual({ art: 46, story: 34, pacing: 32 })
     expect(next.player.skillPoints).toBe(0)
+  })
+
+  it('sensible favours story while its serial runs in Monthly Petal (story 35%, art 15%)', () => {
+    const petal = { ...OFFER, magazineId: 'monthly-petal', audience: 'young-adults' } as const
+    const s = acceptOffer({ ...createGame('Rin', 42), pendingOffer: petal })
+    const next = botStep({ ...s, player: { ...s.player, skillPoints: 5 } }, SENSIBLE)
+    // 5 story 36, 4 story 38, 3 pacing 32, 2 story 40, 1 story 42
+    expect(next.player.stats).toEqual({ art: 38, story: 42, pacing: 32 })
+  })
+
+  it('sensible favours story while its one-shot waits on a Monthly Petal poll', () => {
+    // with nothing pitched the next plan would aim at Kids Comic Go! (art); the manuscript already sent decides
+    const sent = submitProject(drawUntilReady(startProject(createGame('Rin', 42), DRAFT)), 'monthly-petal')
+    const next = botStep({ ...sent, player: { ...sent.player, skillPoints: 5 } }, SENSIBLE)
+    expect(next.player.stats).toEqual({ art: 38, story: 42, pacing: 32 })
+  })
+
+  it('sensible draws with the focus the magazine weighs higher', () => {
+    const s = createGame('Rin', 42)
+    expect(SENSIBLE.focusFor(s, 'weekly-bolt')).toBe('art')
+    expect(SENSIBLE.focusFor(s, 'kids-comic')).toBe('art')
+    expect(SENSIBLE.focusFor(s, 'monthly-petal')).toBe('story')
+    expect(SENSIBLE.focusFor(s, 'ultra-seinen')).toBe('story')
+    // the focus follows the pick into the drawing: the fresh seed-42 plan aims at Kids, so it draws with art focus
+    expect(botStep(s, SENSIBLE)).toMatchObject({ focus: 'art', project: { audience: 'kids' } })
   })
 
   it('careless never spends its points', () => {
@@ -73,7 +100,8 @@ describe('balance bot', () => {
     const s = withMagicNotebook(createGame('Rin', 42))
     const plan = SENSIBLE.planDraft(s)
     expect(plan.draft).toMatchObject({ genre: 'fantasy', theme: 'magic', audience: 'kids' })
-    // estimate 55 against a rival mean of 45 at Kids Comic Go!: about a 0.68 chance of an offer, the best of the four
+    // art focus at Kids Comic Go!: 48x35 + 27x15 + 30x10 + 80x20 + 100x20 = 5985, an estimate of 60 against a rival
+    // mean of 45, about a 0.92 chance of an offer, the best of the four
     expect(plan.target).toBe('kids-comic')
   })
 
@@ -90,7 +118,10 @@ describe('balance bot', () => {
 
   it('sensible pitches the seed-42 teens manuscript where an offer is least unlikely', () => {
     const s = drawUntilReady(startProject(createGame('Rin', 42), DRAFT))
-    // estimates: Weekly Bolt 43 vs 58, Kids Comic Go! 39 vs 45, Monthly Petal 39 vs 52, Ultra Seinen 39 vs 62
+    // art 37, story 33, pacing 30, untested pairings 60 (35 after the mismatch). Estimates against rival means:
+    // Weekly Bolt 37x35 + 33x15 + 30x20 + 60x10 + 60x20 = 4190 -> 42 vs 58, Kids Comic Go! 1295 + 495 + 300 + 700
+    // + 1200 = 3990 -> 40 vs 45, Monthly Petal 37x15 + 33x35 + 300 + 700 + 1200 = 3910 -> 39 vs 52, Ultra Seinen
+    // 555 + 1155 + 600 + 350 + 1200 = 3860 -> 39 vs 62
     expect(SENSIBLE.pickMagazine(s)).toBe('kids-comic')
   })
 
@@ -165,8 +196,14 @@ describe('balance bot', () => {
       'action/samurai/teens', 'mystery/detective/adults', 'horror/cooking/kids',
       'romance/school/teens', 'action/samurai/teens', 'scifi/space/young-adults',
     ])
-    // the old balance script's seed-42 readout
-    expect(run.oneShots.slice(0, 6).map((o) => o.score)).toEqual([47, 50, 28, 47, 48, 44])
+    // the old balance script's seed-42 readout, scored with each magazine's taste:
+    // Bolt   {37,33,27,60,80}:  37x35 + 33x15 + 27x20 + 60x10 + 80x20  = 4530 -> 45, 8 of 12 rivals above
+    // Kids   {37,35,26,55,100}: 37x35 + 35x15 + 26x10 + 55x20 + 100x20 = 5180 -> 52, 5 of 10 rivals above
+    // Petal  {40,34,24,15,20}:  40x15 + 34x35 + 24x10 + 15x20 + 20x20  = 2730 -> 27, all 8 rivals above
+    // Ultra  {39,35,29,55,80}:  39x15 + 35x35 + 29x20 + 55x10 + 80x20  = 4540 -> 45, all 8 rivals above
+    // Bolt   {38,34,32,60,80}:  38x35 + 34x15 + 32x20 + 60x10 + 80x20  = 4680 -> 47, 10 of 12 rivals above
+    // Kids   {38,33,25,15,100}: 38x35 + 33x15 + 25x10 + 15x20 + 100x20 = 4375 -> 44, 9 of 10 rivals above
+    expect(run.oneShots.slice(0, 6).map((o) => o.score)).toEqual([45, 52, 27, 45, 47, 44])
     expect(run.oneShots.slice(0, 6).map((o) => o.rank)).toEqual([9, 6, 9, 9, 11, 10])
     expect(run.serials).toHaveLength(1)
     expect(run.serials[0]).toMatchObject({ magazineId: 'weekly-bolt', startedDay: run.oneShots[5].day })

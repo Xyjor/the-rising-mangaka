@@ -36,13 +36,17 @@ describe('submission preview', () => {
   it('reproduces the worked examples: score 50 at Kids Comic, score 47 at Weekly Bolt', () => {
     const base = drawUntilReady(startProject(createGame('Rin', 42), kidsDraft))
 
-    const kids = withQuality(base, 49, 49)
+    // Kids weighs art 35, story 15, pacing 10, fit 20, freshness 20; untested pairings count as Good (60):
+    // 46x35 + 46x15 + 30x10 + 60x20 + 60x20 = 1610 + 690 + 300 + 1200 + 1200 = 5000
+    const kids = withQuality(base, 46, 46)
     expect(estimateScore(kids, kids.project!, 'kids-comic')).toBe(50)
     const pk = previewSubmission(kids, 'kids-comic')!
     expect(pk.expectedScore).toBe(50)
     expect(pk.expectedRank).toEqual({ low: 2, high: 7 })
     expect(Math.abs(pk.offerChance - 0.29)).toBeLessThanOrEqual(0.02)
 
+    // Bolt weighs art 35, story 15, pacing 20, fit 10, freshness 20; kids manga in a teens magazine, fit 60 - 25:
+    // 50x35 + 51x15 + 30x20 + 35x10 + 60x20 = 1750 + 765 + 600 + 350 + 1200 = 4665
     const bolt = withQuality(base, 50, 51)
     expect(estimateScore(bolt, bolt.project!, 'weekly-bolt')).toBe(47)
     const pb = previewSubmission(bolt, 'weekly-bolt')!

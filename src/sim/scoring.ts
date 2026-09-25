@@ -6,8 +6,8 @@ import {
 import type { RankTier } from './data'
 import { clamp, draw, gaussian } from './rng'
 import type {
-  AudienceId, ChapterResult, GameState, GenreId, MagazineId, PendingChapter, PollResult, Project,
-  ScoreBreakdown, Serial, ThemeId,
+  AudienceId, ChapterResult, Focus, GameState, GenreId, MagazineId, PendingChapter, PollResult, Project,
+  ScoreBreakdown, ScoreWeights, Serial, ThemeId,
 } from './types'
 
 export function projectArtQuality(p: Project): number {
@@ -23,14 +23,29 @@ export function stalenessCount(state: GameState, genre: string, theme: string): 
   return state.history.slice(-3).filter((r) => r.genre === genre && r.theme === theme).length
 }
 
-export function weightedScore(b: ScoreBreakdown): number {
-  const s =
-    b.art * SCORE_WEIGHTS.art +
-    b.story * SCORE_WEIGHTS.story +
-    b.pacing * SCORE_WEIGHTS.pacing +
-    b.audienceFit * SCORE_WEIGHTS.audienceFit +
-    b.freshness * SCORE_WEIGHTS.freshness
-  return clamp(Math.round(s), 0, 100)
+/** The poll score: each component times its weight (integer percentages), over 100. */
+export function weightedScore(b: ScoreBreakdown, w: ScoreWeights = SCORE_WEIGHTS): number {
+  const s = b.art * w.art + b.story * w.story + b.pacing * w.pacing + b.audienceFit * w.audienceFit + b.freshness * w.freshness
+  return clamp(Math.round(s / 100), 0, 100)
+}
+
+const COMPONENTS: (keyof ScoreBreakdown)[] = ['art', 'story', 'pacing', 'audienceFit', 'freshness']
+
+/**
+ * The component that cost the most points at this magazine: the largest taste[k] x (100 - b[k]).
+ * Ties go to the earlier key in the order art, story, pacing, audience fit, freshness.
+ */
+export function biggestLoss(b: ScoreBreakdown, taste: ScoreWeights): keyof ScoreBreakdown {
+  let worst = COMPONENTS[0]
+  for (const k of COMPONENTS) {
+    if (taste[k] * (100 - b[k]) > taste[worst] * (100 - b[worst])) worst = k
+  }
+  return worst
+}
+
+/** The drawing focus a taste rewards: art or story, whichever it weighs higher; balanced when they are equal. */
+export function suitedFocus(taste: ScoreWeights): Focus {
+  return taste.art > taste.story ? 'art' : taste.art < taste.story ? 'story' : 'balanced'
 }
 
 /** Readers tire of a long series: freshness erodes after chapter 8. */
@@ -44,6 +59,7 @@ export function rankScore(rank: number, entrants: number): number {
 }
 
 interface CommentContext {
+  taste: ScoreWeights
   mismatch: number
   staleness: number
   genre: GenreId
@@ -52,14 +68,9 @@ interface CommentContext {
   magAudience: AudienceId
 }
 
-/** One line from the editor that names the weakest component and a lever the player actually has. */
+/** One line from the editor that names the component that cost the most at this magazine, and a lever the player has. */
 function editorComment(b: ScoreBreakdown, score: number, ctx: CommentContext): string {
-  const entries: [keyof ScoreBreakdown, number][] = [
-    ['art', b.art], ['story', b.story], ['pacing', b.pacing],
-    ['audienceFit', b.audienceFit], ['freshness', b.freshness],
-  ]
-  entries.sort((a, z) => a[1] - z[1])
-  const weakest = entries[0][0]
+  const costliest = biggestLoss(b, ctx.taste)
   const lines: Record<keyof ScoreBreakdown, string> = {
     art: 'The linework is holding you back. Put skill points into Art, or hire a careful assistant.',
     story: 'The premise is fine, but the plot loses them halfway. Put points into Story, or draw with story focus.',
@@ -73,7 +84,7 @@ function editorComment(b: ScoreBreakdown, score: number, ctx: CommentContext): s
   }
   const opener =
     score >= 80 ? 'Excellent work. One nitpick:' : score >= 60 ? 'Solid.' : score >= 40 ? 'Not bad.' : 'Rough one.'
-  return `${opener} ${lines[weakest]}`
+  return `${opener} ${lines[costliest]}`
 }
 
 interface BreakdownInput {
@@ -147,7 +158,7 @@ export function estimateScore(state: GameState, project: Project, magazineId: Ma
     pacing: state.player.stats.pacing,
     audienceFit: clamp((knownFit !== undefined ? RATING_SCORE[knownFit] : 60) - mismatch, 0, 100),
     freshness: clamp((knownFresh !== undefined ? RATING_SCORE[knownFresh] : 60) - staleness, 0, 100),
-  })
+  }, mag.taste)
 }
 
 /**
@@ -172,7 +183,7 @@ export function evaluateProject(
     fatigue: 0,
     pacingNoise: gaussian(values[0], values[1]) * 6,
   })
-  const score = weightedScore(breakdown)
+  const score = weightedScore(breakdown, mag.taste)
   const rank = rankAgainstRivals(magazineId, score, values, 2)
   const entrants = mag.entrants + 1
   const mult = rankMultiplier(rank, entrants)
@@ -198,7 +209,8 @@ export function evaluateProject(
     genreThemeRating: genreThemeRating(state.worldSeed, project.genre, project.theme),
     themeAudienceRating: themeAudienceRating(state.worldSeed, project.theme, project.audience),
     editorComment: editorComment(breakdown, score, {
-      mismatch, staleness, genre: project.genre, theme: project.theme, audience: project.audience, magAudience: mag.audience,
+      taste: mag.taste, mismatch, staleness,
+      genre: project.genre, theme: project.theme, audience: project.audience, magAudience: mag.audience,
     }),
     pages: project.pagesDone,
   }
@@ -224,7 +236,7 @@ export function evaluateChapter(
     fatigue: serialFatigue(pc.chapter),
     pacingNoise: gaussian(values[0], values[1]) * 6,
   })
-  const score = weightedScore(breakdown)
+  const score = weightedScore(breakdown, mag.taste)
   const rank = rankAgainstRivals(serial.magazineId, score, values, 2)
   const entrants = mag.entrants + 1
   const mult = rankMultiplier(rank, entrants)

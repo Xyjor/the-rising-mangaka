@@ -13,7 +13,7 @@ import {
 } from './engine'
 import type { SubmissionPreview } from './engine'
 import { clamp, hashString } from './rng'
-import { stalenessCount } from './scoring'
+import { stalenessCount, suitedFocus } from './scoring'
 import type {
   AudienceId, Focus, GameState, GenreId, MagazineId, Project, ProjectDraft, SerialOffer, SerialStatus, StatId,
   ThemeId,
@@ -97,21 +97,31 @@ const JOB_MIN_STAMINA = 40
 
 // ---------- shared rules ----------
 
-/** The stat SENSIBLE puts two of every three points into. Kept separate so a taste-based choice can replace it. */
-function favouredStat(_s: GameState): StatId {
-  return 'art'
+/**
+ * The magazine SENSIBLE is working towards: the one on its desk's project (a serial chapter always has one, a
+ * one-shot once pitched), else the one its next plan would aim at.
+ */
+function targetMagazine(s: GameState): MagazineId {
+  return s.project?.magazineId ?? planOneShot(s).target
 }
 
-/** SENSIBLE's drawing focus. Kept separate so a taste-based choice can replace it. */
-function sensibleFocus(_s: GameState, _m: MagazineId): Focus {
-  return 'balanced'
+/** The stat SENSIBLE puts two of every three points into: story if its target magazine weighs story higher, else art. */
+function favouredStat(s: GameState): StatId {
+  return suitedFocus(magazineById(targetMagazine(s)).taste) === 'story' ? 'story' : 'art'
+}
+
+/** SENSIBLE's drawing focus: art or story, whichever the magazine weighs higher; balanced when they are equal. */
+function sensibleFocus(_s: GameState, m: MagazineId): Focus {
+  return suitedFocus(magazineById(m).taste)
 }
 
 /** Every third point (when the remaining count is a multiple of 3) goes to pacing, the rest to the favoured stat. */
 function spendAllPoints(state: GameState): GameState {
+  if (state.player.skillPoints <= 0) return state
+  const favoured = favouredStat(state)
   let s = state
   while (s.player.skillPoints > 0) {
-    const wanted: StatId = s.player.skillPoints % 3 === 0 ? 'pacing' : favouredStat(s)
+    const wanted: StatId = s.player.skillPoints % 3 === 0 ? 'pacing' : favoured
     const stat = ([wanted, 'art', 'story', 'pacing'] as StatId[]).find((k) => s.player.stats[k] < 100)
     if (!stat) break
     s = spendSkillPoint(s, stat)
@@ -153,6 +163,20 @@ function hypotheticalPreview(s: GameState, draft: ProjectDraft, m: MagazineId, f
   return previewSubmission({ ...s, project }, m)!
 }
 
+/**
+ * SENSIBLE's next one-shot: for each magazine, the best known pairing for its readers drawn with the focus it
+ * suits; keep the magazine with the best odds.
+ */
+function planOneShot(s: GameState): { draft: ProjectDraft; target: MagazineId } {
+  let best: { draft: ProjectDraft; preview: SubmissionPreview } | null = null
+  for (const m of MAGAZINES) {
+    const draft = bestDraft(s, m.audience)
+    const preview = hypotheticalPreview(s, draft, m.id, sensibleFocus(s, m.id))
+    if (!best || betterOdds(preview, best.preview)) best = { draft, preview }
+  }
+  return { draft: best!.draft, target: best!.preview.magazineId }
+}
+
 /** Best odds of an offer; ties go to the higher expected pay (the middle of the pay range), then the softer field. */
 function betterOdds(a: SubmissionPreview, b: SubmissionPreview): boolean {
   if (a.offerChance !== b.offerChance) return a.offerChance > b.offerChance
@@ -167,15 +191,7 @@ function betterOdds(a: SubmissionPreview, b: SubmissionPreview): boolean {
 /** Plays the way the interface teaches: best odds, best known pairing, points spent, serials wrapped on a high. */
 export const SENSIBLE: BotPolicy = {
   name: 'sensible',
-  planDraft(s) {
-    let best: { draft: ProjectDraft; preview: SubmissionPreview } | null = null
-    for (const m of MAGAZINES) {
-      const draft = bestDraft(s, m.audience)
-      const preview = hypotheticalPreview(s, draft, m.id, sensibleFocus(s, m.id))
-      if (!best || betterOdds(preview, best.preview)) best = { draft, preview }
-    }
-    return { draft: best!.draft, target: best!.preview.magazineId }
-  },
+  planDraft: planOneShot,
   focusFor: sensibleFocus,
   pickMagazine(s) {
     let best: SubmissionPreview | null = null

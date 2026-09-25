@@ -53,16 +53,36 @@ Plan manga  →  Draw pages (days pass)  →  Submit to a magazine  →  Reader 
   The submit panel shows this before the player commits.
 
 ### Reader poll scoring (0–100)
-| Component    | Weight | Source                                   |
-|--------------|--------|------------------------------------------|
-| Art          | 25     | accumulated art quality                  |
-| Story        | 25     | accumulated story quality                |
-| Pacing       | 15     | Pacing stat + noise                      |
-| Audience fit | 15     | theme×audience rating, magazine mismatch |
-| Freshness    | 20     | genre×theme rating, staleness penalty    |
+Each component is scored 0–100:
+
+| Component    | Source                                   |
+|--------------|------------------------------------------|
+| Art          | accumulated art quality                  |
+| Story        | accumulated story quality                |
+| Pacing       | Pacing stat + noise                      |
+| Audience fit | theme×audience rating, magazine mismatch |
+| Freshness    | genre×theme rating, staleness penalty    |
+
+Every magazine weighs them to its own taste (integer percentages summing to 100; `Magazine.taste` in `data.ts`),
+and `score = clamp(round(Σ component × weight / 100), 0, 100)`:
+
+| Magazine        | Art | Story | Pacing | Fit | Freshness | Taste line (shown on the pitch screen and in the wizard) |
+|-----------------|-----|-------|--------|-----|-----------|-----------------------------------------------------------|
+| Default         | 25  | 25    | 15     | 15  | 20        | (`SCORE_WEIGHTS`, the fallback for `weightedScore`)       |
+| Weekly Bolt     | 35  | 15    | 20     | 10  | 20        | Readers love big art and fast pacing.                     |
+| Monthly Petal   | 15  | 35    | 10     | 20  | 20        | Readers want a story, and a manga made for them.          |
+| Ultra Seinen    | 15  | 35    | 20     | 10  | 20        | Readers prize story and pacing.                           |
+| Kids Comic Go!  | 35  | 15    | 10     | 20  | 20        | Readers love bright art, and a manga made for them.       |
+
+This is what makes **focus** a decision: art focus (art ×1.25, story ×0.8) suits Weekly Bolt and Kids Comic Go!,
+story focus suits Monthly Petal and Ultra Seinen. For a fresh player drawing a kids one-shot, art focus scores about
+3.7 more than story focus at Kids Comic Go!, and story focus about 2.8 more at Monthly Petal. The desk's focus hint,
+the pitch screen, the wizard's audience step, the results breakdown ("weight N%") and the stats screen all show the
+weights, so the modifier is never hidden.
 
 Rank = 1 + number of rivals scoring higher. Rewards scale with score and rank.
-The editor writes a one-line comment pointing at the weakest component.
+The editor writes a one-line comment on the component that cost the most points at that magazine
+(`biggestLoss`: the largest weight × (100 − component), ties in the order art, story, pacing, fit, freshness).
 
 ## Architecture
 

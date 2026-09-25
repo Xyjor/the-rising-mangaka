@@ -555,8 +555,9 @@ describe('rules', () => {
 })
 
 describe('editor comments', () => {
-  it('names the pairing that never clicked when freshness is the weakest component', () => {
-    const s = drawUntilReady(startProject(createGame('Rin', 42), { title: 'Bad Soup', genre: 'horror', theme: 'cooking', audience: 'adults' }))
+  it('names the pairing that never clicked when freshness is the biggest loss', () => {
+    // At 90 in every stat, art, story and pacing lose little; Horror x Cooking freshness loses the most at Ultra Seinen
+    const s = drawUntilReady(startProject(withStats(createGame('Rin', 42), 90), { title: 'Bad Soup', genre: 'horror', theme: 'cooking', audience: 'adults' }))
     const { result } = evaluateProject(s, s.project!, 'ultra-seinen')
     expect(result.editorComment).toContain('Horror and Cooking')
     expect(result.editorComment).not.toContain('seen this pairing')
@@ -565,7 +566,7 @@ describe('editor comments', () => {
     expect(again.editorComment).toContain('seen this pairing')
   })
 
-  it('names both audiences when the magazine mismatch is the weakest component', () => {
+  it('names both audiences when the magazine mismatch is the biggest loss', () => {
     let s = withStats(createGame('Rin', 42), 90)
     s = drawUntilReady(startProject(s, { title: 'Case Closed', genre: 'mystery', theme: 'detective', audience: 'adults' }))
     const { result } = evaluateProject(s, s.project!, 'weekly-bolt')

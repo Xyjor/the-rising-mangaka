@@ -1,5 +1,6 @@
 import type {
-  AssistantTrait, Audience, AudienceId, Genre, GenreId, Magazine, MagazineId, Place, PlaceId, Theme, ThemeId,
+  AssistantTrait, Audience, AudienceId, Genre, GenreId, Magazine, MagazineId, Place, PlaceId, ScoreWeights, Theme,
+  ThemeId,
 } from './types'
 
 export const GENRES: Genre[] = [
@@ -41,21 +42,29 @@ export const MAGAZINES: Magazine[] = [
   {
     id: 'weekly-bolt', name: 'Weekly Bolt', audience: 'teens',
     pageRate: 110, circulation: 180, rivalMean: 58, entrants: 12,
+    taste: { art: 35, story: 15, pacing: 20, audienceFit: 10, freshness: 20 },
+    tasteLine: 'Readers love big art and fast pacing.',
     blurb: 'The big weekly. Twelve rivals in every poll and the biggest readership in town.', editor: 'Tanaka',
   },
   {
     id: 'monthly-petal', name: 'Monthly Petal', audience: 'young-adults',
     pageRate: 130, circulation: 90, rivalMean: 52, entrants: 8,
+    taste: { art: 15, story: 35, pacing: 10, audienceFit: 20, freshness: 20 },
+    tasteLine: 'Readers want a story, and a manga made for them.',
     blurb: 'A quieter book for young adults. Fewer rivals, a little more per page.', editor: 'Sato',
   },
   {
     id: 'ultra-seinen', name: 'Ultra Seinen', audience: 'adults',
     pageRate: 150, circulation: 70, rivalMean: 62, entrants: 8,
+    taste: { art: 15, story: 35, pacing: 20, audienceFit: 10, freshness: 20 },
+    tasteLine: 'Readers prize story and pacing.',
     blurb: 'Prestige anthology for grown-ups. Best page rate going, and the toughest rivals.', editor: 'Kuroda',
   },
   {
     id: 'kids-comic', name: 'Kids Comic Go!', audience: 'kids',
     pageRate: 90, circulation: 120, rivalMean: 45, entrants: 10,
+    taste: { art: 35, story: 15, pacing: 10, audienceFit: 20, freshness: 20 },
+    tasteLine: 'Readers love bright art, and a manga made for them.',
     blurb: 'Bright, loud, and forgiving. The easiest polls to win, the lowest page rate.', editor: 'Mori',
   },
 ]
@@ -90,9 +99,10 @@ export const RATING_SCORE: Record<number, number> = {
   0: 20, 1: 40, 2: 60, 3: 80, 4: 100,
 }
 
-export const SCORE_WEIGHTS = {
-  art: 0.25, story: 0.25, pacing: 0.15, audienceFit: 0.15, freshness: 0.2,
-} as const
+/** Default poll weights (integer percentages); each magazine's `taste` overrides them in its own polls. */
+export const SCORE_WEIGHTS: ScoreWeights = {
+  art: 25, story: 25, pacing: 15, audienceFit: 15, freshness: 20,
+}
 
 export const ONE_SHOT_PAGES = 20
 export const CHAPTER_PAGES = 16
