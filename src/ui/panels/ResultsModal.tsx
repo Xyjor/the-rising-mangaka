@@ -98,15 +98,25 @@ export function ResultsModal() {
     }
   }, [elapsed, skipped, plan, r, tier, readOnly])
 
-  // A pointer-down anywhere in the body, or any key, skips to the end.
+  // A pointer-down anywhere in the body, or any key, skips to the end. Focus starts on "Back to the studio", so while the
+  // reveal runs, Enter or Space is cancelled: the first press only skips and the next one dismisses (a click still
+  // dismisses at once). The ref keeps the listener reading the current state without re-subscribing.
   const root = useRef<HTMLDivElement>(null)
+  const running = useRef(elapsed < plan.end)
+  useEffect(() => {
+    running.current = elapsed < plan.end
+  }, [elapsed, plan.end])
   useEffect(() => {
     const body = root.current?.closest('.modal-body')
+    const onKey = (e: KeyboardEvent) => {
+      if (running.current && (e.key === 'Enter' || e.key === ' ')) e.preventDefault()
+      skip()
+    }
     body?.addEventListener('pointerdown', skip)
-    document.addEventListener('keydown', skip)
+    document.addEventListener('keydown', onKey)
     return () => {
       body?.removeEventListener('pointerdown', skip)
-      document.removeEventListener('keydown', skip)
+      document.removeEventListener('keydown', onKey)
     }
   }, [skip])
 
@@ -137,12 +147,19 @@ export function ResultsModal() {
             {stamped ? <span><small>#</small>{r.rank}</span> : <span>?</span>}
           </div>
           <div className="col" style={{ gap: 4 }}>
-            <h3 className="display" style={{ fontSize: 30 }}>{stamped ? headline : 'Counting the votes'}</h3>
-            <div className="hero-line muted">
+            <div className="hero-head reveal-swap">
+              <h3 className="display" style={{ fontSize: 30, ...(stamped ? HIDDEN : null) }} aria-hidden={stamped || undefined}>
+                Counting the votes
+              </h3>
+              <h3 className="display" style={{ fontSize: 30, ...(stamped ? null : HIDDEN) }} aria-hidden={!stamped || undefined}>
+                {headline}
+              </h3>
+            </div>
+            <div className="hero-line reveal-swap muted">
               <div aria-hidden="true" style={stamped ? HIDDEN : undefined}>
                 Readers scored it <b className="num">{countUp(r.score, elapsed, plan.scoreStart, plan.scoreDur)}</b> out of 100.
               </div>
-              <div style={spoiler}>
+              <div style={spoiler} aria-hidden={!stamped || undefined}>
                 Ranked <b>#{r.rank}</b> of {r.entrants} works, with an overall score of <b className="num">{r.score}</b> out of 100.
               </div>
             </div>
@@ -167,7 +184,7 @@ export function ResultsModal() {
             return (
               <div className="item" key={it.key}>
                 <span className="l">{it.label}<small>weight {mag.taste[it.key]}%</small></span>
-                <Bar value={value} tone={it.tone} thick label={it.label} />
+                <Bar value={value} ariaValue={r.breakdown[it.key]} tone={it.tone} thick label={it.label} />
                 <span className="v num" aria-hidden="true">{value}</span>
               </div>
             )

@@ -4,17 +4,21 @@ import { PODIUM_RANK, RATING_LABEL, SERIAL_WARNINGS_TO_CANCEL, weakRankLine } fr
 import type { ChapterResult, Rating } from '../sim'
 import { Icon } from './Icon'
 
+/**
+ * A progress bar. `ariaValue` is what screen readers get as the value when it differs from the drawn width (the results
+ * reveal counts the width up but announces the final value); it defaults to `value`.
+ */
 export function Bar({
-  value, max = 100, tone = '', thick = false, striped = false, label,
+  value, max = 100, tone = '', thick = false, striped = false, label, ariaValue,
 }: {
-  value: number; max?: number; tone?: string; thick?: boolean; striped?: boolean; label?: string
+  value: number; max?: number; tone?: string; thick?: boolean; striped?: boolean; label?: string; ariaValue?: number
 }) {
   const pct = Math.max(0, Math.min(100, (value / max) * 100))
   return (
     <div
       className={`bar ${tone} ${thick ? 'thick' : ''} ${striped ? 'striped' : ''}`}
       role="progressbar"
-      aria-valuenow={Math.round(value)}
+      aria-valuenow={Math.round(ariaValue ?? value)}
       aria-valuemin={0}
       aria-valuemax={max}
       aria-label={label}

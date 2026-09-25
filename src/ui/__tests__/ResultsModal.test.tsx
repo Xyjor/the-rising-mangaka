@@ -15,26 +15,33 @@ import { ResultsModal } from '../panels/ResultsModal'
 import { revealClock } from '../panels/useReveal'
 
 /**
- * The reveal runs on a frozen clock in every test here: time stands still at mount until a test calls `advanceTo`,
- * which moves it and runs the one pending animation frame. Mount happens at clock time 1000, so a hook that forgot to
- * subtract its start time would read 1000 ms in, not 0.
+ * The reveal runs on a frozen clock in every test here: time stands still at mount until a test calls `advanceTo`
+ * (frames every 16 ms, as a visible window gets them) or `jumpTo` (one late frame, as after a hidden window). Mount
+ * happens at clock time 1000, so a hook that forgot to subtract its start time would read 1000 ms in, not 0. Each
+ * requested frame gets a new id, and cancelling clears the pending frame only when given that id.
  */
 const realClock = { ...revealClock }
 const MOUNT_AT = 1000
+const FRAME_MS = 16
 let now = MOUNT_AT
 let frame: FrameRequestCallback | null = null
+let lastId = 0
+let pendingId = 0
 
 beforeEach(() => {
   useStore.setState({ game: withPendingResult(), tutorialStep: 0, readOnly: false })
   now = MOUNT_AT
   frame = null
+  lastId = 0
+  pendingId = 0
   revealClock.now = () => now
   revealClock.raf = (cb) => {
     frame = cb
-    return 1
+    pendingId = ++lastId
+    return pendingId
   }
-  revealClock.caf = () => {
-    frame = null
+  revealClock.caf = (id) => {
+    if (id === pendingId) frame = null
   }
 })
 
@@ -42,12 +49,31 @@ afterEach(() => {
   Object.assign(revealClock, realClock)
 })
 
-/** Moves the frozen clock to `ms` after mount and runs the pending frame, if any. */
-function advanceTo(ms: number) {
+/** Moves the frozen clock to `ms` after mount in one step and runs the pending frame, if any. */
+function jumpTo(ms: number) {
   now = MOUNT_AT + ms
   const f = frame
   frame = null
   act(() => f?.(now))
+}
+
+/** Moves the frozen clock to `ms` after mount in 16 ms frames, the last one landing exactly on `ms`. */
+function advanceTo(ms: number) {
+  let t = now - MOUNT_AT
+  while (t < ms) {
+    t = Math.min(ms, t + FRAME_MS)
+    jumpTo(t)
+  }
+}
+
+/**
+ * A key press on `el` as a browser handles it: keydown, then, for Enter or Space on a button and unless the keydown
+ * was cancelled, the click that activates it. Returns whether the keydown was cancelled.
+ */
+function press(el: HTMLElement, key: string): boolean {
+  const cancelled = !fireEvent.keyDown(el, { key })
+  if (!cancelled && (key === 'Enter' || key === ' ') && el.tagName === 'BUTTON') fireEvent.click(el)
+  return cancelled
 }
 
 /**
@@ -137,9 +163,16 @@ describe('ResultsModal reveal', () => {
   const tiles = (c: HTMLElement) => [...c.querySelectorAll('.rewards .reward .n')].map((el) => el.textContent)
   const landed = (c: HTMLElement) => [...c.querySelectorAll('.rewards .reward')].map((el) => el.getAttribute('data-landed'))
   const hero = (c: HTMLElement) => c.querySelector<HTMLElement>('.result-hero')!
-  const headline = (c: HTMLElement) => c.querySelector('.result-hero h3')!.textContent
-  const shownLine = (c: HTMLElement) =>
-    [...c.querySelectorAll<HTMLElement>('.hero-line > *')].filter((el) => el.style.visibility !== 'hidden').map((el) => el.textContent)
+  /** The visible texts among `selector`'s elements (a hidden swap state keeps its space with visibility: hidden). */
+  const shown = (c: HTMLElement, selector: string) =>
+    [...c.querySelectorAll<HTMLElement>(selector)].filter((el) => el.style.visibility !== 'hidden').map((el) => el.textContent)
+  /** The visible hero heading; two visible headings would read "a | b" and fail the comparison. */
+  const headline = (c: HTMLElement) => shown(c, '.hero-head > h3').join(' | ')
+  const shownLine = (c: HTMLElement) => shown(c, '.hero-line > *')
+  /** Each hero heading as [text, aria-hidden, visibility]. */
+  const headings = (c: HTMLElement) =>
+    [...c.querySelectorAll<HTMLElement>('.hero-head > h3')].map((el) => [el.textContent, el.getAttribute('aria-hidden'), el.style.visibility])
+  const ariaValues = () => screen.getAllByRole('progressbar').map((el) => el.getAttribute('aria-valuenow'))
   const FINAL = ['33', '34', '32', '60', '80']
   const RANKED = 'Ranked #12 of 13 works, with an overall score of 45 out of 100.'
 
@@ -163,6 +196,8 @@ describe('ResultsModal reveal', () => {
     expect(values(container)).toEqual(['0', '0', '0', '0', '0'])
     expect(hero(container).getAttribute('data-stamped')).toBe('false')
     expect(headline(container)).toBe('Counting the votes')
+    // both headings share one grid cell so the hero keeps its height; the one not shown is hidden from screen readers
+    expect(headings(container)).toEqual([['Counting the votes', null, ''], ['Back of the pack.', 'true', 'hidden']])
     expect(shownLine(container)).toEqual(['Readers scored it 0 out of 100.'])
     const badge = container.querySelector('.rank-badge')!
     expect(badge.textContent).toBe('?')
@@ -179,6 +214,7 @@ describe('ResultsModal reveal', () => {
     expect(values(container)).toEqual(FINAL)
     expect(hero(container).getAttribute('data-stamped')).toBe('true')
     expect(headline(container)).toBe('Back of the pack.')
+    expect(headings(container)).toEqual([['Counting the votes', 'true', 'hidden'], ['Back of the pack.', null, '']])
     expect(shownLine(container)).toEqual([RANKED])
     expect(container.querySelector('.rank-badge')!.textContent).toBe('#12')
     expect(tiles(container)).toEqual(['+¥866', '+567', '+66'])
@@ -193,7 +229,8 @@ describe('ResultsModal reveal', () => {
   it('any key skips too', () => {
     const { container } = render(<Harness />)
 
-    fireEvent.keyDown(screen.getByRole('button', { name: 'Back to the studio' }), { key: 'Shift' })
+    // a key that does not activate the button is left alone
+    expect(press(screen.getByRole('button', { name: 'Back to the studio' }), 'Shift')).toBe(false)
 
     expect(values(container)).toEqual(FINAL)
     expect(hero(container).getAttribute('data-stamped')).toBe('true')
@@ -227,6 +264,8 @@ describe('ResultsModal reveal', () => {
 
     // bar 1 (art 33) grows over 350-750 ms: at 400 ms, 1 - (1 - 50/400)^3 = 0.330078125 of 33 = 10.89, shown as 11
     expect(values(container)).toEqual(['11', '0', '0', '0', '0'])
+    // the widths count, but each progressbar tells screen readers its final value
+    expect(ariaValues()).toEqual(FINAL)
     expect(sound.plays).toEqual(['drumroll', 'bar'])
     // the bar cue's pitch: 33/100 of 12 semitones = 3.96, rounded to 4
     expect(sound.pitches).toEqual([undefined, 4])
@@ -301,6 +340,90 @@ describe('ResultsModal reveal', () => {
     unmount()
     // StrictMode mounts, unmounts and remounts once in development: 0.3, 1, 0.3, then 1 at the real unmount
     expect(sound.ducks).toEqual([0.3, 1, 0.3, 1])
+  })
+
+  it('under StrictMode without reduced motion plays the drumroll once and stops it on unmount', () => {
+    const { unmount } = render(<StrictMode><Harness /></StrictMode>)
+    advanceTo(200)
+    expect(sound.plays).toEqual(['drumroll'])
+
+    unmount()
+
+    expect(sound.stops).toEqual(['drumroll'])
+    expect(sound.ducks).toEqual([0.3, 1, 0.3, 1])
+    expect(frame).toBeNull()
+  })
+
+  it('a gap of more than 250 ms between frames (a hidden window) is a skip, never a burst of every beat missed', () => {
+    const { container } = render(<Harness />)
+    advanceTo(200)
+    expect(sound.plays).toEqual(['drumroll'])
+
+    jumpTo(2200)
+
+    expect(sound.plays).toEqual(['drumroll', 'stamp', 'jingle-down'])
+    expect(sound.stops).toEqual(['drumroll'])
+    expect(values(container)).toEqual(FINAL)
+    expect(hero(container).getAttribute('data-stamped')).toBe('true')
+    expect(tiles(container)).toEqual(['+¥866', '+567', '+66'])
+    expect(frame).toBeNull()
+  })
+
+  it('a gap of exactly 250 ms is still an ordinary frame', () => {
+    const { container } = render(<Harness />)
+    advanceTo(100)
+
+    jumpTo(350)
+
+    // (100, 350] holds the drumroll at 150 and the first bar at 350
+    expect(sound.plays).toEqual(['drumroll', 'bar'])
+    expect(hero(container).getAttribute('data-stamped')).toBe('false')
+    expect(frame).not.toBeNull()
+  })
+
+  it('a first frame more than 250 ms after mount (opened in a hidden window) lands on the final state', () => {
+    const { container } = render(<Harness />)
+
+    jumpTo(1000)
+
+    expect(sound.plays).toEqual(['stamp', 'jingle-down'])
+    expect(values(container)).toEqual(FINAL)
+    expect(hero(container).getAttribute('data-stamped')).toBe('true')
+  })
+
+  it('Enter on "Back to the studio" mid-reveal only skips; the next Enter dismisses', () => {
+    const { container } = render(<Harness />)
+    advanceTo(400)
+    const button = screen.getByRole('button', { name: 'Back to the studio' })
+
+    expect(press(button, 'Enter')).toBe(true)
+
+    expect(values(container)).toEqual(FINAL)
+    expect(hero(container).getAttribute('data-stamped')).toBe('true')
+    expect(useStore.getState().game!.pendingResult).not.toBeNull()
+
+    expect(press(button, 'Enter')).toBe(false)
+
+    expect(useStore.getState().game!.pendingResult).toBeNull()
+  })
+
+  it('Space mid-reveal only skips too', () => {
+    const { container } = render(<Harness />)
+
+    expect(press(screen.getByRole('button', { name: 'Back to the studio' }), ' ')).toBe(true)
+
+    expect(hero(container).getAttribute('data-stamped')).toBe('true')
+    expect(useStore.getState().game!.pendingResult).not.toBeNull()
+  })
+
+  it('with reduced motion the reveal is already over, so the first Enter dismisses', () => {
+    restoreMotion()
+    restoreMotion = stubReducedMotion(true)
+    render(<Harness />)
+
+    expect(press(screen.getByRole('button', { name: 'Back to the studio' }), 'Enter')).toBe(false)
+
+    expect(useStore.getState().game!.pendingResult).toBeNull()
   })
 
   it('stays silent in a read-only tab, which mirrors another tab\'s game', () => {
