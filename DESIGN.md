@@ -221,7 +221,7 @@ again under the reward tiles in Stats. `src/sim/studio.ts`; no RNG.
   otherwise the apartment) and no equipment.
 - `studioLook(s)` is what the studio scene will draw: the tier, its desks, the owned list itself (the same array, so
   it can be compared by reference), the volumes shipped across every serial, at most 24, and `animePoster`, true from
-  an anime's premiere until its volume boost ends.
+  an anime's premiere until its volume boost ends (the same window as the volume multiplier).
 
 ### Part-time job
 - A third daily activity: earns money, costs a little stamina, draws nothing. The money lifeline.
@@ -268,7 +268,8 @@ both studios' terms, with "Sign with Studio Kumo", "Sign with Hoshi Animation" a
 are left to answer. `src/sim/anime.ts`; no RNG.
 - **The offer.** Checked every day (`animeTick`): a running serial with popularity 70 or more and 15,000 or more
   copies sold across its volumes, never offered one before (`animeOfferedFor`), with no offer waiting and no earlier
-  deal whose volume boost is still on (`day <= tailEndsDay`). It toasts, pauses the clock once, and stands for 14 days
+  deal short of its tail's end (`day <= tailEndsDay`: signed and waiting to air, on air, or in its volume boost). One
+  adaptation at a time. It toasts, pauses the clock once, and stands for 14 days
   (answerable up to and including `expiresDay` = the day it landed + 14); the day after, it lapses with a log line.
   The serial stays in `animeOfferedFor` whether the offer is signed, passed on or lapses: studios ask once per series.
 - **Wrapping up or cancellation.** The offer is for a running series: wrapping the series up withdraws a waiting
@@ -279,21 +280,26 @@ are left to answer. `src/sim/anime.ts`; no RNG.
   and `airsDay < day <= endsDay`), so the premiere day pays nothing and the finale day pays the last week. At the
   premiere the serial's popularity rises by the studio's lift (capped at 100) only if it is still running; the anime
   airs and pays either way. Signing, the premiere and the finale toast; weekly pay and the end of the boost are log
-  lines.
-- **Volumes.** `animeVolumeMult(s, serialId)` is the deal's multiplier from signing while `day <= tailEndsDay`, else 1.
-  Regular volumes sell round(copies x multiplier) and the wrap-up volume round(copies x 1.5 x multiplier); the volume
-  log says "(1.3x with the anime)". The Series panel shows the deal: "Signed with Studio Kumo, airs in 6 weeks;
-  volumes sell 1.3x.", then "On air, week 3 of 12: +400 fans and ¥500 a week; volumes sell 1.3x.", then the boost
-  left after the finale.
+  lines. Log lines and the Series panel speak of volume sales only while the series runs (an ended series ships no
+  more volumes): for a running series the premiere toast adds "Volumes sell 1.3x from today." and the finale toast
+  "Volumes sell 1.3x for 12 more weeks."; for an ended one both leave it out and the end of the boost is not logged.
+- **Volumes.** `animeVolumeMult(s, serialId)` is the deal's multiplier from the premiere
+  (`airsDay <= day <= tailEndsDay`), else 1; the scene's anime poster (`studioLook`'s `animePoster`) uses the same
+  window. A deal signed but not yet on air boosts nothing. Regular volumes sell round(copies x multiplier) and the
+  wrap-up volume round(copies x 1.5 x multiplier); the volume log says "(1.3x with the anime)". The Series panel shows
+  the deal: "Signed with Studio Kumo, airs in 6 weeks; volumes sell 1.3x from the premiere.", then "On air, week 3 of
+  12: +400 fans and ¥500 a week; volumes sell 1.3x.", then the boost left after the finale (for an ended series,
+  without the volume clauses). The card's terms say "Volumes sell 1.3x from the premiere until 12 weeks after the
+  finale."
 
 | Studio | Fee | Airs after | Runs | Per week | Volume mult | Popularity at premiere |
 |---|---|---|---|---|---|---|
-| Studio Kumo | ¥2,000, paid at signing | 6 weeks | 12 weeks | +400 fans, +¥500 | 1.3x, until 12 weeks after the finale | +5 |
-| Hoshi Animation | ¥0 | 16 weeks | 24 weeks | +900 fans, +¥1,000 | 1.6x, until 24 weeks after the finale | +12 |
+| Studio Kumo | ¥2,000, paid at signing | 6 weeks | 12 weeks | +400 fans, +¥500 | 1.3x, from the premiere until 12 weeks after the finale | +5 |
+| Hoshi Animation | ¥0 | 16 weeks | 24 weeks | +900 fans, +¥1,000 | 1.6x, from the premiere until 24 weeks after the finale | +12 |
 
-Signed on day 100, Kumo airs on day 142, ends on day 226 and boosts volumes to day 310 (12 payouts: +4,800 fans and
-+¥6,000, plus the ¥2,000 fee); Hoshi airs on day 212, ends on day 380 and boosts to day 548 (24 payouts: +21,600 fans
-and +¥24,000). The balance bots never sign, so every offer lapses for them.
+Signed on day 100, Kumo airs on day 142, ends on day 226 and boosts volumes from day 142 to day 310 (12 payouts:
++4,800 fans and +¥6,000, plus the ¥2,000 fee); Hoshi airs on day 212, ends on day 380 and boosts volumes from day 212
+to day 548 (24 payouts: +21,600 fans and +¥24,000). The balance bots never sign, so every offer lapses for them.
 
 ### Auto-pause rules
 The clock stops whenever the game needs a decision: a manuscript becomes ready, poll results arrive, a

@@ -1,9 +1,14 @@
 /** Shared game-state builders for tests: the sim's `state/__tests__/autopause.test.ts` local helpers,
  * generalised so UI tests can build the same fixtures without duplicating the sim calls. */
 import { ONE_SHOT_PAGES, createGame, getPhase, startProject, submitProject, tick, tickMany } from '../sim'
-import type { GameState, Project, ProjectDraft } from '../sim'
+import type { GameState, Project, ProjectDraft, SerialOffer } from '../sim'
 
 export const DRAFT: ProjectDraft = { title: 'Blade Club', genre: 'action', theme: 'samurai', audience: 'teens' }
+
+/** A Kids Comic Go! serialisation offer for "Magic Club": put it in `pendingOffer` and `acceptOffer` starts the serial. */
+export const KIDS_OFFER: SerialOffer = {
+  magazineId: 'kids-comic', title: 'Magic Club', genre: 'fantasy', theme: 'magic', audience: 'kids',
+}
 
 /** Set every craft stat to `v`, so score outcomes are easy to predict. */
 export function withStats(s: GameState, v: number): GameState {

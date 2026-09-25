@@ -25,8 +25,8 @@ export function AnimeOfferCard() {
         <b id="anime-offer-title">Two studios want to animate "{ser.title}"</b>
       </div>
       <p className="small">
-        "{ser.title}" is a hit: popularity {ANIME_OFFER_MIN_POPULARITY} or more and {num(ANIME_OFFER_MIN_COPIES)} copies
-        sold. Sign with one studio, or let the offer pass.
+        "{ser.title}" is a hit: popularity {ANIME_OFFER_MIN_POPULARITY} or more and {num(ANIME_OFFER_MIN_COPIES)} or more
+        copies sold. Sign with one studio, or let the offer pass.
       </p>
       <div className="event-choices">
         {ANIME_STUDIOS.map((st) => (

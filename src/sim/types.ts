@@ -298,7 +298,7 @@ export interface AnimeStudio {
   runsWeeks: number
   weeklyFans: number
   weeklyMoney: number
-  /** the adapted serial's volumes sell this many times the copies, from signing until `tailWeeks` after the finale */
+  /** the adapted serial's volumes sell this many times the copies, from the premiere to `tailWeeks` after the finale */
   volumeMult: number
   tailWeeks: number
   /** added to the serial's popularity at the premiere if it is still running, capped at 100 */

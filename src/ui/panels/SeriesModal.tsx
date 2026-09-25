@@ -44,7 +44,7 @@ import { VOLUME_EVERY_CHAPTERS, animeDealFor } from '../../sim'
 function AnimeLine({ ser }: { ser: Serial }) {
   const line = useStore((s) => {
     const deal = s.game && animeDealFor(s.game, ser.id)
-    return deal ? animeStatusLine(deal, s.game!.day) : null
+    return deal ? animeStatusLine(deal, s.game!.day, ser.status === 'running') : null
   })
   if (!line) return null
   return (

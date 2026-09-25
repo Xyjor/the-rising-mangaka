@@ -4,9 +4,7 @@ import {
   tick, tickMany,
 } from '../index'
 import type { AnimeDeal, AnimeStudioId, ChapterResult, GameState, LogEntry } from '../index'
-import { noDeadline } from '../../test/fixtures'
-
-const KIDS_OFFER = { magazineId: 'kids-comic', title: 'Magic Club', genre: 'fantasy', theme: 'magic', audience: 'kids' } as const
+import { KIDS_OFFER, noDeadline } from '../../test/fixtures'
 
 /** Seed 1 with a Kids Comic Go! serial (id 1) accepted on `day`, at `popularity` with `totalCopies` sold. */
 function hit(day: number, popularity = 70, totalCopies = 15_000): GameState {
@@ -133,10 +131,11 @@ describe('anime offers', () => {
     expect(next.log.filter((e) => e.text.includes('anime')).at(-1)).toMatchObject({ text: withdrawn, toast: false })
   })
 
-  it('waits while an earlier deal still lifts volume sales, and comes once that boost is over', () => {
-    // serial 1's Kumo deal boosts volumes up to day 310; serial 5 is the hit now running
+  it('waits until an earlier deal is past its tail, counting a deal not yet on air, and comes the day after', () => {
+    // serial 1's Kumo deal airs on day 142 and boosts volumes up to day 310; serial 5 is the hit now running
     const g = hit(300)
     const s: GameState = { ...g, serial: { ...g.serial!, id: 5 }, anime: [KUMO_AT_100], animeOfferedFor: [1] }
+    expect(animeTick({ ...s, day: 120 }).animeOffer).toBeNull()
     expect(animeTick({ ...s, day: 310 }).animeOffer).toBeNull()
     expect(animeTick({ ...s, day: 311 }).animeOffer).toEqual({ serialId: 5, expiresDay: 325 })
   })
@@ -200,9 +199,12 @@ describe('anime deals', () => {
     expect(s.serial!.popularity).toBe(75)
     expect(last(s)).toEqual({
       kind: 'series',
-      text: 'The "Magic Club" anime premieres today: popularity +5. It brings +400 fans and ¥500 a week for 12 weeks.',
+      text: 'The "Magic Club" anime premieres today: popularity +5. It brings +400 fans and ¥500 a week for 12 weeks. Volumes sell 1.3x from today.',
       toast: true,
     })
+    expect(last(animeDays(signed('hoshi'), 212)).text).toBe(
+      'The "Magic Club" anime premieres today: popularity +12. It brings +900 fans and ¥1,000 a week for 24 weeks. Volumes sell 1.6x from today.',
+    )
     s = animeDays(s, 149)
     expect(last(s)).toEqual({ kind: 'money', text: 'The "Magic Club" anime, week 1 of 12: +400 fans, +¥500.', toast: false })
     s = animeDays(s, 226)
@@ -239,20 +241,29 @@ describe('anime deals', () => {
     const capped = animeTick({ ...at98, day: 142 })
     expect(capped.serial!.popularity).toBe(100)
     expect(last(capped).text).toBe(
-      'The "Magic Club" anime premieres today: popularity +2. It brings +400 fans and ¥500 a week for 12 weeks.',
+      'The "Magic Club" anime premieres today: popularity +2. It brings +400 fans and ¥500 a week for 12 weeks. Volumes sell 1.3x from today.',
     )
+  })
+
+  it('once the series is over, the finale promises no volume boost and the end of the boost goes unlogged', () => {
+    const dropped = endSerial(signed('kumo'))
+    const finale = animeDays(dropped, 226)
+    expect(last(finale)).toEqual({
+      kind: 'series', text: 'The "Magic Club" anime ended after 12 weeks: +4,800 fans and +¥6,000 in all.', toast: true,
+    })
+    expect(animeDays(finale, 320).log).toHaveLength(finale.log.length)
   })
 })
 
 describe('anime volume boost', () => {
-  it('multiplies copies for the deal\'s serial from signing until 12 weeks after the finale, and 1 otherwise', () => {
+  it('multiplies copies for the deal\'s serial from the premiere until 12 weeks after the finale, and 1 otherwise', () => {
     const k = signed('kumo')
     const on = (s: GameState, day: number) => animeVolumeMult({ ...s, day }, 1)
     expect(animeVolumeMult(hit(100), 1)).toBe(1)
-    expect([on(k, 100), on(k, 142), on(k, 226), on(k, 310), on(k, 311)]).toEqual([1.3, 1.3, 1.3, 1.3, 1])
-    expect(animeVolumeMult(k, 2)).toBe(1)
+    expect([on(k, 100), on(k, 141), on(k, 142), on(k, 226), on(k, 310), on(k, 311)]).toEqual([1, 1, 1.3, 1.3, 1.3, 1])
+    expect(animeVolumeMult({ ...k, day: 200 }, 2)).toBe(1)
     const h = signed('hoshi')
-    expect([on(h, 548), on(h, 549)]).toEqual([1.6, 1])
+    expect([on(h, 211), on(h, 212), on(h, 548), on(h, 549)]).toEqual([1, 1.6, 1.6, 1])
   })
 
   it('a volume shipped while the anime airs sells round(copies x 1.3)', () => {
@@ -270,22 +281,27 @@ describe('anime volume boost', () => {
     // the anime draws nothing from the RNG, so both runs poll chapter 4 the same way
     const plain = tick({ ...base, anime: [] })
     const aired = tick(base)
-    const copies = plain.serial!.totalCopies
+    // The poll is the one input the RNG decides: chapter 4 places #1 of 11 at score 69. From there by hand:
+    // popularity round(70 x 0.65 + 100 x 0.35) = 81; fans 0 + round(120 x 6 x 0.69 x 2) = 994;
+    // copies round((994 + 120 x 20) x 0.81) = round(2,749.14) = 2,749; with the anime round(2,749 x 1.3) = 3,574.
+    expect(plain.serial!.results[3]).toMatchObject({ rank: 1, entrants: 11, score: 69 })
+    expect([plain.serial!.popularity, plain.player.fans]).toEqual([81, 994])
     expect(plain.serial!.volumes).toBe(1)
-    expect(copies).toBeGreaterThan(0)
-    const boosted = Math.round(copies * 1.3)
-    expect(aired.serial!.totalCopies).toBe(boosted)
+    expect(plain.serial!.totalCopies).toBe(2749)
+    expect(aired.serial!.totalCopies).toBe(3574)
     expect(aired.log.find((e) => e.text.startsWith('Volume 1'))!.text)
-      .toBe(`Volume 1 of "Magic Club" sold ${boosted} copies (1.3x with the anime): +¥${boosted * 2}.`)
+      .toBe('Volume 1 of "Magic Club" sold 3574 copies (1.3x with the anime): +¥7148.')
     expect(plain.log.find((e) => e.text.startsWith('Volume 1'))!.text)
-      .toBe(`Volume 1 of "Magic Club" sold ${copies} copies: +¥${copies * 2}.`)
+      .toBe('Volume 1 of "Magic Club" sold 2749 copies: +¥5498.')
   })
 
-  it('the wrap-up volume sells 1.5x times the anime\'s 1.3x: 19,344 copies instead of 14,880', () => {
+  it('the wrap-up volume sells 1.5x times the anime\'s 1.3x once it has premiered: 19,344 copies instead of 14,880', () => {
     // Kids Comic Go! circulation 120: (10,000 fans + 120 x 20) x 80% = 9,920 copies a volume
     const s0 = signed('kumo')
+    // day 200: on air (142 to 226), inside the boost
     const s: GameState = {
       ...s0,
+      day: 200,
       player: { ...s0.player, fans: 10_000 },
       serial: {
         ...s0.serial!, popularity: 80, results: [chapter(1), chapter(2), chapter(3), chapter(4)], chaptersSent: 4,
@@ -299,6 +315,10 @@ describe('anime volume boost', () => {
     expect(sold(aired)).toBe(19_344)
     expect(aired.player.money - s.player.money).toBe(38_688)
     expect(aired.log.at(-1)!.text).toContain('The final volume sold 19344 copies (1.3x with the anime): +¥38688.')
+    // signed but the day before the premiere: no boost yet, deal or not
+    const early = endSerial({ ...s, day: 141 })
+    expect(sold(early)).toBe(14_880)
+    expect(early.log.at(-1)!.text).toContain('The final volume sold 14880 copies: +¥29760.')
   })
 })
 

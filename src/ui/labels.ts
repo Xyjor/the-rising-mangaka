@@ -176,23 +176,30 @@ export function animeTerms(st: AnimeStudio): string[] {
   return [
     st.fee ? `Pays you ${money(st.fee)} when you sign.` : 'No signing fee.',
     `Airs in ${plural(st.airsAfterWeeks, 'week')} and runs ${plural(st.runsWeeks, 'week')}: +${num(st.weeklyFans)} fans and ${money(st.weeklyMoney)} a week.`,
-    `Volumes sell ${st.volumeMult}x from signing until ${plural(st.tailWeeks, 'week')} after the finale.`,
+    `Volumes sell ${st.volumeMult}x from the premiere until ${plural(st.tailWeeks, 'week')} after the finale.`,
     `Popularity +${st.premierePopularity} at the premiere, if the series is still running.`,
   ]
 }
 
 /**
  * Where a signed anime stands on `day`, for the Series panel: counting down to the premiere, the week on air (week 1
- * starts on the premiere day, and each week pays when it ends), then the volume boost left after the finale.
+ * starts on the premiere day, and each week pays when it ends), then the volume boost left after the finale. The
+ * boost runs from the premiere; the line speaks of volume sales only while the series is `running`, since an ended
+ * one ships no more volumes.
  */
-export function animeStatusLine(deal: AnimeDeal, day: number): string {
+export function animeStatusLine(deal: AnimeDeal, day: number, running: boolean): string {
   const st = animeStudioById(deal.studio)
   const boost = `volumes sell ${st.volumeMult}x`
-  if (day < deal.airsDay) return `Signed with ${st.name}, airs in ${weeksOrDays(deal.airsDay - day)}; ${boost}.`
+  if (day < deal.airsDay) {
+    const airs = `Signed with ${st.name}, airs in ${weeksOrDays(deal.airsDay - day)}`
+    return running ? `${airs}; ${boost} from the premiere.` : `${airs}.`
+  }
   if (day < deal.endsDay) {
     const week = Math.floor((day - deal.airsDay) / 7) + 1
-    return `On air, week ${week} of ${st.runsWeeks}: +${num(st.weeklyFans)} fans and ${money(st.weeklyMoney)} a week; ${boost}.`
+    const onAir = `On air, week ${week} of ${st.runsWeeks}: +${num(st.weeklyFans)} fans and ${money(st.weeklyMoney)} a week`
+    return running ? `${onAir}; ${boost}.` : `${onAir}.`
   }
+  if (!running) return `The ${st.name} anime has ended.`
   if (day < deal.tailEndsDay) return `The anime has ended; ${boost} for ${weeksOrDays(deal.tailEndsDay - day, 'more ')}.`
   if (day === deal.tailEndsDay) return `The anime has ended; today is the last day ${boost}.`
   return `The ${st.name} anime has ended, and volumes sell at the normal rate again.`

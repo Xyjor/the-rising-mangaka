@@ -7,7 +7,7 @@ import {
   tickMany,
 } from '../../sim'
 import type { ChapterResult, GameState } from '../../sim'
-import { DRAFT, drawUntilReady, withStats } from '../../test/fixtures'
+import { DRAFT, KIDS_OFFER, drawUntilReady, withStats } from '../../test/fixtures'
 import { useStore } from '../../state/store'
 import { SeriesModal } from '../panels/SeriesModal'
 
@@ -56,8 +56,7 @@ describe('SeriesModal rival column', () => {
   })
 
   it("shows the rival's rank in each chapter poll, and a dash where the rival was not in it", () => {
-    const offer = { magazineId: 'kids-comic', title: 'Magic Club', genre: 'fantasy', theme: 'magic', audience: 'kids' } as const
-    const g = acceptOffer({ ...createGame('Rin', 1), pendingOffer: offer })
+    const g = acceptOffer({ ...createGame('Rin', 1), pendingOffer: KIDS_OFFER })
     useStore.setState({ game: { ...g, serial: { ...g.serial!, results: [chapter(1, 3, 7), chapter(2, 5)] } }, readOnly: false })
     render(<SeriesModal />)
     const table = screen.getByRole('table')
@@ -70,17 +69,16 @@ describe('SeriesModal rival column', () => {
 })
 
 describe('SeriesModal anime line', () => {
-  const offer = { magazineId: 'kids-comic', title: 'Magic Club', genre: 'fantasy', theme: 'magic', audience: 'kids' } as const
   /** Seed 1's Kids Comic Go! serial (id 1) with a Studio Kumo deal signed on day 100, viewed on `day`. */
   function kumoOn(day: number): GameState {
-    const g = acceptOffer({ ...createGame('Rin', 1), pendingOffer: offer })
+    const g = acceptOffer({ ...createGame('Rin', 1), pendingOffer: KIDS_OFFER })
     const deal = { studio: 'kumo', serialId: 1, signedDay: 100, airsDay: 142, endsDay: 226, tailEndsDay: 310 } as const
     return { ...g, day, anime: [deal] }
   }
 
   it('says when a signed anime airs, what it pays each week on air, and how long the boost lasts after', () => {
     const cases: [number, string][] = [
-      [100, 'Signed with Studio Kumo, airs in 6 weeks; volumes sell 1.3x.'],
+      [100, 'Signed with Studio Kumo, airs in 6 weeks; volumes sell 1.3x from the premiere.'],
       [156, 'On air, week 3 of 12: +400 fans and ¥500 a week; volumes sell 1.3x.'],
       [226, 'The anime has ended; volumes sell 1.3x for 12 more weeks.'],
       [311, 'The Studio Kumo anime has ended, and volumes sell at the normal rate again.'],
@@ -93,8 +91,16 @@ describe('SeriesModal anime line', () => {
     }
   })
 
+  it('promises no volume boost for a series that is over', () => {
+    const g = kumoOn(156)
+    const ended = { ...g, serial: null, serials: [{ ...g.serial!, status: 'ended' as const, endedDay: 150 }] }
+    useStore.setState({ game: ended, readOnly: false })
+    render(<SeriesModal />)
+    expect(screen.getByText('On air, week 3 of 12: +400 fans and ¥500 a week.')).toBeTruthy()
+  })
+
   it('shows no anime line for a series without a deal', () => {
-    useStore.setState({ game: acceptOffer({ ...createGame('Rin', 1), pendingOffer: offer }), readOnly: false })
+    useStore.setState({ game: acceptOffer({ ...createGame('Rin', 1), pendingOffer: KIDS_OFFER }), readOnly: false })
     render(<SeriesModal />)
     expect(screen.queryByText(/anime|On air/)).toBeNull()
   })

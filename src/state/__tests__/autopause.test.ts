@@ -5,7 +5,7 @@ import {
 import type { GameState } from '../../sim'
 import { draw } from '../../sim/rng'
 import { useStore } from '../store'
-import { DRAFT, drawUntilReady, withStats } from '../../test/fixtures'
+import { DRAFT, KIDS_OFFER, drawUntilReady, withStats } from '../../test/fixtures'
 
 /** A running serial whose author has just lost all their skill: the way engine.test.ts builds a cancellation. */
 function doomedSerial(): GameState {
@@ -81,8 +81,7 @@ describe('store auto-pause', () => {
 
   it('stops the clock once when an anime offer lands, and signing clears the desk card', () => {
     // a Kids Comic Go! serial accepted on day 0 at the offer line: popularity 70, 15,000 copies sold
-    const offer = { magazineId: 'kids-comic', title: 'Magic Club', genre: 'fantasy', theme: 'magic', audience: 'kids' } as const
-    const g = acceptOffer({ ...createGame('Rin', 9), pendingOffer: offer })
+    const g = acceptOffer({ ...createGame('Rin', 9), pendingOffer: KIDS_OFFER })
     load({ ...g, serial: { ...g.serial!, popularity: 70, totalCopies: 15_000 } })
     const st = useStore.getState()
     st.tick()
@@ -104,8 +103,7 @@ describe('store auto-pause', () => {
   })
 
   it('passing on the anime offer clears the desk card', () => {
-    const offer = { magazineId: 'kids-comic', title: 'Magic Club', genre: 'fantasy', theme: 'magic', audience: 'kids' } as const
-    const g = acceptOffer({ ...createGame('Rin', 9), pendingOffer: offer })
+    const g = acceptOffer({ ...createGame('Rin', 9), pendingOffer: KIDS_OFFER })
     load({ ...g, animeOffer: { serialId: g.serial!.id, expiresDay: 14 }, animeOfferedFor: [g.serial!.id] })
     useStore.getState().declineAnime()
     expect(useStore.getState().game!.animeOffer).toBeNull()

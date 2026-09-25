@@ -5,10 +5,10 @@ import '../../test/dom'
 import { acceptOffer, createGame } from '../../sim'
 import type { GameState } from '../../sim'
 import { useStore } from '../../state/store'
+import { KIDS_OFFER } from '../../test/fixtures'
 import { AnimeOfferCard } from '../AnimeOfferCard'
 import { DeskPanel } from '../panels/DeskPanel'
 
-const KIDS_OFFER = { magazineId: 'kids-comic', title: 'Magic Club', genre: 'fantasy', theme: 'magic', audience: 'kids' } as const
 const TITLE = 'Two studios want to animate "Magic Club"'
 
 /** Seed 1 on day 100 with its Kids Comic Go! serial (id 1) offered an adaptation `daysLeft` days before it lapses. */
@@ -37,19 +37,19 @@ describe('AnimeOfferCard', () => {
     useStore.setState({ game: offered() })
     render(<AnimeOfferCard />)
     const card = screen.getByRole('region', { name: TITLE })
-    expect(card.textContent).toContain('"Magic Club" is a hit: popularity 70 or more and 15,000 copies sold.')
+    expect(card.textContent).toContain('"Magic Club" is a hit: popularity 70 or more and 15,000 or more copies sold.')
     const kumo = within(screen.getByRole('group', { name: 'Studio Kumo' })).getAllByRole('listitem').map((li) => li.textContent)
     expect(kumo).toEqual([
       'Pays you ¥2,000 when you sign.',
       'Airs in 6 weeks and runs 12 weeks: +400 fans and ¥500 a week.',
-      'Volumes sell 1.3x from signing until 12 weeks after the finale.',
+      'Volumes sell 1.3x from the premiere until 12 weeks after the finale.',
       'Popularity +5 at the premiere, if the series is still running.',
     ])
     const hoshi = within(screen.getByRole('group', { name: 'Hoshi Animation' })).getAllByRole('listitem').map((li) => li.textContent)
     expect(hoshi).toEqual([
       'No signing fee.',
       'Airs in 16 weeks and runs 24 weeks: +900 fans and ¥1,000 a week.',
-      'Volumes sell 1.6x from signing until 24 weeks after the finale.',
+      'Volumes sell 1.6x from the premiere until 24 weeks after the finale.',
       'Popularity +12 at the premiere, if the series is still running.',
     ])
     expect(screen.getByText('Answer within 14 days. Studios ask once per series.')).toBeTruthy()
