@@ -108,7 +108,7 @@ export const RIVAL_SERIES: Record<MagazineId, readonly [string, string, string]>
 }
 
 /** The rival's craft (their mean poll score) in a new career... */
-export const RIVAL_START_CRAFT = 50
+export const RIVAL_START_CRAFT = 57
 /** ...what each year adds... */
 export const RIVAL_YEARLY_GROWTH = 4
 /** ...and where it stops. */
@@ -187,10 +187,11 @@ export const EQUIPMENT: Equipment[] = [
 
 /**
  * Scales every equipment price and move-in cost (see `equipmentPrice`, `moveInCost`): S1 / 9000 rounded to 0.25 and
- * clamped to 0.75-4, where S1 is the sensible balance bot's median money at day 336 buying nothing over seeds 1-20
- * (`npm run balance` prints it). S1 = ¥127,356 gives 14.15, clamped to 4.
+ * clamped to 0.75-16 (`priceScale` in balance.ts), where S1 is the sensible balance bot's median money at day 336
+ * buying nothing over seeds 1-20 (`npm run balance` prints it and the scale it gives). S1 = ¥101,816.5 gives 11.31,
+ * so 11.25.
  */
-export const EQUIPMENT_PRICE_SCALE = 4
+export const EQUIPMENT_PRICE_SCALE = 11.25
 
 /** What a piece of equipment costs: its base price times `EQUIPMENT_PRICE_SCALE`, rounded to the nearest ¥100. */
 export function equipmentPrice(id: EquipmentId): number {
@@ -252,7 +253,7 @@ export const EVENT_GAP_DAYS = 14
 /** Anime adaptations (anime.ts): a running serial at this popularity or higher... */
 export const ANIME_OFFER_MIN_POPULARITY = 70
 /** ...that has sold at least this many copies across its volumes is offered one adaptation... */
-export const ANIME_OFFER_MIN_COPIES = 15_000
+export const ANIME_OFFER_MIN_COPIES = 37_000
 /** ...which the player can answer for this many days. */
 export const ANIME_OFFER_DAYS = 14
 
@@ -270,26 +271,18 @@ export const ANIME_STUDIOS: readonly AnimeStudio[] = [
 
 /**
  * The awards handed out at every year end (year.ts), in the order the review lists them. The Rookie Prize is for
- * year one only; the others come round every year. A near miss is listed only when the award was not won.
+ * year one only; the others come round every year. A near miss is listed only when the award was not won. What wins
+ * each one is worded from these bars on screen (`awardRule` in ui/labels.ts).
  */
 export const AWARDS: readonly Award[] = [
-  {
-    id: 'rookie', name: 'Rookie Prize', rule: 'a serial started or a #1 one-shot, in year one only',
-    need: 1, near: 3, prize: { money: 3000, fans: 500, xp: 100 },
-  },
-  {
-    id: 'readers', name: "Readers' Choice",
-    rule: 'a serial with 8 or more chapter results in the year, averaging rank 3.0 or better',
-    need: 3, near: 4.5, prize: { money: 5000, fans: 2000, xp: 150 },
-  },
-  {
-    id: 'critics', name: "Critics' Prize", rule: 'a poll score of 75 or more',
-    need: 75, near: 68, prize: { money: 4000, fans: 1000, xp: 150 },
-  },
-  {
-    id: 'golden-pen', name: 'Golden Pen', rule: '20,000 copies sold in the year',
-    need: 20_000, near: 12_000, prize: { money: 8000, fans: 3000, xp: 200 },
-  },
+  // a serial started or a #1 one-shot, in year one only; near miss: a #3 one-shot or better
+  { id: 'rookie', name: 'Rookie Prize', need: 1, near: 3, prize: { money: 3000, fans: 500, xp: 100 } },
+  // a serial with READERS_CHOICE_MIN_RESULTS or more results in the year averaging rank 3.0 or better; near: 4.5
+  { id: 'readers', name: "Readers' Choice", need: 3, near: 4.5, prize: { money: 5000, fans: 2000, xp: 150 } },
+  // a poll score of 75 or more; near: 68
+  { id: 'critics', name: "Critics' Prize", need: 75, near: 68, prize: { money: 4000, fans: 1000, xp: 150 } },
+  // copies sold in the year; near: 22,000
+  { id: 'golden-pen', name: 'Golden Pen', need: 37_000, near: 22_000, prize: { money: 8000, fans: 3000, xp: 200 } },
 ]
 /** The Readers' Choice judges a serial only once it has this many chapter results in the year. */
 export const READERS_CHOICE_MIN_RESULTS = 8

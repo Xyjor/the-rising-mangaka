@@ -37,7 +37,7 @@ describe('AnimeOfferCard', () => {
     useStore.setState({ game: offered() })
     render(<AnimeOfferCard />)
     const card = screen.getByRole('region', { name: TITLE })
-    expect(card.textContent).toContain('"Magic Club" is a hit: popularity 70 or more and 15,000 or more copies sold.')
+    expect(card.textContent).toContain('"Magic Club" is a hit: popularity 70 or more and 37,000 or more copies sold.')
     const kumo = within(screen.getByRole('group', { name: 'Studio Kumo' })).getAllByRole('listitem').map((li) => li.textContent)
     expect(kumo).toEqual([
       'Pays you ¥2,000 when you sign.',

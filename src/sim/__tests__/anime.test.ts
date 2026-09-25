@@ -7,7 +7,7 @@ import type { AnimeDeal, AnimeStudioId, ChapterResult, GameState, LogEntry } fro
 import { KIDS_OFFER, noDeadline } from '../../test/fixtures'
 
 /** Seed 1 with a Kids Comic Go! serial (id 1) accepted on `day`, at `popularity` with `totalCopies` sold. */
-function hit(day: number, popularity = 70, totalCopies = 15_000): GameState {
+function hit(day: number, popularity = 70, totalCopies = 37_000): GameState {
   const s = acceptOffer({ ...createGame('Rin', 1), day, pendingOffer: KIDS_OFFER })
   return { ...s, serial: { ...s.serial!, popularity, totalCopies } }
 }
@@ -59,14 +59,14 @@ describe('anime data', () => {
 })
 
 describe('anime offers', () => {
-  it('lands at popularity 70 with 15,000 copies sold, and not a point or a copy short', () => {
+  it('lands at popularity 70 with 37,000 copies sold, and not a point or a copy short', () => {
     const s = animeTick(hit(100))
     expect(s.animeOffer).toEqual({ serialId: 1, expiresDay: 114 })
     expect(s.animeOfferedFor).toEqual([1])
     expect(last(s)).toEqual({
       kind: 'series', text: 'Two anime studios want to adapt "Magic Club". Answer on your desk within 14 days.', toast: true,
     })
-    for (const short of [hit(100, 69), hit(100, 70, 14_999)]) {
+    for (const short of [hit(100, 69), hit(100, 70, 36_999)]) {
       const t = animeTick(short)
       expect(t.animeOffer).toBeNull()
       expect(t.animeOfferedFor).toEqual([])

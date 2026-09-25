@@ -326,8 +326,6 @@ export type AwardId = 'rookie' | 'readers' | 'critics' | 'golden-pen'
 export interface Award {
   id: AwardId
   name: string
-  /** what wins it, as the year review words it after "Won for" */
-  rule: string
   /** the bar to win: a rank for the Rookie Prize and the Readers' Choice (lower is better), else a score or copies */
   need: number
   /** the bar for a near miss, on the same scale */

@@ -1,14 +1,14 @@
 // Balance readout: runs the balance bots (src/sim/bot.ts) over a range of seeds and prints one line per seed per
 // bot, then one line per row of the balance-band table. The runs, the row measurements and the targets (`BANDS`) come
-// from src/sim/balance.ts, the same code src/sim/__tests__/balance.test.ts asserts on; nothing is asserted here. Two
-// lines only this readout prints: anime offers within two years, and S1, the money that sets the equipment prices.
+// from src/sim/balance.ts, the same code src/sim/__tests__/balance.test.ts asserts on; nothing is asserted here. The
+// last lines print anime offers within two years and S1, the money that sets the equipment prices.
 // Run with: npm run balance -- [from=1] [to=20] [--detail seed]
 //   --detail seed  also prints every one-shot and chapter of that seed for each bot, in the old readout's format.
 import { CARELESS, OPENING_ONE_SHOTS, SENSIBLE, STRESS_BOLT, firstSixMean, runBot } from '../src/sim/bot'
 import type { BotPolicy } from '../src/sim/bot'
 import {
   BANDS, LONG, SERIAL_TARGET_RESULTS, STRESS_DAYS, YEAR, calibrationError, countIn, firstAnimeOffer, meanOf,
-  measureP1, measureP2, median, moneyBuyingNothing, offerInOpening, runBalance, winShare,
+  measureP1, measureP2, median, moneyBuyingNothing, offerInOpening, priceScale, runBalance, winShare,
 } from '../src/sim/balance'
 import type { Calibration, SeedRuns } from '../src/sim/balance'
 import { EQUIPMENT_PRICE_SCALE, magazineById, num, previewSubmission } from '../src/sim/index'
@@ -195,9 +195,8 @@ console.log(`Events per year (sensible): ${meanOf(m2.events).toFixed(1)} a seed 
 console.log(`Rival met in year one: ${met}/${n}, the bot won ${wins} of ${meetings} meetings (${share === null ? 'n/a' : pct(share)}) (target >= ${B.rival.metAtLeast}/20; bot wins ${pct(B.rival.winShareLow)}-${pct(B.rival.winShareHigh)} of meetings)`)
 console.log(`Award or near miss in year one: ${awarded}/${n}, Golden Pen ${goldenPen}/${n} (target >= ${B.awards.atLeast}/20; Golden Pen in year one <= ${B.awards.goldenPenAtMost}/20)`)
 console.log(`Equipment owned at day ${YEAR} (sensible, buying): ${kit.low}-${kit.high} pieces on ${countIn(m2.equipment, kit.low, kit.high)}/${n} (pieces per seed: ${m2.equipment.join(' ')}) (target ${kit.low}-${kit.high} on >= ${kit.atLeast}/20)`)
-console.log('\nReported here only')
 console.log(`Anime offer within two years (sensible): ${offered.length}/${n}, days ${range(offered)} (target ${B.anime.low}-${B.anime.high} of 20)`)
-console.log(`S1, sensible money at day ${YEAR} buying nothing: median ¥${s1 === null ? '-' : num(s1)}, S1 / 9000 = ${s1 === null ? '-' : (s1 / 9000).toFixed(2)} (EQUIPMENT_PRICE_SCALE is ${EQUIPMENT_PRICE_SCALE}: S1 / 9000 rounded to 0.25, clamped to 0.75-4)`)
+console.log(`\nS1, sensible money at day ${YEAR} buying nothing: median ¥${s1 === null ? '-' : num(s1)}, S1 / 9000 = ${s1 === null ? '-' : (s1 / 9000).toFixed(2)}, scale ${s1 === null ? '-' : priceScale(s1)} (EQUIPMENT_PRICE_SCALE is ${EQUIPMENT_PRICE_SCALE}: S1 / 9000 rounded to 0.25, held within 0.75-16)`)
 
 if (detailSeed !== null) {
   printDetail(detailSeed, SENSIBLE, YEAR)

@@ -4,7 +4,7 @@ import { useStore } from '../../state/store'
 import { Icon } from '../Icon'
 import { Modal, Reward } from '../components'
 import { compact } from '../format'
-import { nearMissText, prizeText, rivalYearLine, yearGain, yearLevels, yearSummary } from '../labels'
+import { awardRule, nearMissText, prizeText, rivalYearLine, yearGain, yearLevels, yearSummary } from '../labels'
 import '../../styles/career.css'
 
 /**
@@ -48,7 +48,7 @@ export function YearModal() {
               return (
                 <li key={id} className="year-award">
                   <Icon name="trophy" size={16} />
-                  <span><b>{a.name}</b>: {prizeText(a)}. <span className="muted">Won for {a.rule}.</span></span>
+                  <span><b>{a.name}</b>: {prizeText(a)}. <span className="muted">Won for {awardRule(a)}.</span></span>
                 </li>
               )
             })}
@@ -58,7 +58,7 @@ export function YearModal() {
             <p className="small">No awards this year. Next year, aim for one of these:</p>
             <ul className="year-list small">
               {AWARDS.filter((a) => a.id !== 'rookie').map((a) => (
-                <li key={a.id}><b>{a.name}</b>: {a.rule}.</li>
+                <li key={a.id}><b>{a.name}</b>: {awardRule(a)}.</li>
               ))}
             </ul>
           </>

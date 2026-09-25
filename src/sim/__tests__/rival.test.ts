@@ -27,11 +27,12 @@ function kidsValues(first: number[], second: number[]): number[] {
 }
 
 describe('makeRival', () => {
-  it('a fresh rival has craft 50 and runs in Kids Comic Go!, named from the world seed', () => {
+  it('a fresh rival has craft 57 and runs in Kids Comic Go!, named from the world seed', () => {
     // seed 1: world seed 1 x 7919 = 7919; FNV-1a of "rival:7919" is 2016469609, mod 6 = 1 (Iori Hayama);
     // FNV-1a of "rival:7919:kids-comic" mod 3 = 0 (the first Kids title). Derived with a separate FNV-1a script.
+    // Craft 57 (RIVAL_START_CRAFT): 57 - 6 = 51 is under Petal's 52, so Kids Comic Go! (47).
     expect(makeRival(7919, 0)).toEqual({
-      name: 'Iori Hayama', craft: 50, magazineId: 'kids-comic', seriesTitle: RIVAL_SERIES['kids-comic'][0],
+      name: 'Iori Hayama', craft: 57, magazineId: 'kids-comic', seriesTitle: RIVAL_SERIES['kids-comic'][0],
     })
     // seed 4 (world 31676) hashes to 0 (Touya Kagami), seed 42 (world 332598) to 5 (Natsume Kujo)
     expect(makeRival(31676, 0).name).toBe('Touya Kagami')
@@ -41,12 +42,14 @@ describe('makeRival', () => {
     ])
   })
 
-  it('grows 4 craft a year from 50, capped at 76, and moves up the magazines', () => {
+  it('grows 4 craft a year from 57, capped at 76, and climbs one magazine a year', () => {
     const at = (years: number) => makeRival(7919, years)
-    expect([0, 1, 2, 3, 4, 5, 6, 7, 10].map((y) => at(y).craft)).toEqual([50, 54, 58, 62, 66, 70, 74, 76, 76])
+    // 57 + 4n: 57, 61, 65, 69, 73, then 77 is capped at 76
+    expect([0, 1, 2, 3, 4, 5, 6, 7, 10].map((y) => at(y).craft)).toEqual([57, 61, 65, 69, 73, 76, 76, 76, 76])
     expect(RIVAL_MAX_CRAFT).toBe(76)
+    // craft - 6: 51 (Kids), 55 (Petal 52), 59 (Bolt 58), 63 (Ultra 62), 67 (Ultra)
     expect([0, 1, 2, 3, 4].map((y) => at(y).magazineId)).toEqual([
-      'kids-comic', 'monthly-petal', 'monthly-petal', 'weekly-bolt', 'ultra-seinen',
+      'kids-comic', 'monthly-petal', 'weekly-bolt', 'ultra-seinen', 'ultra-seinen',
     ])
     // the name never changes; the series is one of that magazine's three titles
     for (const y of [0, 1, 3, 4]) {
@@ -60,23 +63,23 @@ describe('makeRival', () => {
   it('createGame starts every career with the fresh rival for its world', () => {
     const s = createGame('Rin', 1)
     expect(s.rival).toEqual(makeRival(s.worldSeed, 0))
-    expect(s.rival).toMatchObject({ name: 'Iori Hayama', craft: 50, magazineId: 'kids-comic' })
+    expect(s.rival).toMatchObject({ name: 'Iori Hayama', craft: 57, magazineId: 'kids-comic' })
   })
 })
 
 describe('rivalMagazineFor', () => {
-  it('picks the magazine with the highest rival mean at most craft - 2, else Kids Comic Go!', () => {
+  it('picks the magazine with the highest rival mean at most craft - 6, else Kids Comic Go!', () => {
     // means: Kids 47, Petal 52, Bolt 58, Ultra 62
-    expect([50, 54, 58, 62, 66].map(rivalMagazineFor)).toEqual([
-      'kids-comic', 'monthly-petal', 'monthly-petal', 'weekly-bolt', 'ultra-seinen',
+    expect([57, 61, 65, 69].map(rivalMagazineFor)).toEqual([
+      'kids-comic', 'monthly-petal', 'weekly-bolt', 'ultra-seinen',
     ])
-    // boundaries: 53 - 2 = 51 < 52 (Kids), 54 - 2 = 52 (Petal); 59 - 2 = 57 < 58 (Petal), 60 - 2 = 58 (Bolt);
-    // 63 - 2 = 61 < 62 (Bolt), 64 - 2 = 62 (Ultra)
-    expect([53, 54, 59, 60, 63, 64].map(rivalMagazineFor)).toEqual([
+    // boundaries: 57 - 6 = 51 < 52 (Kids), 58 - 6 = 52 (Petal); 63 - 6 = 57 < 58 (Petal), 64 - 6 = 58 (Bolt);
+    // 67 - 6 = 61 < 62 (Bolt), 68 - 6 = 62 (Ultra)
+    expect([57, 58, 63, 64, 67, 68].map(rivalMagazineFor)).toEqual([
       'kids-comic', 'monthly-petal', 'monthly-petal', 'weekly-bolt', 'weekly-bolt', 'ultra-seinen',
     ])
-    // below every mean (48 - 2 = 46 < 47) falls back to Kids; far above stays at Ultra
-    expect(rivalMagazineFor(48)).toBe('kids-comic')
+    // below every mean (52 - 6 = 46 < 47) falls back to Kids; far above stays at Ultra
+    expect(rivalMagazineFor(52)).toBe('kids-comic')
     expect(rivalMagazineFor(10)).toBe('kids-comic')
     expect(rivalMagazineFor(100)).toBe('ultra-seinen')
   })

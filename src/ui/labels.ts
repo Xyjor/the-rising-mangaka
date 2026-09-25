@@ -1,9 +1,9 @@
 // Short words the pitch, offer, series, desk, stats, career and year-review screens share. Pure functions of sim data,
 // no React.
 import {
-  MAGAZINES, PAY_FULL_RATE_SCORE, RIVAL_SCORE_SD, SERIAL_GRACE_CHAPTERS, SERIAL_OFFER_MIN_SCORE,
-  SERIAL_WARNINGS_TO_CANCEL, animeStudioById, audienceById, awardById, genreById, magazineById, num, rankTier,
-  suitedFocus, themeById,
+  MAGAZINES, PAY_FULL_RATE_SCORE, READERS_CHOICE_MIN_RESULTS, RIVAL_SCORE_SD, SERIAL_GRACE_CHAPTERS,
+  SERIAL_OFFER_MIN_SCORE, SERIAL_WARNINGS_TO_CANCEL, animeStudioById, audienceById, awardById, genreById, magazineById,
+  num, rankTier, suitedFocus, themeById,
 } from '../sim'
 import type {
   AnimeDeal, AnimeStudio, Award, AudienceId, Forecast, GenreId, MagazineId, NearMiss, PollResult, RankTier, Rival, RivalPlacing,
@@ -243,7 +243,21 @@ export function prizeText(a: Award): string {
   return `+${money(a.prize.money)}, +${num(a.prize.fans)} fans, +${a.prize.xp} XP`
 }
 
-/** A near miss, what the player had against what the award needs: 'Golden Pen: 12,400 copies of 20,000.' */
+/**
+ * What wins an award, worded from its bar (`need`) so the copy follows the data: 'a poll score of 75 or more',
+ * '37,000 copies sold in the year'. The year review puts it after "Won for" and in its list of awards to aim for.
+ */
+export function awardRule(a: Award): string {
+  switch (a.id) {
+    case 'rookie': return `a serial started or a #${a.need} one-shot, in year one only`
+    case 'readers':
+      return `a serial with ${READERS_CHOICE_MIN_RESULTS} or more chapter results in the year, averaging rank ${a.need.toFixed(1)} or better`
+    case 'critics': return `a poll score of ${a.need} or more`
+    case 'golden-pen': return `${num(a.need)} copies sold in the year`
+  }
+}
+
+/** A near miss, what the player had against what the award needs: 'Golden Pen: 24,800 copies of 37,000.' */
 export function nearMissText(n: NearMiss): string {
   const name = awardById(n.id).name
   switch (n.id) {

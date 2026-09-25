@@ -164,13 +164,15 @@ describe('pitch forecast', () => {
 
   it('is honest: over 3000 worlds, real polls at Kids Comic Go! land where the forecast said', () => {
     // Untested comedy x cooking for kids at quality 50/50: the forecast is the same in every world (it never reads the
-    // hidden ratings), 0.4091 for an offer and a mean score of 50.85. Each seed hides its own ratings and draws its
-    // own noise and rivals. Every fresh world's named rival (craft 50) runs in Kids Comic Go!, one of the ten entrants:
-    // without it the offer chance would be 0.4256 (Task 10's figure).
+    // hidden ratings), 0.3668 for an offer and a mean score of 50.85. Each seed hides its own ratings and draws its
+    // own noise and rivals. Every fresh world's named rival (craft 57 since Task 19) runs in Kids Comic Go!, one of the
+    // ten entrants: without it the offer chance would be 0.4256 (Task 10's figure), with a craft-50 rival 0.4091
+    // (Task 14's). All three from a separate Python script of the model (25-node pacing quadrature over the rating
+    // prior, a Poisson-binomial of 9 rivals at 47 and the named one, offer = at most 2 above or a score of 65+).
     const first = withReadyOneShot(createGame('Rin', 1000), COOKING_DRAFT, 50, 50)
-    expect(first.rival).toMatchObject({ craft: 50, magazineId: 'kids-comic' })
+    expect(first.rival).toMatchObject({ craft: 57, magazineId: 'kids-comic' })
     const f = forecastPoll(first, first.project!, 'kids-comic')
-    expect(Math.abs(f.offerChance - 0.4091)).toBeLessThanOrEqual(0.002)
+    expect(Math.abs(f.offerChance - 0.3668)).toBeLessThanOrEqual(0.002)
     const forecastMean = f.scoreDist.reduce((sum, p, score) => sum + p * score, 0)
     expect(Math.abs(forecastMean - 50.85)).toBeLessThanOrEqual(0.01)
 
@@ -183,7 +185,7 @@ describe('pitch forecast', () => {
       if (result.rank <= SERIAL_OFFER_MIN_RANK || result.score >= SERIAL_OFFER_MIN_SCORE) offers++
       scores += result.score
     }
-    expect(Math.abs(offers / n - 0.4091)).toBeLessThanOrEqual(0.04)
+    expect(Math.abs(offers / n - 0.3668)).toBeLessThanOrEqual(0.04)
     expect(Math.abs(scores / n - 50.85)).toBeLessThanOrEqual(1)
   })
 

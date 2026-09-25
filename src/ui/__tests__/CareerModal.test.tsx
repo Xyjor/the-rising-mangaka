@@ -10,7 +10,7 @@ import { CareerModal } from '../panels/CareerModal'
 
 describe('CareerModal rival section', () => {
   it('names the rival, their series and magazine, their usual scores and the head-to-head record', () => {
-    // seed 1: Iori Hayama, craft 50, "Robo Pals Go!" in Kids Comic Go! (50 - 8 to 50 + 8)
+    // seed 1: Iori Hayama, craft 57, "Robo Pals Go!" in Kids Comic Go! (57 - 8 to 57 + 8)
     const base = withPendingResult().pendingResult!
     const met = (rank: number, rivalRank: number): PollResult =>
       ({ ...base, rank, rival: { name: 'Iori Hayama', score: 50, rank: rivalRank } })
@@ -20,7 +20,7 @@ describe('CareerModal rival section', () => {
     render(<CareerModal />)
     const section = screen.getByRole('region', { name: 'Rival' })
     expect(section.textContent).toContain(
-      'Iori Hayama draws "Robo Pals Go!" for Kids Comic Go! Usually scores 42 to 58. Head to head: 2 wins, 1 loss.',
+      'Iori Hayama draws "Robo Pals Go!" for Kids Comic Go! Usually scores 49 to 65. Head to head: 2 wins, 1 loss.',
     )
   })
 

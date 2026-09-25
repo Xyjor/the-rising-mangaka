@@ -7,7 +7,7 @@ import type { ChapterResult, GameState, LogEntry, PollResult, RivalPlacing, Seri
 import { KIDS_OFFER, withReadyOneShot } from '../../test/fixtures'
 
 /**
- * Seed 1 (world 7919): rival Iori Hayama, craft 50, drawing "Robo Pals Go!" in Kids Comic Go!. No random event rolls
+ * Seed 1 (world 7919): rival Iori Hayama, craft 57, drawing "Robo Pals Go!" in Kids Comic Go!. No random event rolls
  * before day 10,000, so nothing but the rules under test moves money or fans.
  */
 function quiet(): GameState {
@@ -87,13 +87,14 @@ describe('closeYear', () => {
       moneyDelta: -19_200, fansDelta: 0, levelFrom: 1, levelTo: 2, awards: [], nearMisses: [],
       rival: {
         name: 'Iori Hayama', wins: 0, losses: 0, fromMagazine: 'kids-comic', toMagazine: 'monthly-petal',
-        craftBefore: 50, craftAfter: 54, series: 'Glasshouse Summer',
+        craftBefore: 57, craftAfter: 61, series: 'Glasshouse Summer',
       },
       rivalAward: 'rookie',
     }])
     expect(s.yearStart).toEqual({ day: 336, money: 30_800, fans: 0, level: 2, copies: 0, volumes: 0 })
-    // craft 54: the highest rival mean at most 52 is Monthly Petal's 52; FNV-1a of "rival:7919:monthly-petal" mod 3 is 2
-    expect(s.rival).toEqual({ name: 'Iori Hayama', craft: 54, magazineId: 'monthly-petal', seriesTitle: 'Glasshouse Summer' })
+    // craft 57 + 4 = 61: the highest rival mean at most 61 - 6 = 55 is Monthly Petal's 52; FNV-1a of
+    // "rival:7919:monthly-petal" mod 3 is 2
+    expect(s.rival).toEqual({ name: 'Iori Hayama', craft: 61, magazineId: 'monthly-petal', seriesTitle: 'Glasshouse Summer' })
     expect(s.awards).toEqual([])
     expect(s.reviewUnread).toBe(1)
     expect(toasts(s, start.nextLogId - 1)).toContain('Year 1 is over. No awards this year. Your year in review is on the desk.')
@@ -131,8 +132,8 @@ describe('closeYear', () => {
   })
 
   it('pays every award won, lists them in the toast, and counts the prizes in the year', () => {
-    // started on day 40 (Rookie), 8 chapters at #2 (Readers' Choice), a score of 80 (Critics'), 21,000 copies (Golden Pen)
-    const ser = archived(40, { results: chapters(60, [2, 2, 2, 2, 2, 2, 2, 2], 80), totalCopies: 21_000, volumes: 2 })
+    // started on day 40 (Rookie), 8 chapters at #2 (Readers' Choice), a score of 80 (Critics'), 38,000 copies (Golden Pen)
+    const ser = archived(40, { results: chapters(60, [2, 2, 2, 2, 2, 2, 2, 2], 80), totalCopies: 38_000, volumes: 2 })
     const g = yearOneEnd({ serials: [ser] })
     const s = closeYear(g)
     // 3,000 + 5,000 + 4,000 + 8,000 and 500 + 2,000 + 1,000 + 3,000
@@ -144,10 +145,10 @@ describe('closeYear', () => {
       { id: 'rookie', year: 1 }, { id: 'readers', year: 1 }, { id: 'critics', year: 1 }, { id: 'golden-pen', year: 1 },
     ])
     expect(s.yearReviews[0]).toMatchObject({
-      oneShots: 0, chapters: 8, volumes: 2, copies: 21_000, bestScore: 80, moneyDelta: 20_000, fansDelta: 6500,
+      oneShots: 0, chapters: 8, volumes: 2, copies: 38_000, bestScore: 80, moneyDelta: 20_000, fansDelta: 6500,
       levelFrom: 1, levelTo: 4, awards: ['rookie', 'readers', 'critics', 'golden-pen'], nearMisses: [], rivalAward: null,
     })
-    expect(s.yearStart).toEqual({ day: 336, money: 23_000, fans: 6500, level: 4, copies: 21_000, volumes: 2 })
+    expect(s.yearStart).toEqual({ day: 336, money: 23_000, fans: 6500, level: 4, copies: 38_000, volumes: 2 })
     expect(toasts(s, g.nextLogId - 1)).toContain(
       "Year 1 is over. You won the Rookie Prize, the Readers' Choice, the Critics' Prize and the Golden Pen. Your year in review is on the desk.",
     )
@@ -160,14 +161,14 @@ describe('closeYear', () => {
       s = closeYear({ ...s, day: year * 336 })
       seen.push([s.rival.craft, s.rival.magazineId, s.rival.seriesTitle])
     }
-    // 50 Kids; 54 and 58 Petal; 62 Bolt; 66 and up Ultra (highest rival mean at most craft - 2)
+    // 57 Kids; 61 Petal; 65 Bolt; 69 and up Ultra (highest rival mean at most craft - 6); 77 is capped at 76
     expect(seen).toEqual([
-      [54, 'monthly-petal', 'Glasshouse Summer'],
-      [58, 'monthly-petal', 'Glasshouse Summer'],
-      [62, 'weekly-bolt', 'Crimson Fang Academy'],
-      [66, 'ultra-seinen', 'The Quiet Prosecutor'],
-      [70, 'ultra-seinen', 'The Quiet Prosecutor'],
-      [74, 'ultra-seinen', 'The Quiet Prosecutor'],
+      [61, 'monthly-petal', 'Glasshouse Summer'],
+      [65, 'weekly-bolt', 'Crimson Fang Academy'],
+      [69, 'ultra-seinen', 'The Quiet Prosecutor'],
+      [73, 'ultra-seinen', 'The Quiet Prosecutor'],
+      [76, 'ultra-seinen', 'The Quiet Prosecutor'],
+      [76, 'ultra-seinen', 'The Quiet Prosecutor'],
       [76, 'ultra-seinen', 'The Quiet Prosecutor'],
       [76, 'ultra-seinen', 'The Quiet Prosecutor'],
     ])
@@ -177,7 +178,7 @@ describe('closeYear', () => {
       'Iori Hayama moved up to Ultra Seinen with a new series, "The Quiet Prosecutor".',
     ])
     expect(s.yearReviews.map((r) => [r.year, r.rival.craftBefore, r.rival.craftAfter])).toEqual([
-      [1, 50, 54], [2, 54, 58], [3, 58, 62], [4, 62, 66], [5, 66, 70], [6, 70, 74], [7, 74, 76], [8, 76, 76],
+      [1, 57, 61], [2, 61, 65], [3, 65, 69], [4, 69, 73], [5, 73, 76], [6, 76, 76], [7, 76, 76], [8, 76, 76],
     ])
   })
 
@@ -319,30 +320,31 @@ describe("the Critics' Prize", () => {
 })
 
 describe('the Golden Pen', () => {
-  it('goes to 21,000 copies sold this year: ¥8,000, 3,000 fans, 200 XP at the close', () => {
-    const g = yearTwoEnd({ day: 671, serials: [archived(400, { totalCopies: 21_000, volumes: 2 })] })
+  it('goes to 37,000 copies sold this year, the bar itself: ¥8,000, 3,000 fans, 200 XP at the close', () => {
+    const g = yearTwoEnd({ day: 671, serials: [archived(400, { totalCopies: 37_000, volumes: 2 })] })
     const s = tick(g)
     // day 672 is a weekly-cost day: 3,000 - 400 + 8,000
     expect(s.player.money).toBe(10_600)
     expect(s.player.fans).toBe(3000)
     expect(s.awards).toEqual([{ id: 'golden-pen', year: 2 }])
-    expect(s.yearReviews[0]).toMatchObject({ year: 2, copies: 21_000, volumes: 2, awards: ['golden-pen'], nearMisses: [] })
+    expect(s.yearReviews[0]).toMatchObject({ year: 2, copies: 37_000, volumes: 2, awards: ['golden-pen'], nearMisses: [] })
   })
 
-  it('is a near miss from 12,000 copies, and nothing at 11,999', () => {
+  it('is a near miss from 22,000 copies up to 36,999, and nothing at 21,999', () => {
     const pen = (totalCopies: number) => buildYearReview(yearTwoEnd({ serials: [archived(400, { totalCopies })] }))
-    expect(pen(12_000).nearMisses).toEqual([{ id: 'golden-pen', have: 12_000, need: 20_000 }])
-    expect(pen(11_999).nearMisses).toEqual([])
+    expect(pen(36_999)).toMatchObject({ awards: [], nearMisses: [{ id: 'golden-pen', have: 36_999, need: 37_000 }] })
+    expect(pen(22_000).nearMisses).toEqual([{ id: 'golden-pen', have: 22_000, need: 37_000 }])
+    expect(pen(21_999).nearMisses).toEqual([])
   })
 
   it('counts only the copies sold since the year began, across the running serial and the archive', () => {
     const s = yearTwoEnd({
       yearStart: { day: 336, money: 3000, fans: 0, level: 1, copies: 10_000, volumes: 1 },
       serials: [archived(100, { totalCopies: 10_000, volumes: 1 })],
-      serial: { ...archived(400, { id: 9, totalCopies: 15_000, volumes: 2 }), status: 'running', endedDay: null },
+      serial: { ...archived(400, { id: 9, totalCopies: 30_000, volumes: 2 }), status: 'running', endedDay: null },
     })
-    // 25,000 sold in all, 10,000 of them before the year began
-    expect(buildYearReview(s)).toMatchObject({ copies: 15_000, volumes: 2, awards: [], nearMisses: [{ id: 'golden-pen', have: 15_000, need: 20_000 }] })
+    // 40,000 sold in all (enough to win), 10,000 of them before the year began: this year's 30,000 is a near miss
+    expect(buildYearReview(s)).toMatchObject({ copies: 30_000, volumes: 2, awards: [], nearMisses: [{ id: 'golden-pen', have: 30_000, need: 37_000 }] })
   })
 })
 
@@ -408,6 +410,12 @@ describe('award data', () => {
       ['readers', "Readers' Choice", 5000, 2000, 150],
       ['critics', "Critics' Prize", 4000, 1000, 150],
       ['golden-pen', 'Golden Pen', 8000, 3000, 200],
+    ])
+  })
+
+  it("has the bars to win and to miss narrowly; the Golden Pen's are 37,000 and 22,000 copies (Task 19, Package A)", () => {
+    expect(AWARDS.map((a) => [a.id, a.need, a.near])).toEqual([
+      ['rookie', 1, 3], ['readers', 3, 4.5], ['critics', 75, 68], ['golden-pen', 37_000, 22_000],
     ])
   })
 })

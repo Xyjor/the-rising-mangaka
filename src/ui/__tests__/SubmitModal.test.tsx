@@ -32,13 +32,15 @@ beforeEach(() => {
 describe('SubmitModal forecast lines', () => {
   it('shows the likely score, rank, offer odds, pay and rival spread for each magazine', () => {
     render(<SubmitModal />)
-    // the forecast test's worked example with the named rival: Kids Comic Go!, the rival at 50 and 9 rivals at 47
+    // the forecast test's worked example with the named rival: Kids Comic Go!, the rival at 57 and 9 rivals at 47.
+    // Re-derived for Task 19 with a separate Python script of the model (it gives Task 14's 0.4444, 1,395.2 and 0.6008
+    // with the rival at 50): score and rank ranges unchanged, offer 0.3475 (possible, under 0.4), expected pay 1,329.04
     const kids = card(/Kids Comic Go!/)
     expect(kids.getByText('Likely score 52 to 53. Likely rank #2 to #6 of 11.')).toBeTruthy()
-    // offer 0.4444
-    expect(kids.getByText('Serial offer: likely, 44%.')).toBeTruthy()
-    // expected pay 1,395.2, range 803 (51, last) to 2,385 (53, first)
-    expect(kids.getByText('Pays about ¥1,395 (¥803 to ¥2,385).')).toBeTruthy()
+    // offer 0.3475
+    expect(kids.getByText('Serial offer: possible, 35%.')).toBeTruthy()
+    // expected pay 1,329.0, range 803 (51, last) to 2,385 (53, first)
+    expect(kids.getByText('Pays about ¥1,329 (¥803 to ¥2,385).')).toBeTruthy()
     // 47 - 8 to 47 + 8
     expect(kids.getByText('Rivals usually score 39 to 55.')).toBeTruthy()
     // Weekly Bolt: a kids manga for teen readers scores about 47 against 12 rivals at 58
@@ -48,12 +50,13 @@ describe('SubmitModal forecast lines', () => {
   })
 
   it('marks the magazine the named rival runs in, with the chance to beat them', () => {
-    // seed 1's rival is Iori Hayama, craft 50, in Kids Comic Go! in year one; beat chance 0.6008
-    expect(useStore.getState().game!.rival).toMatchObject({ name: 'Iori Hayama', magazineId: 'kids-comic' })
+    // seed 1's rival is Iori Hayama, craft 57, in Kids Comic Go! in year one; beat chance 0.2682 (the sum over the
+    // 52-and-53 score spread of Phi((score - 57) / 8))
+    expect(useStore.getState().game!.rival).toMatchObject({ name: 'Iori Hayama', craft: 57, magazineId: 'kids-comic' })
     render(<SubmitModal />)
     const kids = card(/Kids Comic Go!/)
     expect(kids.getByText('Rival: Iori Hayama')).toBeTruthy()
-    expect(kids.getByText('Beat Iori: 60%.')).toBeTruthy()
+    expect(kids.getByText('Beat Iori: 27%.')).toBeTruthy()
     for (const name of [/Weekly Bolt/, /Monthly Petal/, /Ultra Seinen/]) {
       expect(card(name).queryByText(/Rival:/)).toBeNull()
       expect(card(name).queryByText(/^Beat /)).toBeNull()

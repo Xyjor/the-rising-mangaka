@@ -80,9 +80,9 @@ describe('store auto-pause', () => {
   })
 
   it('stops the clock once when an anime offer lands, and signing clears the desk card', () => {
-    // a Kids Comic Go! serial accepted on day 0 at the offer line: popularity 70, 15,000 copies sold
+    // a Kids Comic Go! serial accepted on day 0 at the offer line: popularity 70, 37,000 copies sold
     const g = acceptOffer({ ...createGame('Rin', 9), pendingOffer: KIDS_OFFER })
-    load({ ...g, serial: { ...g.serial!, popularity: 70, totalCopies: 15_000 } })
+    load({ ...g, serial: { ...g.serial!, popularity: 70, totalCopies: 37_000 } })
     const st = useStore.getState()
     st.tick()
     expect(useStore.getState().game!.animeOffer).toEqual({ serialId: g.serial!.id, expiresDay: 15 })

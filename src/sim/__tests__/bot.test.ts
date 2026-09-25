@@ -105,9 +105,10 @@ describe('balance bot', () => {
     const plan = SENSIBLE.planDraft(s)
     expect(plan.draft).toMatchObject({ genre: 'fantasy', theme: 'magic', audience: 'kids' })
     // art focus at Kids Comic Go! (40 x 1.25 = 50, 34 x 0.8 = 27.2): 50x35 + 27x15 + 30x10 + 80x20 + 100x20 = 6055
-    // at pacing 30 (61), a forecast of 60 to 61 against 9 rivals at 47 and the named rival at 50 (seed 42's year-one
-    // rival runs there): at 61 each finishes above with 1 - Phi(14 / 8) = 0.04, the named rival with 1 - Phi(11 / 8)
-    // = 0.085, so at most 2 of 10 above (a top-3 finish) is about 0.99. The best of the rest, Monthly
+    // at pacing 30 (61), a forecast of 60 to 61 against 9 rivals at 47 and the named rival at 57 (seed 42's year-one
+    // rival runs there): at 61 each finishes above with 1 - Phi(14 / 8) = 0.04, the named rival with 1 - Phi(4 / 8)
+    // = 0.31, so 3 or more of 10 above is about 0.31 x 0.048 + 0.69 x 0.0045 = 0.018 and a top-3 finish about 0.98
+    // (0.99 with the craft-50 rival before Task 19). The best of the rest, Monthly
     // Petal (story focus: art 32, story 43) with magic for young adults untested, scores (4285 + 20 x fit) / 100 = 47,
     // 51, 55, 59 or 63 over the five fit ratings; a top-3 finish against 8 rivals at 52 is then about 0.006, 0.09,
     // 0.42, 0.82 or 0.98, which the prior 0.15/0.25/0.3/0.2/0.1 weighs to about 0.41
@@ -160,7 +161,7 @@ describe('balance bot', () => {
     // pacing 30, both pairings untested, 25 off fit outside teens. The middle case (both pairings Good, 60) against each
     // field, so Kids Comic Go! has the best odds of a top-3 finish:
     // Kids   39x35 + 33x15 + 30x10 + 35x20 + 60x20 = 4060 -> 41 against rivals at 47 (6 short, the closest; one of
-    //        the ten is the named rival at 50)
+    //        the ten is the named rival at 57)
     // Bolt   39x35 + 33x15 + 30x20 + 60x10 + 60x20 = 4260 -> 43 against 58 (15 short)
     // Petal  39x15 + 33x35 + 30x10 + 35x20 + 60x20 = 3940 -> 39 against 52 (13 short)
     // Ultra  39x15 + 33x35 + 30x20 + 35x10 + 60x20 = 3890 -> 39 against 62 (23 short)
@@ -397,7 +398,8 @@ describe('balance bot', () => {
     // Kids   {39,35,27,55,100}: 39x35 + 35x15 + 27x10 + 55x20 + 100x20 = 5260 -> 53, 3 of 10 above (58.8, 57.4, 55.6;
     //        the next is 52.6; rank 4). Task 14: entrant 0 is the named rival (craft 50, not 47), the same draw 3 higher:
     //        48.3 -> 51.3, still under 53. The rival: 5 others above 51.3 (58.8 57.4 55.6 52.6 51.9) and the player,
-    //        so #7 with 51.
+    //        so #7 with 51. Task 19: craft 57, the same draw 10 higher: 48.3 -> 58.3, above 53, so 4 above the player
+    //        (58.8, 58.3, 57.4, 55.6): rank 5. The rival: only 58.8 above 58.3, so #2 with 58.
     // Petal  {42,34,26,15,20}:  42x15 + 34x35 + 26x10 + 15x20 + 20x20  = 2780 -> 28, all 8 rivals above (rank 9)
     // Ultra  {41,35,29,55,80}:  41x15 + 35x35 + 29x20 + 55x10 + 80x20  = 4570 -> 46, all 8 rivals above (lowest
     //        54.4; rank 9)
@@ -406,12 +408,13 @@ describe('balance bot', () => {
     // Kids   {40,33,27,15,100}: 40x35 + 33x15 + 27x10 + 15x20 + 100x20 = 4465 -> 45, 9 of 10 above (only 44.7 is
     //        below; rank 10). Task 14: that 44.7 was entrant 0's draw, now the rival's 47.7, above 45: all 10 above,
     //        rank 11. The rival: 9 others above 47.7 (60.0 55.9 53.7 53.4 48.4 48.1 47.9 47.9 47.8), the player below,
-    //        so #10 with 48.
+    //        so #10 with 48. Task 19: craft 57, 44.7 -> 54.7: still rank 11 for the player; the rival has only 60.0 and
+    //        55.9 above, so #3 with 55.
     // The Weekly Bolt, Monthly Petal and Ultra Seinen polls have no named rival (it runs in Kids Comic Go! in year one).
     expect(run.oneShots.slice(0, 6).map((o) => o.score)).toEqual([46, 53, 28, 46, 47, 45])
-    expect(run.oneShots.slice(0, 6).map((o) => o.rank)).toEqual([13, 4, 9, 9, 12, 11])
+    expect(run.oneShots.slice(0, 6).map((o) => o.rank)).toEqual([13, 5, 9, 9, 12, 11])
     expect(run.final.history.slice(0, 6).map((r) => r.rival && { score: r.rival.score, rank: r.rival.rank })).toEqual([
-      undefined, { score: 51, rank: 7 }, undefined, undefined, undefined, { score: 48, rank: 10 },
+      undefined, { score: 58, rank: 2 }, undefined, undefined, undefined, { score: 55, rank: 3 },
     ])
     expect(run.serials).toHaveLength(1)
     expect(run.serials[0]).toMatchObject({ magazineId: 'weekly-bolt', startedDay: run.oneShots[5].day })

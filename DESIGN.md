@@ -90,10 +90,11 @@ The named rival (below) is entrant 0 of the magazine it runs in, drawn around it
 ### Named rival
 Every world has one named rival mangaka (`rival.ts`): the name (`RIVAL_NAMES`) and series title (`RIVAL_SERIES`, three
 per magazine) come from a hash of the world seed, so making the rival consumes no RNG. A new career's rival has craft
-`RIVAL_START_CRAFT` 50. At every year end (`closeYear`, see Year end and awards) `growRival` adds
+`RIVAL_START_CRAFT` 57. At every year end (`closeYear`, see Year end and awards) `growRival` adds
 `RIVAL_YEARLY_GROWTH` 4, capped at `RIVAL_MAX_CRAFT` 76, so after n years the rival is `makeRival(worldSeed, n)`:
-craft `min(76, 50 + 4n)`. The rival runs in the magazine with the highest rivalMean at most craft − 2, else Kids
-Comic Go! (50 Kids, 54 and 58 Petal, 62 Bolt, 66 Ultra); when growth moves them, they take that magazine's series
+craft `min(76, 57 + 4n)`. The rival runs in the magazine with the highest rivalMean at most craft − 6
+(`RIVAL_FIELD_MARGIN`), else Kids Comic Go!, so they climb one magazine a year (57 Kids, 61 Petal, 65 Bolt, 69 and up
+Ultra); when growth moves them, they take that magazine's series
 (the same hash), a log line says so, and the year review tells it. In that magazine's polls (`pollField`) the rival
 takes entrant 0's draw slots, so a poll still draws `2 + entrants × 2` values and the other magazines' polls are
 unchanged. The polls and the pitch forecast share one check for whether the rival runs in a magazine (`rivalIn`).
@@ -200,37 +201,39 @@ Forecast calibration is a balance band: over year one the offer chances quoted a
 A money sink whose every effect is stated where it is sold (the Studio panel, from the desk's Studio button) and listed
 again under the reward tiles in Stats. `src/sim/studio.ts`; no RNG.
 - **Tiers.** A new career starts in the apartment. Moving goes one tier up at a time, never down, and costs the next
-  tier's move-in; the panel asks to confirm a move ("Yes, move in for ¥20,000" or "Stay here"), and the next tier's line
+  tier's move-in; the panel asks to confirm a move ("Yes, move in for ¥56,300" or "Stay here"), and the next tier's line
   says "You cannot move back down." Equipment is a single click. The tier's rent is part of the weekly costs (living + rent + salaries), and the weekly log line names
   it when it is not zero ("Weekly costs: -¥550 (living ¥400, rent ¥150)."). `hireAssistant` refuses once every desk is
   taken, on top of the rule that the bank must hold two weeks of that salary.
 
-| Tier | Desks | Rent/week | Move-in (base) | Move-in at scale 4 |
+| Tier | Desks | Rent/week | Move-in (base) | Move-in at scale 11.25 |
 |---|---|---|---|---|
 | Apartment | 1 | ¥0 | ¥0 | ¥0 |
-| Studio flat | 2 | ¥150 | ¥5,000 | ¥20,000 |
-| Studio loft | 3 | ¥350 | ¥15,000 (from the flat) | ¥60,000 (from the flat) |
+| Studio flat | 2 | ¥150 | ¥5,000 | ¥56,300 |
+| Studio loft | 3 | ¥350 | ¥15,000 (from the flat) | ¥168,800 (from the flat) |
 
 - **Equipment** is bought once and kept. A piece cannot be bought twice, without the money, or (the pen tablet) below
   the studio flat. Effects sum over everything owned; page multipliers multiply (drafting table and tablet: x1.265).
   Art and story bonuses go on the player's own samples of every working day (clamped to 100), never the assistants'.
   The page multiplier is part of `basePagesPerDay`, so the desk's pace, the ETA and the chapter deadline all include it.
 
-| Equipment | Base price | Price at scale 4 | Effect |
+| Equipment | Base price | Price at scale 11.25 | Effect |
 |---|---|---|---|
-| Coffee machine | ¥2,000 | ¥8,000 | Resting restores 3 more stamina a day (the rest branch, not trips) |
-| Daylight lamp | ¥2,500 | ¥10,000 | Art +3 on your pages |
-| Reference shelf | ¥3,000 | ¥12,000 | Story +3 on your pages |
-| Ergonomic chair | ¥4,000 | ¥16,000 | Drawing costs 1 less stamina a day (min 2); adds to an Inspiring assistant's 1 |
-| Drafting table | ¥7,000 | ¥28,000 | 10% more pages a day |
-| Pen tablet | ¥12,000, needs the flat | ¥48,000 | 15% more pages a day, art +2 |
+| Coffee machine | ¥2,000 | ¥22,500 | Resting restores 3 more stamina a day (the rest branch, not trips) |
+| Daylight lamp | ¥2,500 | ¥28,100 | Art +3 on your pages |
+| Reference shelf | ¥3,000 | ¥33,800 | Story +3 on your pages |
+| Ergonomic chair | ¥4,000 | ¥45,000 | Drawing costs 1 less stamina a day (min 2); adds to an Inspiring assistant's 1 |
+| Drafting table | ¥7,000 | ¥78,800 | 10% more pages a day |
+| Pen tablet | ¥12,000, needs the flat | ¥135,000 | 15% more pages a day, art +2 |
 
 - **Prices** go through `equipmentPrice(id)` and `moveInCost(tier)`: the base price times `EQUIPMENT_PRICE_SCALE`,
   rounded to the nearest ¥100. The panel and the tests read the helpers, never the base prices. The scale is
-  S1 / 9000 rounded to 0.25 and clamped to 0.75-4, where S1 is the sensible balance bot's median money at day 336 with
-  its shopping switched off (seeds 1-20; `npm run balance` prints it). After the square-root volume curve S1 is
-  ¥127,356, so S1 / 9000 = 14.15 and the scale is the clamp's 4. The Full studio milestone (three assistants) needs
-  the loft: ¥80,000 in move-ins at this scale (¥20,000 for the flat, ¥60,000 for the loft), then ¥350 a week.
+  S1 / 9000 rounded to 0.25 and held within 0.75-16 (`priceScale` in balance.ts), where S1 is the sensible balance
+  bot's median money at day 336 with its shopping switched off (seeds 1-20; `npm run balance` prints it). S1 is
+  ¥101,816.5, so S1 / 9000 = 11.31 and the scale is 11.25; balance.test checks the constant is the scale S1 gives, so
+  a change that moves the economy says when the prices need re-deriving. The Full studio milestone (three assistants)
+  needs the loft: ¥225,100 in move-ins at this scale (¥56,300 for the flat, ¥168,800 for the loft), then ¥350 a week
+  in rent and three salaries.
 - **Saves** from before studios start in a studio with a desk for every assistant they have (3: loft, 2: flat,
   otherwise the apartment) and no equipment.
 - `studioLook(s)` is what the studio scene will draw: the tier, its desks, the owned list itself (the same array, so
@@ -280,7 +283,7 @@ the running serial when it has shipped a volume, else the latest archived one th
 A hit serial is offered one adaptation, shown as a card on the desk and never as a popup (pillar 3). The card lists
 both studios' terms, with "Sign with Studio Kumo", "Sign with Hoshi Animation" and "Not now", and says how many days
 are left to answer. `src/sim/anime.ts`; no RNG.
-- **The offer.** Checked every day (`animeTick`): a running serial with popularity 70 or more and 15,000 or more
+- **The offer.** Checked every day (`animeTick`): a running serial with popularity 70 or more and 37,000 or more
   copies sold across its volumes, never offered one before (`animeOfferedFor`), with no offer waiting and no earlier
   deal short of its tail's end (`day <= tailEndsDay`: signed and waiting to air, on air, or in its volume boost). One
   adaptation at a time. It toasts, pauses the clock once, and stands for 14 days
@@ -337,7 +340,10 @@ Every `DAYS_PER_YEAR` (336) days the year closes: `closeYear` (`src/sim/year.ts`
 | Rookie Prize (year 1 only) | a serial started, or a #1 one-shot | best one-shot #3 or better | ¥3,000, 500 fans, 100 XP |
 | Readers' Choice | a serial with ≥ 8 results this year, average rank ≤ 3.0 | average ≤ 4.5 | ¥5,000, 2,000 fans, 150 XP |
 | Critics' Prize | best score this year ≥ 75 (one-shots and chapters) | ≥ 68 | ¥4,000, 1,000 fans, 150 XP |
-| Golden Pen | copies sold this year ≥ 20,000 | ≥ 12,000 | ¥8,000, 3,000 fans, 200 XP |
+| Golden Pen | copies sold this year ≥ 37,000 | ≥ 22,000 | ¥8,000, 3,000 fans, 200 XP |
+
+On screen each award's rule is worded from its bar (`awardRule` in ui/labels.ts: "a poll score of 75 or more",
+"37,000 copies sold in the year"), so the copy follows the data.
 
 - **The close.** The year is judged once. Its prizes are paid (money, fans, and XP through `grantXp`; a log line
   each), and that same judgment is filed as the review (`yearReviews`, `reviewUnread` = its year) with the prizes
@@ -347,12 +353,12 @@ Every `DAYS_PER_YEAR` (336) days the year closes: `closeYear` (`src/sim/year.ts`
   best score, money and fans gained, the level before and after, the awards, the near misses, and the rival's year
   (this year's head to head, craft and magazine before and after). A fresh career left alone for year one pays 48
   weeks of living costs (days 7 to 336): −¥19,200, no awards, and the rival takes the Rookie Prize and moves up to
-  Monthly Petal at craft 54.
+  Monthly Petal at craft 61.
 - **On screen.** One toast: "Year 1 is over. You won the Rookie Prize. Your year in review is on the desk." (or "No
   awards this year"). The year end never pauses the clock. The review waits on the desk as a card ("Year 1 in review:
   2 awards, 1 near miss.", "Read the year review") until the review modal is opened, which marks it read. The modal
   shows the year in numbers, the awards with their prizes and what wins them (or, with none, what to aim for next
-  year), the near misses ("Golden Pen: 12,400 copies of 20,000."), and the rival's year. Career lists every award won
+  year), the near misses ("Golden Pen: 24,800 copies of 37,000."), and the rival's year. Career lists every award won
   and a line for each past year. `studioLook`'s `trophies` is the awards list itself (one trophy per entry, the
   same reference every call), for the scene.
 - **Saves** from before the year end start their year on its first day (`floor(day / 336) × 336`) with the current
@@ -451,11 +457,11 @@ export them.
 (`--detail` adds every one-shot and chapter of that seed). The runs, the row measurements and the targets (`BANDS`)
 live in `src/sim/balance.ts`; the script prints them and `src/sim/__tests__/balance.test.ts` asserts them (the bots run
 once per test file), so the readout and the test cannot disagree. Each seed is played three ways: year one (336 days)
-for weeks in debt, calibration and every Package 2 row; up to the 6th one-shot (at most three years) for the first
-score, the first offer, the first-six mean and the money at the 6th; until the first serial ends or reaches 8 results
-(at most three years). The stress case plays 480 days. Two lines only the script prints: anime offers within two
-years (the sensible bot played until its first offer, at most 672 days) and S1 (the sensible bot's money at day 336
-with its shopping switched off), which sets `EQUIPMENT_PRICE_SCALE`.
+for weeks in debt, calibration and the Package 2 rows but anime; up to the 6th one-shot (at most three years) for the
+first score, the first offer, the first-six mean and the money at the 6th; until the first serial ends or reaches 8
+results (at most three years). The stress case plays 480 days. Two more runs per seed: the sensible bot until its first
+anime offer (at most 672 days) for the anime row, and year one with its shopping switched off for S1, the money that
+sets `EQUIPMENT_PRICE_SCALE` (balance.test checks the constant matches it).
 
 ### Balance bands (seeds 1 to 20)
 
@@ -474,7 +480,7 @@ with its shopping switched off), which sets `EQUIPMENT_PRICE_SCALE`.
 | 2 | Rival met in year one (sensible) | ≥ 16/20; bot wins 35–75% of meetings (all seeds pooled) |
 | 2 | Award or near miss in year one (sensible) | ≥ 16/20; Golden Pen in year one ≤ 5/20 |
 | 2 | Equipment owned at day 336 (sensible, buying) | 2–3 items on ≥ 12/20 |
-| 2, script only | Anime offer within two years (sensible) | 6–16 of 20 |
+| 2 | Anime offer within two years (sensible) | 6–16 of 20 |
 
 balance.test thresholds change only with owner sign-off. When a rule change pushes a row out of its band, tune a
 knob, not the threshold, in this order: the Kids Comic Go! rival mean (45–49), `SERIAL_GRACE_CHAPTERS` (4–6), Kids
@@ -488,9 +494,13 @@ the starting stats, the page noise and the hidden ratings, so the first-score ro
 Package 1 raised the starting art from 38 to 40 (story 34 and pacing 30 unchanged): the median first score on seeds
 1–20 went from 43 to 44 and over seeds 1–100 from 47 to 48, the middle of the band.
 
-Package 2 re-asserts every Package 1 row and adds its own. On seeds 1–20 every Package 1 row passes, and of the
-Package 2 rows the events (11.1 a year, 8 to 15 per seed), the rival met (20/20) and an award or near miss (20/20)
-pass. Three parts are out of band and not asserted yet: the sensible bot wins 87% of its year-one meetings with the
-rival, the Golden Pen goes to 18 of 20 in year one, and the bot owns 4 or 5 pieces of equipment at day 336 (the scale
-is clamped at 4 while S1 / 9000 is 14.15); anime offers come within two years on 20 of 20 (all in year one, days 211
-to 310). No knob in the list above reaches them: the fix is an owner decision.
+Package 2 re-asserts every Package 1 row and adds its own; balance.test asserts all of them, the anime row included
+(the file runs in about 2 seconds). The square-root volume curve and the listed knobs left the sensible bot's first
+Kids Comic Go! serial a runaway hit: #1 or #2 on most chapters, 5 volumes and 30,000 to 45,000 copies in year one, S1
+¥127,356. So Package 2 moved four constants instead (the owner's ruling, "Package A"): the anime offer needs 37,000
+copies (was 15,000), the Golden Pen 37,000 with a near miss from 22,000 (was 20,000 and 12,000), the rival starts at
+craft 57 with a field margin of 6 (was 50 and 2), and the price scale follows S1 / 9000 within 0.75-16 (was clamped at
+4). On seeds 1–20 every row then passes: events 11.1 a year (8 to 15 per seed), the rival met on 20/20 and beaten in
+71% of year-one meetings, an award or near miss on 20/20 and the Golden Pen on 2/20, 2 or 3 pieces of equipment at day
+336 on 18/20, and anime offers within two years on 12/20 (days 507 to 574). The cause stays a candidate for a later,
+root-level retune (the pace of year one: XP, chapter fans or chapter pay).

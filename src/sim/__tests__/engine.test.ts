@@ -427,7 +427,7 @@ describe('chapter deadlines', () => {
   it('cancels after a missed issue and two weak chapters, naming the warnings in a row', () => {
     // Seed 4 rates Sports x Vampires and Vampires for Kids both Bad (20). Chapters drawn at quality 0 by a stats-5
     // mangaka score about (0 x 35 + 0 x 15 + 5 x 10 + 20 x 20 + 20 x 20) / 100 = 8.5, some 5 sd under Kids Comic Go!'s
-    // rivals at 47 and the named rival at 50 (sd 8): last of 11, so weak (rank above ceil(0.7 x 11) = 8).
+    // rivals at 47 and the named rival at 57 (sd 8): last of 11, so weak (rank above ceil(0.7 x 11) = 8).
     const s0 = withStats(kidsSerialWithResults(4), 5)
     const weak = (chapter: number, resultsDay: number): PendingChapter =>
       ({ chapter, pages: CHAPTER_PAGES, artQ: 0, storyQ: 0, submittedDay: resultsDay - 7, resultsDay })

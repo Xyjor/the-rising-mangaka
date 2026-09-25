@@ -16,11 +16,11 @@ const CARD = 'Year 1 in review: 2 awards, 1 near miss.'
 /** Year one of seed 1 (rival Iori Hayama): the Rookie Prize and the Critics' Prize won, the Golden Pen missed. */
 const REVIEW: YearReview = {
   year: 1, oneShots: 4, bestOneShot: { title: 'Blade Club', rank: 1, entrants: 13, score: 71 }, chapters: 9, volumes: 2,
-  copies: 12_400, bestScore: 77, moneyDelta: 14_250, fansDelta: 3400, levelFrom: 1, levelTo: 4,
-  awards: ['rookie', 'critics'], nearMisses: [{ id: 'golden-pen', have: 12_400, need: 20_000 }],
+  copies: 24_800, bestScore: 77, moneyDelta: 14_250, fansDelta: 3400, levelFrom: 1, levelTo: 4,
+  awards: ['rookie', 'critics'], nearMisses: [{ id: 'golden-pen', have: 24_800, need: 37_000 }],
   rival: {
     name: 'Iori Hayama', wins: 3, losses: 2, fromMagazine: 'kids-comic', toMagazine: 'monthly-petal',
-    craftBefore: 50, craftAfter: 54, series: 'Glasshouse Summer',
+    craftBefore: 57, craftAfter: 61, series: 'Glasshouse Summer',
   },
   rivalAward: null,
 }
@@ -81,7 +81,7 @@ describe('YearModal', () => {
     ])
     expect(tiles).toEqual([
       ['+¥14,250', 'Money'], ['+3,400', 'Fans'], ['1 to 4', 'Level'], ['4', 'One-shots'], ['9', 'Chapters'],
-      ['2', 'Volumes'], ['12.4k', 'Copies sold'], ['77', 'Best score'],
+      ['2', 'Volumes'], ['24.8k', 'Copies sold'], ['77', 'Best score'],
     ])
     expect(screen.getByText('Best one-shot: "Blade Club", #1 of 13 with a score of 71.')).toBeTruthy()
     const awards = within(screen.getByRole('region', { name: 'Awards' })).getAllByRole('listitem').map((li) => li.textContent)
@@ -90,10 +90,11 @@ describe('YearModal', () => {
       "Critics' Prize: +¥4,000, +1,000 fans, +150 XP. Won for a poll score of 75 or more.",
     ])
     const near = within(screen.getByRole('region', { name: 'Near misses' })).getAllByRole('listitem').map((li) => li.textContent)
-    expect(near).toEqual(['Golden Pen: 12,400 copies of 20,000.'])
+    expect(near).toEqual(['Golden Pen: 24,800 copies of 37,000.'])
+    // craft 61 plus or minus RIVAL_SCORE_SD 8
     expect(screen.getByRole('region', { name: 'Rival' }).textContent).toContain(
-      'Head to head this year: 3 wins, 2 losses. Iori Hayama\'s craft grew from 50 to 54, so they move up to Monthly Petal '
-      + 'with a new series, "Glasshouse Summer". They usually score 46 to 62 now.',
+      'Head to head this year: 3 wins, 2 losses. Iori Hayama\'s craft grew from 57 to 61, so they move up to Monthly Petal '
+      + 'with a new series, "Glasshouse Summer". They usually score 53 to 69 now.',
     )
   })
 
@@ -117,7 +118,7 @@ describe('YearModal', () => {
     expect(within(awards).getAllByRole('listitem').map((li) => li.textContent)).toEqual([
       "Readers' Choice: a serial with 8 or more chapter results in the year, averaging rank 3.0 or better.",
       "Critics' Prize: a poll score of 75 or more.",
-      'Golden Pen: 20,000 copies sold in the year.',
+      'Golden Pen: 37,000 copies sold in the year.',
     ])
     const near = within(screen.getByRole('region', { name: 'Near misses' })).getAllByRole('listitem').map((li) => li.textContent)
     expect(near).toEqual([

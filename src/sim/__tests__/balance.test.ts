@@ -1,10 +1,10 @@
 import { beforeAll, describe, expect, it } from 'vitest'
-import { createGame } from '../index'
+import { EQUIPMENT_PRICE_SCALE, createGame } from '../index'
 import type { AwardId, GameState, YearReview } from '../index'
 import type { BotRun, BotSerial } from '../bot'
 import {
-  BANDS, calibration, calibrationError, countIn, meanOf, measureP1, measureP2, median, offerInOpening, runBalance,
-  shortOfOpening, winShare,
+  BANDS, calibration, calibrationError, countIn, firstAnimeOffer, meanOf, measureP1, measureP2, median,
+  moneyBuyingNothing, offerInOpening, priceScale, runBalance, shortOfOpening, winShare,
 } from '../balance'
 import type { BalanceRuns, P1Measures, P2Measures } from '../balance'
 
@@ -16,11 +16,16 @@ const SEEDS = Array.from({ length: 20 }, (_, i) => i + 1)
 describe('balance bands (seeds 1-20)', { timeout: 30000 }, () => {
   let m: P1Measures
   let m2: P2Measures
-  // Every bot run the rows read, played once: the sensible and careless bots three ways each, the stress case once.
+  let animeDays: (number | null)[]
+  let s1: number | null
+  // Every bot run the rows read, played once: the sensible and careless bots three ways each, the stress case once,
+  // the sensible bot until its first anime offer (at most two years), and year one buying nothing (S1).
   beforeAll(() => {
     const runs = runBalance(SEEDS)
     m = measureP1(runs)
     m2 = measureP2(runs)
+    animeDays = firstAnimeOffer(SEEDS)
+    s1 = median(moneyBuyingNothing(SEEDS))
   }, 30000)
 
   describe('Package 1', () => {
@@ -83,32 +88,35 @@ describe('balance bands (seeds 1-20)', { timeout: 30000 }, () => {
     })
 
     const rival = BANDS.rival
-    it(`rival met in year one on at least ${rival.metAtLeast} of 20`, () => {
+    it(`rival met in year one on at least ${rival.metAtLeast} of 20; the bot wins ${rival.winShareLow * 100}-${rival.winShareHigh * 100}% of the meetings`, () => {
       expect(m2.rival.filter((r) => r.wins + r.losses > 0).length).toBeGreaterThanOrEqual(rival.metAtLeast)
-    })
-
-    const awards = BANDS.awards
-    it(`award or near miss in year one on at least ${awards.atLeast} of 20`, () => {
-      expect(m2.awards.filter((a) => a.won.length + a.near.length > 0).length).toBeGreaterThanOrEqual(awards.atLeast)
-    })
-
-    // Out of band on seeds 1-20 at this commit: the bot wins 87% of its meetings, the Golden Pen goes to 18 of 20, and
-    // the bot owns 4 or 5 pieces on every seed (the price scale is clamped at 4 while S1 / 9000 is 14.15). No listed
-    // knob reaches them; the fix is an owner decision (Task 19 report, "Needs a decision"). Unskip once it is made.
-    it.skip(`the bot wins ${rival.winShareLow * 100}-${rival.winShareHigh * 100}% of its meetings with the rival in year one`, () => {
       const share = winShare(m2.rival)
       expect(share).not.toBeNull()
       expect(share!).toBeGreaterThanOrEqual(rival.winShareLow)
       expect(share!).toBeLessThanOrEqual(rival.winShareHigh)
     })
 
-    it.skip(`the Golden Pen in year one on at most ${awards.goldenPenAtMost} of 20`, () => {
+    const awards = BANDS.awards
+    it(`award or near miss in year one on at least ${awards.atLeast} of 20; the Golden Pen in year one on at most ${awards.goldenPenAtMost}`, () => {
+      expect(m2.awards.filter((a) => a.won.length + a.near.length > 0).length).toBeGreaterThanOrEqual(awards.atLeast)
       expect(m2.awards.filter((a) => a.won.includes('golden-pen')).length).toBeLessThanOrEqual(awards.goldenPenAtMost)
     })
 
     const kit = BANDS.equipment
-    it.skip(`equipment owned at day 336 (sensible, buying): ${kit.low}-${kit.high} pieces on at least ${kit.atLeast} of 20`, () => {
+    it(`equipment owned at day 336 (sensible, buying): ${kit.low}-${kit.high} pieces on at least ${kit.atLeast} of 20`, () => {
       expect(countIn(m2.equipment, kit.low, kit.high)).toBeGreaterThanOrEqual(kit.atLeast)
+    })
+
+    const anime = BANDS.anime
+    it(`anime offer within two years (sensible) on ${anime.low}-${anime.high} of 20`, () => {
+      const offered = animeDays.filter((d) => d !== null).length
+      expect(offered).toBeGreaterThanOrEqual(anime.low)
+      expect(offered).toBeLessThanOrEqual(anime.high)
+    })
+
+    it('the equipment price scale is the one S1 gives: S1 / 9000 rounded to 0.25, within 0.75-16', () => {
+      expect(s1).not.toBeNull()
+      expect(EQUIPMENT_PRICE_SCALE).toBe(priceScale(s1!))
     })
   })
 })
@@ -263,6 +271,15 @@ describe('balance measurements', () => {
 })
 
 describe('balance measurements, Package 2', () => {
+  it('priceScale is S1 / 9000 to the nearest quarter, held within 0.75 and 16', () => {
+    // 101,816.5 / 9000 = 11.313; x 4 = 45.25, rounds to 45: 11.25
+    expect(priceScale(101_816.5)).toBe(11.25)
+    // 127,356 / 9000 = 14.151; x 4 = 56.6, rounds to 57: 14.25
+    expect(priceScale(127_356)).toBe(14.25)
+    // 9,000 is exactly 1; 3,000 would be 0.33, held at 0.75; 180,000 would be 20, held at 16
+    expect([9000, 3000, 180_000].map(priceScale)).toEqual([1, 0.75, 16])
+  })
+
   it('countIn counts the values inside a band, both ends included, never a missing one', () => {
     // 40, 55 and 47 are in 40-55; 39 and 56 are just outside
     expect(countIn([40, 55, 39, 56, null, 47], 40, 55)).toBe(3)

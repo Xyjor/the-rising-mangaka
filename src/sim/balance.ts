@@ -10,8 +10,8 @@ import type { AwardId, GameState } from './types'
 
 /**
  * The balance-band table's targets, judged over 20 seeds (seeds 1 to 20): counts are out of 20. balance.test.ts asserts
- * every row but the anime one, which only the script reports. These change only with owner sign-off: when a rule
- * change pushes a row out of its band, tune a knob (DESIGN.md lists them) and record the change, never these numbers.
+ * every row and scripts/balance.ts prints them. These change only with owner sign-off: when a rule change pushes a row
+ * out of its band, tune a knob (DESIGN.md lists them) and record the change, never these numbers.
  */
 export const BANDS = {
   // Package 1
@@ -42,7 +42,7 @@ export const BANDS = {
   awards: { atLeast: 16, goldenPenAtMost: 5 },
   /** sensible bot (buying), low-high pieces of equipment owned at day 336 */
   equipment: { low: 2, high: 3, atLeast: 12 },
-  /** sensible bot, an anime offer within two years (script only) */
+  /** sensible bot, an anime offer within two years */
   anime: { low: 6, high: 16 },
 } as const
 
@@ -239,17 +239,26 @@ export function winShare(records: { wins: number; losses: number }[]): number | 
   return meetings ? wins / meetings : null
 }
 
-// ---------- reported by the script only ----------
+// ---------- the anime row and the price scale ----------
 
 /** The sensible bot with its shopping switched off: no equipment, no move. */
 export const SENSIBLE_BUYING_NOTHING: BotPolicy = { ...SENSIBLE, name: 'sensible, buying nothing', shops: false }
 
 /**
  * Money at day 336 for the sensible bot buying nothing, per seed. Its median is S1, which sets
- * `EQUIPMENT_PRICE_SCALE` (S1 / 9000 rounded to 0.25 and clamped to 0.75-4; DESIGN.md "Studio and equipment").
+ * `EQUIPMENT_PRICE_SCALE` through `priceScale` (DESIGN.md "Studio and equipment").
  */
 export function moneyBuyingNothing(seeds: number[]): number[] {
   return seeds.map((seed) => runBot(seed, SENSIBLE_BUYING_NOTHING, { days: YEAR }).final.player.money)
+}
+
+/** The lowest and highest the equipment price scale may be. */
+const PRICE_SCALE_MIN = 0.75
+const PRICE_SCALE_MAX = 16
+
+/** The equipment price scale S1 gives: S1 / 9000 rounded to the nearest 0.25, held within 0.75 and 16. */
+export function priceScale(s1: number): number {
+  return Math.min(PRICE_SCALE_MAX, Math.max(PRICE_SCALE_MIN, Math.round((s1 / 9000) * 4) / 4))
 }
 
 /** The day of the sensible bot's first anime offer within two years, per seed (null when none came). */

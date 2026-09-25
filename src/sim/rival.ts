@@ -6,10 +6,13 @@ import { MAGAZINES, RIVAL_MAX_CRAFT, RIVAL_NAMES, RIVAL_SERIES, RIVAL_START_CRAF
 import { hashString } from './rng'
 import type { GameState, MagazineId, Rival, RivalPlacing } from './types'
 
-/** A rival sits this far above the field they join: the magazine with the highest rivalMean at most craft - 2. */
-const RIVAL_FIELD_MARGIN = 2
+/**
+ * A rival sits this far above the field they join: the magazine with the highest rivalMean at most craft - 6. From
+ * the starting craft 57 and +4 a year that climbs one magazine a year: Kids, Petal, Bolt, then Ultra.
+ */
+const RIVAL_FIELD_MARGIN = 6
 
-/** The magazine a rival of `craft` runs in: the highest rivalMean at most craft - 2, else Kids Comic Go!. */
+/** The magazine a rival of `craft` runs in: the highest rivalMean at most craft - 6, else Kids Comic Go!. */
 export function rivalMagazineFor(craft: number): MagazineId {
   let best: { id: MagazineId; mean: number } | null = null
   for (const m of MAGAZINES) {

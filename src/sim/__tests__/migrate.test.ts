@@ -44,16 +44,16 @@ describe('upgradeSave', () => {
 
   it('gives a save from before the rival the rival its world would have by now', () => {
     // Seed 4 (world 31676) names Touya Kagami. Day 700 is two whole years in (700 / 336 = 2.08):
-    // craft 50 + 2 x 4 = 58, and the highest rival mean at most 56 is Monthly Petal's 52.
+    // craft 57 + 2 x 4 = 65, and the highest rival mean at most 65 - 6 = 59 is Weekly Bolt's 58.
     const g = { ...createGame('Rin', 4), day: 700 } as Partial<GameState>
     delete g.rival
     const up = upgradeSave(g as GameState)
-    expect(up.rival).toMatchObject({ name: 'Touya Kagami', craft: 58, magazineId: 'monthly-petal' })
-    expect(RIVAL_SERIES['monthly-petal']).toContain(up.rival.seriesTitle)
+    expect(up.rival).toMatchObject({ name: 'Touya Kagami', craft: 65, magazineId: 'weekly-bolt' })
+    expect(RIVAL_SERIES['weekly-bolt']).toContain(up.rival.seriesTitle)
     // day 335 is still year one: the fresh rival
     const young = { ...createGame('Rin', 4), day: 335 } as Partial<GameState>
     delete young.rival
-    expect(upgradeSave(young as GameState).rival).toMatchObject({ craft: 50, magazineId: 'kids-comic' })
+    expect(upgradeSave(young as GameState).rival).toMatchObject({ craft: 57, magazineId: 'kids-comic' })
   })
 
   it('keeps the rival a newer save already has', () => {

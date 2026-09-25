@@ -128,7 +128,7 @@ function offerDue(s: GameState): Serial | undefined {
 
 /**
  * Once a day, after checkDeadline: withdraw an offer whose series stopped running, lapse one past its last day (a log
- * line), run every deal's day, then offer an adaptation to a running hit (popularity 70+, 15,000+ copies sold) that
+ * line), run every deal's day, then offer an adaptation to a running hit (popularity 70+, 37,000+ copies sold) that
  * has never been offered one, with no offer waiting and no earlier deal short of its tail's end (signed, on air, or
  * in its volume boost). Consumes no RNG.
  */
