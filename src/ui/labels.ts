@@ -1,9 +1,9 @@
 // Short words the pitch, offer, series, desk and stats screens share. Pure functions of sim data, no React.
 import {
-  MAGAZINES, PAY_FULL_RATE_SCORE, SERIAL_WARNINGS_TO_CANCEL, audienceById, genreById, magazineById, rankTier,
-  suitedFocus, themeById,
+  MAGAZINES, PAY_FULL_RATE_SCORE, SERIAL_OFFER_MIN_SCORE, SERIAL_WARNINGS_TO_CANCEL, audienceById, genreById,
+  magazineById, rankTier, suitedFocus, themeById,
 } from '../sim'
-import type { AudienceId, GenreId, MagazineId, PollResult, RankTier, ScoreBreakdown, ThemeId } from '../sim'
+import type { AudienceId, Forecast, GenreId, MagazineId, PollResult, RankTier, ScoreBreakdown, ThemeId } from '../sim'
 import { money, plural } from './format'
 
 /** How a magazine's rivals feel, from its typical rival score. */
@@ -14,6 +14,18 @@ export function rivalWord(mean: number): string {
 /** A plain word for a 0..1 chance. */
 export function oddsWord(chance: number): string {
   return chance < 0.1 ? 'a long shot' : chance < 0.4 ? 'possible' : 'likely'
+}
+
+/**
+ * The serial-offer odds on the pitch screen: "likely, 48%", "under 1%", "certain: this clears 65", or
+ * "none while "Magic Club" runs" when the running serial `serialTitle` rules an offer out. A chance short of
+ * certain never reads 100%.
+ */
+export function offerLabel(p: Pick<Forecast, 'offerChance' | 'offerBlocked'>, serialTitle = ''): string {
+  if (p.offerBlocked === 'serial') return `none while "${serialTitle}" runs`
+  if (p.offerChance >= 1 - 1e-9) return `certain: this clears ${SERIAL_OFFER_MIN_SCORE}`
+  if (p.offerChance < 0.01) return 'under 1%'
+  return `${oddsWord(p.offerChance)}, ${Math.min(99, Math.round(p.offerChance * 100))}%`
 }
 
 /** "Action, Samurai, for Teens" */

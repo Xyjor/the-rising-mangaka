@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { PollResult } from '../../sim'
-import { payWhy, warningText } from '../labels'
+import { offerLabel, payWhy, warningText } from '../labels'
 
 describe('warningText', () => {
   it('reads Safe with no warnings', () => {
@@ -54,5 +54,28 @@ describe('payWhy', () => {
     expect(payWhy({ ...podiumResult, rank: 13, entrants: 13, magazineId: 'weekly-bolt' })).toBe(
       '20 pages at ¥110, scaled by your score (52; 80 earns the full rate), times 0.7 for a weak finish.',
     )
+  })
+})
+
+describe('offerLabel', () => {
+  it('pairs the odds word with a whole-number percent', () => {
+    expect(offerLabel({ offerChance: 0.4836, offerBlocked: null })).toBe('likely, 48%')
+    expect(offerLabel({ offerChance: 0.25, offerBlocked: null })).toBe('possible, 25%')
+    expect(offerLabel({ offerChance: 0.05, offerBlocked: null })).toBe('a long shot, 5%')
+  })
+
+  it('says "under 1%" below one percent, never "0%" or a rounded-up "1%"', () => {
+    expect(offerLabel({ offerChance: 0.0099, offerBlocked: null })).toBe('under 1%')
+    expect(offerLabel({ offerChance: 0, offerBlocked: null })).toBe('under 1%')
+    expect(offerLabel({ offerChance: 0.01, offerBlocked: null })).toBe('a long shot, 1%')
+  })
+
+  it('is certain only when every outcome clears 65, and never rounds a near miss up to 100%', () => {
+    expect(offerLabel({ offerChance: 1, offerBlocked: null })).toBe('certain: this clears 65')
+    expect(offerLabel({ offerChance: 0.9996, offerBlocked: null })).toBe('likely, 99%')
+  })
+
+  it('names the running serial that blocks an offer', () => {
+    expect(offerLabel({ offerChance: 0, offerBlocked: 'serial' }, 'Magic Club')).toBe('none while "Magic Club" runs')
   })
 })

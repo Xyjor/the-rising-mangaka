@@ -177,12 +177,10 @@ function planOneShot(s: GameState): { draft: ProjectDraft; target: MagazineId } 
   return { draft: best!.draft, target: best!.preview.magazineId }
 }
 
-/** Best odds of an offer; ties go to the higher expected pay (the middle of the pay range), then the softer field. */
+/** Best forecast odds of an offer; ties go to the higher expected pay, then the softer field. */
 function betterOdds(a: SubmissionPreview, b: SubmissionPreview): boolean {
   if (a.offerChance !== b.offerChance) return a.offerChance > b.offerChance
-  const payA = a.minMoney + a.maxMoney
-  const payB = b.minMoney + b.maxMoney
-  if (payA !== payB) return payA > payB
+  if (a.expectedPay !== b.expectedPay) return a.expectedPay > b.expectedPay
   return magazineById(a.magazineId).rivalMean < magazineById(b.magazineId).rivalMean
 }
 

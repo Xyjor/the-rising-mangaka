@@ -11,10 +11,8 @@ import { clamp, draw, range } from './rng'
 import {
   evaluateChapter, evaluateProject, projectArtQuality, projectStoryQuality, rankScore, stalenessCount,
 } from './scoring'
-// previewSubmission's estimator (kept on its own lines so the import lists above merge cleanly)
-import { RIVAL_SCORE_SD } from './data'
-import { binomialAtMost, normalCdf } from './rng'
-import { estimateScore, pollPay } from './scoring'
+import { forecastPoll } from './forecast'
+import type { Forecast } from './forecast'
 import type {
   Activity, Assistant, AssistantTrait, AudienceId, EditorRel, Focus, GameState, GenreId, LogKind, Magazine,
   MagazineId, PendingChapter, Phase, PlaceId, Project, ProjectDraft, Rating, Serial, StatId, ThemeId,
@@ -166,7 +164,8 @@ export function previewCombo(
   }
 }
 
-export interface SubmissionPreview {
+/** What the pitch screen shows for one magazine: what the player knows about the manuscript, and the forecast. */
+export interface SubmissionPreview extends Forecast {
   magazineId: MagazineId
   mismatch: boolean
   art: number
@@ -175,14 +174,8 @@ export interface SubmissionPreview {
   audienceFit: Rating | null
   freshness: Rating | null
   staleness: number
-  minMoney: number
-  maxMoney: number
-  /** estimateScore: untested pairings assumed Good, no pacing noise */
-  expectedScore: number
-  /** likely finishing band (about 1.5 sd either side of the mean rank), 1..entrants+1 */
-  expectedRank: { low: number; high: number }
-  /** chance the poll ends in a serialisation offer, 0..1 */
-  offerChance: number
+  /** how many of the manuscript's two pairings the Notebook has not rated; the forecast spreads those over every rating */
+  unknownPairings: 0 | 1 | 2
 }
 
 export function previewSubmission(state: GameState, magazineId: MagazineId): SubmissionPreview | null {
@@ -190,12 +183,9 @@ export function previewSubmission(state: GameState, magazineId: MagazineId): Sub
   if (!p) return null
   const mag = magazineById(magazineId)
   const combo = previewCombo(state, p.genre, p.theme, p.audience)
-  const score = estimateScore(state, p, magazineId)
-  const pr = 1 - normalCdf((score - mag.rivalMean) / RIVAL_SCORE_SD)
-  const n = mag.entrants
-  const mean = 1 + pr * n
-  const sd = Math.sqrt(n * pr * (1 - pr))
+  const unknown = [combo.genreTheme, combo.themeAudience].filter((r) => r === null).length as 0 | 1 | 2
   return {
+    ...forecastPoll(state, p, magazineId),
     magazineId,
     mismatch: mag.audience !== p.audience,
     art: Math.round(projectArtQuality(p)),
@@ -204,14 +194,7 @@ export function previewSubmission(state: GameState, magazineId: MagazineId): Sub
     audienceFit: combo.themeAudience,
     freshness: combo.genreTheme,
     staleness: combo.staleness,
-    minMoney: pollPay(mag, p.pagesDone, score, mag.entrants + 1, mag.entrants + 1),
-    maxMoney: pollPay(mag, p.pagesDone, score, 1, mag.entrants + 1),
-    expectedScore: score,
-    expectedRank: {
-      low: clamp(Math.round(mean - 1.5 * sd), 1, n + 1),
-      high: clamp(Math.round(mean + 1.5 * sd), 1, n + 1),
-    },
-    offerChance: score >= SERIAL_OFFER_MIN_SCORE ? 1 : binomialAtMost(n, SERIAL_OFFER_MIN_RANK - 1, pr),
+    unknownPairings: unknown,
   }
 }
 

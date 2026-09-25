@@ -1,4 +1,4 @@
-import { genreThemeKey, genreThemeRating, themeAudienceKey, themeAudienceRating } from './compat'
+import { genreThemeRating, themeAudienceRating } from './compat'
 import {
   MAGAZINE_MISMATCH_PENALTY, PACING_NOISE_SD, PAY_FULL_RATE_SCORE, PODIUM_RANK, RANK_MULTIPLIER,
   RANK_MULTIPLIER_PCT, RATING_SCORE, RIVAL_SCORE_SD, SCORE_WEIGHTS, STALENESS_PENALTY, WEAK_RANK_FRACTION,
@@ -8,7 +8,7 @@ import type { RankTier } from './data'
 import { clamp, draw, gaussian } from './rng'
 import type {
   AudienceId, ChapterResult, Focus, GameState, GenreId, Magazine, MagazineId, PendingChapter, PollResult, Project,
-  ScoreBreakdown, ScoreWeights, Serial, ThemeId,
+  Rating, ScoreBreakdown, ScoreWeights, Serial, ThemeId,
 } from './types'
 
 export function projectArtQuality(p: Project): number {
@@ -88,7 +88,7 @@ function editorComment(b: ScoreBreakdown, score: number, ctx: CommentContext): s
   return `${opener} ${lines[costliest]}`
 }
 
-interface BreakdownInput {
+export interface BreakdownInput {
   artQ: number
   storyQ: number
   genre: GenreId
@@ -100,12 +100,17 @@ interface BreakdownInput {
   pacingNoise: number
 }
 
-function computeBreakdown(state: GameState, input: BreakdownInput): {
+/**
+ * A poll's five components before weighting. `ratings` stands in for the hidden genre x theme (`gt`) and theme x
+ * audience (`ta`) ratings, so the pitch forecast can try every rating an untested pairing might have without
+ * reading the real one; the polls themselves leave it out.
+ */
+export function computeBreakdown(state: GameState, input: BreakdownInput, ratings?: { gt: Rating; ta: Rating }): {
   breakdown: ScoreBreakdown; mismatch: number; staleness: number
 } {
   const mag = magazineById(input.magazineId)
-  const gt = genreThemeRating(state.worldSeed, input.genre, input.theme)
-  const ta = themeAudienceRating(state.worldSeed, input.theme, input.audience)
+  const gt = ratings?.gt ?? genreThemeRating(state.worldSeed, input.genre, input.theme)
+  const ta = ratings?.ta ?? themeAudienceRating(state.worldSeed, input.theme, input.audience)
   const mismatch = mag.audience === input.audience ? 0 : MAGAZINE_MISMATCH_PENALTY
   const staleness = input.staleness * STALENESS_PENALTY
   return {
@@ -151,25 +156,6 @@ function rankMultiplier(rank: number, entrants: number): number {
 export function pollPay(mag: Magazine, pages: number, score: number, rank: number, entrants: number): number {
   const pct = RANK_MULTIPLIER_PCT[rankTier(rank, entrants)]
   return Math.round((mag.pageRate * pages * score * pct) / (PAY_FULL_RATE_SCORE * 100))
-}
-
-/**
- * Best guess at a one-shot's poll score before it is submitted. Pure, no RNG: pacing noise is
- * ignored and pairings the player has not tested yet are assumed to rate Good.
- */
-export function estimateScore(state: GameState, project: Project, magazineId: MagazineId): number {
-  const mag = magazineById(magazineId)
-  const knownFit = state.notebook.themeAudience[themeAudienceKey(project.theme, project.audience)]
-  const knownFresh = state.notebook.genreTheme[genreThemeKey(project.genre, project.theme)]
-  const mismatch = mag.audience === project.audience ? 0 : MAGAZINE_MISMATCH_PENALTY
-  const staleness = stalenessCount(state, project.genre, project.theme) * STALENESS_PENALTY
-  return weightedScore({
-    art: Math.round(projectArtQuality(project)),
-    story: Math.round(projectStoryQuality(project)),
-    pacing: state.player.stats.pacing,
-    audienceFit: clamp((knownFit !== undefined ? RATING_SCORE[knownFit] : 60) - mismatch, 0, 100),
-    freshness: clamp((knownFresh !== undefined ? RATING_SCORE[knownFresh] : 60) - staleness, 0, 100),
-  }, mag.taste)
 }
 
 /**

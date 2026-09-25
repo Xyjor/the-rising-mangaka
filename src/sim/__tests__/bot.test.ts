@@ -100,8 +100,9 @@ describe('balance bot', () => {
     const s = withMagicNotebook(createGame('Rin', 42))
     const plan = SENSIBLE.planDraft(s)
     expect(plan.draft).toMatchObject({ genre: 'fantasy', theme: 'magic', audience: 'kids' })
-    // art focus at Kids Comic Go!: 48x35 + 27x15 + 30x10 + 80x20 + 100x20 = 5985, an estimate of 60 against a rival
-    // mean of 45, about a 0.92 chance of an offer, the best of the four
+    // art focus at Kids Comic Go!: 48x35 + 27x15 + 30x10 + 80x20 + 100x20 = 5985 at pacing 30, a forecast of 59 to 60
+    // against rivals at 47, about a 0.99 chance of an offer; the best of the rest, Monthly Petal with magic for young
+    // adults untested, is about 0.38
     expect(plan.target).toBe('kids-comic')
   })
 
@@ -118,10 +119,9 @@ describe('balance bot', () => {
 
   it('sensible pitches the seed-42 teens manuscript where an offer is least unlikely', () => {
     const s = drawUntilReady(startProject(createGame('Rin', 42), DRAFT))
-    // art 37, story 33, pacing 30, untested pairings 60 (35 after the mismatch). Estimates against rival means:
-    // Weekly Bolt 37x35 + 33x15 + 30x20 + 60x10 + 60x20 = 4190 -> 42 vs 58, Kids Comic Go! 1295 + 495 + 300 + 700
-    // + 1200 = 3990 -> 40 vs 45, Monthly Petal 37x15 + 33x35 + 300 + 700 + 1200 = 3910 -> 39 vs 52, Ultra Seinen
-    // 555 + 1155 + 600 + 350 + 1200 = 3860 -> 39 vs 62
+    // art 37, story 33, pacing 30, both pairings untested (so spread over every rating), 25 off fit outside teens.
+    // Forecast offer chances: Kids Comic Go! about 0.04 (scores 31 to 48 against rivals at 47), Monthly Petal about
+    // 0.01 (30 to 47 against 52), Weekly Bolt and Ultra Seinen under 0.001 (34 to 48 against 58, 31 to 45 against 62)
     expect(SENSIBLE.pickMagazine(s)).toBe('kids-comic')
   })
 

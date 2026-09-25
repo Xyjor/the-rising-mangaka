@@ -99,6 +99,13 @@ export const RATING_SCORE: Record<number, number> = {
   0: 20, 1: 40, 2: 60, 3: 80, 4: 100,
 }
 
+/**
+ * How likely each rating (Bad, Meh, Good, Great, Perfect) is for a pairing nobody has tested. Matches the thresholds
+ * hidden ratings are drawn with (compat.ts `ratingFromUnit`: 0.15, 0.40, 0.70, 0.90); the pitch forecast spreads
+ * an untested pairing over these.
+ */
+export const RATING_PRIOR: readonly number[] = [0.15, 0.25, 0.3, 0.2, 0.1]
+
 /** Default poll weights (integer percentages); each magazine's `taste` overrides them in its own polls. */
 export const SCORE_WEIGHTS: ScoreWeights = {
   art: 25, story: 25, pacing: 15, audienceFit: 15, freshness: 20,

@@ -1,19 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
-  GENRES, MAGAZINES, PODIUM_RANK, THEMES, binomialAtMost, createGame, estimateScore,
+  GENRES, MAGAZINES, PODIUM_RANK, THEMES, binomialAtMost, createGame, forecastPoll,
   genreThemeRating, normalCdf, previewSubmission, rankTier,
   startProject, submitProject, themeAudienceRating, tickMany, weakRankLine,
 } from '../index'
-import type { GameState, GenreId, ThemeId } from '../index'
-import { DRAFT as draft, drawUntilReady } from '../../test/fixtures'
+import type { GenreId, ThemeId } from '../index'
+import { DRAFT as draft, drawUntilReady, withReadyOneShot } from '../../test/fixtures'
 
 const kidsDraft = { title: 'Blade Club', genre: 'action', theme: 'samurai', audience: 'kids' } as const
-
-/** Force the ready manuscript's page quality so the estimator lands on a known score. */
-function withQuality(s: GameState, art: number, story: number): GameState {
-  const p = s.project!
-  return { ...s, project: { ...p, artSum: art * p.pagesDone, storySum: story * p.pagesDone } }
-}
 
 describe('submission preview', () => {
   it('gives a sane band and odds for every magazine on the seed-42 manuscript', () => {
@@ -28,39 +22,13 @@ describe('submission preview', () => {
       expect(pv.offerChance).toBeLessThanOrEqual(1)
       expect(pv.expectedScore).toBeGreaterThanOrEqual(0)
       expect(pv.expectedScore).toBeLessThanOrEqual(100)
+      expect(pv.scoreRange.low).toBeLessThanOrEqual(pv.expectedScore)
+      expect(pv.scoreRange.high).toBeGreaterThanOrEqual(pv.expectedScore)
+      expect(pv.payRange.low).toBeLessThanOrEqual(pv.expectedPay)
+      expect(pv.payRange.high).toBeGreaterThanOrEqual(pv.expectedPay)
       byId[m.id] = pv.offerChance
     }
     expect(byId['kids-comic']).toBeGreaterThan(byId['weekly-bolt'])
-  })
-
-  it('reproduces the worked examples: score 50 at Kids Comic, score 47 at Weekly Bolt', () => {
-    const base = drawUntilReady(startProject(createGame('Rin', 42), kidsDraft))
-
-    // Kids weighs art 35, story 15, pacing 10, fit 20, freshness 20; untested pairings count as Good (60):
-    // 46x35 + 46x15 + 30x10 + 60x20 + 60x20 = 1610 + 690 + 300 + 1200 + 1200 = 5000
-    const kids = withQuality(base, 46, 46)
-    expect(estimateScore(kids, kids.project!, 'kids-comic')).toBe(50)
-    const pk = previewSubmission(kids, 'kids-comic')!
-    expect(pk.expectedScore).toBe(50)
-    // Kids rivalMean 47, RIVAL_SCORE_SD 8: z = (50-47)/8 = 0.375, pr = 1 - normalCdf(0.375) = 0.35383.
-    // mean = 1 + 0.35383x10 = 4.5383, sd = sqrt(10x0.35383x0.64617) = 1.5122.
-    // low = round(4.5383 - 1.5x1.5122) = round(2.271) = 2, high = round(4.5383 + 1.5x1.5122) = round(6.807) = 7.
-    expect(pk.expectedRank).toEqual({ low: 2, high: 7 })
-    // offerChance = binomialAtMost(10, SERIAL_OFFER_MIN_RANK-1=2, pr=0.35383):
-    // P(0) = 0.64617^10 = 0.012692, P(1) = 10x0.35383x0.64617^9 = 0.069517, P(2) = 45x0.35383^2x0.64617^8 = 0.171272
-    // sum = 0.253481
-    expect(Math.abs(pk.offerChance - 0.2534)).toBeLessThanOrEqual(0.01)
-
-    // Bolt weighs art 35, story 15, pacing 20, fit 10, freshness 20; kids manga in a teens magazine, fit 60 - 25:
-    // 50x35 + 51x15 + 30x20 + 35x10 + 60x20 = 1750 + 765 + 600 + 350 + 1200 = 4665
-    const bolt = withQuality(base, 50, 51)
-    expect(estimateScore(bolt, bolt.project!, 'weekly-bolt')).toBe(47)
-    const pb = previewSubmission(bolt, 'weekly-bolt')!
-    expect(pb.expectedScore).toBe(47)
-    // Bolt rivalMean 58 (unchanged), RIVAL_SCORE_SD 8: z = (47-58)/8 = -1.375, pr = normalCdf(1.375) = 0.915404.
-    // mean = 1 + 0.915404x12 = 11.9849, sd = sqrt(12x0.915404x0.084596) = 0.96412.
-    // low = round(11.9849 - 1.5x0.96412) = round(10.539) = 11, high = round(11.9849 + 1.5x0.96412) = round(13.431) = 13.
-    expect(pb.expectedRank).toEqual({ low: 11, high: 13 })
   })
 
   it('has a normal CDF and binomial tail that match the tables', () => {
@@ -82,16 +50,19 @@ describe('submission preview', () => {
     expect(PODIUM_RANK).toBe(3)
   })
 
-  it('quotes the pay floor and ceiling pollPay would hand out at the estimated score', () => {
-    // Base seed-42 Kids Comic manuscript: 20 pages, 10 rivals (11 entrants counting the player),
-    // estimated score 45 (same figure the "reproduces the worked examples" test derives above).
-    const base = drawUntilReady(startProject(createGame('Rin', 42), kidsDraft))
-    const pv = previewSubmission(base, 'kids-comic')!
-    expect(pv.expectedScore).toBe(45)
-    // minMoney: last of 11 entrants, weak tier (70%): 90 x 20 x 45 x 70 / 8000 = 5,670,000 / 8000 = 708.75 -> 709
-    expect(pv.minMoney).toBe(709)
-    // maxMoney: 1st of 11 entrants, first tier (200%): 90 x 20 x 45 x 200 / 8000 = 16,200,000 / 8000 = 2,025
-    expect(pv.maxMoney).toBe(2025)
+  it('wraps the forecast and counts the pairings the notebook has not rated', () => {
+    const fresh = withReadyOneShot(createGame('Rin', 42), kidsDraft, 46, 46)
+    const pv = previewSubmission(fresh, 'kids-comic')!
+    expect(pv).toMatchObject({
+      magazineId: 'kids-comic', mismatch: false, art: 46, story: 46, pacing: 30,
+      audienceFit: null, freshness: null, staleness: 0, unknownPairings: 2,
+    })
+    expect(pv).toMatchObject(forecastPoll(fresh, fresh.project!, 'kids-comic'))
+    const one = { ...fresh, notebook: { genreTheme: { 'action|samurai': 3 as const }, themeAudience: {} } }
+    expect(previewSubmission(one, 'kids-comic')).toMatchObject({ freshness: 3, audienceFit: null, unknownPairings: 1 })
+    const both = { ...one, notebook: { ...one.notebook, themeAudience: { 'samurai|kids': 1 as const } } }
+    expect(previewSubmission(both, 'kids-comic')).toMatchObject({ freshness: 3, audienceFit: 1, unknownPairings: 0 })
+    expect(previewSubmission({ ...fresh, project: null }, 'kids-comic')).toBeNull()
   })
 
   it('lets a fresh player reach the serial gate at Kids Comic with a well-matched combo', () => {
