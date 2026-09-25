@@ -11,6 +11,7 @@ import {
   VOLUME_PRICE, WEEKLY_LIVING_COST, WORK_STAMINA_COST, audienceById, magazineById, placeById, themeById, genreById,
 } from './data'
 import { addLog, grantXp } from './core'
+import { animeTick, animeVolumeMult, withdrawAnimeOffer } from './anime'
 import { STAT_NAME, conventionFans, eventTick, lowestStat } from './events'
 import { clamp, draw, hashString, range } from './rng'
 import {
@@ -76,6 +77,9 @@ export function createGame(name: string, seed: number): GameState {
     eventSeed: hashString(`events:${worldSeed}`) | 0,
     nextEventDay: EVENT_FIRST_DAY,
     studio: { tier: 'apartment', owned: [] },
+    anime: [],
+    animeOffer: null,
+    animeOfferedFor: [],
   }
   state = generateCandidates(state)
   return addLog(state, 'info', `Welcome, ${name}. Your studio is ready. Plan your first manga.`, false)
@@ -464,7 +468,9 @@ export function endSerial(state: GameState): GameState {
   const bonusFans = Math.round(ser.popularity * 20 * earned)
   // A climax volume needs a shipped volume behind it and real popularity (starting popularity is 50).
   const climax = ser.results.length >= VOLUME_EVERY_CHAPTERS && ser.popularity >= SERIAL_CLIMAX_MIN_POPULARITY
-  const copies = climax ? Math.round(volumeCopies(state, mag, ser.popularity) * SERIAL_CLIMAX_VOLUME_MULT) : 0
+  // An anime adaptation's boost multiplies the final volume too.
+  const anime = animeVolumeMult(state, ser.id)
+  const copies = climax ? Math.round(volumeCopies(state, mag, ser.popularity) * SERIAL_CLIMAX_VOLUME_MULT * anime) : 0
   const money = copies * VOLUME_PRICE
   let s: GameState = {
     ...state,
@@ -481,12 +487,13 @@ export function endSerial(state: GameState): GameState {
     player: { ...state.player, fans: state.player.fans + bonusFans, money: state.player.money + money },
   }
   const text = climax
-    ? `You wrapped up "${ser.title}" after ${ser.chaptersSent} chapters on a high. The final volume sold ${copies} copies: +¥${money}. Loyal readers: +${bonusFans} fans.`
+    ? `You wrapped up "${ser.title}" after ${ser.chaptersSent} chapters on a high. The final volume sold ${copies} copies${animeNote(anime)}: +¥${money}. Loyal readers: +${bonusFans} fans.`
     : bonusFans > 0
       ? `You wrapped up "${ser.title}" after ${ser.chaptersSent} chapters. Loyal readers: +${bonusFans} fans.`
       : `You dropped "${ser.title}" before it found readers.`
   s = addLog(s, 'series', text, true)
-  return archiveSerialIfDone(s)
+  // An anime offer is for a running series: wrapping up withdraws one waiting on the desk.
+  return withdrawAnimeOffer(archiveSerialIfDone(s))
 }
 
 export function hireAssistant(state: GameState, candidateId: number): GameState {
@@ -660,7 +667,12 @@ function archiveSerialIfDone(state: GameState): GameState {
   return { ...state, serial: null, serials: [...state.serials, ser] }
 }
 
-/** Copies a volume sells: (fans + circulation x 20) x popularity. */
+/** The volume log's note on an anime adaptation's multiplier: " (1.3x with the anime)", or nothing without one. */
+function animeNote(mult: number): string {
+  return mult === 1 ? '' : ` (${mult}x with the anime)`
+}
+
+/** Copies a volume sells: (fans + circulation x 20) x popularity. An anime deal multiplies it (`animeVolumeMult`). */
 export function volumeCopies(state: GameState, mag: Magazine, popularity: number): number {
   return Math.round((state.player.fans + mag.circulation * 20) * (popularity / 100))
 }
@@ -696,11 +708,12 @@ function resolveChapters(state: GameState): GameState {
     s = bumpEditor(s, ser.magazineId, result.rank <= 3 ? 2 : 1)
 
     if (serial.results.length % VOLUME_EVERY_CHAPTERS === 0) {
-      const copies = volumeCopies(s, mag, popularity)
+      const anime = animeVolumeMult(s, ser.id)
+      const copies = Math.round(volumeCopies(s, mag, popularity) * anime)
       const money = copies * VOLUME_PRICE
       serial = { ...serial, volumes: serial.volumes + 1, totalCopies: serial.totalCopies + copies, totalMoney: serial.totalMoney + money }
       s = { ...s, serial, player: { ...s.player, money: s.player.money + money } }
-      s = addLog(s, 'money', `Volume ${serial.volumes} of "${ser.title}" sold ${copies} copies: +¥${money}.`, true)
+      s = addLog(s, 'money', `Volume ${serial.volumes} of "${ser.title}" sold ${copies} copies${animeNote(anime)}: +¥${money}.`, true)
     }
 
     if (serial.status === 'running' && warnings >= SERIAL_WARNINGS_TO_CANCEL) s = cancelSerial(s)
@@ -857,6 +870,7 @@ export function tick(state: GameState): GameState {
 
   s = resolveChapters(s)
   s = checkDeadline(s)
+  s = animeTick(s)
   s = eventTick(s)
   s = awardMilestones(s)
   return s

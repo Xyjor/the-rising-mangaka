@@ -101,6 +101,26 @@ describe('upgradeSave', () => {
     expect(upgradeSave({ ...g, assistants: g.candidates.slice(0, 3), studio }).studio).toEqual(studio)
   })
 
+  it('gives a save from before anime adaptations no deals, no offer and no series offered one yet', () => {
+    const save = { ...runningOnDay30() } as Partial<GameState>
+    delete save.anime
+    delete save.animeOffer
+    delete save.animeOfferedFor
+    const up = upgradeSave(save as GameState)
+    expect(up.anime).toEqual([])
+    expect(up.animeOffer).toBeNull()
+    expect(up.animeOfferedFor).toEqual([])
+  })
+
+  it('keeps the deals, the offer and the offered series a newer save already has', () => {
+    const g = runningOnDay30()
+    const anime = [{ studio: 'kumo', serialId: 7, signedDay: 10, airsDay: 52, endsDay: 136, tailEndsDay: 220 }] as const
+    const up = upgradeSave({ ...g, anime: [...anime], animeOffer: { serialId: 1, expiresDay: 40 }, animeOfferedFor: [7, 1] })
+    expect(up.anime).toEqual(anime)
+    expect(up.animeOffer).toEqual({ serialId: 1, expiresDay: 40 })
+    expect(up.animeOfferedFor).toEqual([7, 1])
+  })
+
   it('keeps the event, event seed and next roll a newer save already has', () => {
     const event = { id: 'letter', day: 31, expiresDay: 38 } as const
     const up = upgradeSave({ ...createGame('Rin', 4), day: 33, event, eventSeed: 12345, nextEventDay: 45 })

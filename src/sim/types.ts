@@ -282,6 +282,42 @@ export interface Studio {
 
 export interface EditorRel { relationship: number; tips: number }
 
+// ---------- anime adaptations ----------
+
+export type AnimeStudioId = 'kumo' | 'hoshi'
+
+/** An animation studio's terms for adapting a hit serial (see anime.ts). */
+export interface AnimeStudio {
+  id: AnimeStudioId
+  name: string
+  /** paid to the mangaka at signing */
+  fee: number
+  /** weeks from signing to the premiere */
+  airsAfterWeeks: number
+  /** weeks on air; each one pays `weeklyFans` and `weeklyMoney` when it ends */
+  runsWeeks: number
+  weeklyFans: number
+  weeklyMoney: number
+  /** the adapted serial's volumes sell this many times the copies, from signing until `tailWeeks` after the finale */
+  volumeMult: number
+  tailWeeks: number
+  /** added to the serial's popularity at the premiere if it is still running, capped at 100 */
+  premierePopularity: number
+}
+
+/** A signed adaptation. Every day is fixed at signing: premiere, finale, and the last day of the volume boost. */
+export interface AnimeDeal {
+  studio: AnimeStudioId
+  serialId: number
+  signedDay: number
+  airsDay: number
+  endsDay: number
+  tailEndsDay: number
+}
+
+/** The adaptation offer waiting on the desk: answerable up to and including `expiresDay`. */
+export interface AnimeOffer { serialId: number; expiresDay: number }
+
 // ---------- misc ----------
 
 export interface Notebook {
@@ -359,6 +395,12 @@ export interface GameState {
   nextEventDay: number
   /** where the mangaka works and the equipment bought for it */
   studio: Studio
+  /** anime adaptations signed, oldest first */
+  anime: AnimeDeal[]
+  /** the adaptation offer waiting on the desk, or null */
+  animeOffer: AnimeOffer | null
+  /** ids of the serials an adaptation was ever offered for: studios ask once per series */
+  animeOfferedFor: number[]
 }
 
 export type Phase = 'idle' | 'drawing' | 'ready' | 'submitted'

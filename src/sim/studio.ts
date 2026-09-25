@@ -1,6 +1,7 @@
 // Studio tiers and equipment: where the mangaka works (desks for assistants, weekly rent) and what they bought for it.
 // A money sink whose every effect is stated in the Studio panel. The engine reads `studioSlots` (hiring),
 // `studioTier` (rent) and `equipmentEffects` (pages, samples, stamina); the scene reads `studioLook`. No RNG.
+import { animeOnShow } from './anime'
 import { addLog, yen } from './core'
 import { STUDIO_TIERS, equipmentById, equipmentPrice, moveInCost, studioTierById } from './data'
 import type { EquipmentId, GameState, StudioTier, StudioTierId } from './types'
@@ -87,7 +88,7 @@ export function buyEquipment(s: GameState, id: EquipmentId): GameState {
   return addLog(next, 'money', `You bought the ${e.name.toLowerCase()}: ${yen(-price)}. ${e.effect}.`, true)
 }
 
-/** What the studio scene draws: the room, its desks, the equipment and the volumes on the shelf. */
+/** What the studio scene draws: the room, its desks, the equipment, the volumes on the shelf and an anime poster. */
 export interface StudioLook {
   tier: StudioTierId
   desks: number
@@ -95,9 +96,14 @@ export interface StudioLook {
   equipment: readonly EquipmentId[]
   /** volumes shipped across the running serial and every past one, at most 24 */
   volumes: number
+  /** an anime poster on the wall: from a premiere until that deal's volume boost ends */
+  animePoster: boolean
 }
 
 export function studioLook(s: GameState): StudioLook {
   const shipped = s.serials.reduce((sum, x) => sum + x.volumes, s.serial?.volumes ?? 0)
-  return { tier: s.studio.tier, desks: studioSlots(s), equipment: s.studio.owned, volumes: Math.min(SHELF_VOLUMES, shipped) }
+  return {
+    tier: s.studio.tier, desks: studioSlots(s), equipment: s.studio.owned, volumes: Math.min(SHELF_VOLUMES, shipped),
+    animePoster: animeOnShow(s),
+  }
 }

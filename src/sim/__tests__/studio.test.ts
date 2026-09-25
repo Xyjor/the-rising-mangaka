@@ -317,7 +317,7 @@ describe('studioLook', () => {
   it('reads the tier, its desks, the owned list itself (not a copy) and the volumes on the shelf', () => {
     const g = withStudio(createGame('Rin', 42), 'flat', ['lamp', 'coffee'])
     const look = studioLook(g)
-    expect(look).toEqual({ tier: 'flat', desks: 2, equipment: ['lamp', 'coffee'], volumes: 0 })
+    expect(look).toEqual({ tier: 'flat', desks: 2, equipment: ['lamp', 'coffee'], volumes: 0, animePoster: false })
     expect(look.equipment).toBe(g.studio.owned)
   })
 

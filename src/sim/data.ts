@@ -1,5 +1,5 @@
 import type {
-  AssistantTrait, Audience, AudienceId, Equipment, EquipmentId, Genre, GenreId, Magazine, MagazineId, Place, PlaceId,
+  AnimeStudio, AnimeStudioId, AssistantTrait, Audience, AudienceId, Equipment, EquipmentId, Genre, GenreId, Magazine, MagazineId, Place, PlaceId,
   ScoreWeights, StudioTier, StudioTierId, Theme, ThemeId,
 } from './types'
 
@@ -243,6 +243,25 @@ export const EVENT_ANSWER_DAYS = 7
 /** ...and the next roll waits until this many days after it landed. */
 export const EVENT_GAP_DAYS = 14
 
+/** Anime adaptations (anime.ts): a running serial at this popularity or higher... */
+export const ANIME_OFFER_MIN_POPULARITY = 70
+/** ...that has sold at least this many copies across its volumes is offered one adaptation... */
+export const ANIME_OFFER_MIN_COPIES = 15_000
+/** ...which the player can answer for this many days. */
+export const ANIME_OFFER_DAYS = 14
+
+/** The two studios every adaptation offer comes from: the quick small deal and the slow big one. */
+export const ANIME_STUDIOS: readonly AnimeStudio[] = [
+  {
+    id: 'kumo', name: 'Studio Kumo', fee: 2000, airsAfterWeeks: 6, runsWeeks: 12, weeklyFans: 400, weeklyMoney: 500,
+    volumeMult: 1.3, tailWeeks: 12, premierePopularity: 5,
+  },
+  {
+    id: 'hoshi', name: 'Hoshi Animation', fee: 0, airsAfterWeeks: 16, runsWeeks: 24, weeklyFans: 900, weeklyMoney: 1000,
+    volumeMult: 1.6, tailWeeks: 24, premierePopularity: 12,
+  },
+]
+
 export function genreById(id: GenreId): Genre { return GENRES.find((g) => g.id === id)! }
 export function themeById(id: ThemeId): Theme { return THEMES.find((t) => t.id === id)! }
 export function audienceById(id: AudienceId): Audience { return AUDIENCES.find((a) => a.id === id)! }
@@ -250,3 +269,4 @@ export function magazineById(id: MagazineId): Magazine { return MAGAZINES.find((
 export function placeById(id: PlaceId): Place { return PLACES.find((p) => p.id === id)! }
 export function studioTierById(id: StudioTierId): StudioTier { return STUDIO_TIERS.find((t) => t.id === id)! }
 export function equipmentById(id: EquipmentId): Equipment { return EQUIPMENT.find((e) => e.id === id)! }
+export function animeStudioById(id: AnimeStudioId): AnimeStudio { return ANIME_STUDIOS.find((a) => a.id === id)! }
