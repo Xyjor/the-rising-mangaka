@@ -7,7 +7,7 @@ import { useStore } from '../../state/store'
 import { useShallow } from 'zustand/react/shallow'
 import { Icon } from '../Icon'
 import { NextGoal } from '../NextGoal'
-import { Bar } from '../components'
+import { Metric } from '../components'
 import { money } from '../format'
 import { ConfirmRow } from '../ConfirmRow'
 const COACH: Record<string, string> = {
@@ -90,14 +90,8 @@ export function DeskPanel() {
             <div className="row" style={{ gap: 16 }}>
               <ProgressRing done={p.pagesDone} target={p.pagesTarget} />
               <div className="col grow" style={{ gap: 10 }}>
-                <div className="metric">
-                  <div className="head"><span>Art quality</span><b className="num">{Math.round(projectArtQuality(p))}</b></div>
-                  <Bar value={projectArtQuality(p)} tone="blue" label="Art quality" />
-                </div>
-                <div className="metric">
-                  <div className="head"><span>Story quality</span><b className="num">{Math.round(projectStoryQuality(p))}</b></div>
-                  <Bar value={projectStoryQuality(p)} tone="purple" label="Story quality" />
-                </div>
+                <Metric label="Art quality" bar={projectArtQuality(p)} tone="blue" />
+                <Metric label="Story quality" bar={projectStoryQuality(p)} tone="purple" />
                 {phase === 'drawing' && <Eta />}
               </div>
             </div>
@@ -111,13 +105,15 @@ export function DeskPanel() {
             )}
 
             {phase === 'submitted' && p.resultsDay !== null && (
-              <div className="metric">
-                <div className="head">
-                  <span>Poll results</span>
-                  <b className="num">{Math.max(0, p.resultsDay - game.day)} day{p.resultsDay - game.day === 1 ? '' : 's'}</b>
-                </div>
-                <Bar value={game.day - (p.submittedDay ?? game.day)} max={p.resultsDay - (p.submittedDay ?? game.day)} tone="blue" striped label="Waiting for results" />
-              </div>
+              <Metric
+                label="Poll results"
+                value={<>{Math.max(0, p.resultsDay - game.day)} day{p.resultsDay - game.day === 1 ? '' : 's'}</>}
+                bar={game.day - (p.submittedDay ?? game.day)}
+                max={p.resultsDay - (p.submittedDay ?? game.day)}
+                tone="blue"
+                striped
+                barLabel="Waiting for results"
+              />
             )}
           </>
         )}
@@ -267,10 +263,15 @@ function TripCard() {
         <span className="chip green">Away</span>
       </div>
       <p className="small muted">{place.blurb} You are resting while away, and no pages get drawn.</p>
-      <div className="metric">
-        <div className="head"><span>Back in</span><b className="num">{left} day{left === 1 ? '' : 's'}</b></div>
-        <Bar value={total - left} max={total} tone="green" striped label="Trip progress" />
-      </div>
+      <Metric
+        label="Back in"
+        value={<>{left} day{left === 1 ? '' : 's'}</>}
+        bar={total - left}
+        max={total}
+        tone="green"
+        striped
+        barLabel="Trip progress"
+      />
       <p className="small"><b>On return:</b> {place.effect}</p>
     </div>
   )

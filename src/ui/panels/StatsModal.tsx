@@ -1,7 +1,7 @@
 import { SCORE_WEIGHTS, xpToNext } from '../../sim'
 import type { StatId } from '../../sim'
 import { useStore } from '../../state/store'
-import { Bar, Modal } from '../components'
+import { Bar, Metric, Modal, Reward } from '../components'
 import { compact, money } from '../format'
 
 const STATS: { id: StatId; name: string; blurb: string; tone: string }[] = [
@@ -20,10 +20,7 @@ export function StatsModal() {
   return (
     <Modal title={p.name} sub={`Level ${p.level} mangaka`} onClose={closeModal} narrow>
       <div className="col" style={{ gap: 18 }}>
-        <div className="metric">
-          <div className="head"><span>Experience</span><b className="num">{p.xp} / {xpToNext(p.level)}</b></div>
-          <Bar value={p.xp} max={xpToNext(p.level)} tone="purple" thick label="Experience" />
-        </div>
+        <Metric label="Experience" value={`${p.xp} / ${xpToNext(p.level)}`} bar={p.xp} max={xpToNext(p.level)} tone="purple" thick />
 
         <section className="col" style={{ gap: 12 }} aria-label="Skills">
           <div className="row between">
@@ -41,12 +38,12 @@ export function StatsModal() {
         </section>
 
         <div className="rewards">
-          <div className="reward"><div className="n">{money(p.money)}</div><div className="l">Money</div></div>
-          <div className="reward"><div className="n">{compact(p.fans)}</div><div className="l">Fans</div></div>
-          <div className="reward"><div className="n">{p.maxStamina}</div><div className="l">Max stamina</div></div>
-          <div className="reward"><div className="n">{game.history.length}</div><div className="l">Published</div></div>
-          <div className="reward"><div className="n">{best === Infinity ? '—' : `#${best}`}</div><div className="l">Best rank</div></div>
-          <div className="reward"><div className="n">{game.history.length ? Math.round(game.history.reduce((a, r) => a + r.score, 0) / game.history.length) : '—'}</div><div className="l">Avg score</div></div>
+          <Reward value={money(p.money)} label="Money" />
+          <Reward value={compact(p.fans)} label="Fans" />
+          <Reward value={p.maxStamina} label="Max stamina" />
+          <Reward value={game.history.length} label="Published" />
+          <Reward value={best === Infinity ? '—' : `#${best}`} label="Best rank" />
+          <Reward value={game.history.length ? Math.round(game.history.reduce((a, r) => a + r.score, 0) / game.history.length) : '—'} label="Avg score" />
         </div>
       </div>
     </Modal>

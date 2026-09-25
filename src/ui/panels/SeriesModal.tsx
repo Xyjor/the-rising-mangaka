@@ -4,7 +4,7 @@ import {
 } from '../../sim'
 import type { Serial } from '../../sim'
 import { useStore } from '../../state/store'
-import { Bar, Modal, RankChart } from '../components'
+import { Metric, Modal, RankChart, Reward } from '../components'
 import { compact, money } from '../format'
 
 export function SeriesModal() {
@@ -57,11 +57,9 @@ function SeriesDetail({ ser }: { ser: Serial }) {
         {statusChip}
       </div>
 
-      <div className="metric">
-        <div className="head"><span>Popularity</span><b className="num">{ser.popularity}</b></div>
-        <Bar value={ser.popularity} tone={ser.popularity >= 60 ? 'green' : ser.popularity >= 40 ? 'gold' : 'accent'} thick label="Popularity" />
+      <Metric label="Popularity" bar={ser.popularity} tone={ser.popularity >= 60 ? 'green' : ser.popularity >= 40 ? 'gold' : 'accent'} thick>
         <p className="tiny muted">A moving average of recent poll placements. Three weak chapters in a row and the magazine pulls the plug.</p>
-      </div>
+      </Metric>
 
       <div className="row wrap small muted">
         <span className="warnings" role="img" aria-label={`${ser.warnings} of ${SERIAL_WARNINGS_TO_CANCEL} warnings`}>
@@ -78,11 +76,11 @@ function SeriesDetail({ ser }: { ser: Serial }) {
       </div>
 
       <div className="rewards" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))' }}>
-        <div className="reward"><div className="n">{ser.chaptersSent}</div><div className="l">Chapters</div></div>
-        <div className="reward"><div className="n">{best === Infinity ? '—' : `#${best}`}</div><div className="l">Best rank</div></div>
-        <div className="reward"><div className="n">{ser.volumes}</div><div className="l">Volumes</div></div>
-        <div className="reward"><div className="n">{compact(ser.totalCopies)}</div><div className="l">Copies sold</div></div>
-        <div className="reward"><div className="n">{money(ser.totalMoney)}</div><div className="l">Earned</div></div>
+        <Reward value={ser.chaptersSent} label="Chapters" />
+        <Reward value={best === Infinity ? '—' : `#${best}`} label="Best rank" />
+        <Reward value={ser.volumes} label="Volumes" />
+        <Reward value={compact(ser.totalCopies)} label="Copies sold" />
+        <Reward value={money(ser.totalMoney)} label="Earned" />
       </div>
 
       {ser.results.length > 0 && (

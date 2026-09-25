@@ -5,7 +5,7 @@ import {
 } from '../../sim'
 import type { RankTier, ScoreBreakdown } from '../../sim'
 import { useStore } from '../../state/store'
-import { Bar, Modal, Pips } from '../components'
+import { Bar, Modal, Pips, Reward } from '../components'
 import { compact, money } from '../format'
 
 const ITEMS: { key: keyof ScoreBreakdown; label: string; tone: string }[] = [
@@ -108,9 +108,9 @@ export function ResultsModal() {
         </section>
 
         <section className="rewards" aria-label="Rewards">
-          <div className="reward"><div className="n">+{money(r.rewards.money)}</div><div className="l">Payment</div></div>
-          <div className="reward"><div className="n">+{compact(r.rewards.fans)}</div><div className="l">Fans</div></div>
-          <div className="reward"><div className="n">+{r.rewards.xp}</div><div className="l">XP</div></div>
+          <Reward value={`+${money(r.rewards.money)}`} label="Payment" />
+          <Reward value={`+${compact(r.rewards.fans)}`} label="Fans" />
+          <Reward value={`+${r.rewards.xp}`} label="XP" />
         </section>
 
         {pendingOffer ? (

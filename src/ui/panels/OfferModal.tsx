@@ -1,6 +1,6 @@
 import { CHAPTER_PAGES, SERIAL_WARNINGS_TO_CANCEL, VOLUME_EVERY_CHAPTERS, magazineById } from '../../sim'
 import { useStore } from '../../state/store'
-import { Modal } from '../components'
+import { Modal, Reward } from '../components'
 import { money } from '../format'
 import { comboLabel, rivalWord } from '../labels'
 
@@ -39,10 +39,10 @@ export function OfferModal() {
           Readers loved it. Give me a chapter every {CHAPTER_PAGES} pages, keep the polls healthy, and we release a volume every {VOLUME_EVERY_CHAPTERS} chapters. Slip to the bottom {SERIAL_WARNINGS_TO_CANCEL} times in a row and I have to cancel. Deal?
         </div>
         <div className="terms">
-          <div className="reward"><div className="n">{money(mag.pageRate)}</div><div className="l">per page</div></div>
-          <div className="reward"><div className="n">{mag.circulation}k</div><div className="l">readers</div></div>
-          <div className="reward"><div className="n">{mag.entrants}</div><div className="l">rival series</div></div>
-          <div className="reward"><div className="n">{rivalWord(mag.rivalMean)}</div><div className="l">rival polls</div></div>
+          <Reward value={money(mag.pageRate)} label="per page" />
+          <Reward value={`${mag.circulation}k`} label="readers" />
+          <Reward value={mag.entrants} label="rival series" />
+          <Reward value={rivalWord(mag.rivalMean)} label="rival polls" />
         </div>
         {last && (
           <p className="small">

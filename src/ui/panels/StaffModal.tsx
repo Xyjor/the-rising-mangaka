@@ -5,7 +5,7 @@ import type { Assistant } from '../../sim'
 import { useStore } from '../../state/store'
 import { ConfirmRow } from '../ConfirmRow'
 import { Icon } from '../Icon'
-import { Bar, Modal } from '../components'
+import { Metric, Modal } from '../components'
 import { money } from '../format'
 
 import { LOOK_HAIRS, LOOK_SHIRTS } from '../looks'
@@ -36,19 +36,16 @@ function Person({ a, action, actionLabel, disabled, hired, confirm }: {
           <div className="salary">{money(a.salary)} a week, about {assistantPagesPerDay(a).toFixed(1)} pages a day</div>
         </div>
       </div>
-      <div className="metric">
-        <div className="head"><span>Art</span><b className="num">{a.art}</b></div>
-        <Bar value={a.art} tone="blue" label="Art" />
-      </div>
-      <div className="metric">
-        <div className="head"><span>Story</span><b className="num">{a.story}</b></div>
-        <Bar value={a.story} tone="purple" label="Story" />
-      </div>
+      <Metric label="Art" bar={a.art} tone="blue" />
+      <Metric label="Story" bar={a.story} tone="purple" />
       {hired && (
-        <div className="metric">
-          <div className="head"><span>Stamina</span><b className="num">{Math.round(a.stamina)}/{a.maxStamina}</b></div>
-          <Bar value={a.stamina} max={a.maxStamina} tone={a.stamina < LOW_STAMINA_THRESHOLD ? 'accent' : 'green'} label="Stamina" />
-        </div>
+        <Metric
+          label="Stamina"
+          value={`${Math.round(a.stamina)}/${a.maxStamina}`}
+          bar={a.stamina}
+          max={a.maxStamina}
+          tone={a.stamina < LOW_STAMINA_THRESHOLD ? 'accent' : 'green'}
+        />
       )}
       <div className="row between wrap">
         <span className="chip purple" title={TRAITS[a.trait].blurb}>{TRAITS[a.trait].name}</span>

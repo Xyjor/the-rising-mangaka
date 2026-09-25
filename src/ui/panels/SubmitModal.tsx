@@ -6,7 +6,7 @@ import {
 import type { MagazineId } from '../../sim'
 import { useStore } from '../../state/store'
 import { Icon } from '../Icon'
-import { Bar, Modal, Pips, RatingText } from '../components'
+import { Metric, Modal, Pips, RatingText } from '../components'
 import { money } from '../format'
 import { comboLabel, oddsWord, rivalWord } from '../labels'
 
@@ -46,18 +46,9 @@ export function SubmitModal() {
               {comboLabel(p.genre, p.theme, p.audience)}. {p.pagesTarget} pages.
             </div>
           </div>
-          <div className="metric">
-            <div className="head"><span>Art</span><b className="num">{base.art}</b></div>
-            <Bar value={base.art} tone="blue" label="Art" />
-          </div>
-          <div className="metric">
-            <div className="head"><span>Story</span><b className="num">{base.story}</b></div>
-            <Bar value={base.story} tone="purple" label="Story" />
-          </div>
-          <div className="metric">
-            <div className="head"><span>Pacing</span><b className="num">{base.pacing}</b></div>
-            <Bar value={base.pacing} tone="gold" label="Pacing" />
-          </div>
+          <Metric label="Art" bar={base.art} tone="blue" />
+          <Metric label="Story" bar={base.story} tone="purple" />
+          <Metric label="Pacing" bar={base.pacing} tone="gold" />
           <div className="divider" />
           <div className="know">
             <div className="k"><span className="l">Freshness</span><span className="row"><Pips rating={base.freshness} /><RatingText rating={base.freshness} /></span></div>

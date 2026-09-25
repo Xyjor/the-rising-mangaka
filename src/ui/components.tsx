@@ -24,6 +24,39 @@ export function Bar({
   )
 }
 
+/**
+ * A labelled stat: a head with the label and a number, a `Bar` underneath, and optional
+ * explanatory children rendered after the bar. `value` defaults to the rounded `bar` value
+ * (the common case, where the head number and the bar track the same quantity); pass an
+ * explicit `value` when the head shows something else (a countdown, a fraction, "3/5 days").
+ * `barLabel` defaults to `label` (the bar's accessible name); pass one when the bar means
+ * something more specific than the metric's own label ("Waiting for results", "Trip progress").
+ */
+export function Metric({
+  label, bar, value, max = 100, tone = '', thick = false, striped = false, barLabel, children,
+}: {
+  label: string; bar: number; value?: ReactNode; max?: number; tone?: string
+  thick?: boolean; striped?: boolean; barLabel?: string; children?: ReactNode
+}) {
+  return (
+    <div className="metric">
+      <div className="head"><span>{label}</span><b className="num">{value ?? Math.round(bar)}</b></div>
+      <Bar value={bar} max={max} tone={tone} thick={thick} striped={striped} label={barLabel ?? label} />
+      {children}
+    </div>
+  )
+}
+
+/** A single value/label tile, used inside a `.rewards` or `.terms` grid. */
+export function Reward({ value, label, className }: { value: ReactNode; label: ReactNode; className?: string }) {
+  return (
+    <div className={`reward ${className ?? ''}`.trim()}>
+      <div className="n">{value}</div>
+      <div className="l">{label}</div>
+    </div>
+  )
+}
+
 export function Pips({ rating, title }: { rating: Rating | null; title?: string }) {
   const unknown = rating === null
   return (
