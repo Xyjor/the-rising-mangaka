@@ -35,7 +35,7 @@ export function fakeContext(): FakeContext {
 
 /**
  * The reference scene: drawing phase, the mangaka working with the clock running at speed 1, half the pages done,
- * stamina 80 and one assistant (look 0, stamina 80). The call-count baseline is measured on this snapshot.
+ * stamina 80, one assistant (look 0, stamina 80), in spring. The call-count baseline is measured on this snapshot.
  */
 export function sceneSnapshot(over: Partial<Snapshot> = {}): Snapshot {
   return {
@@ -47,6 +47,7 @@ export function sceneSnapshot(over: Partial<Snapshot> = {}): Snapshot {
     speed: 1,
     away: false,
     assistants: [{ look: 0, stamina: 80 }],
+    season: 'spring',
     ...over,
   }
 }

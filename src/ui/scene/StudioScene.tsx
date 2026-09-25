@@ -4,6 +4,7 @@ import { SPEED_MS, useStore } from '../../state/store'
 import { prefersReducedMotion } from '../motion'
 import { H, W, render } from './render'
 import type { Snapshot } from './render'
+import { seasonOf } from './season'
 
 /** Frame budget in ms: about 12 fps is plenty for a 192x108 sprite scene. */
 const STEP_MS = 83
@@ -32,16 +33,18 @@ export function StudioScene({ running }: { running: boolean }) {
   const speed = useStore((s) => s.speed)
   const trip = useStore((s) => s.game?.trip ?? null)
   const assistants = useStore((s) => s.game?.assistants ?? EMPTY)
-  const snap = useRef<Snapshot>({ phase, activity, progress, stamina, running, speed, away: !!trip, assistants: [] })
+  const season = useStore((s) => (s.game ? seasonOf(s.game.day) : 'spring'))
+  const snap = useRef<Snapshot>({ phase, activity, progress, stamina, running, speed, away: !!trip, assistants: [], season })
   useEffect(() => {
     snap.current = {
       phase, activity, progress, stamina, running, speed, away: !!trip,
       assistants: assistants.map((a) => ({ look: a.look, stamina: a.stamina })),
+      season,
     }
     // Under reduced motion the loop only repaints once a second, so state changes repaint at once.
     // ctxRef is still null on first mount (this effect runs before the loop effect); the loop's first frame covers it.
     if (reduceMotion.current && ctxRef.current) render(ctxRef.current, snap.current, phaseT.current, 0)
-  }, [phase, activity, progress, stamina, running, speed, trip, assistants])
+  }, [phase, activity, progress, stamina, running, speed, trip, assistants, season])
 
   useEffect(() => {
     const canvas = ref.current

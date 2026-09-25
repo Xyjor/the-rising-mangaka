@@ -2,6 +2,8 @@
 // 192x108 canvas. Pure drawing: no React, no store, and nothing allocated per frame (tables are built once here).
 import { LOW_STAMINA_THRESHOLD } from '../../sim'
 import { LOOK_HAIRS, LOOK_SHIRTS } from '../looks'
+import { drawSeasonNight, drawSeasonPane, drawSeasonSill } from './season'
+import type { Season } from './season'
 
 export const W = 192
 export const H = 108
@@ -83,7 +85,7 @@ const SKY: [number, [number, number, number]][] = [
   [0.82, [28, 35, 82]],
   [1.0, [246, 166, 160]],
 ]
-function skyColor(t: number): string {
+function skyAt(t: number): string {
   for (let i = 0; i < SKY.length - 1; i++) {
     const [t0, c0] = SKY[i]
     const [t1, c1] = SKY[i + 1]
@@ -94,6 +96,19 @@ function skyColor(t: number): string {
     }
   }
   return 'rgb(143,211,255)'
+}
+
+function buildSkyLut(): string[] {
+  const lut: string[] = []
+  for (let i = 0; i < 256; i++) lut.push(skyAt(i / 255))
+  return lut
+}
+/** The sky's `rgb(...)` at 256 evenly spaced times of day (entry i is t = i / 255), built once: no per-frame strings. */
+export const SKY_LUT: readonly string[] = buildSkyLut()
+
+/** The sky colour for a time of day: t clamped to [0, 1], then the nearest of the 256 entries. */
+export function skyColor(t: number): string {
+  return SKY_LUT[Math.round(Math.min(1, Math.max(0, t)) * 255)]
 }
 
 // ---------- scene ----------
@@ -108,6 +123,8 @@ export interface Snapshot {
   speed: number
   away: boolean
   assistants: { look: number; stamina: number }[]
+  /** The game day's season, painted in the window (season.ts). */
+  season: Season
 }
 
 /**
@@ -146,8 +163,11 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
   }
   const cx = ((frame * 0.15) % 60) - 10
   rect(ctx, 118 + cx, 20, 10, 3, night ? '#3a4470' : '#fff'); rect(ctx, 120 + cx, 18, 6, 2, night ? '#3a4470' : '#fff')
+  drawSeasonPane(ctx, s.season, frame)
+  // window bars, then the sill (and anything on it) in front of the pane
   rect(ctx, 139, 12, 2, 32, '#5a4634'); rect(ctx, 118, 27, 44, 2, '#5a4634')
   rect(ctx, 114, 45, 52, 3, '#4a3828')
+  drawSeasonSill(ctx, s.season)
 
   // bookshelf
   rect(ctx, 8, 18, 34, 58, '#6d4c33')
@@ -232,5 +252,10 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
     for (let i = 0; i < d; i++) glyph(ctx, '.', 150 + i * 3, 56, '#16161a')
   }
 
-  if (night) { ctx.fillStyle = 'rgba(20, 24, 60, 0.28)'; ctx.fillRect(0, 0, W, H); if (working) { ctx.fillStyle = 'rgba(255, 240, 180, 0.12)'; ctx.fillRect(60, 46, 50, 34) } }
+  if (night) {
+    ctx.fillStyle = 'rgba(20, 24, 60, 0.28)'; ctx.fillRect(0, 0, W, H)
+    if (working) { ctx.fillStyle = 'rgba(255, 240, 180, 0.12)'; ctx.fillRect(60, 46, 50, 34) }
+    // lights that glow through the dark go after the overlay
+    drawSeasonNight(ctx, s.season, frame)
+  }
 }

@@ -2,7 +2,8 @@
 // runs in the default node environment against the recording context from src/test/fakeCanvas.ts.
 import { describe, expect, it } from 'vitest'
 import { fakeContext, sceneSnapshot } from '../../../test/fakeCanvas'
-import { H, W, render } from '../render'
+import { H, SKY_LUT, W, render, skyColor } from '../render'
+import type { Season } from '../season'
 
 /**
  * fillRect calls for one frame of the reference scene (`sceneSnapshot()`: drawing phase, working, running, speed 1,
@@ -46,11 +47,40 @@ describe('render', () => {
     expect(b.log).toEqual(a.log)
   })
 
-  it('stays under 1.5 times the measured baseline of fillRect calls, by day and by night', () => {
-    for (const t of [0.3, 0.9]) {
-      const { ctx, log } = fakeContext()
-      render(ctx, sceneSnapshot(), t, 100)
-      expect(log.length).toBeLessThan(BUDGET)
+  it('stays under 1.5 times the measured baseline of fillRect calls in every season, by day and by night', () => {
+    expect(BUDGET).toBe(435)
+    for (const season of ['spring', 'summer', 'autumn', 'winter'] as Season[]) {
+      for (const t of [0.3, 0.9]) {
+        const { ctx, log } = fakeContext()
+        render(ctx, sceneSnapshot({ season }), t, 100)
+        expect(log.length, `${season} t ${t}`).toBeLessThan(BUDGET)
+      }
     }
+  })
+})
+
+describe('the sky', () => {
+  it('reads the time of day from a 256-entry table of rgb() strings', () => {
+    expect(SKY_LUT).toHaveLength(256)
+    // entry i is t = i / 255: t 0 is dawn pink, t 0.4 (entry 102) the midday blue between the 0.25 and 0.55 stops
+    expect(SKY_LUT[0]).toBe('rgb(246,166,160)')
+    expect(SKY_LUT[Math.round(0.4 * 255)]).toBe('rgb(143,211,255)')
+    // entry 209 is t 0.8196, 0.9967 of the way from dusk (242,163,90) to night (28,35,82): 242 - 213.3, 163 - 127.6,
+    // 90 - 8.0, rounded
+    expect(SKY_LUT[209]).toBe('rgb(29,35,82)')
+    expect(SKY_LUT[255]).toBe('rgb(246,166,160)')
+  })
+
+  it('clamps t to [0, 1] and rounds it to the nearest entry', () => {
+    expect(skyColor(0.4)).toBe('rgb(143,211,255)')
+    expect(skyColor(0.82)).toBe('rgb(29,35,82)')
+    expect(skyColor(-0.5)).toBe('rgb(246,166,160)')
+    expect(skyColor(1.5)).toBe('rgb(246,166,160)')
+  })
+
+  it('paints the window pane in the sky colour', () => {
+    const { ctx, log } = fakeContext()
+    render(ctx, sceneSnapshot(), 0.82, 0)
+    expect(log).toContainEqual({ style: 'rgb(29,35,82)', x: 118, y: 12, w: 44, h: 32 })
   })
 })

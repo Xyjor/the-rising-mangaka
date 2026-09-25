@@ -143,8 +143,20 @@ Forecast calibration is a balance band: over year one the offer chances quoted a
 - `src/sim/` — pure TypeScript simulation. No React, no DOM. Deterministic given a seed.
   Fully unit-tested with Vitest. Every state change is a pure function `(state, input) => state`.
 - `src/state/` — Zustand store: wraps the sim, owns the real-time clock and UI state, persists to localStorage.
-- `src/ui/` — React components. `scene/` is the pixel-art canvas studio. `panels/` are the management screens.
+- `src/ui/` — React components. `scene/` is the pixel-art canvas studio (`render.ts` paints a frame from a snapshot,
+  `season.ts` the window's season, `StudioScene.tsx` runs the frame loop). `panels/` are the management screens.
 - `src/styles/` — design tokens (CSS variables), light/dark, base styles.
+
+### Seasons
+The studio window follows the calendar: month = floor((day mod 336) / 28) + 1, months 1-3 spring, 4-6 summer, 7-9
+autumn and 10-12 winter, so every year opens in spring (`seasonOf`). The season is decoration only; it changes no rule.
+- **Spring**: a cherry branch in blossom and 12 petals blowing down and across the pane.
+- **Summer**: a green canopy and a wind chime whose strip swings; at night 5 fireflies glow over the dark.
+- **Autumn**: a rust canopy and 12 leaves swaying as they fall.
+- **Winter**: a bare branch capped with snow, 16 snowflakes and snow on the sill.
+
+Everything but the sill's snow stays inside the pane, under the window bars. The particles move with the scene's frame,
+so they hold still under reduced motion.
 
 ## Systems beyond the slice (implemented)
 

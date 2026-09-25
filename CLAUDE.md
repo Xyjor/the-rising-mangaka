@@ -50,10 +50,10 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   and the gestures that unlock it, until the context runs.
 - `src/ui/` — React 19 components. `App.tsx` (shell, clock, hotkeys), `Hud.tsx`, `panels/*` (modals and the desk
   panel), `scene/` (pixel-art canvas, 192×108 logical pixels: `render.ts` holds the palettes, string-map sprites
-  and `render`, one frame painted from a `Snapshot` with nothing allocated per frame; `StudioScene.tsx` is the component
-  and its frame loop), `components.tsx` (Bar, Pips, Modal, RankChart, money/compact formatters), `Icon.tsx` (inline SVG
-  icon set). Tests live in `src/ui/__tests__` and `src/ui/scene/__tests__`; see the UI-test docblock rule under
-  Commands above.
+  and `render`, one frame painted from a `Snapshot` with nothing allocated per frame; `season.ts` has `seasonOf(day)`
+  and the window's season layer; `StudioScene.tsx` is the component and its frame loop), `components.tsx` (Bar, Pips,
+  Modal, RankChart, money/compact formatters), `Icon.tsx` (inline SVG icon set). Tests live in `src/ui/__tests__` and
+  `src/ui/scene/__tests__`; see the UI-test docblock rule under Commands above.
 - `src/test/` — shared test-only helpers: `dom.ts` (happy-dom setup, imported for side effects), `fixtures.ts`
   (game-state builders such as `withPendingResult`, shared across UI test files), `fakeSound.ts` (a recording
   sound engine for `connectSound` or `installSound`) and `fakeCanvas.ts` (a recording 2D context that logs each
