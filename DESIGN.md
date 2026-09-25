@@ -100,8 +100,9 @@ The editor writes a one-line comment on the component that cost the most points 
 - A one-shot that ranks top 3 or scores 65+ earns a serialisation offer from that magazine (one serial at a time).
 - Chapters are 16 pages. A finished chapter goes to the weekly poll automatically and the next chapter starts at once.
   Chapter results never block play: they arrive as toasts and in the Series panel.
-- **Popularity** (0-100) is a moving average of poll placement. Three consecutive weak chapters (roughly the bottom
-  quarter, rank > ceil(0.7 x entrants)) cancel the series and cost 10% of fans. Every 4 chapters a **volume** ships;
+- **Popularity** (0-100) is a moving average of poll placement, minus 10 for each missed issue. Three warnings in a
+  row (a weak chapter, roughly the bottom quarter with rank > ceil(0.7 x entrants), or a missed issue) cancel the
+  series and cost 10% of fans; the log says "after 3 warnings in a row" whichever mix it was. Every 4 chapters a **volume** ships;
   copies = (fans + circulation x 20) x popularity.
 - **Grace period**: every new series' first `SERIAL_GRACE_CHAPTERS` (4) results never add a warning, even when weak;
   popularity still moves normally during grace. The earliest a weak chapter can warn is a series' 5th result, so the
@@ -113,13 +114,16 @@ The editor writes a one-line comment on the component that cost the most points 
   -10 (`SERIAL_MISSED_ISSUE_POPULARITY`, never below 0), `missedIssues` +1, the same chapter is due one `chapterDays`
   later, and a toast says so. A miss adds a warning only once the series has 4 results (the grace period); during
   grace it costs popularity alone. Weak chapters and misses share the warning count (a chapter that is not weak
-  resets it), and the third warning cancels the series through the same path as weak chapters (`cancelSerial`:
-  fans -10%, the desk empties). With 4 results in and nothing sent, three misses cancel.
-- The desk shows the chapter's due day and the studio's pace: `chapterDeadline` counts working days left as
-  ceil(pages left / studio pages per day at full stamina) and calls it late when that exceeds the days left, tight
-  when it exceeds them once a quarter is added for rest days, and on track otherwise. The offer screen shows the
-  rhythm ("Every 21 days") and how many working days a chapter takes at the player's pace, warning when that is
-  longer than the rhythm. The Series panel lists the rhythm and the missed issues.
+  resets it), and the third warning cancels the series through one path (`cancelSerial`: fans -10%, the desk
+  empties). With 4 results in and nothing sent, three misses cancel. A trip does not stop the presses: an issue due
+  while the mangaka is away, or on the day they come home, is missed.
+- The desk shows the chapter's due day and the studio's pace: `chapterDeadline` counts working days left with
+  `chapterWorkDays` (ceil(pages left / studio pages per day at full stamina)) and rates them with `deadlineStatus`:
+  late when they exceed the days left, tight when they exceed them once `DEADLINE_REST_FACTOR` (1.25) is applied for
+  rest days, on track otherwise. The offer screen uses the same two helpers for a whole chapter against the rhythm:
+  it shows the rhythm ("Every 21 days"), the working days a chapter takes at the player's pace, "Rest days could make
+  you miss issues." when tight and "You will miss issues at this pace: hire help first." when late. The Series panel
+  lists the rhythm and the missed issues.
 - The balance bots hire help when the chapter on the desk is late, a desk is free, and the bank holds two weeks of
   the candidate's salary on top of two weeks of current costs; they pick the most pages per day per yen of salary.
 - Freshness erodes 2 points per chapter after chapter 8, so every series has a natural arc. The player can wrap a

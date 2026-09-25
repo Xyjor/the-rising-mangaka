@@ -11,6 +11,8 @@ import { OfferModal } from '../panels/OfferModal'
 import { SeriesModal } from '../panels/SeriesModal'
 
 const OFFER = { magazineId: 'kids-comic', title: 'Magic Club', genre: 'fantasy', theme: 'magic', audience: 'kids' } as const
+const LATE = 'You will miss issues at this pace: hire help first.'
+const TIGHT = 'Rest days could make you miss issues.'
 
 /**
  * Seed 1 (art 38, story 34: 0.5 + 36 x 0.02 = 1.22 pages a day) with a Kids Comic Go! serial, chapter 3 on the desk
@@ -46,7 +48,7 @@ describe('desk: the serial chapter deadline', () => {
     // 4 x 1.25 = 5 is more than 4 days left
     useStore.setState({ game: chapterDue(4) })
     render(<DeskPanel />)
-    expect(screen.getByText('Chapter 3 due in 4 days. About 4 working days left: tight: rest days could make you miss it.'))
+    expect(screen.getByText('Chapter 3 due in 4 days. About 4 working days left: tight, rest days could make you miss it.'))
       .toBeTruthy()
   })
 
@@ -59,28 +61,30 @@ describe('desk: the serial chapter deadline', () => {
     // 1 page left / 1.22 = 0.8, so 1 working day; 1 x 1.25 = 1.25 is more than 1 day left, so tight
     useStore.setState({ game: chapterDue(1, 15) })
     render(<DeskPanel />)
-    expect(screen.getByText('Chapter 3 due in 1 day. About 1 working day left: tight: rest days could make you miss it.'))
+    expect(screen.getByText('Chapter 3 due in 1 day. About 1 working day left: tight, rest days could make you miss it.'))
       .toBeTruthy()
   })
 })
 
 describe('offer: the chapter deadline and the studio pace', () => {
   it('shows the deadline tile and the working days a chapter takes', () => {
-    // 16 / 1.22 = 13.1, so 14 working days against 21
+    // 16 / 1.22 = 13.1, so 14 working days against 21; 14 x 1.25 = 17.5 still fits, so no caution
     useStore.setState({ game: offerFrom('kids-comic') })
     render(<OfferModal />)
     const terms = within(document.querySelector<HTMLElement>('.terms')!)
     expect(terms.getByText('Every 21 days')).toBeTruthy()
     expect(screen.getByText('At your pace a chapter takes about 14 working days.')).toBeTruthy()
-    expect(screen.queryByText('You will miss issues at this pace: hire help first.')).toBeNull()
+    expect(screen.queryByText(TIGHT)).toBeNull()
+    expect(screen.queryByText(LATE)).toBeNull()
   })
 
-  it('does not warn when a chapter takes exactly as long as the magazine gives', () => {
-    // 14 working days against Weekly Bolt's 14
+  it('cautions, without the late warning, when a chapter fits only without rest days', () => {
+    // 14 working days against Weekly Bolt's 14: fits, but 14 x 1.25 = 17.5 does not
     useStore.setState({ game: offerFrom('weekly-bolt') })
     render(<OfferModal />)
     expect(screen.getByText('At your pace a chapter takes about 14 working days.')).toBeTruthy()
-    expect(screen.queryByText('You will miss issues at this pace: hire help first.')).toBeNull()
+    expect(screen.getByText(TIGHT)).toBeTruthy()
+    expect(screen.queryByText(LATE)).toBeNull()
   })
 
   it('warns when a chapter takes longer than the magazine gives', () => {
@@ -89,7 +93,17 @@ describe('offer: the chapter deadline and the studio pace', () => {
     render(<OfferModal />)
     expect(within(document.querySelector<HTMLElement>('.terms')!).getByText('Every 14 days')).toBeTruthy()
     expect(screen.getByText('At your pace a chapter takes about 27 working days.')).toBeTruthy()
-    expect(screen.getByText('You will miss issues at this pace: hire help first.')).toBeTruthy()
+    expect(screen.getByText(LATE)).toBeTruthy()
+    expect(screen.queryByText(TIGHT)).toBeNull()
+  })
+
+  it('states the deal: pages every chapterDays, and weak chapters or missed issues cancel after grace', () => {
+    useStore.setState({ game: offerFrom('kids-comic') })
+    render(<OfferModal />)
+    expect(screen.getByText(
+      'Readers loved it. Give me 16 pages every 21 days, keep the polls healthy, and we release a volume every 4 chapters. '
+      + 'The first 4 chapters are guaranteed; after that, 3 weak chapters or missed issues in a row and I have to cancel. Deal?',
+    )).toBeTruthy()
   })
 })
 
@@ -99,5 +113,9 @@ describe('series: the chapter rhythm and missed issues', () => {
     useStore.setState({ game: { ...s, serial: { ...s.serial!, missedIssues: 1 } } })
     render(<SeriesModal />)
     expect(screen.getByText('A chapter every 21 days. Missed issues: 1.')).toBeTruthy()
+    expect(screen.getByText(
+      'A moving average of recent poll placements, minus 10 for each missed issue. '
+      + 'Three weak chapters or missed issues in a row and the magazine pulls the plug.',
+    )).toBeTruthy()
   })
 })

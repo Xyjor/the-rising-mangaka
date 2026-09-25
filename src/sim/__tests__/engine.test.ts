@@ -3,10 +3,11 @@ import {
   CHAPTER_PAGES, JOB_PAY_PER_DAY, LOW_STAMINA_THRESHOLD, MAGAZINE_MISMATCH_PENALTY, ONE_SHOT_PAGES,
   PACING_NOISE_SD, RATING_SCORE, REST_STAMINA_GAIN, SERIAL_CLIMAX_VOLUME_MULT, SERIAL_GRACE_CHAPTERS, VOLUME_PRICE,
   WEEKLY_LIVING_COST,
-  WORK_STAMINA_COST, acceptOffer, chapterDeadline, clamp, createGame, declineOffer, describeDate, dismissResult, endSerial,
-  evaluateChapter, evaluateProject, fireAssistant, genreThemeRating, getPhase, hireAssistant, magazineById,
-  previewCombo, previewSubmission, projectArtQuality, serialFatigue, setActivity, spendSkillPoint,
-  stalenessCount, startProject, startTrip, submitProject, themeAudienceKey, tick, tickMany, volumeCopies,
+  WORK_STAMINA_COST, acceptOffer, chapterDeadline, chapterWorkDays, clamp, createGame, deadlineStatus, declineOffer,
+  describeDate, dismissResult, endSerial, evaluateChapter, evaluateProject, fireAssistant, genreThemeRating, getPhase,
+  hireAssistant, magazineById, previewCombo, previewSubmission, projectArtQuality, serialFatigue, setActivity,
+  spendSkillPoint, stalenessCount, startProject, startTrip, submitProject, themeAudienceKey, tick, tickMany,
+  volumeCopies,
 } from '../index'
 import type { Assistant, AssistantTrait, ChapterResult, GameState, LogEntry, MagazineId, PendingChapter } from '../index'
 import { draw, gaussian } from '../rng'
@@ -286,9 +287,9 @@ describe('serialisation', () => {
     const ser = s.serial ?? s.serials[0]
     expect(ser.status).toBe('cancelled')
     expect(ser.results).toHaveLength(7)
-    // The weak-chapter cancellation keeps its own wording (the missed-issue path words it differently).
+    // Weak chapters and missed issues share the warning count, so the cancellation names warnings, not weak chapters.
     expect(s.log[s.log.length - 1].text).toMatch(
-      /^Weekly Bolt cancelled "Blade Club" after 3 weak chapters\. Fans -\d+\. A one-shot that places top 3 or scores 65\+ earns a new offer\.$/,
+      /^Weekly Bolt cancelled "Blade Club" after 3 warnings in a row\. Fans -\d+\. A one-shot that places top 3 or scores 65\+ earns a new offer\.$/,
     )
   })
 })
@@ -423,6 +424,57 @@ describe('chapter deadlines', () => {
     expect(missLogs(s)[0].text).toBe('"Magic Club" missed its issue: chapter 5 was not ready. Popularity -10. Warning 1 of 3.')
   })
 
+  it('cancels after a missed issue and two weak chapters, naming the warnings in a row', () => {
+    // Seed 4 rates Sports x Vampires and Vampires for Kids both Bad (20). Chapters drawn at quality 0 by a stats-5
+    // mangaka score about (0 x 35 + 0 x 15 + 5 x 10 + 20 x 20 + 20 x 20) / 100 = 8.5, some 5 sd under Kids Comic Go!'s
+    // rivals at 47 (sd 8): last of 11, so weak (rank above ceil(0.7 x 11) = 8).
+    const s0 = withStats(kidsSerialWithResults(4), 5)
+    const weak = (chapter: number, resultsDay: number): PendingChapter =>
+      ({ chapter, pages: CHAPTER_PAGES, artQ: 0, storyQ: 0, submittedDay: resultsDay - 7, resultsDay })
+    let s: GameState = {
+      ...s0,
+      serial: { ...s0.serial!, genre: 'sports', theme: 'vampires', pending: [weak(5, 22), weak(6, 23)], chaptersSent: 6 },
+      project: { ...s0.project!, chapter: 7 },
+    }
+    // Day 21: chapter 7 misses its issue, the first warning (4 results are in).
+    s = tickMany(s, 21)
+    expect(s.serial!).toMatchObject({ missedIssues: 1, warnings: 1, status: 'running' })
+    // Day 22: chapter 5 polls last, the second warning.
+    s = tick(s)
+    expect(s.serial!.results[4].rank).toBe(11)
+    expect(s.serial!).toMatchObject({ warnings: 2, status: 'running' })
+    // Day 23: chapter 6 polls last, the third warning cancels.
+    s = tick(s)
+    expect(s.serial).toBeNull()
+    expect(s.serials[0].results[5].rank).toBe(11)
+    expect(s.serials[0]).toMatchObject({ status: 'cancelled', warnings: 3, missedIssues: 1 })
+    expect(s.log[s.log.length - 1].text).toMatch(
+      /^Kids Comic Go! cancelled "Magic Club" after 3 warnings in a row\. Fans -\d+\. A one-shot that places top 3 or scores 65\+ earns a new offer\.$/,
+    )
+  })
+
+  it('misses the issue while the mangaka is away: the magazine goes to print regardless', () => {
+    // Away across the due day: an art class from day 19 ends on day 23.
+    let s = startTrip(tickMany(kidsSerial(), 19), 'art-class')
+    s = tickMany(s, 2)
+    expect(s.day).toBe(21)
+    expect(s.trip).not.toBeNull()
+    expect(s.serial!).toMatchObject({ missedIssues: 1, popularity: 40, nextDueDay: 42 })
+    // Home on the due day itself: the trip ends first in the tick, then the deadline is checked, and the day home
+    // draws nothing, so the issue is missed.
+    let t = startTrip(tickMany(kidsSerial(), 18), 'library')
+    expect(t.trip!.endsDay).toBe(21)
+    t = tickMany(t, 3)
+    expect(t.trip).toBeNull()
+    expect(t.activity).toBe('work')
+    expect(t.project!.pagesDone).toBe(0)
+    expect(t.serial!).toMatchObject({ missedIssues: 1, popularity: 40, nextDueDay: 42 })
+    const home = t.log.findIndex((e) => e.text.startsWith('Back from the City Library'))
+    const missed = t.log.findIndex((e) => e.text.includes('missed its issue'))
+    expect(home).toBeGreaterThanOrEqual(0)
+    expect(missed).toBeGreaterThan(home)
+  })
+
   it('never takes popularity below 0', () => {
     const s0 = kidsSerial()
     const s = tickMany({ ...s0, serial: { ...s0.serial!, popularity: 5 } }, 21)
@@ -449,6 +501,20 @@ describe('chapter deadlines', () => {
     expect(at(8)).toEqual({ dueDay: 21, daysLeft: 13, workDaysLeft: 14, status: 'late' })
     // 4 pages left: 4 / 1.22 = 3.3, so 4 working days
     expect(chapterDeadline({ ...s, project: { ...s.project!, pagesDone: 12 } })!.workDaysLeft).toBe(4)
+  })
+
+  it('counts working days for a page count at the studio pace, and rates them against the days left', () => {
+    const s = createGame('Rin', 4)
+    // 1.22 pages a day: 16 / 1.22 = 13.1 -> 14, 20 / 1.22 = 16.4 -> 17, 4 / 1.22 = 3.3 -> 4
+    expect(chapterWorkDays(s, 16)).toBe(14)
+    expect(chapterWorkDays(s, 20)).toBe(17)
+    expect(chapterWorkDays(s, 4)).toBe(4)
+    // 14 x 1.25 = 17.5
+    expect(deadlineStatus(14, 21)).toBe('on-track')
+    expect(deadlineStatus(14, 18)).toBe('on-track')
+    expect(deadlineStatus(14, 17)).toBe('tight')
+    expect(deadlineStatus(14, 14)).toBe('tight')
+    expect(deadlineStatus(14, 13)).toBe('late')
   })
 
   it('reports no deadline without a running serial chapter on the desk', () => {

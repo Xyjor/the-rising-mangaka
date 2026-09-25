@@ -1,6 +1,6 @@
 import { genreThemeKey, genreThemeRating, themeAudienceKey, themeAudienceRating } from './compat'
 import {
-  ASSISTANT_NAMES, AUDIENCES, CANDIDATE_REFRESH_DAYS, CHAPTER_PAGES, EDITOR_TIP_EVERY, GENRES,
+  ASSISTANT_NAMES, AUDIENCES, CANDIDATE_REFRESH_DAYS, CHAPTER_PAGES, DEADLINE_REST_FACTOR, EDITOR_TIP_EVERY, GENRES,
   HIRE_RUNWAY_WEEKS, JOB_PAY_PER_DAY, JOB_STAMINA_COST, LOW_STAMINA_THRESHOLD, MAGAZINES, MAX_ASSISTANTS,
   ONE_SHOT_PAGES, OVERDRAFT_FEE_MIN, OVERDRAFT_FEE_RATE,
   RATING_LABEL, RESULTS_DELAY_DAYS, REST_STAMINA_GAIN, SERIAL_CLIMAX_MIN_POPULARITY, SERIAL_CLIMAX_VOLUME_MULT,
@@ -146,8 +146,22 @@ export interface ChapterDeadline {
   daysLeft: number
   /** working days the studio needs for the pages left, at full stamina */
   workDaysLeft: number
-  /** late: more working days than days left; tight: rest days (a quarter on top) would not fit */
+  /** see `deadlineStatus` */
   status: DeadlineStatus
+}
+
+/** Working days the studio needs for `pages` at full stamina with its current staff (rest days not included). */
+export function chapterWorkDays(state: GameState, pages: number): number {
+  return Math.ceil(pages / studioPagesPerDay(state))
+}
+
+/**
+ * `workDays` of drawing against `daysLeft` calendar days: late when they cannot fit, tight when they fit only
+ * without the rest days (`DEADLINE_REST_FACTOR` on top), on track otherwise.
+ */
+export function deadlineStatus(workDays: number, daysLeft: number): DeadlineStatus {
+  if (workDays > daysLeft) return 'late'
+  return workDays * DEADLINE_REST_FACTOR > daysLeft ? 'tight' : 'on-track'
 }
 
 /** The running serial's chapter deadline, or null when no serial chapter is being drawn. Consumes no RNG. */
@@ -157,9 +171,8 @@ export function chapterDeadline(state: GameState): ChapterDeadline | null {
   if (!ser || ser.status !== 'running' || !p || p.kind !== 'serial' || p.status !== 'drawing') return null
   const dueDay = ser.nextDueDay
   const daysLeft = dueDay - state.day
-  const workDaysLeft = Math.ceil((p.pagesTarget - p.pagesDone) / studioPagesPerDay(state))
-  const status: DeadlineStatus = workDaysLeft > daysLeft ? 'late' : workDaysLeft * 1.25 > daysLeft ? 'tight' : 'on-track'
-  return { dueDay, daysLeft, workDaysLeft, status }
+  const workDaysLeft = chapterWorkDays(state, p.pagesTarget - p.pagesDone)
+  return { dueDay, daysLeft, workDaysLeft, status: deadlineStatus(workDaysLeft, daysLeft) }
 }
 
 export function weeklyCosts(state: GameState): number {
@@ -699,28 +712,27 @@ function resolveChapters(state: GameState): GameState {
       s = addLog(s, 'money', `Volume ${serial.volumes} of "${ser.title}" sold ${copies} copies: +¥${money}.`, true)
     }
 
-    if (serial.status === 'running' && warnings >= SERIAL_WARNINGS_TO_CANCEL) {
-      s = cancelSerial(s, `${mag.name} cancelled "${ser.title}" after ${SERIAL_WARNINGS_TO_CANCEL} weak chapters.`)
-    }
+    if (serial.status === 'running' && warnings >= SERIAL_WARNINGS_TO_CANCEL) s = cancelSerial(s)
     s = archiveSerialIfDone(s)
   }
   return s
 }
 
 /**
- * The magazine drops the running serial: 10% of fans leave, the chapter on the desk is scrapped and the studio
- * rests. `text` says who cancelled what and why; the fan loss and how to earn a new offer are appended.
+ * The magazine drops the running serial at its third warning in a row: 10% of fans leave, the chapter on the desk is
+ * scrapped and the studio rests. Weak chapters and missed issues share the warning count, so the log names warnings.
  */
-function cancelSerial(state: GameState, text: string): GameState {
+function cancelSerial(state: GameState): GameState {
+  const ser = state.serial!
   const lost = Math.round(state.player.fans * 0.1)
   const s: GameState = {
     ...state,
-    serial: { ...state.serial!, status: 'cancelled', endedDay: state.day },
+    serial: { ...ser, status: 'cancelled', endedDay: state.day },
     project: state.project?.kind === 'serial' ? null : state.project,
     activity: 'rest',
     player: { ...state.player, fans: state.player.fans - lost },
   }
-  return addLog(s, 'warn', `${text} Fans -${lost}. A one-shot that places top ${SERIAL_OFFER_MIN_RANK} or scores ${SERIAL_OFFER_MIN_SCORE}+ earns a new offer.`, true)
+  return addLog(s, 'warn', `${magazineById(ser.magazineId).name} cancelled "${ser.title}" after ${SERIAL_WARNINGS_TO_CANCEL} warnings in a row. Fans -${lost}. A one-shot that places top ${SERIAL_OFFER_MIN_RANK} or scores ${SERIAL_OFFER_MIN_SCORE}+ earns a new offer.`, true)
 }
 
 /**
@@ -751,10 +763,7 @@ function checkDeadline(state: GameState): GameState {
     `"${ser.title}" missed its issue: chapter ${p.chapter} was not ready. Popularity -${SERIAL_MISSED_ISSUE_POPULARITY}.${after}`,
     true,
   )
-  if (warnings >= SERIAL_WARNINGS_TO_CANCEL) {
-    s = cancelSerial(s, `${mag.name} cancelled "${ser.title}" after ${SERIAL_WARNINGS_TO_CANCEL} warnings in a row.`)
-    s = archiveSerialIfDone(s)
-  }
+  if (warnings >= SERIAL_WARNINGS_TO_CANCEL) s = archiveSerialIfDone(cancelSerial(s))
   return s
 }
 

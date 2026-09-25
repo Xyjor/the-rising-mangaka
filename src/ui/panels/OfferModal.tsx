@@ -1,6 +1,6 @@
 import {
   CHAPTER_PAGES, PAY_FULL_RATE_SCORE, SERIAL_GRACE_CHAPTERS, SERIAL_WARNINGS_TO_CANCEL, VOLUME_EVERY_CHAPTERS,
-  magazineById, studioPagesPerDay,
+  chapterWorkDays, deadlineStatus, magazineById,
 } from '../../sim'
 import { useStore } from '../../state/store'
 import { Modal, Reward } from '../components'
@@ -14,10 +14,10 @@ export function OfferModal() {
   const last = useStore((s) => s.game!.history.at(-1))
   const accept = useStore((s) => s.acceptOffer)
   const decline = useStore((s) => s.declineOffer)
-  const pagesPerDay = useStore((s) => studioPagesPerDay(s.game!))
-  const mag = magazineById(offer.magazineId)
   // Working days for one chapter at full stamina with the current staff; rest days come on top.
-  const chapterWorkDays = Math.ceil(CHAPTER_PAGES / pagesPerDay)
+  const workDays = useStore((s) => chapterWorkDays(s.game!, CHAPTER_PAGES))
+  const mag = magazineById(offer.magazineId)
+  const pace = deadlineStatus(workDays, mag.chapterDays)
 
   return (
     <Modal
@@ -42,7 +42,7 @@ export function OfferModal() {
           <span className="small muted">{comboLabel(offer.genre, offer.theme, offer.audience)}</span>
         </div>
         <div className="speech">
-          Readers loved it. Give me a chapter every {CHAPTER_PAGES} pages, keep the polls healthy, and we release a volume every {VOLUME_EVERY_CHAPTERS} chapters. The first {SERIAL_GRACE_CHAPTERS} chapters are guaranteed; after that, {SERIAL_WARNINGS_TO_CANCEL} weak chapters in a row and I have to cancel. Deal?
+          Readers loved it. Give me {CHAPTER_PAGES} pages every {plural(mag.chapterDays, 'day')}, keep the polls healthy, and we release a volume every {VOLUME_EVERY_CHAPTERS} chapters. The first {SERIAL_GRACE_CHAPTERS} chapters are guaranteed; after that, {SERIAL_WARNINGS_TO_CANCEL} weak chapters or missed issues in a row and I have to cancel. Deal?
         </div>
         <div className="terms">
           <Reward value={money(mag.pageRate)} label={`a page at a score of ${PAY_FULL_RATE_SCORE}`} />
@@ -51,10 +51,9 @@ export function OfferModal() {
           <Reward value={rivalWord(mag.rivalMean)} label="rival polls" />
           <Reward value={`Every ${plural(mag.chapterDays, 'day')}`} label="a chapter due" />
         </div>
-        <p className="small">At your pace a chapter takes about {plural(chapterWorkDays, 'working day')}.</p>
-        {chapterWorkDays > mag.chapterDays && (
-          <p className="small warn-text">You will miss issues at this pace: hire help first.</p>
-        )}
+        <p className="small">At your pace a chapter takes about {plural(workDays, 'working day')}.</p>
+        {pace === 'late' && <p className="small warn-text">You will miss issues at this pace: hire help first.</p>}
+        {pace === 'tight' && <p className="small">Rest days could make you miss issues.</p>}
         {last && (
           <p className="small">
             Your one-shot scored {last.score}; series here usually score around {mag.rivalMean}.

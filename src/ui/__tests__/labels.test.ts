@@ -8,11 +8,11 @@ describe('warningText', () => {
   })
 
   it('counts the warning and the chapters left at 1 of 3', () => {
-    expect(warningText(1)).toBe('1 warning. 2 more weak chapters in a row cancel it')
+    expect(warningText(1)).toBe('1 warning. 2 more weak chapters or missed issues in a row cancel it')
   })
 
   it('gives the last-chance message one warning before cancellation', () => {
-    expect(warningText(2)).toBe('One more weak chapter cancels it')
+    expect(warningText(2)).toBe('One more weak chapter or missed issue cancels it')
   })
 })
 

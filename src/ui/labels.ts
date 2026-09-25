@@ -66,9 +66,9 @@ export function payWhy(result: PollResult): string {
 /** The serial-status warning line: safe, a countdown, or the last-chance message. */
 export function warningText(warnings: number): string {
   if (warnings === 0) return 'Safe'
-  if (warnings === SERIAL_WARNINGS_TO_CANCEL - 1) return 'One more weak chapter cancels it'
+  if (warnings === SERIAL_WARNINGS_TO_CANCEL - 1) return 'One more weak chapter or missed issue cancels it'
   const left = SERIAL_WARNINGS_TO_CANCEL - warnings
-  return `${plural(warnings, 'warning')}. ${plural(left, 'more weak chapter')} in a row cancel it`
+  return `${plural(warnings, 'warning')}. ${plural(left, 'more weak chapter')} or missed issues in a row cancel it`
 }
 
 /** The desk/series line shown while a new series is still within its grace period (no warnings possible yet). */

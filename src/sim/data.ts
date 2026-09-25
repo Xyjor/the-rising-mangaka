@@ -140,6 +140,8 @@ export const SERIAL_WARNINGS_TO_CANCEL = 3
 export const SERIAL_GRACE_CHAPTERS = 4
 /** Popularity a serial loses each time an issue goes out without its chapter. */
 export const SERIAL_MISSED_ISSUE_POPULARITY = 10
+/** A chapter deadline is tight when its working days times this (room for rest days) no longer fit the days left. */
+export const DEADLINE_REST_FACTOR = 1.25
 export const SERIAL_OFFER_MIN_RANK = 3
 export const SERIAL_OFFER_MIN_SCORE = 65
 export const EDITOR_TIP_EVERY = 3

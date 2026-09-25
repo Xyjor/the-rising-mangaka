@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import {
-  SERIAL_OFFER_MIN_RANK, SERIAL_OFFER_MIN_SCORE, audienceById, describeDate, genreById, magazineById, themeById,
+  SERIAL_MISSED_ISSUE_POPULARITY, SERIAL_OFFER_MIN_RANK, SERIAL_OFFER_MIN_SCORE, audienceById, describeDate, genreById,
+  magazineById, themeById,
 } from '../../sim'
 import type { Serial } from '../../sim'
 import { useStore } from '../../state/store'
@@ -57,7 +58,7 @@ function SeriesDetail({ ser }: { ser: Serial }) {
       </div>
 
       <Metric label="Popularity" bar={ser.popularity} tone={ser.popularity >= 60 ? 'green' : ser.popularity >= 40 ? 'gold' : 'accent'} thick>
-        <p className="tiny muted">A moving average of recent poll placements. Three weak chapters in a row and the magazine pulls the plug.</p>
+        <p className="tiny muted">A moving average of recent poll placements, minus {SERIAL_MISSED_ISSUE_POPULARITY} for each missed issue. Three weak chapters or missed issues in a row and the magazine pulls the plug.</p>
       </Metric>
 
       <p className="small muted">A chapter every {plural(mag.chapterDays, 'day')}. Missed issues: {ser.missedIssues}.</p>

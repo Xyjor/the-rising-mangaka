@@ -218,7 +218,7 @@ const ActivityControls = memo(function ActivityControls() {
 /** What the desk says after "About n working days left:" for each deadline status. */
 const DEADLINE_TEXT: Record<DeadlineStatus, string> = {
   'on-track': 'on track',
-  tight: 'tight: rest days could make you miss it',
+  tight: 'tight, rest days could make you miss it',
   late: 'at this pace you will miss the issue',
 }
 
