@@ -11,10 +11,13 @@ npm test               # Vitest: sim (src/sim/__tests__), state (src/state/__tes
 npx tsc -b             # Type check (must exit 0)
 npm run build          # Production build
 npm run lint           # oxlint
-npx vite-node scripts/balance.ts [seed]   # Balance readout: simulates a career and prints the numbers
+npm run check           # Lint (deny warnings) + typecheck + tests + build + contrast gate; mirrors CI
+npm run contrast        # WCAG AA 4.5:1 contrast gate over src/styles/tokens.css
+npm run balance -- <seed>   # Balance readout: simulates a career and prints the numbers
 ```
 
 Every change must pass `npx tsc -b`, `npm test`, and `npm run build` before it is called done. Run them; do not assume.
+CI (`.github/workflows/ci.yml`) runs `npm run check`'s steps plus a balance smoke run; lint warnings fail CI (`oxlint --deny-warnings`).
 
 UI tests (`src/ui/__tests__`) run against `happy-dom` (not the sim/state tests' default node environment): start the file
 with `// @vitest-environment happy-dom` and import `src/test/dom.ts` for its side effects (registers
