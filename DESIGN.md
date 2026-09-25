@@ -48,7 +48,8 @@ Plan manga  →  Draw pages (days pass)  →  Submit to a magazine  →  Reader 
 - Reusing the same genre×theme in the last 3 works applies a staleness penalty (shown in the wizard).
 
 ### Magazines
-- Each has an audience lean, a page rate, circulation, and a rival strength.
+- Each has an audience lean, a page rate, circulation, a rival strength, and a chapter rhythm for serials
+  (`chapterDays`: Weekly Bolt 14, Monthly Petal 28, Ultra Seinen 21, Kids Comic Go! 21).
 - Submitting to a magazine whose audience differs from the manga's audience costs Audience fit.
   The submit panel shows this before the player commits.
 
@@ -103,8 +104,24 @@ The editor writes a one-line comment on the component that cost the most points 
   quarter, rank > ceil(0.7 x entrants)) cancel the series and cost 10% of fans. Every 4 chapters a **volume** ships;
   copies = (fans + circulation x 20) x popularity.
 - **Grace period**: every new series' first `SERIAL_GRACE_CHAPTERS` (4) results never add a warning, even when weak;
-  popularity still moves normally during grace. The earliest a warning can land is a series' 5th result, so the
-  earliest possible cancellation is its 7th result. Applies to every new series, not only a mangaka's first.
+  popularity still moves normally during grace. The earliest a weak chapter can warn is a series' 5th result, so the
+  earliest cancellation by weak chapters alone is its 7th result. Applies to every new series, not only a mangaka's
+  first.
+- **Chapter deadlines**: accepting an offer makes chapter 1 due `chapterDays` later. Each chapter sent makes the next
+  one due `chapterDays` after the previous due day (not after the day it was sent), so finishing early banks time.
+  If the due day arrives while the chapter is still being drawn, the issue is **missed** (`checkDeadline`): popularity
+  -10 (`SERIAL_MISSED_ISSUE_POPULARITY`, never below 0), `missedIssues` +1, the same chapter is due one `chapterDays`
+  later, and a toast says so. A miss adds a warning only once the series has 4 results (the grace period); during
+  grace it costs popularity alone. Weak chapters and misses share the warning count (a chapter that is not weak
+  resets it), and the third warning cancels the series through the same path as weak chapters (`cancelSerial`:
+  fans -10%, the desk empties). With 4 results in and nothing sent, three misses cancel.
+- The desk shows the chapter's due day and the studio's pace: `chapterDeadline` counts working days left as
+  ceil(pages left / studio pages per day at full stamina) and calls it late when that exceeds the days left, tight
+  when it exceeds them once a quarter is added for rest days, and on track otherwise. The offer screen shows the
+  rhythm ("Every 21 days") and how many working days a chapter takes at the player's pace, warning when that is
+  longer than the rhythm. The Series panel lists the rhythm and the missed issues.
+- The balance bots hire help when the chapter on the desk is late, a desk is free, and the bank holds two weeks of
+  the candidate's salary on top of two weeks of current costs; they pick the most pages per day per yen of salary.
 - Freshness erodes 2 points per chapter after chapter 8, so every series has a natural arc. The player can wrap a
   series up at any time and converts popularity into loyal fans.
 - Wrapping up with popularity 50 or higher after at least one volume has shipped sells a final volume at 1.5x copies;
@@ -177,8 +194,9 @@ The final hook order inside `tick()`:
 3. Candidate refresh.
 4. One-shot poll result and serialisation offer.
 5. `resolveChapters` (chapter polls, volumes, warnings, cancellation, archiving).
-6. `awardMilestones`.
-7. Return.
+6. `checkDeadline` (a serial chapter not in by its due day misses the issue; warnings and cancellation).
+7. `awardMilestones`.
+8. Return.
 
-Future hooks (events, year review, anime) go between `resolveChapters` and `awardMilestones` so milestones see
+Future hooks (events, year review, anime) go between `checkDeadline` and `awardMilestones` so milestones see
 their effects the same day.

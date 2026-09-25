@@ -1,8 +1,9 @@
 import { memo } from 'react'
 import {
   JOB_PAY_PER_DAY, LOW_STAMINA_THRESHOLD, RESULTS_DELAY_DAYS, SERIAL_OFFER_MIN_RANK, SERIAL_OFFER_MIN_SCORE,
-  VOLUME_EVERY_CHAPTERS, audienceById, expectedPagesToday, genreById, getPhase,
+  VOLUME_EVERY_CHAPTERS, audienceById, chapterDeadline, expectedPagesToday, genreById, getPhase,
   magazineById, placeById, projectArtQuality, projectStoryQuality, themeById } from '../../sim'
+import type { DeadlineStatus } from '../../sim'
 import { useStore } from '../../state/store'
 import { useShallow } from 'zustand/react/shallow'
 import { Icon } from '../Icon'
@@ -214,14 +215,28 @@ const ActivityControls = memo(function ActivityControls() {
   )
 })
 
+/** What the desk says after "About n working days left:" for each deadline status. */
+const DEADLINE_TEXT: Record<DeadlineStatus, string> = {
+  'on-track': 'on track',
+  tight: 'tight: rest days could make you miss it',
+  late: 'at this pace you will miss the issue',
+}
+
 const SerialStatus = memo(function SerialStatus() {
   const ser = useStore((s) => s.game!.serial)!
+  const chapter = useStore((s) => s.game!.project?.chapter ?? 0)
+  const deadline = useStore(useShallow((s) => chapterDeadline(s.game!)))
   const openModal = useStore((s) => s.openModal)
   const endSerial = useStore((s) => s.endSerial)
   const last = ser.results[ser.results.length - 1]
   const untilVolume = VOLUME_EVERY_CHAPTERS - (ser.results.length % VOLUME_EVERY_CHAPTERS)
   return (
     <div className="col" style={{ gap: 10 }}>
+      {deadline && (
+        <p className={deadline.status === 'late' ? 'small warn-text' : 'small'}>
+          Chapter {chapter} due in {plural(deadline.daysLeft, 'day')}. About {plural(deadline.workDaysLeft, 'working day')} left: {DEADLINE_TEXT[deadline.status]}.
+        </p>
+      )}
       <p className="small">
         <b>Popularity {ser.popularity}</b>, {last ? `latest poll #${last.rank} of ${last.entrants}` : 'waiting for the first poll'}, volume {ser.volumes + 1} in {plural(untilVolume, 'chapter')}.
       </p>

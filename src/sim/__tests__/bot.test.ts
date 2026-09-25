@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { acceptOffer, createGame, startProject, submitProject } from '../index'
-import type { ChapterResult, GameState, PollResult } from '../index'
+import type { Assistant, AssistantTrait, ChapterResult, GameState, PollResult } from '../index'
 import { CARELESS, SENSIBLE, STRESS_BOLT, botStep, firstSixMean, runBot } from '../bot'
 import type { BotRun } from '../bot'
 import { DRAFT, drawUntilReady, withPendingResult, withReadyOneShot } from '../../test/fixtures'
@@ -214,6 +214,36 @@ describe('balance bot', () => {
     const wrapped = botStep(serialWith(16, 50), SENSIBLE)
     expect(wrapped.serial).toBeNull()
     expect(wrapped.serials[0].status).toBe('ended')
+  })
+
+  it('hires the most pages per yen when a chapter will miss its issue, a desk is free and the bank covers it', () => {
+    // pages a day = 0.15 + (art + story) / 2 x 0.008, x 1.3 when fast
+    const cand = (id: number, name: string, stat: number, salary: number, trait: AssistantTrait): Assistant =>
+      ({ id, name, art: stat, story: stat, salary, stamina: 80, maxStamina: 80, trait, look: 0 })
+    const candidates = [
+      cand(101, 'Big', 50, 520, 'careful'), // 0.55 a day, 0.55 / 520 = 0.00106 per yen: most pages
+      cand(102, 'Cheap', 20, 280, 'steady'), // 0.31 a day, 0.31 / 280 = 0.00111 per yen: cheapest
+      cand(103, 'Quick', 30, 360, 'fast'), // 0.39 x 1.3 = 0.507 a day, 0.507 / 360 = 0.00141 per yen: best value
+    ]
+    const serial = acceptOffer({ ...createGame('Rin', 42), pendingOffer: OFFER })
+    // Stats 38/34 draw 1.22 pages a day: 16 pages is 14 working days, so 13 days left is late and 14 only tight.
+    const at = (daysLeft: number, money: number, s: GameState = serial): GameState =>
+      ({ ...s, candidates, serial: { ...s.serial!, nextDueDay: s.day + daysLeft }, player: { ...s.player, money } })
+    const hired = (s: GameState) => botStep(s, SENSIBLE).assistants.map((a) => a.name)
+    // with every candidate affordable, the best value wins over the most pages (Big) and the cheapest (Cheap)
+    expect(hired(at(13, 100000))).toEqual(['Quick'])
+    // Quick needs 2 x 360 + 2 x 400 weekly costs = 1520 in the bank
+    expect(hired(at(13, 1520))).toEqual(['Quick'])
+    // one yen short of Quick: Cheap (2 x 280 + 800 = 1360) is the best value still affordable
+    expect(hired(at(13, 1519))).toEqual(['Cheap'])
+    expect(hired(at(13, 1359))).toEqual([])
+    // tight is not late: no hire, however rich
+    expect(hired(at(14, 100000))).toEqual([])
+    // no hire without a serial chapter on the desk
+    expect(hired({ ...createGame('Rin', 42), candidates, player: { ...createGame('Rin', 42).player, money: 100000 } })).toEqual([])
+    // every desk taken: 16 pages still cannot be drawn in one day, but there is no room for a fourth
+    const full = { ...serial, assistants: candidates.map((c) => ({ ...c, id: c.id + 100 })) }
+    expect(hired(at(1, 100000, full))).toEqual(['Big', 'Cheap', 'Quick'])
   })
 
   it('stress case: six rotating one-shots, then one forced Weekly Bolt serial, organic offers declined', () => {

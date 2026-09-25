@@ -36,6 +36,8 @@ export interface Magazine {
   rivalMean: number
   /** number of competing works in a poll */
   entrants: number
+  /** a serial here owes a chapter every this many days; one not ready by then misses the issue */
+  chapterDays: number
   /** how this magazine's readers weigh each poll component, integer percentages summing to 100 */
   taste: ScoreWeights
   /** one sentence on what the readers want, shown wherever the player picks a magazine or an audience */
@@ -154,8 +156,12 @@ export interface Serial {
   pending: PendingChapter[]
   /** 0-100, moving average of recent chapter performance */
   popularity: number
-  /** consecutive weak chapters; 3 means cancellation */
+  /** consecutive weak chapters or missed issues (after the grace period); 3 means cancellation */
   warnings: number
+  /** the day the chapter on the desk is due; each chapter sent moves it on by the magazine's chapterDays */
+  nextDueDay: number
+  /** issues that went out without a chapter from this serial */
+  missedIssues: number
   volumes: number
   totalCopies: number
   totalMoney: number

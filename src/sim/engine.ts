@@ -4,7 +4,8 @@ import {
   HIRE_RUNWAY_WEEKS, JOB_PAY_PER_DAY, JOB_STAMINA_COST, LOW_STAMINA_THRESHOLD, MAGAZINES, MAX_ASSISTANTS,
   ONE_SHOT_PAGES, OVERDRAFT_FEE_MIN, OVERDRAFT_FEE_RATE,
   RATING_LABEL, RESULTS_DELAY_DAYS, REST_STAMINA_GAIN, SERIAL_CLIMAX_MIN_POPULARITY, SERIAL_CLIMAX_VOLUME_MULT,
-  SERIAL_GRACE_CHAPTERS, SERIAL_OFFER_MIN_RANK, SERIAL_OFFER_MIN_SCORE, SERIAL_WARNINGS_TO_CANCEL, THEMES,
+  SERIAL_GRACE_CHAPTERS, SERIAL_MISSED_ISSUE_POPULARITY, SERIAL_OFFER_MIN_RANK, SERIAL_OFFER_MIN_SCORE,
+  SERIAL_WARNINGS_TO_CANCEL, THEMES,
   VOLUME_EVERY_CHAPTERS,
   VOLUME_PRICE, WEEKLY_LIVING_COST, WORK_STAMINA_COST, audienceById, magazineById, placeById, themeById, genreById,
 } from './data'
@@ -134,6 +135,31 @@ export function expectedPagesToday(state: GameState): number {
     return sum + assistantPagesPerDay(a) * eff
   }, 0)
   return player + staff
+}
+
+export type DeadlineStatus = 'on-track' | 'tight' | 'late'
+
+/** Where the chapter on the desk stands against its due day. */
+export interface ChapterDeadline {
+  dueDay: number
+  /** calendar days until the due day */
+  daysLeft: number
+  /** working days the studio needs for the pages left, at full stamina */
+  workDaysLeft: number
+  /** late: more working days than days left; tight: rest days (a quarter on top) would not fit */
+  status: DeadlineStatus
+}
+
+/** The running serial's chapter deadline, or null when no serial chapter is being drawn. Consumes no RNG. */
+export function chapterDeadline(state: GameState): ChapterDeadline | null {
+  const ser = state.serial
+  const p = state.project
+  if (!ser || ser.status !== 'running' || !p || p.kind !== 'serial' || p.status !== 'drawing') return null
+  const dueDay = ser.nextDueDay
+  const daysLeft = dueDay - state.day
+  const workDaysLeft = Math.ceil((p.pagesTarget - p.pagesDone) / studioPagesPerDay(state))
+  const status: DeadlineStatus = workDaysLeft > daysLeft ? 'late' : workDaysLeft * 1.25 > daysLeft ? 'tight' : 'on-track'
+  return { dueDay, daysLeft, workDaysLeft, status }
 }
 
 export function weeklyCosts(state: GameState): number {
@@ -391,6 +417,7 @@ export function spendSkillPoint(state: GameState, stat: StatId): GameState {
 export function acceptOffer(state: GameState): GameState {
   const o = state.pendingOffer
   if (!o || state.project || state.serial) return state
+  const mag = magazineById(o.magazineId)
   const serial: Serial = {
     id: state.nextProjectId,
     title: o.title,
@@ -405,6 +432,8 @@ export function acceptOffer(state: GameState): GameState {
     pending: [],
     popularity: 50,
     warnings: 0,
+    nextDueDay: state.day + mag.chapterDays,
+    missedIssues: 0,
     volumes: 0,
     totalCopies: 0,
     totalMoney: 0,
@@ -416,7 +445,7 @@ export function acceptOffer(state: GameState): GameState {
     // Drawing starts once the player is back from a trip or recovered; the offer itself is never blocked.
     activity: state.recovering || state.trip ? 'rest' : 'work',
   }
-  return addLog(s, 'series', `"${o.title}" is now serialised in ${magazineById(o.magazineId).name}. Chapter 1 is due.`, true)
+  return addLog(s, 'series', `"${o.title}" is now serialised in ${mag.name}. Chapter 1 is due.`, true)
 }
 
 export function declineOffer(state: GameState): GameState {
@@ -597,10 +626,14 @@ function workDay(state: GameState): GameState {
   return s
 }
 
-/** A finished chapter goes straight to the magazine and the next one starts. */
+/**
+ * A finished chapter goes straight to the magazine and the next one starts. The next chapter is due one
+ * `chapterDays` after this one's due day, not after today: finishing early banks the time.
+ */
 function sendChapter(state: GameState): GameState {
   const p = state.project!
   const ser = state.serial!
+  const mag = magazineById(ser.magazineId)
   const pc: PendingChapter = {
     chapter: p.chapter,
     pages: p.pagesTarget,
@@ -609,10 +642,12 @@ function sendChapter(state: GameState): GameState {
     submittedDay: state.day,
     resultsDay: state.day + RESULTS_DELAY_DAYS,
   }
-  const serial: Serial = { ...ser, pending: [...ser.pending, pc], chaptersSent: ser.chaptersSent + 1 }
+  const serial: Serial = {
+    ...ser, pending: [...ser.pending, pc], chaptersSent: ser.chaptersSent + 1, nextDueDay: ser.nextDueDay + mag.chapterDays,
+  }
   const next = makeProject(state, 'serial', p.chapter + 1, p, p.magazineId)
   const s: GameState = { ...state, serial, project: next, nextProjectId: state.nextProjectId + 1 }
-  return addLog(s, 'series', `Chapter ${p.chapter} of "${p.title}" sent to ${magazineById(ser.magazineId).name}.`, false)
+  return addLog(s, 'series', `Chapter ${p.chapter} of "${p.title}" sent to ${mag.name}.`, false)
 }
 
 function archiveSerialIfDone(state: GameState): GameState {
@@ -665,17 +700,59 @@ function resolveChapters(state: GameState): GameState {
     }
 
     if (serial.status === 'running' && warnings >= SERIAL_WARNINGS_TO_CANCEL) {
-      const lost = Math.round(s.player.fans * 0.1)
-      serial = { ...serial, status: 'cancelled', endedDay: s.day }
-      s = {
-        ...s,
-        serial,
-        project: s.project?.kind === 'serial' ? null : s.project,
-        activity: 'rest',
-        player: { ...s.player, fans: s.player.fans - lost },
-      }
-      s = addLog(s, 'warn', `${mag.name} cancelled "${ser.title}" after ${SERIAL_WARNINGS_TO_CANCEL} weak chapters. Fans -${lost}. A one-shot that places top ${SERIAL_OFFER_MIN_RANK} or scores ${SERIAL_OFFER_MIN_SCORE}+ earns a new offer.`, true)
+      s = cancelSerial(s, `${mag.name} cancelled "${ser.title}" after ${SERIAL_WARNINGS_TO_CANCEL} weak chapters.`)
     }
+    s = archiveSerialIfDone(s)
+  }
+  return s
+}
+
+/**
+ * The magazine drops the running serial: 10% of fans leave, the chapter on the desk is scrapped and the studio
+ * rests. `text` says who cancelled what and why; the fan loss and how to earn a new offer are appended.
+ */
+function cancelSerial(state: GameState, text: string): GameState {
+  const lost = Math.round(state.player.fans * 0.1)
+  const s: GameState = {
+    ...state,
+    serial: { ...state.serial!, status: 'cancelled', endedDay: state.day },
+    project: state.project?.kind === 'serial' ? null : state.project,
+    activity: 'rest',
+    player: { ...state.player, fans: state.player.fans - lost },
+  }
+  return addLog(s, 'warn', `${text} Fans -${lost}. A one-shot that places top ${SERIAL_OFFER_MIN_RANK} or scores ${SERIAL_OFFER_MIN_SCORE}+ earns a new offer.`, true)
+}
+
+/**
+ * Runs after `resolveChapters`: a running serial whose chapter is not in by its due day misses the issue.
+ * Popularity drops, the same chapter is due one `chapterDays` later, and once the grace period has passed (4 results
+ * in) the miss is a warning; three warnings cancel. Consumes no RNG.
+ */
+function checkDeadline(state: GameState): GameState {
+  const ser = state.serial
+  const p = state.project
+  if (!ser || ser.status !== 'running' || p?.kind !== 'serial' || p.status !== 'drawing') return state
+  if (state.day < ser.nextDueDay) return state
+  const mag = magazineById(ser.magazineId)
+  const counts = ser.results.length >= SERIAL_GRACE_CHAPTERS
+  const warnings = counts ? ser.warnings + 1 : ser.warnings
+  const serial: Serial = {
+    ...ser,
+    popularity: Math.max(0, ser.popularity - SERIAL_MISSED_ISSUE_POPULARITY),
+    missedIssues: ser.missedIssues + 1,
+    nextDueDay: ser.nextDueDay + mag.chapterDays,
+    warnings,
+  }
+  const after = counts
+    ? ` Warning ${warnings} of ${SERIAL_WARNINGS_TO_CANCEL}.`
+    : ` New series get ${SERIAL_GRACE_CHAPTERS} chapters of grace.`
+  let s = addLog(
+    { ...state, serial }, 'warn',
+    `"${ser.title}" missed its issue: chapter ${p.chapter} was not ready. Popularity -${SERIAL_MISSED_ISSUE_POPULARITY}.${after}`,
+    true,
+  )
+  if (warnings >= SERIAL_WARNINGS_TO_CANCEL) {
+    s = cancelSerial(s, `${mag.name} cancelled "${ser.title}" after ${SERIAL_WARNINGS_TO_CANCEL} warnings in a row.`)
     s = archiveSerialIfDone(s)
   }
   return s
@@ -775,6 +852,7 @@ export function tick(state: GameState): GameState {
   }
 
   s = resolveChapters(s)
+  s = checkDeadline(s)
   s = awardMilestones(s)
   return s
 }

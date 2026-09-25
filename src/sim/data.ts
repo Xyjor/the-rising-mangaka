@@ -41,28 +41,28 @@ export const AUDIENCES: Audience[] = [
 export const MAGAZINES: Magazine[] = [
   {
     id: 'weekly-bolt', name: 'Weekly Bolt', audience: 'teens',
-    pageRate: 110, circulation: 180, rivalMean: 58, entrants: 12,
+    pageRate: 110, circulation: 180, rivalMean: 58, entrants: 12, chapterDays: 14,
     taste: { art: 35, story: 15, pacing: 20, audienceFit: 10, freshness: 20 },
     tasteLine: 'Readers love big art and fast pacing.',
     blurb: 'The big weekly. Twelve rivals in every poll and the biggest readership in town.', editor: 'Tanaka',
   },
   {
     id: 'monthly-petal', name: 'Monthly Petal', audience: 'young-adults',
-    pageRate: 130, circulation: 90, rivalMean: 52, entrants: 8,
+    pageRate: 130, circulation: 90, rivalMean: 52, entrants: 8, chapterDays: 28,
     taste: { art: 15, story: 35, pacing: 10, audienceFit: 20, freshness: 20 },
     tasteLine: 'Readers want a story, and a manga made for them.',
     blurb: 'A quieter book for young adults. Fewer rivals, a little more per page.', editor: 'Sato',
   },
   {
     id: 'ultra-seinen', name: 'Ultra Seinen', audience: 'adults',
-    pageRate: 150, circulation: 70, rivalMean: 62, entrants: 8,
+    pageRate: 150, circulation: 70, rivalMean: 62, entrants: 8, chapterDays: 21,
     taste: { art: 15, story: 35, pacing: 20, audienceFit: 10, freshness: 20 },
     tasteLine: 'Readers prize story and pacing.',
     blurb: 'Prestige anthology for grown-ups. Best page rate going, and the toughest rivals.', editor: 'Kuroda',
   },
   {
     id: 'kids-comic', name: 'Kids Comic Go!', audience: 'kids',
-    pageRate: 90, circulation: 120, rivalMean: 47, entrants: 10,
+    pageRate: 90, circulation: 120, rivalMean: 47, entrants: 10, chapterDays: 21,
     taste: { art: 35, story: 15, pacing: 10, audienceFit: 20, freshness: 20 },
     tasteLine: 'Readers love bright art, and a manga made for them.',
     blurb: 'Bright, loud, and forgiving. The easiest polls to win, the lowest page rate.', editor: 'Mori',
@@ -136,8 +136,10 @@ export const SERIAL_CLIMAX_MIN_POPULARITY = 50
 /** The final volume sells this many times the copies of a regular volume. */
 export const SERIAL_CLIMAX_VOLUME_MULT = 1.5
 export const SERIAL_WARNINGS_TO_CANCEL = 3
-/** A new series' first this-many results never add a warning, even when weak. */
+/** A new series' first this-many results never add a warning, even when weak or late. */
 export const SERIAL_GRACE_CHAPTERS = 4
+/** Popularity a serial loses each time an issue goes out without its chapter. */
+export const SERIAL_MISSED_ISSUE_POPULARITY = 10
 export const SERIAL_OFFER_MIN_RANK = 3
 export const SERIAL_OFFER_MIN_SCORE = 65
 export const EDITOR_TIP_EVERY = 3

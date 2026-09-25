@@ -4,19 +4,20 @@
 // copies of the state, so a bot never advances the state's RNG seed except through tick().
 import { genreThemeKey, themeAudienceKey } from './compat'
 import {
-  AUDIENCES, GENRES, LOW_STAMINA_THRESHOLD, MAGAZINES, ONE_SHOT_PAGES, RATING_SCORE, STALENESS_PENALTY, THEMES,
-  magazineById,
+  AUDIENCES, GENRES, LOW_STAMINA_THRESHOLD, MAGAZINES, MAX_ASSISTANTS, ONE_SHOT_PAGES, RATING_SCORE, STALENESS_PENALTY,
+  THEMES, magazineById,
 } from './data'
 import {
-  acceptOffer, createGame, declineOffer, dismissResult, endSerial, focusMultipliers, hireAssistant,
-  previewSubmission, setActivity, setFocus, spendSkillPoint, startProject, submitProject, tick, weeklyCosts,
+  acceptOffer, assistantPagesPerDay, chapterDeadline, createGame, declineOffer, dismissResult, endSerial,
+  focusMultipliers, hireAssistant, previewSubmission, setActivity, setFocus, spendSkillPoint, startProject,
+  submitProject, tick, weeklyCosts,
 } from './engine'
 import type { SubmissionPreview } from './engine'
 import { clamp, hashString } from './rng'
 import { stalenessCount, suitedFocus } from './scoring'
 import type {
-  AudienceId, Focus, GameState, GenreId, MagazineId, Project, ProjectDraft, SerialOffer, SerialStatus, StatId,
-  ThemeId,
+  Assistant, AudienceId, Focus, GameState, GenreId, MagazineId, Project, ProjectDraft, SerialOffer, SerialStatus,
+  StatId, ThemeId,
 } from './types'
 
 export interface BotPolicy {
@@ -94,6 +95,10 @@ const WRAP_MIN_POPULARITY = 50
 const JOB_BELOW_WEEKS_OF_COSTS = 2
 /** ...and only with this much stamina in hand. */
 const JOB_MIN_STAMINA = 40
+/** A late chapter hires help only with this many weeks of the new salary in the bank... */
+const HIRE_SALARY_WEEKS = 2
+/** ...on top of this many weeks of the studio's current costs. */
+const HIRE_COST_WEEKS = 2
 
 // ---------- shared rules ----------
 
@@ -263,6 +268,21 @@ function chooseActivity(s: GameState): GameState {
   return setActivity(s, short && s.player.stamina >= JOB_MIN_STAMINA ? 'job' : 'rest')
 }
 
+/**
+ * When the chapter on the desk will miss its issue at the studio's pace and a desk is free, hire the candidate who
+ * draws the most pages per yen of salary among those the bank covers (two weeks of their salary on top of two weeks
+ * of current costs). Ties go to the earlier candidate.
+ */
+function hireIfLate(s: GameState): GameState {
+  if (chapterDeadline(s)?.status !== 'late' || s.assistants.length >= MAX_ASSISTANTS) return s
+  const reserve = HIRE_COST_WEEKS * weeklyCosts(s)
+  const affordable = s.candidates.filter((c) => s.player.money >= HIRE_SALARY_WEEKS * c.salary + reserve)
+  if (!affordable.length) return s
+  const value = (c: Assistant) => assistantPagesPerDay(c) / c.salary
+  const best = affordable.reduce((b, c) => (value(c) > value(b) ? c : b))
+  return hireAssistant(s, best.id)
+}
+
 /** The engine's log line for a week whose costs left the player below zero. */
 const OVERDRAFT_LOG_PREFIX = 'Overdraft fee'
 
@@ -276,8 +296,8 @@ function overdrawnToday(decided: GameState, next: GameState): boolean {
 
 /**
  * One day's decisions, before the tick, in this order: dismiss the result; accept (or decline) the offer; spend
- * points; force the stress serial; wrap a serial; plan a one-shot and set its focus; pitch a finished one; pick
- * the activity.
+ * points; force the stress serial; wrap a serial; plan a one-shot and set its focus; pitch a finished one; hire help
+ * for a chapter that will miss its issue; pick the activity.
  */
 function decide(state: GameState, p: BotPolicy): GameState {
   let s = state
@@ -302,12 +322,14 @@ function decide(state: GameState, p: BotPolicy): GameState {
     s = setFocus(startProject(s, draft), p.focusFor(s, target))
   }
   if (s.project?.status === 'ready') s = submitProject(s, p.pickMagazine(s))
+  s = hireIfLate(s)
   return chooseActivity(s)
 }
 
 /**
  * One bot day: dismiss the result, accept (or decline) the offer, spend points, force the stress serial, wrap a
- * serial, plan a one-shot and set its focus, pitch a finished one, pick the activity, then tick.
+ * serial, plan a one-shot and set its focus, pitch a finished one, hire for a late chapter, pick the activity, then
+ * tick.
  */
 export function botStep(s: GameState, p: BotPolicy): GameState {
   return tick(decide(s, p))

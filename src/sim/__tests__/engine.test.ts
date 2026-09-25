@@ -3,14 +3,14 @@ import {
   CHAPTER_PAGES, JOB_PAY_PER_DAY, LOW_STAMINA_THRESHOLD, MAGAZINE_MISMATCH_PENALTY, ONE_SHOT_PAGES,
   PACING_NOISE_SD, RATING_SCORE, REST_STAMINA_GAIN, SERIAL_CLIMAX_VOLUME_MULT, SERIAL_GRACE_CHAPTERS, VOLUME_PRICE,
   WEEKLY_LIVING_COST,
-  WORK_STAMINA_COST, acceptOffer, clamp, createGame, declineOffer, describeDate, dismissResult, endSerial,
+  WORK_STAMINA_COST, acceptOffer, chapterDeadline, clamp, createGame, declineOffer, describeDate, dismissResult, endSerial,
   evaluateChapter, evaluateProject, fireAssistant, genreThemeRating, getPhase, hireAssistant, magazineById,
   previewCombo, previewSubmission, projectArtQuality, serialFatigue, setActivity, spendSkillPoint,
   stalenessCount, startProject, startTrip, submitProject, themeAudienceKey, tick, tickMany, volumeCopies,
 } from '../index'
-import type { Assistant, AssistantTrait, GameState, PendingChapter } from '../index'
+import type { Assistant, AssistantTrait, ChapterResult, GameState, LogEntry, MagazineId, PendingChapter } from '../index'
 import { draw, gaussian } from '../rng'
-import { DRAFT as draft, drawUntilReady as drawUntilReadyFrom, withStats } from '../../test/fixtures'
+import { DRAFT as draft, drawUntilReady as drawUntilReadyFrom, noDeadline, withStats } from '../../test/fixtures'
 
 /** Thin wrapper keeping this file's default-argument call sites (`drawUntilReady()`) working. */
 function drawUntilReady(state = startProject(createGame('Rin', 42), draft)) {
@@ -254,7 +254,7 @@ describe('serialisation', () => {
 
   it('cancels a serial after three weak chapters', () => {
     let s = dismissResult(strongOneShot())
-    s = acceptOffer(s)
+    s = noDeadline(acceptOffer(s))
     s = withStats(s, 5)
     let guard = 0
     while (s.serial && s.serial.status === 'running' && guard++ < 900) {
@@ -269,7 +269,7 @@ describe('serialisation', () => {
   })
 
   it('grants a grace period: the first 4 results never warn, even when weak', () => {
-    let s = withStats(acceptOffer(dismissResult(strongOneShot())), 5)
+    let s = withStats(noDeadline(acceptOffer(dismissResult(strongOneShot()))), 5)
     let guard = 0
     while (s.serial && s.serial.results.length < SERIAL_GRACE_CHAPTERS && guard++ < 900) s = autoDay(s)
     expect(s.serial!.results).toHaveLength(SERIAL_GRACE_CHAPTERS)
@@ -280,12 +280,181 @@ describe('serialisation', () => {
   })
 
   it('cancels a forced-weak serial at exactly its 7th result once the grace period ends', () => {
-    let s = withStats(acceptOffer(dismissResult(strongOneShot())), 5)
+    let s = withStats(noDeadline(acceptOffer(dismissResult(strongOneShot()))), 5)
     let guard = 0
     while (s.serial && s.serial.status === 'running' && guard++ < 900) s = autoDay(s)
     const ser = s.serial ?? s.serials[0]
     expect(ser.status).toBe('cancelled')
     expect(ser.results).toHaveLength(7)
+    // The weak-chapter cancellation keeps its own wording (the missed-issue path words it differently).
+    expect(s.log[s.log.length - 1].text).toMatch(
+      /^Weekly Bolt cancelled "Blade Club" after 3 weak chapters\. Fans -\d+\. A one-shot that places top 3 or scores 65\+ earns a new offer\.$/,
+    )
+  })
+})
+
+const KIDS_OFFER = { magazineId: 'kids-comic', title: 'Magic Club', genre: 'fantasy', theme: 'magic', audience: 'kids' } as const
+
+/** Seed 4, a Kids Comic Go! serial accepted on day 0 (chapter 1 due on day 21), resting from then on. */
+function kidsSerial(): GameState {
+  return setActivity(acceptOffer({ ...createGame('Rin', 4), pendingOffer: KIDS_OFFER }), 'rest')
+}
+
+/** `kidsSerial` with `n` chapter results already in, chapter n + 1 on the desk, ¥10,000 and 1,000 fans. */
+function kidsSerialWithResults(n: number): GameState {
+  const s = kidsSerial()
+  const r: ChapterResult = {
+    chapter: 1, day: 0, score: 60, rank: 4, entrants: 11,
+    breakdown: { art: 60, story: 60, pacing: 60, audienceFit: 60, freshness: 60 },
+    rewards: { money: 1000, fans: 100, xp: 50 },
+  }
+  const results = Array.from({ length: n }, (_, i) => ({ ...r, chapter: i + 1 }))
+  return {
+    ...s,
+    serial: { ...s.serial!, results, chaptersSent: n },
+    project: { ...s.project!, chapter: n + 1 },
+    player: { ...s.player, money: 10000, fans: 1000 },
+  }
+}
+
+function missLogs(s: GameState): LogEntry[] {
+  return s.log.filter((e) => e.text.includes('missed its issue'))
+}
+
+describe('chapter deadlines', () => {
+  it('sets chapter 1 due by magazine: Kids 21 days, Weekly Bolt 14, Monthly Petal 28, Ultra Seinen 21', () => {
+    const g = createGame('Rin', 4)
+    const dueDay = (magazineId: MagazineId) => acceptOffer({ ...g, pendingOffer: { ...KIDS_OFFER, magazineId } }).serial!
+    expect(dueDay('kids-comic')).toMatchObject({ nextDueDay: 21, missedIssues: 0 })
+    expect(dueDay('weekly-bolt')).toMatchObject({ nextDueDay: 14, missedIssues: 0 })
+    expect(dueDay('monthly-petal')).toMatchObject({ nextDueDay: 28, missedIssues: 0 })
+    expect(dueDay('ultra-seinen')).toMatchObject({ nextDueDay: 21, missedIssues: 0 })
+  })
+
+  it('runs the next due day from the previous one: chapter 1 done on day 5 makes chapter 2 due on day 42', () => {
+    let s = tickMany(kidsSerial(), 4)
+    expect(s.day).toBe(4)
+    s = setActivity({ ...s, project: { ...s.project!, pagesDone: 15.5 } }, 'work')
+    s = tick(s)
+    expect(s.day).toBe(5)
+    expect(s.serial!.chaptersSent).toBe(1)
+    expect(s.project!.chapter).toBe(2)
+    // 21 + 21, not 5 + 21
+    expect(s.serial!.nextDueDay).toBe(42)
+  })
+
+  it('counts a chapter finished on its due day as on time', () => {
+    let s = tickMany(kidsSerial(), 20)
+    s = setActivity({ ...s, project: { ...s.project!, pagesDone: 15.5 } }, 'work')
+    s = tick(s)
+    expect(s.day).toBe(21)
+    expect(s.serial!.chaptersSent).toBe(1)
+    expect(s.serial!).toMatchObject({ nextDueDay: 42, missedIssues: 0, popularity: 50 })
+    expect(missLogs(s)).toHaveLength(0)
+  })
+
+  it('misses the issue the day chapter 1 is due and not ready; a new series only loses popularity', () => {
+    let s = tickMany(kidsSerial(), 20)
+    expect(s.day).toBe(20)
+    expect(s.serial!).toMatchObject({ popularity: 50, nextDueDay: 21, missedIssues: 0 })
+    expect(missLogs(s)).toHaveLength(0)
+    s = tick(s)
+    expect(s.serial!).toMatchObject({ popularity: 40, nextDueDay: 42, missedIssues: 1, warnings: 0, status: 'running' })
+    expect(s.project!.chapter).toBe(1)
+    const logs = missLogs(s)
+    expect(logs).toHaveLength(1)
+    expect(logs[0]).toMatchObject({
+      kind: 'warn',
+      toast: true,
+      text: '"Magic Club" missed its issue: chapter 1 was not ready. Popularity -10. New series get 4 chapters of grace.',
+    })
+  })
+
+  it('keeps the grace period through 3 results: a miss then still adds no warning', () => {
+    const s = tickMany(kidsSerialWithResults(3), 21)
+    expect(s.serial!).toMatchObject({ popularity: 40, missedIssues: 1, warnings: 0 })
+    expect(missLogs(s)[0].text).toBe(
+      '"Magic Club" missed its issue: chapter 4 was not ready. Popularity -10. New series get 4 chapters of grace.',
+    )
+  })
+
+  it('after 4 results, three misses warn 1, 2 and 3, and the third cancels the serial for 10% of fans', () => {
+    let s = tickMany(kidsSerialWithResults(4), 21)
+    expect(s.serial!).toMatchObject({ popularity: 40, nextDueDay: 42, missedIssues: 1, warnings: 1, status: 'running' })
+    expect(missLogs(s)[0].text).toBe(
+      '"Magic Club" missed its issue: chapter 5 was not ready. Popularity -10. Warning 1 of 3.',
+    )
+    s = tickMany(s, 21)
+    expect(s.serial!).toMatchObject({ popularity: 30, nextDueDay: 63, missedIssues: 2, warnings: 2, status: 'running' })
+    expect(missLogs(s)[1].text).toBe(
+      '"Magic Club" missed its issue: chapter 5 was not ready. Popularity -10. Warning 2 of 3.',
+    )
+    s = tickMany(s, 21)
+    expect(s.day).toBe(63)
+    // No chapter was waiting for a poll, so the cancelled serial is archived at once.
+    expect(s.serial).toBeNull()
+    expect(s.serials[0]).toMatchObject({ status: 'cancelled', endedDay: 63, popularity: 20, missedIssues: 3, warnings: 3 })
+    expect(s.project).toBeNull()
+    expect(s.activity).toBe('rest')
+    // 1,000 fans, 10% lost
+    expect(s.player.fans).toBe(900)
+    expect(missLogs(s)[2].text).toBe(
+      '"Magic Club" missed its issue: chapter 5 was not ready. Popularity -10. Warning 3 of 3.',
+    )
+    expect(s.log[s.log.length - 1]).toMatchObject({
+      kind: 'warn',
+      toast: true,
+      text: 'Kids Comic Go! cancelled "Magic Club" after 3 warnings in a row. Fans -100. A one-shot that places top 3 or scores 65+ earns a new offer.',
+    })
+  })
+
+  it('checks the deadline after the day\'s chapter polls: a 4th result landing on the due day ends grace first', () => {
+    // Chapter 4 polls on day 21, the day chapter 5 is due. resolveChapters runs first, so the miss sees 4 results
+    // and counts as a warning (the 4th result itself is still inside grace, so it adds none).
+    const s0 = kidsSerialWithResults(3)
+    const pc: PendingChapter = { chapter: 4, pages: CHAPTER_PAGES, artQ: 50, storyQ: 50, submittedDay: 14, resultsDay: 21 }
+    const s = tickMany({
+      ...s0,
+      serial: { ...s0.serial!, pending: [pc], chaptersSent: 4 },
+      project: { ...s0.project!, chapter: 5 },
+    }, 21)
+    expect(s.serial!.results).toHaveLength(4)
+    expect(s.serial!).toMatchObject({ missedIssues: 1, warnings: 1 })
+    expect(missLogs(s)[0].text).toBe('"Magic Club" missed its issue: chapter 5 was not ready. Popularity -10. Warning 1 of 3.')
+  })
+
+  it('never takes popularity below 0', () => {
+    const s0 = kidsSerial()
+    const s = tickMany({ ...s0, serial: { ...s0.serial!, popularity: 5 } }, 21)
+    expect(s.serial!).toMatchObject({ popularity: 0, missedIssues: 1 })
+  })
+
+  it('stops counting deadlines once the serial is wrapped up', () => {
+    const s = tickMany(endSerial(kidsSerial()), 30)
+    expect(s.serials[0]).toMatchObject({ status: 'ended', missedIssues: 0 })
+    expect(missLogs(s)).toHaveLength(0)
+  })
+
+  it('reports the deadline: 16 pages at 1.22 a day is 14 working days; on track, tight or late by the days left', () => {
+    // Stats 38 art, 34 story: 0.5 + 36 x 0.02 = 1.22 pages a day; 16 / 1.22 = 13.1, so 14 working days.
+    const s = kidsSerial()
+    const at = (day: number) => chapterDeadline({ ...s, day })
+    expect(at(0)).toEqual({ dueDay: 21, daysLeft: 21, workDaysLeft: 14, status: 'on-track' })
+    // 14 x 1.25 = 17.5: 18 days left is on track, 17 is tight
+    expect(at(3)!.status).toBe('on-track')
+    expect(at(4)!.status).toBe('tight')
+    expect(at(5)).toEqual({ dueDay: 21, daysLeft: 16, workDaysLeft: 14, status: 'tight' })
+    // 14 working days in 14 days is still tight; 13 is late
+    expect(at(7)!.status).toBe('tight')
+    expect(at(8)).toEqual({ dueDay: 21, daysLeft: 13, workDaysLeft: 14, status: 'late' })
+    // 4 pages left: 4 / 1.22 = 3.3, so 4 working days
+    expect(chapterDeadline({ ...s, project: { ...s.project!, pagesDone: 12 } })!.workDaysLeft).toBe(4)
+  })
+
+  it('reports no deadline without a running serial chapter on the desk', () => {
+    expect(chapterDeadline(createGame('Rin', 4))).toBeNull()
+    expect(chapterDeadline(startProject(createGame('Rin', 4), draft))).toBeNull()
+    expect(chapterDeadline(endSerial(kidsSerial()))).toBeNull()
   })
 })
 
@@ -464,7 +633,7 @@ describe('endings', () => {
   })
 
   it('cancellation removes exactly 10% of fans', () => {
-    let s = withStats(acceptOffer(dismissResult(strongOneShot())), 5)
+    let s = withStats(noDeadline(acceptOffer(dismissResult(strongOneShot()))), 5)
     let guard = 0
     let checked = false
     while (s.serial && s.serial.status === 'running' && guard++ < 900) {
@@ -582,7 +751,7 @@ describe('rules', () => {
     // first weak rank = ceil(0.7 x entrants) + 1
     const firstWeak = (entrants: number) => Math.ceil(entrants * 0.7) + 1
     expect([9, 11, 13].map(firstWeak)).toEqual([8, 9, 11])
-    let s = withStats(acceptOffer(dismissResult(strongOneShot())), 5)
+    let s = withStats(noDeadline(acceptOffer(dismissResult(strongOneShot()))), 5)
     let guard = 0
     let seen = 0
     while (s.serial && s.serial.status === 'running' && guard++ < 900) {

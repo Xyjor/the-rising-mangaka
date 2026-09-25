@@ -1,10 +1,10 @@
 import {
   CHAPTER_PAGES, PAY_FULL_RATE_SCORE, SERIAL_GRACE_CHAPTERS, SERIAL_WARNINGS_TO_CANCEL, VOLUME_EVERY_CHAPTERS,
-  magazineById,
+  magazineById, studioPagesPerDay,
 } from '../../sim'
 import { useStore } from '../../state/store'
 import { Modal, Reward } from '../components'
-import { money } from '../format'
+import { money, plural } from '../format'
 import { comboLabel, rivalWord } from '../labels'
 
 export function OfferModal() {
@@ -14,7 +14,10 @@ export function OfferModal() {
   const last = useStore((s) => s.game!.history.at(-1))
   const accept = useStore((s) => s.acceptOffer)
   const decline = useStore((s) => s.declineOffer)
+  const pagesPerDay = useStore((s) => studioPagesPerDay(s.game!))
   const mag = magazineById(offer.magazineId)
+  // Working days for one chapter at full stamina with the current staff; rest days come on top.
+  const chapterWorkDays = Math.ceil(CHAPTER_PAGES / pagesPerDay)
 
   return (
     <Modal
@@ -46,7 +49,12 @@ export function OfferModal() {
           <Reward value={`${mag.circulation}k`} label="readers" />
           <Reward value={mag.entrants} label="rival series" />
           <Reward value={rivalWord(mag.rivalMean)} label="rival polls" />
+          <Reward value={`Every ${plural(mag.chapterDays, 'day')}`} label="a chapter due" />
         </div>
+        <p className="small">At your pace a chapter takes about {plural(chapterWorkDays, 'working day')}.</p>
+        {chapterWorkDays > mag.chapterDays && (
+          <p className="small warn-text">You will miss issues at this pace: hire help first.</p>
+        )}
         {last && (
           <p className="small">
             Your one-shot scored {last.score}; series here usually score around {mag.rivalMean}.

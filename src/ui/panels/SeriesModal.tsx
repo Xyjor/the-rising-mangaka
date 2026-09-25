@@ -60,6 +60,8 @@ function SeriesDetail({ ser }: { ser: Serial }) {
         <p className="tiny muted">A moving average of recent poll placements. Three weak chapters in a row and the magazine pulls the plug.</p>
       </Metric>
 
+      <p className="small muted">A chapter every {plural(mag.chapterDays, 'day')}. Missed issues: {ser.missedIssues}.</p>
+
       <div className="row wrap small muted">
         {inGrace(ser.results.length) ? (
           <span>{GRACE_TEXT}</span>

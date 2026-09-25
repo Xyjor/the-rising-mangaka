@@ -10,6 +10,14 @@ export function withStats(s: GameState, v: number): GameState {
   return { ...s, player: { ...s.player, stats: { art: v, story: v, pacing: v } } }
 }
 
+/**
+ * Push the running serial's deadline out of reach, so a test's weak-chapter arithmetic is never touched by a missed
+ * issue. `sendChapter` adds `chapterDays` to it, which keeps it far beyond any day a test reaches.
+ */
+export function noDeadline(s: GameState): GameState {
+  return s.serial ? { ...s, serial: { ...s.serial, nextDueDay: Number.MAX_SAFE_INTEGER } } : s
+}
+
 /** Tick until the current project is ready to pitch (or give up after a generous guard). */
 export function drawUntilReady(state: GameState): GameState {
   let s = state
