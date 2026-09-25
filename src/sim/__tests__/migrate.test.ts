@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { acceptOffer, createGame } from '../index'
+import { RIVAL_SERIES, acceptOffer, createGame } from '../index'
 import type { GameState, Serial } from '../index'
 import { upgradeSave } from '../migrate'
 
@@ -40,5 +40,24 @@ describe('upgradeSave', () => {
     const up = upgradeSave(g)
     expect(up.serial).toBeNull()
     expect(up.serials).toEqual([])
+  })
+
+  it('gives a save from before the rival the rival its world would have by now', () => {
+    // Seed 4 (world 31676) names Touya Kagami. Day 700 is two whole years in (700 / 336 = 2.08):
+    // craft 50 + 2 x 4 = 58, and the highest rival mean at most 56 is Monthly Petal's 52.
+    const g = { ...createGame('Rin', 4), day: 700 } as Partial<GameState>
+    delete g.rival
+    const up = upgradeSave(g as GameState)
+    expect(up.rival).toMatchObject({ name: 'Touya Kagami', craft: 58, magazineId: 'monthly-petal' })
+    expect(RIVAL_SERIES['monthly-petal']).toContain(up.rival.seriesTitle)
+    // day 335 is still year one: the fresh rival
+    const young = { ...createGame('Rin', 4), day: 335 } as Partial<GameState>
+    delete young.rival
+    expect(upgradeSave(young as GameState).rival).toMatchObject({ craft: 50, magazineId: 'kids-comic' })
+  })
+
+  it('keeps the rival a newer save already has', () => {
+    const rival = { name: 'Mikoto Sakuraba', craft: 71, magazineId: 'weekly-bolt', seriesTitle: 'Thunder Relay' } as const
+    expect(upgradeSave({ ...createGame('Rin', 4), day: 700, rival }).rival).toEqual(rival)
   })
 })

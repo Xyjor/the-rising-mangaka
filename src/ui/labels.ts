@@ -1,9 +1,11 @@
 // Short words the pitch, offer, series, desk and stats screens share. Pure functions of sim data, no React.
 import {
-  MAGAZINES, PAY_FULL_RATE_SCORE, SERIAL_GRACE_CHAPTERS, SERIAL_OFFER_MIN_SCORE, SERIAL_WARNINGS_TO_CANCEL,
-  audienceById, genreById, magazineById, rankTier, suitedFocus, themeById,
+  MAGAZINES, PAY_FULL_RATE_SCORE, RIVAL_SCORE_SD, SERIAL_GRACE_CHAPTERS, SERIAL_OFFER_MIN_SCORE,
+  SERIAL_WARNINGS_TO_CANCEL, audienceById, genreById, magazineById, rankTier, suitedFocus, themeById,
 } from '../sim'
-import type { AudienceId, Forecast, GenreId, MagazineId, PollResult, RankTier, ScoreBreakdown, ThemeId } from '../sim'
+import type {
+  AudienceId, Forecast, GenreId, MagazineId, PollResult, RankTier, Rival, RivalPlacing, ScoreBreakdown, ThemeId,
+} from '../sim'
 import { money, plural } from './format'
 
 /** How a magazine's rivals feel, from its typical rival score. */
@@ -115,4 +117,50 @@ export function focusHint(serialMagazine: MagazineId | null): string {
     return `${label} focus suits ${andList(mags.map((m) => m.name))} (${focus} ${pctSpan(mags.map((m) => m.taste[focus]))}).`
   }
   return [suits('art', 'Art'), suits('story', 'Story')].filter(Boolean).join(' ')
+}
+
+// ---------- the named rival ----------
+
+/** "Iori" from "Iori Hayama": the pitch screen's short name for the rival. */
+export function firstName(name: string): string {
+  return name.split(' ')[0]
+}
+
+/** The chance to beat the rival as a whole percent: "60%", "under 1%", "over 99%" (never a rounded 0% or 100%). */
+export function beatLabel(chance: number): string {
+  if (chance < 0.01) return 'under 1%'
+  if (chance > 0.99) return 'over 99%'
+  return `${Math.round(chance * 100)}%`
+}
+
+/**
+ * Where the rival placed against the player, by rank: "Iori Hayama placed #4 with 51. You finished ahead." When the
+ * rounded scores match, the line says so and the finish is "just" ahead or behind; equal ranks are a tie. Null when
+ * the rival was not in the poll.
+ */
+export function rivalLine(r: { score: number; rank: number; rival?: RivalPlacing }): string | null {
+  const rv = r.rival
+  if (!rv) return null
+  const placed = `${rv.name} placed #${rv.rank} with ${rv.score}`
+  if (r.rank === rv.rank) return `${placed}. You tied.`
+  const side = r.rank < rv.rank ? 'ahead' : 'behind'
+  return rv.score === r.score
+    ? `${placed}, the same score as yours. You finished just ${side}.`
+    : `${placed}. You finished ${side}.`
+}
+
+/** Ends a sentence after `text`, unless it already ends in its own mark (Kids Comic Go!). */
+function sentenceEnd(text: string): string {
+  return /[.!?]$/.test(text) ? text : `${text}.`
+}
+
+/**
+ * The career screen's rival summary: 'Iori Hayama draws "Robo Pals Go!" for Kids Comic Go! Usually scores 42 to 58.
+ * Head to head: 3 wins, 2 losses.'
+ */
+export function rivalCareerLine(rival: Rival, record: { wins: number; losses: number }): string {
+  const { wins, losses } = record
+  return `${rival.name} draws "${rival.seriesTitle}" for ${sentenceEnd(magazineById(rival.magazineId).name)} `
+    + `Usually scores ${rival.craft - RIVAL_SCORE_SD} to ${rival.craft + RIVAL_SCORE_SD}. `
+    + `Head to head: ${plural(wins, 'win')}, ${losses} ${losses === 1 ? 'loss' : 'losses'}.`
 }

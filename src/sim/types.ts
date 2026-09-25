@@ -97,6 +97,18 @@ export type ScoreWeights = Readonly<Record<keyof ScoreBreakdown, number>>
 
 export interface Rewards { money: number; fans: number; xp: number }
 
+/** The named rival mangaka: always one entrant in the polls of the magazine they run in. */
+export interface Rival {
+  name: string
+  /** mean poll score; the rival scores craft + Gaussian noise (sd RIVAL_SCORE_SD) like any entrant */
+  craft: number
+  magazineId: MagazineId
+  seriesTitle: string
+}
+
+/** Where the rival placed in one poll: the score rounded and clamped to 0..100, the rank among every entrant. */
+export interface RivalPlacing { name: string; score: number; rank: number }
+
 export interface PollResult {
   projectId: number
   title: string
@@ -116,6 +128,8 @@ export interface PollResult {
   themeAudienceRating: Rating
   editorComment: string
   pages: number
+  /** where the named rival placed; absent when the rival was not in this magazine (or the result predates rivals) */
+  rival?: RivalPlacing
 }
 
 // ---------- serialisation ----------
@@ -128,6 +142,8 @@ export interface ChapterResult {
   entrants: number
   breakdown: ScoreBreakdown
   rewards: Rewards
+  /** where the named rival placed; absent when the rival was not in this magazine (or the result predates rivals) */
+  rival?: RivalPlacing
 }
 
 export interface PendingChapter {
@@ -261,6 +277,8 @@ export interface GameState {
   nextAssistantId: number
   /** ids of milestones already awarded, in the order they landed */
   milestonesDone: MilestoneId[]
+  /** the named rival mangaka and the magazine they run in */
+  rival: Rival
 }
 
 export type Phase = 'idle' | 'drawing' | 'ready' | 'submitted'

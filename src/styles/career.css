@@ -17,3 +17,5 @@
 .career-row.done { color: var(--ink-2); }
 .career-row .idx { display: grid; place-items: center; font-weight: 800; font-size: 13px; }
 .career-row .chips { display: flex; gap: 6px; align-items: center; }
+
+.career-rival { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; margin-bottom: 12px; }

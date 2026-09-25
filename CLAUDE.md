@@ -68,8 +68,8 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
 
 ## Balance touchpoints
 
-Starting stats 34/40/30 (story/art/pacing), rivals score 47 to 62, spread 8, weekly living cost 400, one-shot 20 pages
-(~17 days solo), chapter 16 pages.
+Starting stats 34/40/30 (story/art/pacing), rivals score 47 to 62, spread 8, the named rival starts at craft 50 in
+Kids Comic Go! (+4 a year, max 76), weekly living cost 400, one-shot 20 pages (~17 days solo), chapter 16 pages.
 
 `src/sim/__tests__/balance.test.ts` asserts the Package 1 balance bands (DESIGN.md "Balance bots and bands") over
 seeds 1–20 as part of `npm test`, including a fresh player's first one-shot score (40–55 on 13 of 20 seeds, median

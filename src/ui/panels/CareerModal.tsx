@@ -1,7 +1,8 @@
-import { MILESTONES, doneIds } from '../../sim'
+import { MILESTONES, doneIds, rivalRecord } from '../../sim'
 import { useStore } from '../../state/store'
 import { Icon } from '../Icon'
 import { Modal } from '../components'
+import { rivalCareerLine } from '../labels'
 import '../../styles/career.css'
 
 /** The milestone ladder: what has been reached, what is next, and what each goal pays. */
@@ -13,6 +14,10 @@ export function CareerModal() {
 
   return (
     <Modal title="Career" sub={`${done.length} of ${MILESTONES.length} goals reached`} onClose={closeModal} narrow>
+      <section className="card flat career-rival" aria-labelledby="career-rival">
+        <div className="lbl" id="career-rival">Rival</div>
+        <p className="small">{rivalCareerLine(game.rival, rivalRecord(game))}</p>
+      </section>
       <ol className="career-list" aria-label="Milestones">
         {MILESTONES.map((m, i) => {
           const isDone = done.includes(m.id)

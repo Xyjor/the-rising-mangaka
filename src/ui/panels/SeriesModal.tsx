@@ -97,12 +97,13 @@ function SeriesDetail({ ser }: { ser: Serial }) {
 
       {ser.results.length > 0 && (
         <table className="table">
-          <thead><tr><th>Chapter</th><th className="num">Rank</th><th className="num">Score</th><th className="num">Art</th><th className="num">Story</th><th className="num">Freshness</th><th className="num">Paid</th></tr></thead>
+          <thead><tr><th>Chapter</th><th className="num">Rank</th><th className="num">Rival</th><th className="num">Score</th><th className="num">Art</th><th className="num">Story</th><th className="num">Freshness</th><th className="num">Paid</th></tr></thead>
           <tbody>
             {[...ser.results].reverse().map((r) => (
               <tr key={r.chapter}>
                 <td><b>Ch.{r.chapter}</b></td>
                 <td className="num">#{r.rank}<span className="faint">/{r.entrants}</span></td>
+                <td className="num">{r.rival ? `#${r.rival.rank}` : '—'}</td>
                 <td className="num">{r.score}</td>
                 <td className="num">{r.breakdown.art}</td>
                 <td className="num">{r.breakdown.story}</td>

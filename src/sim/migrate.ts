@@ -1,5 +1,6 @@
 import { magazineById } from './data'
-import { createGame } from './engine'
+import { createGame, describeDate } from './engine'
+import { makeRival } from './rival'
 import type { GameState, Serial } from './types'
 
 /**
@@ -16,5 +17,11 @@ export function upgradeSave(g: GameState): GameState {
     missedIssues: x.missedIssues ?? 0,
   })
   const up: GameState = { ...base, ...g, player: { ...base.player, ...g.player } }
-  return { ...up, serial: up.serial && fix(up.serial), serials: up.serials.map(fix) }
+  return {
+    ...up,
+    serial: up.serial && fix(up.serial),
+    serials: up.serials.map(fix),
+    // The rival comes from the save's own world seed (never createGame('', 0)'s), grown by the whole years played.
+    rival: g.rival ?? makeRival(g.worldSeed, describeDate(g.day).year - 1),
+  }
 }

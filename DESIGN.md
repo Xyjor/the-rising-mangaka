@@ -84,6 +84,20 @@ the weights, so the modifier is never hidden.
 
 Rank = 1 + number of rivals scoring higher, each drawn as `magazine.rivalMean + Gaussian noise (sd RIVAL_SCORE_SD)`
 (see CLAUDE.md balance touchpoints for the current rival score range and spread). Rewards scale with score and rank.
+The named rival (below) is entrant 0 of the magazine it runs in, drawn around its craft instead of the rivalMean.
+
+### Named rival
+Every world has one named rival mangaka (`rival.ts`): the name (`RIVAL_NAMES`) and series title (`RIVAL_SERIES`, three
+per magazine) come from a hash of the world seed, so making the rival consumes no RNG. Craft is
+`min(RIVAL_MAX_CRAFT 76, RIVAL_START_CRAFT 50 + RIVAL_YEARLY_GROWTH 4 × whole years)`, and the rival runs in the
+magazine with the highest rivalMean at most craft − 2, else Kids Comic Go! (50 Kids, 54 and 58 Petal, 62 Bolt,
+66 Ultra). In that magazine's polls (`pollField`) the rival takes entrant 0's draw slots, so a poll still draws
+`2 + entrants × 2` values and the other magazines' polls are unchanged. The rival's rank is 1 + other entrants above
+it + 1 if the player scored higher; results store `{ name, score, rank }` (score rounded, 0 to 100). The pitch screen
+marks the rival's magazine ("Rival: name", "Beat first name: N%"), the results screen says where the rival placed and
+whether the player finished ahead or behind, the series table has a Rival column, and the Career screen shows the
+series, the usual score range (craft ± 8) and the head-to-head record (`rivalRecord`: a win is a better rank). Saves
+from before the rival get the one their world would have by the save's day (`upgradeSave`).
 The editor writes a one-line comment on the component that cost the most points at that magazine
 (`biggestLoss`: the largest weight × (100 − component), ties in the order art, story, pacing, fit, freshness).
 
@@ -107,7 +121,9 @@ can know:
 - Pacing noise is integrated with a 25-node quadrature (z from −3 to 3 in steps of 0.25, Gaussian weights).
 - Every rating scenario and node goes through the poll's own `computeBreakdown` and `weightedScore`, so the rounding
   is the real one.
-- For each score the rivals are a Poisson-binomial: rival i finishes above with 1 − Φ((score − rivalMean) / RIVAL_SCORE_SD).
+- For each score the rivals are a Poisson-binomial: rival i finishes above with 1 − Φ((score − mean_i) / RIVAL_SCORE_SD),
+  mean_i the rivalMean, or the named rival's craft for entrant 0 in its magazine (`rivalMeans`, shared with the polls).
+  There the pitch also quotes the chance to beat the rival: Σ P(score) × Φ((score − craft) / RIVAL_SCORE_SD).
 - The offer chance is P(rank 3 or better, or score 65 or more): "certain" when every outcome clears 65, "none while
   <serial> runs" while a serial runs. The likely ranges are the 10th and 90th percentiles; the pay is the mean over every
   score and rank, its range every outcome more likely than 1e-9.

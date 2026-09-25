@@ -3,18 +3,25 @@ import {
   MAGAZINES, RATING_PRIOR, SERIAL_OFFER_MIN_RANK, SERIAL_OFFER_MIN_SCORE, acceptOffer, createGame, evaluateProject,
   forecastPoll, genreThemeRating, rivalsAboveDist, themeAudienceRating,
 } from '../index'
-import type { GameState, Notebook, ProjectDraft } from '../index'
+import type { GameState, MagazineId, Notebook, ProjectDraft } from '../index'
 import { withReadyOneShot } from '../../test/fixtures'
 
 const KIDS_DRAFT: ProjectDraft = { title: 'Blade Club', genre: 'action', theme: 'samurai', audience: 'kids' }
 const TEENS_DRAFT: ProjectDraft = { ...KIDS_DRAFT, audience: 'teens' }
 const COOKING_DRAFT: ProjectDraft = { title: 'Kitchen Gags', genre: 'comedy', theme: 'cooking', audience: 'kids' }
 
-/** A fresh seed-1 game (pacing 30) with `draft` ready at quality art/story and the notebook set to `notebook`. */
-function pitch(draft: ProjectDraft, art: number, story: number, notebook: Notebook): GameState {
+/**
+ * A fresh seed-1 game (pacing 30) with `draft` ready at quality art/story and the notebook set to `notebook`. The named
+ * rival (craft 50) runs in `rivalAt`: Monthly Petal unless a case says otherwise (no case pitches there), so the
+ * field a case polls in is all at that magazine's rivalMean.
+ */
+function pitch(
+  draft: ProjectDraft, art: number, story: number, notebook: Notebook, rivalAt: MagazineId = 'monthly-petal',
+): GameState {
   const s = createGame('Rin', 1)
   expect(s.player.stats.pacing).toBe(30)
-  return withReadyOneShot({ ...s, notebook }, draft, art, story)
+  const rival = { name: 'Iori Hayama', craft: 50, magazineId: rivalAt, seriesTitle: 'Robo Pals Go!' }
+  return withReadyOneShot({ ...s, notebook, rival }, draft, art, story)
 }
 
 describe('pitch forecast', () => {
@@ -36,8 +43,9 @@ describe('pitch forecast', () => {
     mixed.forEach((p, k) => expect(p).toBeCloseTo([0, 0.5, 0.5][k], 6))
   })
 
-  it('Kids Comic Go!, quality 50/50, pacing 30, both pairings known Good: the worked example', () => {
-    const s = pitch(KIDS_DRAFT, 50, 50, { genreTheme: { 'action|samurai': 2 }, themeAudience: { 'samurai|kids': 2 } })
+  it('Kids Comic Go!, quality 50/50, pacing 30, both pairings known Good: the worked example (rival at Ultra)', () => {
+    const known = { genreTheme: { 'action|samurai': 2 as const }, themeAudience: { 'samurai|kids': 2 as const } }
+    const s = pitch(KIDS_DRAFT, 50, 50, known, 'ultra-seinen')
     const f = forecastPoll(s, s.project!, 'kids-comic')
     // Kids weighs art 35, story 15, pacing 10, fit 20, freshness 20; art 50, story 50, fit 60, freshness 60:
     // score = round((1750 + 750 + 10 x pacing + 1200 + 1200) / 100) = round(49 + pacing / 10).
@@ -67,6 +75,29 @@ describe('pitch forecast', () => {
     expect(f.payRange).toEqual({ low: 803, high: 2385 })
     expect(Math.abs(f.expectedPay - 1422)).toBeLessThanOrEqual(2)
     expect(f.beatRival).toBeNull()
+  })
+
+  it('the same manuscript with the named rival (craft 50) in Kids Comic Go!: one rival 3 points stronger', () => {
+    const known = { genreTheme: { 'action|samurai': 2 as const }, themeAudience: { 'samurai|kids': 2 as const } }
+    const s = pitch(KIDS_DRAFT, 50, 50, known, 'kids-comic')
+    const f = forecastPoll(s, s.project!, 'kids-comic')
+    // The score does not move: 51 / 52 / 53 at 0.0833 / 0.7877 / 0.1290.
+    expect(Math.abs(f.scoreDist[52] - 0.7877)).toBeLessThanOrEqual(0.0005)
+    // Beat the rival: sum of P(s) x normalCdf((s - 50) / 8) = 0.0833 x normalCdf(0.125) + 0.7877 x normalCdf(0.25)
+    //   + 0.1290 x normalCdf(0.375) = 0.0833 x 0.5497 + 0.7877 x 0.5987 + 0.1290 x 0.6462 = 0.6008.
+    expect(Math.abs(f.beatRival! - 0.6008)).toBeLessThanOrEqual(0.002)
+    // One rival at 50 and nine at 47 (each above with 1 - normalCdf((s - mean) / 8)): at most 2 above, by score,
+    // 0.3236 (51), 0.4386 (52), 0.5577 (53), so the offer is
+    // 0.0833 x 0.3236 + 0.7877 x 0.4386 + 0.1290 x 0.5577 = 0.4444.
+    expect(Math.abs(f.offerChance - 0.4444)).toBeLessThanOrEqual(0.002)
+    // P(rank <= 1) = 0.039 (< 0.1), P(rank <= 2) = 0.188; P(rank <= 5) = 0.884 (< 0.9), P(rank <= 6) = 0.966.
+    expect(f.expectedRank).toEqual({ low: 2, high: 6 })
+    expect(f.rankDist).toHaveLength(11)
+    // Same extremes as without the rival (51 last, 53 first); the mean pay drops from 1422 to 1395.2.
+    expect(f.payRange).toEqual({ low: 803, high: 2385 })
+    expect(Math.abs(f.expectedPay - 1395)).toBeLessThanOrEqual(2)
+    // In Weekly Bolt the rival is not in the field.
+    expect(forecastPoll(s, s.project!, 'weekly-bolt').beatRival).toBeNull()
   })
 
   it('Weekly Bolt, quality 50/51 teens, both pairings known Good: next to no offer chance', () => {
@@ -133,11 +164,13 @@ describe('pitch forecast', () => {
 
   it('is honest: over 3000 worlds, real polls at Kids Comic Go! land where the forecast said', () => {
     // Untested comedy x cooking for kids at quality 50/50: the forecast is the same in every world (it never reads the
-    // hidden ratings), 0.4256 for an offer and a mean score of 50.85. Each seed hides its own ratings and draws its
-    // own noise and rivals.
+    // hidden ratings), 0.4091 for an offer and a mean score of 50.85. Each seed hides its own ratings and draws its
+    // own noise and rivals. Every fresh world's named rival (craft 50) runs in Kids Comic Go!, one of the ten entrants:
+    // without it the offer chance would be 0.4256 (Task 10's figure).
     const first = withReadyOneShot(createGame('Rin', 1000), COOKING_DRAFT, 50, 50)
+    expect(first.rival).toMatchObject({ craft: 50, magazineId: 'kids-comic' })
     const f = forecastPoll(first, first.project!, 'kids-comic')
-    expect(Math.abs(f.offerChance - 0.4256)).toBeLessThanOrEqual(0.002)
+    expect(Math.abs(f.offerChance - 0.4091)).toBeLessThanOrEqual(0.002)
     const forecastMean = f.scoreDist.reduce((sum, p, score) => sum + p * score, 0)
     expect(Math.abs(forecastMean - 50.85)).toBeLessThanOrEqual(0.01)
 
@@ -150,7 +183,7 @@ describe('pitch forecast', () => {
       if (result.rank <= SERIAL_OFFER_MIN_RANK || result.score >= SERIAL_OFFER_MIN_SCORE) offers++
       scores += result.score
     }
-    expect(Math.abs(offers / n - 0.4256)).toBeLessThanOrEqual(0.04)
+    expect(Math.abs(offers / n - 0.4091)).toBeLessThanOrEqual(0.04)
     expect(Math.abs(scores / n - 50.85)).toBeLessThanOrEqual(1)
   })
 

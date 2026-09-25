@@ -8,7 +8,7 @@ import { useStore } from '../../state/store'
 import { Icon } from '../Icon'
 import { Metric, Modal, Pips, RatingText } from '../components'
 import { money } from '../format'
-import { comboLabel, likelyLine, offerLabel, rivalWord } from '../labels'
+import { beatLabel, comboLabel, firstName, likelyLine, offerLabel, rivalWord } from '../labels'
 
 export function SubmitModal() {
   const game = useStore((s) => s.game)!
@@ -65,7 +65,10 @@ export function SubmitModal() {
             return (
               <button key={m.id} className="mag" aria-pressed={choice === m.id} onClick={() => setChoice(m.id)}>
                 <span className="name">{m.name}</span>
-                <span className="chip">{audienceById(m.audience).name}</span>
+                <span className="mag-chips">
+                  <span className="chip">{audienceById(m.audience).name}</span>
+                  {est.beatRival !== null && <span className="chip accent">Rival: {game.rival.name}</span>}
+                </span>
                 <span className="meta">
                   <span>{money(m.pageRate)} a page</span>
                   <span>{m.circulation}k readers</span>
@@ -75,6 +78,7 @@ export function SubmitModal() {
                   <span>{likelyLine(est, m.entrants + 1)}</span>
                   <span>Serial offer: {offerLabel(est, serialTitle)}.</span>
                   <span>Pays about {money(est.expectedPay)} ({money(est.payRange.low)} to {money(est.payRange.high)}).</span>
+                  {est.beatRival !== null && <span>Beat {firstName(game.rival.name)}: {beatLabel(est.beatRival)}.</span>}
                   <span>Rivals usually score {m.rivalMean - RIVAL_SCORE_SD} to {m.rivalMean + RIVAL_SCORE_SD}.</span>
                 </span>
                 <span className="taste">

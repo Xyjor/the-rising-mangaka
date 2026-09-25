@@ -85,6 +85,26 @@ export const TRAITS: Record<AssistantTrait, { name: string; blurb: string }> = {
   steady: { name: 'Steady', blurb: 'Never tires, never slows down' },
 }
 
+/** The named rival mangaka: one per world, picked by a hash of the world seed. */
+export const RIVAL_NAMES = [
+  'Touya Kagami', 'Iori Hayama', 'Mikoto Sakuraba', 'Chihiro Ishida', 'Asahi Morikawa', 'Natsume Kujo',
+] as const
+
+/** What the rival draws in each magazine: three titles each, one picked by a hash of the world seed. */
+export const RIVAL_SERIES: Record<MagazineId, readonly [string, string, string]> = {
+  'weekly-bolt': ['Thunder Relay', 'Crimson Fang Academy', 'Skybreaker Nine'],
+  'monthly-petal': ['Paper Moon Letters', 'The Last Train to Aoba', 'Glasshouse Summer'],
+  'ultra-seinen': ['Ash and Ledger', 'The Quiet Prosecutor', 'Night Shift at Kurogane'],
+  'kids-comic': ['Robo Pals Go!', 'Captain Mochi', 'Dino Detective Pip'],
+}
+
+/** The rival's craft (their mean poll score) in a new career... */
+export const RIVAL_START_CRAFT = 50
+/** ...what each year adds... */
+export const RIVAL_YEARLY_GROWTH = 4
+/** ...and where it stops. */
+export const RIVAL_MAX_CRAFT = 76
+
 export const ASSISTANT_NAMES = [
   'Aoi', 'Haruto', 'Yui', 'Sora', 'Ren', 'Mio', 'Kaito', 'Hana', 'Riku', 'Nao', 'Yuki', 'Taiga',
   'Emi', 'Kenji', 'Saki', 'Daichi', 'Momo', 'Shun', 'Rei', 'Tsubasa', 'Kana', 'Jun', 'Ayame', 'Hikaru',

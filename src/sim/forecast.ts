@@ -8,9 +8,9 @@ import {
 } from './data'
 import { clamp, normalCdf } from './rng'
 import {
-  computeBreakdown, pollPay, projectArtQuality, projectStoryQuality, stalenessCount, weightedScore,
+  computeBreakdown, pollPay, projectArtQuality, projectStoryQuality, rivalMeans, stalenessCount, weightedScore,
 } from './scoring'
-import type { GameState, Magazine, MagazineId, Project, Rating } from './types'
+import type { GameState, MagazineId, Project, Rating } from './types'
 
 export interface Forecast {
   /** P(score = s) at index s, for scores 0..100 */
@@ -52,11 +52,6 @@ const PACING_NODES: readonly { z: number; w: number }[] = (() => {
 /** A known rating for certain, or every rating weighted by RATING_PRIOR when the Notebook has not rated the pairing. */
 function ratingSpread(known: Rating | undefined): [Rating, number][] {
   return known !== undefined ? [[known, 1]] : RATING_PRIOR.map((p, r) => [r as Rating, p])
-}
-
-/** Each rival's mean score in this magazine's poll, one per rival entrant. */
-function rivalMeans(mag: Magazine): number[] {
-  return Array.from({ length: mag.entrants }, () => mag.rivalMean)
 }
 
 /**
@@ -115,7 +110,10 @@ export function forecastPoll(state: GameState, project: Project, magazineId: Mag
     }
   }
 
-  const means = rivalMeans(mag)
+  const means = rivalMeans(mag, state.rival)
+  // The named rival, when it runs here, is entrant 0: beaten when it scores under the player (normalCdf of the gap).
+  const rival = state.rival.magazineId === magazineId ? state.rival : null
+  let beatRival = 0
   const entrants = mag.entrants + 1
   const rankDist = new Array<number>(entrants).fill(0)
   let meanScore = 0
@@ -127,6 +125,7 @@ export function forecastPoll(state: GameState, project: Project, magazineId: Mag
   scoreDist.forEach((ps, score) => {
     if (ps === 0) return
     meanScore += ps * score
+    if (rival) beatRival += ps * normalCdf((score - rival.craft) / RIVAL_SCORE_SD)
     const above = rivalsAboveDist(score, means)
     const topFinish = above.slice(0, SERIAL_OFFER_MIN_RANK).reduce((a, b) => a + b, 0)
     if (score < SERIAL_OFFER_MIN_SCORE) miss += ps * (1 - topFinish)
@@ -153,6 +152,6 @@ export function forecastPoll(state: GameState, project: Project, magazineId: Mag
     offerBlocked,
     expectedPay,
     payRange: { low: payLow, high: payHigh },
-    beatRival: null,
+    beatRival: rival ? beatRival : null,
   }
 }

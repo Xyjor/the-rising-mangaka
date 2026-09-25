@@ -32,18 +32,40 @@ beforeEach(() => {
 describe('SubmitModal forecast lines', () => {
   it('shows the likely score, rank, offer odds, pay and rival spread for each magazine', () => {
     render(<SubmitModal />)
-    // the forecast test's worked example: Kids Comic Go!, 10 rivals at 47
+    // the forecast test's worked example with the named rival: Kids Comic Go!, the rival at 50 and 9 rivals at 47
     const kids = card(/Kids Comic Go!/)
-    expect(kids.getByText('Likely score 52 to 53. Likely rank #2 to #5 of 11.')).toBeTruthy()
-    expect(kids.getByText('Serial offer: likely, 48%.')).toBeTruthy()
-    // expected pay 1,422.0, range 803 (51, last) to 2,385 (53, first)
-    expect(kids.getByText('Pays about ¥1,422 (¥803 to ¥2,385).')).toBeTruthy()
+    expect(kids.getByText('Likely score 52 to 53. Likely rank #2 to #6 of 11.')).toBeTruthy()
+    // offer 0.4444
+    expect(kids.getByText('Serial offer: likely, 44%.')).toBeTruthy()
+    // expected pay 1,395.2, range 803 (51, last) to 2,385 (53, first)
+    expect(kids.getByText('Pays about ¥1,395 (¥803 to ¥2,385).')).toBeTruthy()
     // 47 - 8 to 47 + 8
     expect(kids.getByText('Rivals usually score 39 to 55.')).toBeTruthy()
     // Weekly Bolt: a kids manga for teen readers scores about 47 against 12 rivals at 58
     const bolt = card(/Weekly Bolt/)
     expect(bolt.getByText('Serial offer: under 1%.')).toBeTruthy()
     expect(bolt.getByText('Rivals usually score 50 to 66.')).toBeTruthy()
+  })
+
+  it('marks the magazine the named rival runs in, with the chance to beat them', () => {
+    // seed 1's rival is Iori Hayama, craft 50, in Kids Comic Go! in year one; beat chance 0.6008
+    expect(useStore.getState().game!.rival).toMatchObject({ name: 'Iori Hayama', magazineId: 'kids-comic' })
+    render(<SubmitModal />)
+    const kids = card(/Kids Comic Go!/)
+    expect(kids.getByText('Rival: Iori Hayama')).toBeTruthy()
+    expect(kids.getByText('Beat Iori: 60%.')).toBeTruthy()
+    for (const name of [/Weekly Bolt/, /Monthly Petal/, /Ultra Seinen/]) {
+      expect(card(name).queryByText(/Rival:/)).toBeNull()
+      expect(card(name).queryByText(/^Beat /)).toBeNull()
+    }
+  })
+
+  it('moves the chip with the rival', () => {
+    const g = readyGame()
+    useStore.setState({ game: { ...g, rival: { ...g.rival, craft: 62, magazineId: 'weekly-bolt' } } })
+    render(<SubmitModal />)
+    expect(card(/Weekly Bolt/).getByText('Rival: Iori Hayama')).toBeTruthy()
+    expect(card(/Kids Comic Go!/).queryByText(/Rival:/)).toBeNull()
   })
 
   it('names one rank when the likely range is a single place, and a certain offer', () => {

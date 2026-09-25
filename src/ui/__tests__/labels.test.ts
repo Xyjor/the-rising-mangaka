@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import type { PollResult } from '../../sim'
-import { GRACE_TEXT, inGrace, likelyLine, offerLabel, payWhy, warningText } from '../labels'
+import type { PollResult, Rival } from '../../sim'
+import {
+  GRACE_TEXT, beatLabel, firstName, inGrace, likelyLine, offerLabel, payWhy, rivalCareerLine, rivalLine, warningText,
+} from '../labels'
 
 describe('warningText', () => {
   it('reads Safe with no warnings', () => {
@@ -108,5 +110,49 @@ describe('likelyLine', () => {
     expect(likelyLine({ scoreRange: { low: 85, high: 86 }, expectedRank: { low: 1, high: 1 } }, 11)).toBe(
       'Likely score 85 to 86. Likely rank #1 of 11.',
     )
+  })
+})
+
+describe('rival copy', () => {
+  const rival = { name: 'Iori Hayama', score: 51, rank: 4 }
+
+  it('says whether the player finished ahead of or behind the rival, by rank', () => {
+    expect(rivalLine({ score: 55, rank: 2, rival })).toBe('Iori Hayama placed #4 with 51. You finished ahead.')
+    expect(rivalLine({ score: 47, rank: 6, rival })).toBe('Iori Hayama placed #4 with 51. You finished behind.')
+  })
+
+  it('explains a finish either side of the same rounded score, and calls equal ranks a tie', () => {
+    expect(rivalLine({ score: 51, rank: 3, rival })).toBe(
+      'Iori Hayama placed #4 with 51, the same score as yours. You finished just ahead.',
+    )
+    expect(rivalLine({ score: 51, rank: 5, rival })).toBe(
+      'Iori Hayama placed #4 with 51, the same score as yours. You finished just behind.',
+    )
+    expect(rivalLine({ score: 51, rank: 4, rival })).toBe('Iori Hayama placed #4 with 51. You tied.')
+  })
+
+  it('has nothing to say about a poll without the rival', () => {
+    expect(rivalLine({ score: 51, rank: 4 })).toBeNull()
+  })
+
+  it('names the rival by first name and quotes the chance to beat them as a whole percent', () => {
+    expect(firstName('Iori Hayama')).toBe('Iori')
+    expect(beatLabel(0.6008)).toBe('60%')
+    expect(beatLabel(0.004)).toBe('under 1%')
+    expect(beatLabel(0.996)).toBe('over 99%')
+  })
+
+  it('sums up the rival for the career screen: series, magazine, usual scores and the head-to-head record', () => {
+    const r: Rival = { name: 'Iori Hayama', craft: 50, magazineId: 'kids-comic', seriesTitle: 'Robo Pals Go!' }
+    // 50 - 8 to 50 + 8; a magazine name that ends in "!" ends its sentence without another full stop
+    expect(rivalCareerLine(r, { wins: 3, losses: 2 })).toBe(
+      'Iori Hayama draws "Robo Pals Go!" for Kids Comic Go! Usually scores 42 to 58. Head to head: 3 wins, 2 losses.',
+    )
+    const petal: Rival = { ...r, craft: 58, magazineId: 'monthly-petal', seriesTitle: 'Paper Moon Letters' }
+    expect(rivalCareerLine(petal, { wins: 0, losses: 4 })).toBe(
+      'Iori Hayama draws "Paper Moon Letters" for Monthly Petal. Usually scores 50 to 66. Head to head: 0 wins, 4 losses.',
+    )
+    expect(rivalCareerLine(r, { wins: 1, losses: 1 })).toMatch(/Head to head: 1 win, 1 loss\.$/)
+    expect(rivalCareerLine(r, { wins: 0, losses: 0 })).toMatch(/Head to head: 0 wins, 0 losses\.$/)
   })
 })

@@ -7,7 +7,7 @@ import type { RankTier, ScoreBreakdown } from '../../sim'
 import { useStore } from '../../state/store'
 import { Bar, Modal, Pips, Reward } from '../components'
 import { compact, money } from '../format'
-import { payWhy } from '../labels'
+import { payWhy, rivalLine } from '../labels'
 
 const ITEMS: { key: keyof ScoreBreakdown; label: string; tone: string }[] = [
   { key: 'art', label: 'Art', tone: 'blue' },
@@ -36,6 +36,7 @@ export function ResultsModal() {
   const mag = magazineById(r.magazineId)
   const tier = r.rank === 1 ? 'gold' : r.rank === 2 ? 'silver' : r.rank === 3 ? 'bronze' : undefined
   const headline = HEADLINE[rankTier(r.rank, r.entrants)]
+  const rival = rivalLine(r)
 
   const close = () => { finishTutorial(); dismiss() }
 
@@ -73,6 +74,7 @@ export function ResultsModal() {
             </div>
           </div>
         </div>
+        {rival && <p className="small">{rival}</p>}
 
         <div className="speech">
           {r.editorComment}

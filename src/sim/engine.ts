@@ -20,6 +20,7 @@ import type {
   MagazineId, PendingChapter, Phase, PlaceId, Project, ProjectDraft, Rating, Serial, StatId, ThemeId,
 } from './types'
 import { pendingMilestones } from './milestones'
+import { makeRival } from './rival'
 
 const TRAIT_LIST: AssistantTrait[] = ['fast', 'careful', 'inspiring', 'steady']
 
@@ -28,10 +29,11 @@ const TRAIT_LIST: AssistantTrait[] = ['fast', 'careful', 'inspiring', 'steady']
 export function createGame(name: string, seed: number): GameState {
   const editors = {} as Record<MagazineId, EditorRel>
   for (const m of MAGAZINES) editors[m.id] = { relationship: 0, tips: 0 }
+  const worldSeed = (seed * 7919) | 0
   let state: GameState = {
     version: 2,
     seed: seed | 0,
-    worldSeed: (seed * 7919) | 0,
+    worldSeed,
     day: 0,
     player: {
       name,
@@ -65,6 +67,7 @@ export function createGame(name: string, seed: number): GameState {
     nextLogId: 1,
     nextAssistantId: 1,
     milestonesDone: [],
+    rival: makeRival(worldSeed, 0),
   }
   state = generateCandidates(state)
   return addLog(state, 'info', `Welcome, ${name}. Your studio is ready. Plan your first manga.`, false)

@@ -8,7 +8,7 @@ import type { RankTier } from './data'
 import { clamp, draw, gaussian } from './rng'
 import type {
   AudienceId, ChapterResult, Focus, GameState, GenreId, Magazine, MagazineId, PendingChapter, PollResult, Project,
-  Rating, ScoreBreakdown, ScoreWeights, Serial, ThemeId,
+  Rating, Rival, RivalPlacing, ScoreBreakdown, ScoreWeights, Serial, ThemeId,
 } from './types'
 
 export function projectArtQuality(p: Project): number {
@@ -126,14 +126,39 @@ export function computeBreakdown(state: GameState, input: BreakdownInput, rating
   }
 }
 
-function rankAgainstRivals(magazineId: MagazineId, score: number, values: number[], offset: number): number {
+/**
+ * Each rival entrant's mean score in a magazine's poll, one per entrant: the named rival's craft for entrant 0 when the
+ * rival runs in this magazine, the magazine's rivalMean for everyone else. The polls and the pitch forecast both use it.
+ */
+export function rivalMeans(mag: Magazine, rival: Rival | null): number[] {
+  const craft = rival && rival.magazineId === mag.id ? rival.craft : null
+  return Array.from({ length: mag.entrants }, (_, i) => (i === 0 && craft !== null ? craft : mag.rivalMean))
+}
+
+/** A poll's field: the player's rank, and where the named rival placed (null when the rival is elsewhere). */
+export interface PollField {
+  rank: number
+  rival: RivalPlacing | null
+}
+
+/**
+ * Score the poll's field from `values` (two per entrant from `offset`): entrant i scores
+ * rivalMeans[i] + gaussian(values[offset + 2i], values[offset + 2i + 1]) x RIVAL_SCORE_SD, so the rival takes entrant
+ * 0's draw slots and the stream is the same whether or not it runs here. The player's rank is 1 + entrants strictly
+ * above `score`; the rival's is 1 + other entrants above the rival + 1 if the player's score is higher.
+ */
+export function pollField(
+  rival: Rival | null, magazineId: MagazineId, score: number, values: readonly number[], offset: number,
+): PollField {
   const mag = magazineById(magazineId)
-  let beaten = 0
-  for (let i = 0; i < mag.entrants; i++) {
-    const rival = mag.rivalMean + gaussian(values[offset + i * 2], values[offset + i * 2 + 1]) * RIVAL_SCORE_SD
-    if (rival > score) beaten++
-  }
-  return 1 + beaten
+  const scores = rivalMeans(mag, rival).map(
+    (mean, i) => mean + gaussian(values[offset + i * 2], values[offset + i * 2 + 1]) * RIVAL_SCORE_SD,
+  )
+  const rank = 1 + scores.filter((x) => x > score).length
+  if (!rival || rival.magazineId !== magazineId) return { rank, rival: null }
+  const own = scores[0]
+  const above = scores.slice(1).filter((x) => x > own).length + (score > own ? 1 : 0)
+  return { rank, rival: { name: rival.name, score: clamp(Math.round(own), 0, 100), rank: 1 + above } }
 }
 
 /** Reward tier for a poll placement. `entrants` includes the player's own work. */
@@ -181,7 +206,8 @@ export function evaluateProject(
     pacingNoise: gaussian(values[0], values[1]) * PACING_NOISE_SD,
   })
   const score = weightedScore(breakdown, mag.taste)
-  const rank = rankAgainstRivals(magazineId, score, values, 2)
+  const field = pollField(state.rival, magazineId, score, values, 2)
+  const rank = field.rank
   const entrants = mag.entrants + 1
   const mult = rankMultiplier(rank, entrants)
 
@@ -210,6 +236,7 @@ export function evaluateProject(
       genre: project.genre, theme: project.theme, audience: project.audience, magAudience: mag.audience,
     }),
     pages: project.pagesDone,
+    ...(field.rival ? { rival: field.rival } : {}),
   }
   return { result, seed }
 }
@@ -234,7 +261,8 @@ export function evaluateChapter(
     pacingNoise: gaussian(values[0], values[1]) * PACING_NOISE_SD,
   })
   const score = weightedScore(breakdown, mag.taste)
-  const rank = rankAgainstRivals(serial.magazineId, score, values, 2)
+  const field = pollField(state.rival, serial.magazineId, score, values, 2)
+  const rank = field.rank
   const entrants = mag.entrants + 1
   const mult = rankMultiplier(rank, entrants)
   const result: ChapterResult = {
@@ -249,6 +277,7 @@ export function evaluateChapter(
       fans: Math.round(mag.circulation * 6 * (score / 100) * mult),
       xp: Math.round(20 + score * 0.5),
     },
+    ...(field.rival ? { rival: field.rival } : {}),
   }
   return { result, seed }
 }
