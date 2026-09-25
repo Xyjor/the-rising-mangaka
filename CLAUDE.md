@@ -7,7 +7,7 @@ low-friction interface. Read `DESIGN.md` for the pillars, systems, scoring formu
 
 ```bash
 npm run dev            # Vite dev server on http://localhost:5173 (launch config: .claude/launch.json, name "dev")
-npm test               # Vitest, simulation unit tests (src/sim/__tests__)
+npm test               # Vitest: sim (src/sim/__tests__), state (src/state/__tests__) and UI tests together
 npx tsc -b             # Type check (must exit 0)
 npm run build          # Production build
 npm run lint           # oxlint
@@ -15,6 +15,11 @@ npx vite-node scripts/balance.ts [seed]   # Balance readout: simulates a career 
 ```
 
 Every change must pass `npx tsc -b`, `npm test`, and `npm run build` before it is called done. Run them; do not assume.
+
+UI tests (`src/ui/__tests__`) run against `happy-dom` (not the sim/state tests' default node environment): start the file
+with `// @vitest-environment happy-dom` and import `src/test/dom.ts` for its side effects (registers
+`afterEach(cleanup)` and defensive DOM fallbacks; globals are off, so nothing does this automatically). Build fixture
+game states from `src/test/fixtures.ts` rather than re-deriving sim call sequences per test file.
 
 ## Architecture
 
@@ -30,6 +35,9 @@ Every change must pass `npx tsc -b`, `npm test`, and `npm run build` before it i
 - `src/ui/` — React 19 components. `App.tsx` (shell, clock, hotkeys), `Hud.tsx`, `panels/*` (modals and the desk
   panel), `scene/StudioScene.tsx` (pixel-art canvas, 192×108 logical pixels, sprites as string maps),
   `components.tsx` (Bar, Pips, Modal, RankChart, money/compact formatters), `Icon.tsx` (inline SVG icon set).
+  Tests live in `src/ui/__tests__`; see the UI-test docblock rule under Commands above.
+- `src/test/` — shared test-only helpers: `dom.ts` (happy-dom setup, imported for side effects) and `fixtures.ts`
+  (game-state builders such as `withPendingResult`, shared across UI test files).
 - `src/styles/tokens.css` (design tokens, light + dark), `base.css` (primitives), `app.css` (layout and panels).
 
 ## Conventions
