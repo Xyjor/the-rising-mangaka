@@ -40,6 +40,11 @@ interface Store {
   /** True while another tab owns the save: this tab mirrors it and its clock never runs. */
   readOnly: boolean
   sound: SoundPrefs
+  /**
+   * Counts the saves loaded into this tab (at startup, on takeover, on a read-only refresh). Not saved. The sound
+   * bridge stays silent for the update that loads a save, which is not a step of play.
+   */
+  saveLoads: number
 
   newGame: (name: string) => void
   /** Claim the save for this tab and reload the latest state from storage. */
@@ -205,6 +210,7 @@ export const useStore = create<Store>()(
         tutorialStep: 0,
         readOnly: false,
         sound: DEFAULT_SOUND,
+        saveLoads: 0,
 
         takeOver: () => {
           claim()
@@ -301,7 +307,10 @@ export const useStore = create<Store>()(
       }),
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<Store>
-        const merged: Store = { ...current, ...p, game: p.game ? upgradeSave(p.game) : null, sound: normalizeSound(p.sound) }
+        const merged: Store = {
+          ...current, ...p, game: p.game ? upgradeSave(p.game) : null, sound: normalizeSound(p.sound),
+          saveLoads: current.saveLoads + 1,
+        }
         // What just loaded is the baseline for the reference check, so opening a modal after a reload does not write.
         lastAccepted = {
           game: merged.game, theme: merged.theme, resumeSpeed: merged.resumeSpeed, tutorialStep: merged.tutorialStep,

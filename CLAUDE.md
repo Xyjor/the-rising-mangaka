@@ -42,12 +42,17 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   and persists `game` to localStorage (`persist` version = `SAVE_VERSION`; new `GameState` fields default through
   `src/sim/migrate.ts` `upgradeSave`; bump `SAVE_VERSION` only for shape changes that cannot be defaulted).
   Sim commands go through the `apply()` helper so toasts and auto-resume stay consistent.
+- `src/audio/` — Web Audio sound, framework-free, no files. `engine.ts` synthesises the cues and owns the AudioContext,
+  `triggers.ts` maps a state change to cues, `instance.ts` holds the one shared engine (`getSound`/`installSound`), and
+  `bridge.ts` `connectSound` (wired in `main.tsx`) makes it follow the store: prefs, music, cues (never in a read-only
+  tab or for a loaded save, via the store's `saveLoads`), the unlocking first gesture.
 - `src/ui/` — React 19 components. `App.tsx` (shell, clock, hotkeys), `Hud.tsx`, `panels/*` (modals and the desk
   panel), `scene/StudioScene.tsx` (pixel-art canvas, 192×108 logical pixels, sprites as string maps),
   `components.tsx` (Bar, Pips, Modal, RankChart, money/compact formatters), `Icon.tsx` (inline SVG icon set).
   Tests live in `src/ui/__tests__`; see the UI-test docblock rule under Commands above.
-- `src/test/` — shared test-only helpers: `dom.ts` (happy-dom setup, imported for side effects) and `fixtures.ts`
-  (game-state builders such as `withPendingResult`, shared across UI test files).
+- `src/test/` — shared test-only helpers: `dom.ts` (happy-dom setup, imported for side effects), `fixtures.ts`
+  (game-state builders such as `withPendingResult`, shared across UI test files) and `fakeSound.ts` (a recording
+  sound engine for `connectSound` or `installSound`).
 - `src/styles/tokens.css` (design tokens, light + dark), `base.css` (primitives), `app.css` (layout and panels),
   `cards.css` (desk cards; on phones they follow the project card).
 

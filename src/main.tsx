@@ -11,10 +11,19 @@ import './styles/app.css'
 import { App } from './ui/App'
 import { useStore } from './state/store'
 import * as sim from './sim'
+import { connectSound } from './audio/bridge'
+import { createSoundEngine } from './audio/engine'
+import { installSound, nullEngine } from './audio/instance'
 
-// Dev-only handles for poking the simulation from the browser console.
+// One sound engine for the app, following the store. A browser without Web Audio stays silent.
+const engine =
+  typeof AudioContext === 'undefined' ? nullEngine : createSoundEngine({ createContext: () => new AudioContext() })
+installSound(engine)
+connectSound(useStore, engine)
+
+// Dev-only handles for poking the simulation and the sound from the browser console.
 if (import.meta.env.DEV) {
-  Object.assign(window as unknown as Record<string, unknown>, { __store: useStore, __sim: sim })
+  Object.assign(window as unknown as Record<string, unknown>, { __store: useStore, __sim: sim, __sound: engine })
 }
 
 createRoot(document.getElementById('root')!).render(
