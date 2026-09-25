@@ -1,7 +1,8 @@
-// The studio scene's painter: palettes, sprites, pixel helpers, the snapshot it reads and `render`, one frame of the
+// The studio scene's painter: palettes, sprites and their helpers, the snapshot it reads and `render`, one frame of the
 // 192x108 canvas. Pure drawing: no React, no store, and nothing allocated per frame (tables are built once here).
 import { LOW_STAMINA_THRESHOLD } from '../../sim'
 import { LOOK_HAIRS, LOOK_SHIRTS } from '../looks'
+import { BAR_X, paneRect, rect } from './paint'
 import { drawSeasonNight, drawSeasonPane, drawSeasonSill } from './season'
 import type { Season } from './season'
 
@@ -55,11 +56,6 @@ function drawSprite(ctx: CanvasRenderingContext2D, map: string[], x: number, y: 
       ctx.fillRect(x + c, y + r, 1, 1)
     }
   }
-}
-
-function rect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, color: string) {
-  ctx.fillStyle = color
-  ctx.fillRect(x, y, w, h)
 }
 
 const GLYPH: Record<string, string[]> = {
@@ -159,13 +155,15 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
   } else if (t > 0.12 && t < 0.66) {
     const sx = 122 + (t - 0.12) * 70
     const sy = 30 - Math.sin(((t - 0.12) / 0.54) * Math.PI) * 14
-    rect(ctx, sx, sy, 5, 5, '#ffe47a')
+    paneRect(ctx, sx, sy, 5, 5, '#ffe47a')
   }
-  const cx = ((frame * 0.15) % 60) - 10
-  rect(ctx, 118 + cx, 20, 10, 3, night ? '#3a4470' : '#fff'); rect(ctx, 120 + cx, 18, 6, 2, night ? '#3a4470' : '#fff')
+  // the cloud drifts right and slides out behind the frame; frame 0 (reduced motion) shows it whole at the left edge
+  const cx = ((frame * 0.15 + 10) % 60) - 10
+  const cloud = night ? '#3a4470' : '#fff'
+  paneRect(ctx, 118 + cx, 20, 10, 3, cloud); paneRect(ctx, 120 + cx, 18, 6, 2, cloud)
   drawSeasonPane(ctx, s.season, frame)
   // window bars, then the sill (and anything on it) in front of the pane
-  rect(ctx, 139, 12, 2, 32, '#5a4634'); rect(ctx, 118, 27, 44, 2, '#5a4634')
+  rect(ctx, BAR_X, 12, 2, 32, '#5a4634'); rect(ctx, 118, 27, 44, 2, '#5a4634')
   rect(ctx, 114, 45, 52, 3, '#4a3828')
   drawSeasonSill(ctx, s.season)
 

@@ -144,19 +144,23 @@ Forecast calibration is a balance band: over year one the offer chances quoted a
   Fully unit-tested with Vitest. Every state change is a pure function `(state, input) => state`.
 - `src/state/` — Zustand store: wraps the sim, owns the real-time clock and UI state, persists to localStorage.
 - `src/ui/` — React components. `scene/` is the pixel-art canvas studio (`render.ts` paints a frame from a snapshot,
-  `season.ts` the window's season, `StudioScene.tsx` runs the frame loop). `panels/` are the management screens.
+  `season.ts` the window's season, `paint.ts` the shared pixel helpers, `StudioScene.tsx` runs the frame loop).
+  `panels/` are the management screens.
 - `src/styles/` — design tokens (CSS variables), light/dark, base styles.
 
 ### Seasons
-The studio window follows the calendar: month = floor((day mod 336) / 28) + 1, months 1-3 spring, 4-6 summer, 7-9
-autumn and 10-12 winter, so every year opens in spring (`seasonOf`). The season is decoration only; it changes no rule.
+The studio window follows the calendar (`describeDate`'s month, floor((day mod 336) / 28) + 1): months 1-3 spring,
+4-6 summer, 7-9 autumn and 10-12 winter, so every year opens in spring (`seasonOf`). The season is decoration only; it
+changes no rule.
 - **Spring**: a cherry branch in blossom and 12 petals blowing down and across the pane.
 - **Summer**: a green canopy and a wind chime whose strip swings; at night 5 fireflies glow over the dark.
 - **Autumn**: a rust canopy and 12 leaves swaying as they fall.
 - **Winter**: a bare branch capped with snow, 16 snowflakes and snow on the sill.
 
-Everything but the sill's snow stays inside the pane, under the window bars. The particles move with the scene's frame,
-so they hold still under reduced motion.
+Everything but the sill's snow stays inside the pane (x 118-161, y 12-43), behind the window bars; the fireflies, drawn
+over the night, keep off the bars (rows 18-25 and 29-36, never columns 139-140). The sun and the clouds are clipped to
+the pane too, so a cloud slides out behind the frame. The particles and the clouds move with the scene's frame, so they
+hold still under reduced motion (the cloud whole at the pane's left edge).
 
 ## Systems beyond the slice (implemented)
 

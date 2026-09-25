@@ -51,7 +51,8 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
 - `src/ui/` — React 19 components. `App.tsx` (shell, clock, hotkeys), `Hud.tsx`, `panels/*` (modals and the desk
   panel), `scene/` (pixel-art canvas, 192×108 logical pixels: `render.ts` holds the palettes, string-map sprites
   and `render`, one frame painted from a `Snapshot` with nothing allocated per frame; `season.ts` has `seasonOf(day)`
-  and the window's season layer; `StudioScene.tsx` is the component and its frame loop), `components.tsx` (Bar, Pips,
+  and the window's season layer; `paint.ts` the shared pixel helpers (`rect`, `paneRect` clipped to the window pane,
+  the pane bounds); `StudioScene.tsx` is the component and its frame loop), `components.tsx` (Bar, Pips,
   Modal, RankChart, money/compact formatters), `Icon.tsx` (inline SVG icon set). Tests live in `src/ui/__tests__` and
   `src/ui/scene/__tests__`; see the UI-test docblock rule under Commands above.
 - `src/test/` — shared test-only helpers: `dom.ts` (happy-dom setup, imported for side effects), `fixtures.ts`

@@ -13,13 +13,20 @@ const LEAVES = ['#e2733a', '#c9442e', '#e8a33d']
 const SNOW = '#f4f8ff'
 const FIREFLY = '#e8ff8a'
 const PARTICLE_COLOURS = [...PETALS, ...LEAVES, SNOW, FIREFLY]
-/** Winter's snow on the sill (the sill is x 114-165, y 45-47): its top row and two drifts against the frame. */
+/** Winter's snow: the sill's top row (the sill is x 114-165, y 45-47) and two drifts at y 44 on the frame's bottom. */
 const SILL_SNOW = [
   { style: SNOW, x: 114, y: 45, w: 52, h: 1 },
   { style: SNOW, x: 117, y: 44, w: 7, h: 1 },
   { style: SNOW, x: 148, y: 44, w: 10, h: 1 },
 ]
 const NIGHT_OVERLAY = 'rgba(20, 24, 60, 0.28)'
+/** A colour only each season's pane art uses: its petals, its canopy's dark green, its falling leaves, its snow. */
+const SEASON_MARK: Record<Season, string[]> = {
+  spring: PETALS,
+  summer: ['#2f7a3a'],
+  autumn: LEAVES,
+  winter: [SNOW],
+}
 
 function paint(season: Season, t: number, frame: number): FillCall[] {
   const { ctx, log } = fakeContext()
@@ -118,14 +125,45 @@ describe('the season layer', () => {
 
   it('draws the pane art after the sky and before the window bars (the frame sits on top), all inside the pane', () => {
     for (const season of SEASONS) {
-      const log = paint(season, 0.3, 100)
-      const sky = log.findIndex((c) => c.x === 118 && c.y === 12 && c.w === 44 && c.h === 32)
-      const bar = log.findIndex((c) => c.x === 139 && c.y === 12 && c.w === 2 && c.h === 32)
-      // at t 0.3 the sun and the two cloud rects follow the sky; everything after them, up to the bars, is the season
-      const art = log.slice(sky + 4, bar)
-      expect(art.length, season).toBeGreaterThan(5)
-      for (const c of art) expect(inPane(c), `${season}: ${JSON.stringify(c)}`).toBe(true)
+      for (const t of [0.3, 0.9]) {
+        const log = paint(season, t, 100)
+        const sky = log.findIndex((c) => c.x === 118 && c.y === 12 && c.w === 44 && c.h === 32)
+        const bar = log.findIndex((c) => c.x === 139 && c.y === 12 && c.w === 2 && c.h === 32)
+        expect(sky, season).toBeGreaterThan(-1)
+        expect(bar, season).toBeGreaterThan(sky)
+        // the sun or moon and stars, the clouds and the season's art: everything between the sky and the bars
+        for (const c of log.slice(sky + 1, bar)) expect(inPane(c), `${season} t ${t}: ${JSON.stringify(c)}`).toBe(true)
+        const marks = log.flatMap((c, i) => (SEASON_MARK[season].includes(c.style) && !isSillSnow(c) ? [i] : []))
+        expect(marks.length, season).toBeGreaterThan(0)
+        for (const i of marks) {
+          expect(i, season).toBeGreaterThan(sky)
+          expect(i, season).toBeLessThan(bar)
+        }
+      }
     }
+  })
+
+  it('keeps the fireflies off the window bars and above the sill: rows 18-25 and 29-36, never columns 139-140', () => {
+    let seen = 0
+    const rows = new Set<number>()
+    const cols = new Set<number>()
+    for (let frame = 0; frame <= 2000; frame += 13) {
+      for (const c of paint('summer', 0.9, frame)) {
+        if (c.style !== FIREFLY) continue
+        seen++
+        rows.add(c.y)
+        cols.add(c.x)
+        const where = `frame ${frame}: ${JSON.stringify(c)}`
+        expect(c.y >= 18 && c.y <= 36, where).toBe(true)
+        expect(c.y !== 27 && c.y !== 28, where).toBe(true)
+        expect(c.x !== 139 && c.x !== 140, where).toBe(true)
+      }
+    }
+    // frames 0, 13, ..., 1989: 154 frames of 5 fireflies
+    expect(seen).toBe(154 * 5)
+    // the wander reaches both edges of both bands and passes the bar, so the limits above are really tested
+    for (const y of [18, 25, 29, 36]) expect(rows.has(y), `row ${y}`).toBe(true)
+    for (const x of [138, 141]) expect(cols.has(x), `column ${x}`).toBe(true)
   })
 
   it('moves the particles with the frame and holds them still when the frame holds still', () => {
