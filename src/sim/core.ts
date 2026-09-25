@@ -1,7 +1,17 @@
-// State helpers shared by the engine and the tick hooks that live beside it (events.ts), so neither has to import the
-// other. Everything here is a pure function of the state it is given.
+// State helpers shared by the engine and the tick hooks that live beside it (events.ts, studio.ts), so neither has to
+// import the other, and the locale-free number formatting their log lines use. Everything here is a pure function.
 import { placeById } from './data'
 import type { GameState, LogKind, PlaceId } from './types'
+
+/** Whole numbers with thousands commas, without locale formatting (the sim stays locale-free). */
+export function num(n: number): string {
+  return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+}
+
+/** Yen for log lines and answers: "¥2,500", "-¥15,000". */
+export function yen(n: number): string {
+  return n < 0 ? `-¥${num(-n)}` : `¥${num(n)}`
+}
 
 export function xpToNext(level: number): number {
   return 100 + (level - 1) * 60

@@ -1,7 +1,7 @@
 // Studio tiers and equipment: where the mangaka works (desks for assistants, weekly rent) and what they bought for it.
 // A money sink whose every effect is stated in the Studio panel. The engine reads `studioSlots` (hiring),
 // `studioTier` (rent) and `equipmentEffects` (pages, samples, stamina); the scene reads `studioLook`. No RNG.
-import { addLog } from './core'
+import { addLog, yen } from './core'
 import { STUDIO_TIERS, equipmentById, equipmentPrice, moveInCost, studioTierById } from './data'
 import type { EquipmentId, GameState, StudioTier, StudioTierId } from './types'
 
@@ -67,7 +67,7 @@ export function moveStudio(s: GameState, tier: StudioTierId): GameState {
   }
   return addLog(
     next, 'money',
-    `You moved into the ${t.name.toLowerCase()}: -¥${cost}. Rent is ¥${t.rent} a week, and it has ${t.desks} desks for assistants.`,
+    `You moved into the ${t.name.toLowerCase()}: ${yen(-cost)}. Rent is ${yen(t.rent)} a week, and it has ${t.desks} desks for assistants.`,
     true,
   )
 }
@@ -84,7 +84,7 @@ export function buyEquipment(s: GameState, id: EquipmentId): GameState {
     studio: { ...s.studio, owned: [...s.studio.owned, id] },
     player: { ...s.player, money: s.player.money - price },
   }
-  return addLog(next, 'money', `You bought the ${e.name.toLowerCase()}: -¥${price}. ${e.effect}.`, true)
+  return addLog(next, 'money', `You bought the ${e.name.toLowerCase()}: ${yen(-price)}. ${e.effect}.`, true)
 }
 
 /** What the studio scene draws: the room, its desks, the equipment and the volumes on the shelf. */

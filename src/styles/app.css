@@ -362,6 +362,8 @@
 .place .meta { font-size: 12px; font-weight: 700; color: var(--ink-2); }
 .place .effect { font-size: 13px; font-weight: 800; color: var(--blue-text); }
 .place .btn, .place > .chip { grid-column: 2; grid-row: 1 / span 3; }
+/* An armed ConfirmRow (moving studio) takes the button's cell. */
+.place > .row { grid-column: 2; grid-row: 1 / span 3; }
 /* Long labels ("Move to a bigger studio for another desk") wrap instead of overflowing a narrow card or phone. */
 .place .btn, .person .btn { white-space: normal; text-align: center; }
 

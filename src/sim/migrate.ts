@@ -29,7 +29,7 @@ export function upgradeSave(g: GameState): GameState {
     eventSeed: g.eventSeed ?? (hashString(`events:${g.worldSeed}`) | 0),
     nextEventDay: g.nextEventDay ?? g.day + EVENT_GAP_DAYS,
     // Studios: a save from before them keeps every assistant it has, so it starts in a studio with a desk for each.
-    studio: g.studio ?? { tier: studioTierFor(g.assistants.length), owned: [] },
+    studio: g.studio ?? { tier: studioTierFor(up.assistants.length), owned: [] },
   }
 }
 

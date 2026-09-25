@@ -64,6 +64,7 @@ export function StaffModal() {
   const closeModal = useStore((s) => s.closeModal)
   const hire = useStore((s) => s.hireAssistant)
   const fire = useStore((s) => s.fireAssistant)
+  const openModal = useStore((s) => s.openModal)
   const desks = studioSlots(game)
   const full = game.assistants.length >= desks
   // Every desk taken: a bigger studio has more, until the biggest.
@@ -106,13 +107,17 @@ export function StaffModal() {
               <div className="people-grid">
                 {game.candidates.map((a) => {
                   const short = game.player.money < a.salary * HIRE_RUNWAY_WEEKS
+                  // Every desk taken below the loft: the button takes the player to the Studio panel instead.
+                  if (full && canMove) {
+                    return (
+                      <Person key={a.id} a={a} actionLabel="Move to a bigger studio for another desk" action={() => openModal('studio')} />
+                    )
+                  }
                   return (
                     <Person
                       key={a.id}
                       a={a}
-                      actionLabel={full
-                        ? canMove ? 'Move to a bigger studio for another desk' : 'Full, let someone go first'
-                        : short ? `Need ${money(a.salary * HIRE_RUNWAY_WEEKS)} in the bank` : 'Hire'}
+                      actionLabel={full ? 'Full, let someone go first' : short ? `Need ${money(a.salary * HIRE_RUNWAY_WEEKS)} in the bank` : 'Hire'}
                       disabled={full || short}
                       action={() => hire(a.id)}
                     />

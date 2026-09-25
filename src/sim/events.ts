@@ -5,7 +5,7 @@
 //
 // A pending event survives a trip: the card stays on the desk and every answer except a new trip can be given from
 // the road. While away no new event is rolled, and an unanswered one still lapses on time.
-import { addLog, startTrip } from './core'
+import { addLog, num, startTrip, yen } from './core'
 import {
   EVENT_ANSWER_DAYS, EVENT_CHANCE, EVENT_GAP_DAYS, EVENT_ROLL_WEEKDAY, VOLUME_PRICE, placeById,
 } from './data'
@@ -45,15 +45,6 @@ export function lowestStat(stats: PlayerStats): StatId {
 /** Money a reprint pays: `share` of the serial's average copies a volume, at the volume price. */
 function reprintMoney(ser: Serial, share: number): number {
   return Math.round((ser.totalCopies / ser.volumes) * share) * VOLUME_PRICE
-}
-
-/** Whole numbers with thousands commas, without locale formatting (the sim stays locale-free). */
-function num(n: number): string {
-  return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-}
-
-function yen(n: number): string {
-  return n < 0 ? `-¥${num(-n)}` : `¥${num(n)}`
 }
 
 /** The first assistant who has not asked for a raise yet. */

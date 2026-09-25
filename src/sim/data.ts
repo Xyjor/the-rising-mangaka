@@ -90,7 +90,7 @@ export const PLACES: Place[] = [
 export const TRAITS: Record<AssistantTrait, { name: string; blurb: string }> = {
   fast: { name: 'Fast', blurb: 'Draws 30% more pages a day' },
   careful: { name: 'Careful', blurb: 'Their pages score 8 higher in art and story' },
-  inspiring: { name: 'Inspiring', blurb: 'Working costs you 4 stamina a day instead of 5' },
+  inspiring: { name: 'Inspiring', blurb: 'Drawing costs you 1 less stamina a day' },
   steady: { name: 'Steady', blurb: 'Never tires, never slows down' },
 }
 

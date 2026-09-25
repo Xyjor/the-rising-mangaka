@@ -30,7 +30,8 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   (`src/sim/rng.ts`). Every state change is a pure function `(state, input) => state` that returns a new object.
   - `types.ts` all domain types. `data.ts` content (genres, themes, audiences, magazines, places, constants).
   - `compat.ts` hidden compatibility ratings. `scoring.ts` poll scoring. `engine.ts` commands + `tick()`.
-  - `core.ts` state helpers shared by the engine and its tick hooks (`addLog`, `grantXp`, `xpToNext`, `startTrip`).
+  - `core.ts` state helpers shared by the engine and its tick hooks (`addLog`, `grantXp`, `xpToNext`, `startTrip`,
+    and `num`/`yen`, locale-free thousands commas for log lines).
     `events.ts` random events (the weekly roll on its own `eventSeed`, the answers). `studio.ts` studio tiers (desks,
     rent) and equipment (effects, buying, moving, `studioLook`). Hook files never import engine.ts.
   - Add a unit test in `src/sim/__tests__/engine.test.ts` for every new rule.

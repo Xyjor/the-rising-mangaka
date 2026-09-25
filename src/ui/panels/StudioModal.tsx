@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { EQUIPMENT, STUDIO_TIERS, equipmentPrice, moveInCost, studioAtLeast, studioTierById } from '../../sim'
 import type { Equipment, GameState, StudioTier } from '../../sim'
 import { useStore } from '../../state/store'
+import { ConfirmRow } from '../ConfirmRow'
 import { Modal } from '../components'
 import { money } from '../format'
 
@@ -18,11 +19,18 @@ function TierRow({ game, tier, index }: { game: GameState; tier: StudioTier; ind
   if (index < current) action = <span className="chip">Moved out</span>
   else if (index === current) action = <span className="chip green">You are here</span>
   else if (index === current + 1) {
-    action = (
-      <button className={`btn sm ${short > 0 ? '' : 'primary'}`} disabled={short > 0} onClick={() => moveStudio(tier.id)}>
-        {short > 0 ? `Need ${money(short)} more` : `Move in, ${money(cost)}`}
-      </button>
-    )
+    // Moving is for good (and adds rent), so it asks once more; equipment is a single click.
+    action = short > 0
+      ? <button className="btn sm" disabled>{`Need ${money(short)} more`}</button>
+      : (
+        <ConfirmRow
+          className="btn sm primary"
+          label={`Move in, ${money(cost)}`}
+          confirmLabel={`Yes, move in for ${money(cost)}`}
+          cancelLabel="Stay here"
+          onConfirm={() => moveStudio(tier.id)}
+        />
+      )
   } else {
     action = <button className="btn sm" disabled>{`Move to the ${STUDIO_TIERS[index - 1].name.toLowerCase()} first`}</button>
   }
@@ -32,7 +40,9 @@ function TierRow({ game, tier, index }: { game: GameState; tier: StudioTier; ind
       <div className="name">{tier.name}</div>
       {action}
       {/* The next tier's button names its move-in cost; any tier after it states it here. */}
-      <div className="meta">{index > current + 1 ? `${rent} Move-in ${money(cost)}.` : rent}</div>
+      <div className="meta">
+        {index === current + 1 ? `${rent} You cannot move back down.` : index > current + 1 ? `${rent} Move-in ${money(cost)}.` : rent}
+      </div>
       <div className="effect">{deskText(tier.desks)}</div>
     </div>
   )

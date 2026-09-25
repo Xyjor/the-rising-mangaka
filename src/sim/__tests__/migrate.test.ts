@@ -89,6 +89,10 @@ describe('upgradeSave', () => {
     expect(upgradeSave(old(2)).studio).toEqual({ tier: 'flat', owned: [] })
     expect(upgradeSave(old(1)).studio).toEqual({ tier: 'apartment', owned: [] })
     expect(upgradeSave(old(0)).studio).toEqual({ tier: 'apartment', owned: [] })
+    // a save missing its assistant list too reads the defaulted empty list: the apartment
+    const bare = old(0) as Partial<GameState>
+    delete bare.assistants
+    expect(upgradeSave(bare as GameState).studio).toEqual({ tier: 'apartment', owned: [] })
   })
 
   it('keeps the studio a newer save already has', () => {

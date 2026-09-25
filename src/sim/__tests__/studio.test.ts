@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
-  EQUIPMENT, EQUIPMENT_IDS, EQUIPMENT_PRICE_SCALE, STUDIO_TIERS, basePagesPerDay, buyEquipment, chapterDeadline,
-  createGame, equipmentEffects, equipmentPrice, expectedPagesToday, hireAssistant, moveInCost, moveStudio, setActivity,
-  startProject, startTrip, studioLook, studioSlots, tick, tickMany, weeklyCosts,
+  EQUIPMENT, EQUIPMENT_IDS, EQUIPMENT_PRICE_SCALE, MILESTONES, STUDIO_TIERS, TRAITS, WORK_STAMINA_COST, basePagesPerDay,
+  buyEquipment, chapterDeadline, createGame, equipmentEffects, equipmentPrice, expectedPagesToday, hireAssistant,
+  moveInCost, moveStudio, setActivity, startProject, startTrip, studioLook, studioSlots, tick, tickMany, weeklyCosts,
 } from '../index'
 import type { Assistant, EquipmentId, GameState, Serial, StudioTierId } from '../index'
 import { DRAFT } from '../../test/fixtures'
@@ -13,6 +13,11 @@ function withStudio(s: GameState, tier: StudioTierId, owned: EquipmentId[] = [])
 
 function withMoney(s: GameState, money: number): GameState {
   return { ...s, player: { ...s.player, money } }
+}
+
+/** Yen with thousands commas, formatted independently of the sim's own formatter. */
+function yen(n: number): string {
+  return `¥${n.toLocaleString('en-US')}`
 }
 
 /** Seed 42 with a fresh one-shot on the desk, set to draw, owning `owned`. */
@@ -121,10 +126,12 @@ describe('studio tiers', () => {
     expect(s.player.money).toBe(1000)
     const last = s.log.at(-1)!
     expect(last).toMatchObject({ kind: 'money', toast: true })
-    expect(last.text).toBe(`You moved into the studio flat: -¥${moveInCost('flat')}. Rent is ¥150 a week, and it has 2 desks for assistants.`)
+    expect(last.text).toBe(`You moved into the studio flat: -${yen(moveInCost('flat'))}. Rent is ¥150 a week, and it has 2 desks for assistants.`)
     const loft = moveStudio(withMoney(s, moveInCost('loft')), 'loft')
     expect(loft.studio.tier).toBe('loft')
     expect(loft.player.money).toBe(0)
+    // at today's price scale the log reads "-¥15,000"
+    expect(loft.log.at(-1)!.text).toBe(`You moved into the studio loft: -${yen(moveInCost('loft'))}. Rent is ¥350 a week, and it has 3 desks for assistants.`)
   })
 
   it('refuses a move it cannot afford, a skipped tier, and a move sideways or down', () => {
@@ -147,7 +154,7 @@ describe('equipment', () => {
     expect(s.studio.owned).toEqual(['lamp'])
     const last = s.log.at(-1)!
     expect(last).toMatchObject({ kind: 'money', toast: true })
-    expect(last.text).toBe(`You bought the daylight lamp: -¥${equipmentPrice('lamp')}. Art +3 on your pages.`)
+    expect(last.text).toBe(`You bought the daylight lamp: -${yen(equipmentPrice('lamp'))}. Art +3 on your pages.`)
     expect(buyEquipment(withMoney(s, equipmentPrice('coffee')), 'coffee').studio.owned).toEqual(['lamp', 'coffee'])
   })
 
@@ -250,7 +257,7 @@ describe('equipment in a working day', () => {
     expect(expectedPagesToday(table)).toBeCloseTo(1.364, 12)
   })
 
-  it('the drafting table makes a late chapter on time: 16 pages at 1.24 a day is 13 days, at 1.364 it is 12', () => {
+  it('the drafting table turns a late chapter tight: 16 pages at 1.24 a day is 13 days, at 1.364 it is 12', () => {
     const serial = (owned: EquipmentId[]): GameState => {
       const g = createGame('Rin', 42)
       const project = { ...startProject(g, DRAFT).project!, kind: 'serial' as const, chapter: 1, pagesTarget: 16 }
@@ -289,6 +296,20 @@ describe('equipment in a working day', () => {
     const g = withStudio(createGame('Rin', 42), 'apartment', ['coffee'])
     const away = startTrip({ ...g, player: { ...g.player, stamina: 50 } }, 'library')
     expect(tick(away).player.stamina).toBe(58)
+  })
+})
+
+describe('copy that stays true with a studio', () => {
+  it('the Inspiring trait names the stamina it saves, never the cost the chair also changes', () => {
+    // "instead of 5" would be false with the chair (3 instead of 4); the saving stays true with any equipment
+    expect(TRAITS.inspiring.blurb).not.toContain('instead of')
+    expect(TRAITS.inspiring.blurb).not.toContain(String(WORK_STAMINA_COST))
+    expect(TRAITS.inspiring.blurb).toContain('1 less stamina a day')
+  })
+
+  it('the Full studio milestone says three assistants need the loft', () => {
+    expect(MILESTONES.find((m) => m.id === 'three-assistants')!.hint)
+      .toBe('Employ three assistants (the studio loft seats three)')
   })
 })
 

@@ -180,7 +180,8 @@ Forecast calibration is a balance band: over year one the offer chances quoted a
 ### Staff
 - One assistant per desk: 1 in the apartment, 2 in the studio flat, 3 in the loft (see Studio and equipment). Three
   candidates rotate every 4 weeks. No hiring fee, weekly salary. With every desk taken, the Staff panel's hire buttons
-  say "Move to a bigger studio for another desk" (in the loft: "Full, let someone go first").
+  say "Move to a bigger studio for another desk" and open the Studio panel (in the loft: "Full, let someone go
+  first").
 - Each adds pages per day and blends their own Art/Story into page quality. Traits: Fast, Careful, Inspiring, Steady.
 - Assistants tire like the player and rest when the player rests or works a part-time job.
 
@@ -188,7 +189,8 @@ Forecast calibration is a balance band: over year one the offer chances quoted a
 A money sink whose every effect is stated where it is sold (the Studio panel, from the desk's Studio button) and listed
 again under the reward tiles in Stats. `src/sim/studio.ts`; no RNG.
 - **Tiers.** A new career starts in the apartment. Moving goes one tier up at a time, never down, and costs the next
-  tier's move-in. The tier's rent is part of the weekly costs (living + rent + salaries), and the weekly log line names
+  tier's move-in; the panel asks to confirm a move ("Yes, move in for ¥5,000" or "Stay here"), and the next tier's line
+  says "You cannot move back down." Equipment is a single click. The tier's rent is part of the weekly costs (living + rent + salaries), and the weekly log line names
   it when it is not zero ("Weekly costs: -¥550 (living ¥400, rent ¥150)."). `hireAssistant` refuses once every desk is
   taken, on top of the rule that the bank must hold two weeks of that salary.
 

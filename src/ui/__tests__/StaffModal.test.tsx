@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it } from 'vitest'
 import '../../test/dom'
 import { createGame, hireAssistant } from '../../sim'
@@ -29,16 +29,21 @@ describe('StaffModal desks', () => {
     expect(hireButtons().map((b) => b.textContent)).toEqual(['Hire', 'Hire', 'Hire'])
   })
 
-  it('with the only desk taken, the hire buttons say to move to a bigger studio', () => {
-    useStore.setState({ game: staffed('apartment', 1) })
+  it('with the only desk taken, the hire buttons say to move to a bigger studio and open the Studio panel', () => {
+    const game = staffed('apartment', 1)
+    useStore.setState({ game })
     render(<StaffModal />)
     expect(screen.getByText('(1 of 1 desk)')).toBeTruthy()
     const buttons = hireButtons()
     expect(buttons).toHaveLength(2)
     for (const b of buttons) {
       expect(b.textContent).toBe('Move to a bigger studio for another desk')
-      expect((b as HTMLButtonElement).disabled).toBe(true)
+      expect((b as HTMLButtonElement).disabled).toBe(false)
     }
+    fireEvent.click(buttons[0])
+    expect(useStore.getState().modal).toBe('studio')
+    // nobody was hired: the button only opens the panel
+    expect(useStore.getState().game).toBe(game)
   })
 
   it('has a free desk in the flat, and names the rent in the weekly costs', () => {
@@ -59,6 +64,9 @@ describe('StaffModal desks', () => {
     expect(screen.getByText('(3 of 3 desks)')).toBeTruthy()
     const buttons = hireButtons()
     expect(buttons).toHaveLength(3)
-    for (const b of buttons) expect(b.textContent).toBe('Full, let someone go first')
+    for (const b of buttons) {
+      expect(b.textContent).toBe('Full, let someone go first')
+      expect((b as HTMLButtonElement).disabled).toBe(true)
+    }
   })
 })

@@ -35,23 +35,35 @@ describe('StudioModal', () => {
     expect(row('Apartment').getByText('No rent.')).toBeTruthy()
     expect(row('Apartment').getByText('1 desk for an assistant')).toBeTruthy()
     expect(row('Studio flat').getByText('2 desks for assistants')).toBeTruthy()
-    expect(row('Studio flat').getByText('Rent ¥150 a week.')).toBeTruthy()
+    expect(row('Studio flat').getByText('Rent ¥150 a week. You cannot move back down.')).toBeTruthy()
     expect(button('Studio flat', `Need ${money(moveInCost('flat') - coffeeMoney())} more`).disabled).toBe(true)
     expect(button('Studio loft', 'Move to the studio flat first').disabled).toBe(true)
     expect(row('Studio loft').getByText(`Rent ¥350 a week. Move-in ${money(moveInCost('loft'))}.`)).toBeTruthy()
   })
 
-  it('moves in when the bank covers it, then offers the loft', () => {
+  it('moves in on the second click, after a confirm, then offers the loft', () => {
     useStore.setState({ game: studio(moveInCost('flat') + 1000) })
     render(<StudioModal />)
     fireEvent.click(button('Studio flat', `Move in, ${money(moveInCost('flat'))}`))
+    // the first click only arms the confirm: nothing moved yet
+    expect(useStore.getState().game!.studio.tier).toBe('apartment')
+    fireEvent.click(button('Studio flat', `Yes, move in for ${money(moveInCost('flat'))}`))
     const g = useStore.getState().game!
     expect(g.studio.tier).toBe('flat')
     expect(g.player.money).toBe(1000)
     expect(row('Studio flat').getByText('You are here')).toBeTruthy()
     expect(row('Apartment').getByText('Moved out')).toBeTruthy()
     expect(button('Studio loft', `Need ${money(moveInCost('loft') - 1000)} more`).disabled).toBe(true)
-    expect(row('Studio loft').getByText('Rent ¥350 a week.')).toBeTruthy()
+    expect(row('Studio loft').getByText('Rent ¥350 a week. You cannot move back down.')).toBeTruthy()
+  })
+
+  it('"Stay here" backs out of the move', () => {
+    useStore.setState({ game: studio(moveInCost('flat')) })
+    render(<StudioModal />)
+    fireEvent.click(button('Studio flat', `Move in, ${money(moveInCost('flat'))}`))
+    fireEvent.click(button('Studio flat', 'Stay here'))
+    expect(useStore.getState().game!.studio.tier).toBe('apartment')
+    expect(button('Studio flat', `Move in, ${money(moveInCost('flat'))}`)).toBeTruthy()
   })
 
   it('lists every piece of equipment with its effect and a button that says what it takes', () => {
