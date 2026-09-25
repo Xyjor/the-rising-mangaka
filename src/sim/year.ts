@@ -7,6 +7,7 @@
 // "This year" is every poll result with a day in (yearStart.day, closing day]: the polls run before closeYear in the
 // same tick, so a result landing on the closing day counts for the year that closes. A serial counts as started this
 // year from yearStart.day on: commands run between ticks, so a serial accepted on a closing day starts the new year.
+// For the Rookie Prize, a serialisation offer still waiting at the year-one close counts as a serial started.
 import { addLog, grantXp, num, yen } from './core'
 import { AWARDS, DAYS_PER_YEAR, READERS_CHOICE_MIN_RESULTS, awardById, magazineById } from './data'
 import { growRival, rivalRecord } from './rival'
@@ -88,8 +89,9 @@ export function buildYearReview(s: GameState): YearReview {
     critics: { figure: bestScore, shown: bestScore ?? 0, lower: false },
     'golden-pen': { figure: copies, shown: copies, lower: false },
   }
-  // The Rookie Prize also goes to a serial started in year one, whatever the one-shots did.
-  const rookieSerial = year === 1 && serials.some((x) => x.startedDay >= start.day)
+  // The Rookie Prize also goes to a serial started in year one, whatever the one-shots did. A serialisation offer
+  // still waiting at the close (earned by a year-one one-shot, perhaps on the closing day itself) counts as one.
+  const rookieSerial = year === 1 && (serials.some((x) => x.startedDay >= start.day) || !!s.pendingOffer)
   const awards: AwardId[] = []
   const nearMisses: NearMiss[] = []
   for (const a of AWARDS) {
@@ -145,16 +147,24 @@ function payPrize(state: GameState, id: AwardId, year: number): GameState {
 }
 
 /**
- * On a closing day (day > 0 and day % DAYS_PER_YEAR === 0): pay every award won, file the review with the prizes
- * counted in the year, grow the rival (a log line when they change magazine), then take the new year's baseline, so
- * next year's deltas start clean. The review waits unread on the desk. One toast; the clock keeps running.
+ * On a closing day (day > 0 and day % DAYS_PER_YEAR === 0): judge the year once, pay every award it won, file that
+ * judgment with the prizes counted in the year's money, fans and level, grow the rival (a log line when they change
+ * magazine), then take the new year's baseline, so next year's deltas start clean. The review waits unread on the
+ * desk. One toast; the clock keeps running.
  */
 export function closeYear(state: GameState): GameState {
   if (state.day <= 0 || state.day % DAYS_PER_YEAR !== 0) return state
   const judged = buildYearReview(state)
   let s = state
   for (const id of judged.awards) s = payPrize(s, id, judged.year)
-  const review = judged.awards.length ? buildYearReview(s) : judged
+  // Only the prizes moved: the filed review is the judgment the prizes were paid on.
+  const start = state.yearStart
+  const review: YearReview = {
+    ...judged,
+    moneyDelta: s.player.money - start.money,
+    fansDelta: s.player.fans - start.fans,
+    levelTo: s.player.level,
+  }
   const rival = growRival(s.rival, s.worldSeed)
   s = { ...s, rival, yearReviews: [...s.yearReviews, review], reviewUnread: review.year, yearStart: yearSnapshot(s) }
   if (rival.magazineId !== state.rival.magazineId) {

@@ -4,7 +4,7 @@ import {
   buyEquipment, chapterDeadline, createGame, equipmentEffects, equipmentPrice, expectedPagesToday, hireAssistant,
   moveInCost, moveStudio, setActivity, startProject, startTrip, studioLook, studioSlots, tick, tickMany, weeklyCosts,
 } from '../index'
-import type { Assistant, EquipmentId, GameState, Serial, StudioTierId } from '../index'
+import type { Assistant, EquipmentId, GameState, Serial, StudioLook, StudioTierId } from '../index'
 import { DRAFT } from '../../test/fixtures'
 
 function withStudio(s: GameState, tier: StudioTierId, owned: EquipmentId[] = []): GameState {
@@ -319,6 +319,14 @@ describe('studioLook', () => {
     const look = studioLook(g)
     expect(look).toEqual({ tier: 'flat', desks: 2, equipment: ['lamp', 'coffee'], volumes: 0, animePoster: false, trophies: [] })
     expect(look.equipment).toBe(g.studio.owned)
+    expect(look.trophies).toBe(g.awards)
+  })
+
+  it('gives the same value or reference for every field on every call, so a shallow compare holds', () => {
+    const g = { ...withStudio(createGame('Rin', 42), 'flat', ['lamp']), awards: [{ id: 'critics', year: 1 }] } as GameState
+    const a = studioLook(g)
+    const b = studioLook(g)
+    for (const k of Object.keys(a) as (keyof StudioLook)[]) expect(b[k]).toBe(a[k])
   })
 
   it('counts the volumes of the running serial and every past one, at most 24', () => {

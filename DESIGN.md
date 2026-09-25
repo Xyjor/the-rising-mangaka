@@ -315,7 +315,9 @@ Every `DAYS_PER_YEAR` (336) days the year closes: `closeYear` (`src/sim/year.ts`
   (`yearStart.day`, closing day]: the polls run before `closeYear` in the same tick, so a result landing on the
   closing day counts for the year that closes (year one counts days 1 to 336, year two days 337 to 672). A serial
   counts as started this year from `yearStart.day` on: commands run between ticks, so one accepted on a closing day
-  starts the new year. A new career takes its baseline on day 0.
+  starts the new year. For the Rookie Prize, a serialisation offer still waiting at the year-one close (earned by a
+  year-one one-shot, perhaps on the closing day itself) counts as a serial started; accepting it later pays nothing
+  more. A new career takes its baseline on day 0.
 - **Awards.** `buildYearReview` judges each award in the table's order. A near miss is listed only when the award was
   not won. The Readers' Choice takes the serial with the best average rank among those with 8 or more results this
   year; a near miss shows that average rounded up to one decimal, so a miss never reads as the 3.0 that wins.
@@ -327,9 +329,10 @@ Every `DAYS_PER_YEAR` (336) days the year closes: `closeYear` (`src/sim/year.ts`
 | Critics' Prize | best score this year ≥ 75 (one-shots and chapters) | ≥ 68 | ¥4,000, 1,000 fans, 150 XP |
 | Golden Pen | copies sold this year ≥ 20,000 | ≥ 12,000 | ¥8,000, 3,000 fans, 200 XP |
 
-- **The close.** Prizes are paid first (money, fans, and XP through `grantXp`; a log line each) and counted in the
-  closing year's review; then the review is filed (`yearReviews`, `reviewUnread` = its year), the rival grows, and
-  the new `yearStart` is taken, so next year's deltas start clean. When the player missed year one's Rookie Prize,
+- **The close.** The year is judged once. Its prizes are paid (money, fans, and XP through `grantXp`; a log line
+  each), and that same judgment is filed as the review (`yearReviews`, `reviewUnread` = its year) with the prizes
+  counted in its money, fans and level; then the rival grows and the new `yearStart` is taken, so next year's deltas
+  start clean. When the player missed year one's Rookie Prize,
   the rival won it (`rivalAward`). The review holds the year's one-shots, best one-shot, chapters, volumes, copies,
   best score, money and fans gained, the level before and after, the awards, the near misses, and the rival's year
   (this year's head to head, craft and magazine before and after). A fresh career left alone for year one pays 48
@@ -340,7 +343,8 @@ Every `DAYS_PER_YEAR` (336) days the year closes: `closeYear` (`src/sim/year.ts`
   2 awards, 1 near miss.", "Read the year review") until the review modal is opened, which marks it read. The modal
   shows the year in numbers, the awards with their prizes and what wins them (or, with none, what to aim for next
   year), the near misses ("Golden Pen: 12,400 copies of 20,000."), and the rival's year. Career lists every award won
-  and a line for each past year. `studioLook` lists a trophy per award won, for the scene.
+  and a line for each past year. `studioLook`'s `trophies` is the awards list itself (one trophy per entry, the
+  same reference every call), for the scene.
 - **Saves** from before the year end start their year on its first day (`floor(day / 336) × 336`) with the current
   money, fans, level, copies and volumes, so the first review's deltas count from loading; no reviews, no awards.
 

@@ -190,6 +190,36 @@ describe('closeYear', () => {
     expect(buildYearReview({ ...s, day: 672 })).toMatchObject({ year: 2, oneShots: 0, bestOneShot: null, bestScore: null })
   })
 
+  it('closes the year during a trip and leaves the trip to run its course', () => {
+    const g: GameState = { ...quiet(), day: 335, trip: { placeId: 'art-class', startedDay: 333, endsDay: 337 } }
+    const s = tick(g)
+    // day 336: the weekly ¥400, the review filed, the trip untouched
+    expect(s.trip).toBe(g.trip)
+    expect(s.player.money).toBe(2600)
+    expect(s.yearReviews).toHaveLength(1)
+    expect(s.yearReviews[0]).toMatchObject({ year: 1, moneyDelta: -400, awards: [], rivalAward: 'rookie' })
+    expect(s).toMatchObject({ reviewUnread: 1, yearStart: { day: 336, money: 2600 }, activity: 'rest' })
+    // day 337: home from the Life Drawing Class as planned, Art 40 + 2
+    const home = tick(s)
+    expect(home.trip).toBeNull()
+    expect(home.player.stats.art).toBe(42)
+    expect(home.yearReviews).toHaveLength(1)
+  })
+
+  it('closes the year with an event and a poll result waiting, and leaves both waiting', () => {
+    const result = oneShot(330, 5, 60)
+    const g: GameState = {
+      ...quiet(), day: 335, history: [result], pendingResult: result,
+      event: { id: 'cold', day: 332, expiresDay: 339 },
+    }
+    const s = tick(g)
+    expect(s.pendingResult).toBe(result)
+    expect(s.event).toBe(g.event)
+    expect(s.player.money).toBe(2600)
+    // #5 with 60: no award, no near miss
+    expect(s.yearReviews[0]).toMatchObject({ year: 1, oneShots: 1, bestScore: 60, awards: [], nearMisses: [] })
+    expect(s.reviewUnread).toBe(1)
+  })
 })
 
 describe('the Rookie Prize', () => {
@@ -204,6 +234,27 @@ describe('the Rookie Prize', () => {
     expect(near.nearMisses).toEqual([{ id: 'rookie', have: 3, need: 1 }])
     expect(near.bestOneShot).toEqual({ title: 'One-shot 90', rank: 3, entrants: 13, score: 55 })
     expect(buildYearReview(yearOneEnd({ history: [oneShot(90, 4, 55)] })).nearMisses).toEqual([])
+  })
+
+  it('goes to a #2 one-shot on the closing day whose serialisation offer is still waiting, paid once', () => {
+    const result = oneShot(336, 2, 60)
+    const offer = { magazineId: 'weekly-bolt', title: 'One-shot 336', genre: 'action', theme: 'samurai', audience: 'teens' } as const
+    const g = yearOneEnd({ history: [result], pendingResult: result, pendingOffer: offer })
+    const s = closeYear(g)
+    expect(s.awards).toEqual([{ id: 'rookie', year: 1 }])
+    expect(s.player.money).toBe(6000)
+    expect(s.yearReviews[0]).toMatchObject({ awards: ['rookie'], nearMisses: [], rivalAward: null })
+    expect(s.log.filter((e) => e.text.startsWith('You won the Rookie Prize'))).toHaveLength(1)
+    // accepted after the close, the serial starts on day 336, in year two: no second Rookie Prize
+    const serialised = acceptOffer({ ...s, pendingResult: null })
+    expect(serialised.serial!.startedDay).toBe(336)
+    const next = closeYear({ ...serialised, day: 672 })
+    expect(next.awards).toEqual([{ id: 'rookie', year: 1 }])
+    expect(next.yearReviews[1]).toMatchObject({ year: 2, awards: [] })
+    // without the offer, the same #2 is only a near miss
+    expect(buildYearReview(yearOneEnd({ history: [result] }))).toMatchObject({
+      awards: [], nearMisses: [{ id: 'rookie', have: 2, need: 1 }], rivalAward: 'rookie',
+    })
   })
 
   it('is not given in year two, and the rival does not take it there either', () => {
@@ -339,10 +390,14 @@ describe('markReviewRead', () => {
 })
 
 describe('studioLook.trophies', () => {
-  it('lists every award won, oldest first', () => {
-    expect(studioLook(quiet()).trophies).toEqual([])
-    const awards = [{ id: 'rookie', year: 1 }, { id: 'golden-pen', year: 2 }, { id: 'golden-pen', year: 3 }] as const
-    expect(studioLook({ ...quiet(), awards: [...awards] }).trophies).toEqual(['rookie', 'golden-pen', 'golden-pen'])
+  it('is the awards list itself, one trophy per award won, oldest first', () => {
+    const fresh = quiet()
+    expect(studioLook(fresh).trophies).toBe(fresh.awards)
+    expect(studioLook(fresh).trophies).toEqual([])
+    const g = { ...quiet(), awards: [{ id: 'rookie', year: 1 }, { id: 'golden-pen', year: 2 }, { id: 'golden-pen', year: 3 }] } as GameState
+    const look = studioLook(g)
+    expect(look.trophies).toBe(g.awards)
+    expect(look.trophies.map((a) => a.id)).toEqual(['rookie', 'golden-pen', 'golden-pen'])
   })
 })
 

@@ -4,7 +4,7 @@
 import { animeOnShow } from './anime'
 import { addLog, yen } from './core'
 import { STUDIO_TIERS, equipmentById, equipmentPrice, moveInCost, studioTierById } from './data'
-import type { AwardId, EquipmentId, GameState, StudioTier, StudioTierId } from './types'
+import type { AwardWon, EquipmentId, GameState, StudioTier, StudioTierId } from './types'
 
 /** The most volumes the studio shelf shows. */
 const SHELF_VOLUMES = 24
@@ -88,7 +88,10 @@ export function buyEquipment(s: GameState, id: EquipmentId): GameState {
   return addLog(next, 'money', `You bought the ${e.name.toLowerCase()}: ${yen(-price)}. ${e.effect}.`, true)
 }
 
-/** What the studio scene draws: the room, its desks, the equipment, the volumes on the shelf, an anime poster, trophies. */
+/**
+ * What the studio scene draws: the room, its desks, the equipment, the volumes on the shelf, an anime poster, trophies.
+ * Every field is a primitive or a list straight from the state, so two calls on one state compare equal field by field.
+ */
 export interface StudioLook {
   tier: StudioTierId
   desks: number
@@ -98,14 +101,17 @@ export interface StudioLook {
   volumes: number
   /** an anime poster on the wall: from a premiere until that deal's volume boost ends */
   animePoster: boolean
-  /** a trophy for every award won, oldest first (the same award won twice is two trophies); a new array each call */
-  trophies: AwardId[]
+  /**
+   * the awards list itself (`s.awards`), never a copy, so the scene can compare it by reference; one trophy per entry,
+   * oldest first (the scene maps the ids)
+   */
+  trophies: readonly AwardWon[]
 }
 
 export function studioLook(s: GameState): StudioLook {
   const shipped = s.serials.reduce((sum, x) => sum + x.volumes, s.serial?.volumes ?? 0)
   return {
     tier: s.studio.tier, desks: studioSlots(s), equipment: s.studio.owned, volumes: Math.min(SHELF_VOLUMES, shipped),
-    animePoster: animeOnShow(s), trophies: s.awards.map((a) => a.id),
+    animePoster: animeOnShow(s), trophies: s.awards,
   }
 }
