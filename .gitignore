@@ -25,3 +25,6 @@ dist-ssr
 
 # workflow worktrees
 .claude/worktrees/
+
+# subagent-driven development scratch
+.superpowers/
