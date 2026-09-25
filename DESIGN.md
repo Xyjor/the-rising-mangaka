@@ -144,7 +144,8 @@ Forecast calibration is a balance band: over year one the offer chances quoted a
   Fully unit-tested with Vitest. Every state change is a pure function `(state, input) => state`.
 - `src/state/` — Zustand store: wraps the sim, owns the real-time clock and UI state, persists to localStorage.
 - `src/ui/` — React components. `scene/` is the pixel-art canvas studio (`render.ts` paints a frame from a snapshot,
-  `season.ts` the window's season, `paint.ts` the shared pixel helpers, `StudioScene.tsx` runs the frame loop).
+  `season.ts` the window's season, `studioArt.ts` the player's studio, `paint.ts` the shared pixel helpers,
+  `StudioScene.tsx` runs the frame loop).
   `panels/` are the management screens.
 - `src/styles/` — design tokens (CSS variables), light/dark, base styles.
 
@@ -161,6 +162,29 @@ Everything but the sill's snow stays inside the pane (x 118-161, y 12-43), behin
 over the night, keep off the bars (rows 18-25 and 29-36, never columns 139-140). The sun and the clouds are clipped to
 the pane too, so a cloud slides out behind the frame. The particles and the clouds move with the scene's frame, so they
 hold still under reduced motion (the cloud whole at the pane's left edge).
+
+### The studio in the scene
+The scene draws what `studioLook` says the player has built (`studioArt.ts`). It is decoration only; the Studio panel
+states every effect. `StudioScene` reads the look through `useShallow` and turns it into flags and counts when it
+changes, so a frame never walks a list.
+- **Tiers.** The studio flat opens a lit doorway in the right wall with an indigo noren (x 168-184, from y 20 down to
+  the bed), which spills warm light at night. The loft keeps the doorway and adds a potted plant on the sill (x 150-155)
+  and a tall one on the floor in front of the bed (x 172-184, y 80-105).
+- **Equipment.** Coffee machine on the sill's left (x 118-126). Arm lamp in place of the small desk lamp (x 92-105), its
+  bulb and glow lit at night or while the mangaka works. Reference shelf, a slim three-shelf unit between the bookshelf
+  and the poster (x 43-50, y 20-57). Tall mesh chair in place of the plain one, behind the seated mangaka (x 68-91).
+  Drafting table in place of the desk, wider (x 44-111), with a lightbox on its left end. Pen tablet under the pen
+  (x 86-95, y 60-61), and the ink pot moves right to make room.
+- **Volumes**: one spine per volume shipped on top of the bookshelf, in sets of six, at most 24 (x 10-36, y 13-17).
+- **Anime poster**: while an anime's boost runs, its key visual replaces the poster (x 52-73, y 14-41).
+- **Trophies**: one gold trophy per award on the sill, the most recent 4 (x 130-144, y 38-44).
+
+Draw order: the coffee machine and the trophies after the sill and its snow; the volumes and the reference shelf after
+the bookshelf; the tier after the bed (which hides the doorway's foot) and before the sleeping mangaka's Zz; the chair
+before the mangaka at the desk, the drafting table, the lamp and the tablet after; the lamp's glow and the doorway's
+spill last, over the night overlay. Everything stays inside x 8-184 (a phone's `object-fit: cover` crops about 7 px a
+side) and off the mangaka at the desk and at the standing spot. The full scene (all of it, three assistants, winter,
+night) paints 615 rects against 499 without the studio; the budget is 1.5 x 499.
 
 ## Systems beyond the slice (implemented)
 
@@ -252,9 +276,9 @@ again under the reward tiles in Stats. `src/sim/studio.ts`; no RNG.
   in rent and three salaries.
 - **Saves** from before studios start in a studio with a desk for every assistant they have (3: loft, 2: flat,
   otherwise the apartment) and no equipment.
-- `studioLook(s)` is what the studio scene will draw: the tier, its desks, the owned list itself (the same array, so
-  it can be compared by reference), the volumes shipped across every serial, at most 24, and `animePoster`, true from
-  an anime's premiere until its volume boost ends (the same window as the volume multiplier).
+- `studioLook(s)` is what the studio scene draws (see The studio in the scene): the tier, its desks, the owned list
+  itself (the same array, so it can be compared by reference), the volumes shipped across every serial, at most 24, and
+  `animePoster`, true from an anime's premiere until its volume boost ends (the same window as the volume multiplier).
 
 ### Part-time job
 - A third daily activity: earns money, costs a little stamina, draws nothing. The money lifeline.

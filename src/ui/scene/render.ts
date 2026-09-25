@@ -1,10 +1,13 @@
 // The studio scene's painter: palettes, sprites and their helpers, the snapshot it reads and `render`, one frame of the
 // 192x108 canvas. Pure drawing: no React, no store, and nothing allocated per frame (tables are built once here).
 import { LOW_STAMINA_THRESHOLD } from '../../sim'
+import type { StudioTierId } from '../../sim'
 import { LOOK_HAIRS, LOOK_SHIRTS } from '../looks'
 import { BAR_X, paneRect, rect } from './paint'
 import { drawSeasonNight, drawSeasonPane, drawSeasonSill } from './season'
 import type { Season } from './season'
+import { EQUIPMENT_ART, TIER_ART, drawAnimePoster, drawStudioLights, drawTrophies, drawVolumes } from './studioArt'
+import type { Owned } from './studioArt'
 
 export const W = 192
 export const H = 108
@@ -121,6 +124,16 @@ export interface Snapshot {
   assistants: { look: number; stamina: number }[]
   /** The game day's season, painted in the window (season.ts). */
   season: Season
+  /** The studio (studioLook, painted by studioArt.ts): its tier. */
+  tier: StudioTierId
+  /** One flag per piece of equipment the studio owns. */
+  owned: Owned
+  /** Volume spines on the bookshelf, 0-24. */
+  volumes: number
+  /** The anime's key visual hangs in the poster's place. */
+  animePoster: boolean
+  /** Trophies on the sill, 0-4: one per award, the most recent. */
+  trophies: number
 }
 
 /**
@@ -166,8 +179,10 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
   rect(ctx, BAR_X, 12, 2, 32, '#5a4634'); rect(ctx, 118, 27, 44, 2, '#5a4634')
   rect(ctx, 114, 45, 52, 3, '#4a3828')
   drawSeasonSill(ctx, s.season)
+  if (s.owned.coffee) EQUIPMENT_ART.coffee(ctx, s, frame, night)
+  drawTrophies(ctx, s.trophies)
 
-  // bookshelf
+  // bookshelf, with the volumes on top and the reference shelf beside it
   rect(ctx, 8, 18, 34, 58, '#6d4c33')
   rect(ctx, 10, 20, 30, 54, '#8b6543')
   for (let shelf = 0; shelf < 4; shelf++) {
@@ -178,9 +193,12 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
       rect(ctx, 11 + b * 4, y + 11 - bh, 3, bh, BOOK_COLS[(b + shelf) % BOOK_COLS.length])
     }
   }
+  drawVolumes(ctx, s.volumes)
+  if (s.owned.shelf) EQUIPMENT_ART.shelf(ctx, s, frame, night)
 
-  // poster
-  rect(ctx, 52, 14, 22, 28, '#fff'); rect(ctx, 54, 16, 18, 24, '#e5484d'); rect(ctx, 57, 22, 12, 12, '#fff'); rect(ctx, 60, 25, 6, 6, '#16161a')
+  // poster, or the anime's key visual while the show is on
+  if (s.animePoster) drawAnimePoster(ctx)
+  else { rect(ctx, 52, 14, 22, 28, '#fff'); rect(ctx, 54, 16, 18, 24, '#e5484d'); rect(ctx, 57, 22, 12, 12, '#fff'); rect(ctx, 60, 25, 6, 6, '#16161a') }
 
   // bed
   rect(ctx, 128, 66, 58, 26, '#6d4c33')
@@ -188,6 +206,8 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
   rect(ctx, 168, 70, 14, 8, '#ffffff')
   rect(ctx, 130, 74, 40, 14, '#c94b4b')
   rect(ctx, 130, 74, 40, 2, '#a83c3c')
+  // the tier's room: the doorway above the bed's head (before the Zz that rise over it), the loft's plants
+  TIER_ART[s.tier](ctx, s, frame, night)
   if (resting) {
     rect(ctx, 138, 72, 30, 4, '#d95d5d')
     drawSprite(ctx, HEAD_SLEEP, 169, 66)
@@ -214,8 +234,9 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
     rect(ctx, ax + 2, 84, 8, 1, '#fdfcf7'); rect(ctx, ax + 2, 83, 8, 1, '#fdfcf7')
   }
 
-  // chair
-  rect(ctx, 70, 54, 20, 4, '#4a4a55'); rect(ctx, 71, 58, 2, 14, '#4a4a55'); rect(ctx, 87, 58, 2, 14, '#4a4a55')
+  // chair (before the player: they sit in it)
+  if (s.owned.chair) EQUIPMENT_ART.chair(ctx, s, frame, night)
+  else { rect(ctx, 70, 54, 20, 4, '#4a4a55'); rect(ctx, 71, 58, 2, 14, '#4a4a55'); rect(ctx, 87, 58, 2, 14, '#4a4a55') }
 
   // player at desk
   if (busy) {
@@ -226,16 +247,23 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
     if (working && s.stamina < LOW_STAMINA_THRESHOLD) glyph(ctx, '!', 86, 40, '#e5484d')
   }
 
-  // desk
-  rect(ctx, 52, 62, 58, 4, '#8b5a2b'); rect(ctx, 52, 66, 58, 14, '#70461f')
-  rect(ctx, 54, 66, 2, 16, '#5a3618'); rect(ctx, 106, 66, 2, 16, '#5a3618')
-  rect(ctx, 60, 70, 20, 8, '#5a3618'); rect(ctx, 62, 72, 16, 1, '#8b5a2b'); rect(ctx, 62, 75, 16, 1, '#8b5a2b')
-  rect(ctx, 100, 50, 1, 12, '#3b3b45'); rect(ctx, 96, 47, 9, 4, '#3fa66c'); if (night || working) rect(ctx, 97, 51, 7, 2, '#fff2a8')
+  // desk (or the drafting table in its place) and the lamp
+  if (s.owned['drafting-table']) EQUIPMENT_ART['drafting-table'](ctx, s, frame, night)
+  else {
+    rect(ctx, 52, 62, 58, 4, '#8b5a2b'); rect(ctx, 52, 66, 58, 14, '#70461f')
+    rect(ctx, 54, 66, 2, 16, '#5a3618'); rect(ctx, 106, 66, 2, 16, '#5a3618')
+    rect(ctx, 60, 70, 20, 8, '#5a3618'); rect(ctx, 62, 72, 16, 1, '#8b5a2b'); rect(ctx, 62, 75, 16, 1, '#8b5a2b')
+  }
+  if (s.owned.lamp) EQUIPMENT_ART.lamp(ctx, s, frame, night)
+  else { rect(ctx, 100, 50, 1, 12, '#3b3b45'); rect(ctx, 96, 47, 9, 4, '#3fa66c'); if (night || working) rect(ctx, 97, 51, 7, 2, '#fff2a8') }
   const stack = Math.round(1 + s.progress * 8)
   rect(ctx, 57, 62 - stack, 14, stack, '#fdfcf7'); for (let i = 0; i < stack; i += 2) rect(ctx, 57, 62 - stack + i, 14, 1, '#e9e5da')
   rect(ctx, 59, 60 - stack, 10, 1, '#b8b2a5'); rect(ctx, 59, 58 - stack, 7, 1, '#b8b2a5')
-  rect(ctx, 90, 58, 4, 4, '#1b1b1b'); rect(ctx, 91, 57, 2, 1, '#1b1b1b')
+  // the ink pot moves right to make room for the pen tablet
+  const ink = s.owned.tablet ? 96 : 90
+  rect(ctx, ink, 58, 4, 4, '#1b1b1b'); rect(ctx, ink + 1, 57, 2, 1, '#1b1b1b')
   rect(ctx, 76, 58, 5, 4, '#fff'); rect(ctx, 81, 59, 1, 2, '#fff'); if (working) { const st = Math.floor(frame / 10) % 2; rect(ctx, 77 + st, 55, 1, 2, '#d9d3c5') }
+  if (s.owned.tablet) EQUIPMENT_ART.tablet(ctx, s, frame, night)
   if (absent) { rect(ctx, 96, 58, 8, 5, '#fff7c2'); rect(ctx, 97, 59, 6, 1, '#b8b2a5'); rect(ctx, 97, 61, 4, 1, '#b8b2a5') }
 
   // standing idle / ready character
@@ -256,4 +284,6 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
     // lights that glow through the dark go after the overlay
     drawSeasonNight(ctx, s.season, frame)
   }
+  // the arm lamp (at night or while working) and the doorway's spill (at night), after the overlay so they glow
+  drawStudioLights(ctx, s, night, working)
 }

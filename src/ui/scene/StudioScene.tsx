@@ -1,10 +1,13 @@
 import { useEffect, useRef } from 'react'
-import { getPhase, placeById } from '../../sim'
+import { useShallow } from 'zustand/react/shallow'
+import { getPhase, placeById, studioLook } from '../../sim'
+import type { StudioLook } from '../../sim'
 import { SPEED_MS, useStore } from '../../state/store'
 import { prefersReducedMotion } from '../motion'
 import { H, W, render } from './render'
 import type { Snapshot } from './render'
 import { seasonOf } from './season'
+import { NO_EQUIPMENT, SHOWN_TROPHIES, ownedFlags } from './studioArt'
 
 /** Frame budget in ms: about 12 fps is plenty for a 192x108 sprite scene. */
 const STEP_MS = 83
@@ -12,6 +15,10 @@ const STEP_MS = 83
 const STEP_MS_REDUCED = 1000
 
 const EMPTY: never[] = []
+/** No game: the bare apartment. One module-level object, so the selector below returns the same thing every call. */
+const NO_LOOK: StudioLook = {
+  tier: 'apartment', desks: 1, equipment: EMPTY, volumes: 0, animePoster: false, trophies: EMPTY,
+}
 
 /** True while something sits over the scene: a modal, a poll result or an offer. The canvas sleeps then. */
 function isCovered(): boolean {
@@ -34,17 +41,27 @@ export function StudioScene({ running }: { running: boolean }) {
   const trip = useStore((s) => s.game?.trip ?? null)
   const assistants = useStore((s) => s.game?.assistants ?? EMPTY)
   const season = useStore((s) => (s.game ? seasonOf(s.game.day) : 'spring'))
-  const snap = useRef<Snapshot>({ phase, activity, progress, stamina, running, speed, away: !!trip, assistants: [], season })
+  // studioLook builds a new object every call; useShallow hands back the previous one while every field is the same
+  // (primitives, and the owned and awards lists by reference), so the snapshot is rebuilt only when the studio changes.
+  const look = useStore(useShallow((s) => (s.game ? studioLook(s.game) : NO_LOOK)))
+  // a placeholder until the effect below fills it in, which it does before the loop's first frame
+  const snap = useRef<Snapshot>({
+    phase, activity, progress, stamina, running, speed, away: !!trip, assistants: [], season,
+    tier: 'apartment', owned: NO_EQUIPMENT, volumes: 0, animePoster: false, trophies: 0,
+  })
   useEffect(() => {
     snap.current = {
       phase, activity, progress, stamina, running, speed, away: !!trip,
       assistants: assistants.map((a) => ({ look: a.look, stamina: a.stamina })),
       season,
+      // the studio as flags and counts, so render never walks a list per frame
+      tier: look.tier, owned: ownedFlags(look.equipment), volumes: look.volumes, animePoster: look.animePoster,
+      trophies: Math.min(SHOWN_TROPHIES, look.trophies.length),
     }
     // Under reduced motion the loop only repaints once a second, so state changes repaint at once.
     // ctxRef is still null on first mount (this effect runs before the loop effect); the loop's first frame covers it.
     if (reduceMotion.current && ctxRef.current) render(ctxRef.current, snap.current, phaseT.current, 0)
-  }, [phase, activity, progress, stamina, running, speed, trip, assistants, season])
+  }, [phase, activity, progress, stamina, running, speed, trip, assistants, season, look])
 
   useEffect(() => {
     const canvas = ref.current

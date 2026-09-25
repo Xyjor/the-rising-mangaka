@@ -165,7 +165,7 @@ export const STUDIO_TIERS: StudioTier[] = [
   { id: 'loft', name: 'Studio loft', desks: MAX_ASSISTANTS, rent: 350, moveIn: 15000 },
 ]
 
-/** Every piece of equipment, in the order the studio scene draws them. */
+/** Every piece of equipment, in the Studio panel's order. */
 export const EQUIPMENT_IDS = ['coffee', 'lamp', 'shelf', 'chair', 'drafting-table', 'tablet'] as const satisfies
   readonly EquipmentId[]
 
