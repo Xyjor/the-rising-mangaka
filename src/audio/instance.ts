@@ -6,6 +6,7 @@ const noop = () => {}
 
 export const nullEngine: SoundEngine = Object.freeze({
   unlocked: false,
+  running: false,
   unlock: noop,
   play: () => noop,
   setPrefs: noop,

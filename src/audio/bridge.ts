@@ -1,5 +1,5 @@
 // Connects the store to the sound engine: the player's prefs, the music loop, the cues a change of state makes, and
-// the first gesture that unlocks audio. It never imports the store: the app passes useStore in as `source`.
+// the gestures that unlock audio. It never imports the store: the app passes useStore in as `source`.
 import type { GameState } from '../sim'
 import type { SoundEngine } from './engine'
 import { cuesForTransition, speedCue } from './triggers'
@@ -20,19 +20,28 @@ export interface SoundSource {
   subscribe(listener: (state: SoundState, prev: SoundState) => void): () => void
 }
 
-interface Listenable {
-  addEventListener(type: string, listener: () => void, capture?: boolean): void
-  removeEventListener(type: string, listener: () => void, capture?: boolean): void
+/** The part of a DOM event the bridge reads. */
+export interface GestureEvent {
+  readonly type: string
+  readonly pointerType?: string
 }
 
-/** Where the bridge listens: the window for the first gesture, the document for visibility. */
+interface Listenable {
+  addEventListener(type: string, listener: (e: GestureEvent) => void, capture?: boolean): void
+  removeEventListener(type: string, listener: (e: GestureEvent) => void, capture?: boolean): void
+}
+
+/** Where the bridge listens: the window for the unlocking gestures, the document for visibility. */
 export interface SoundEnv {
   window: Listenable
   document: Listenable & { readonly hidden: boolean }
 }
 
-/** Gestures that unlock audio, heard in the capture phase so the unlock comes before any handler's cue. */
-const GESTURES = ['pointerdown', 'keydown'] as const
+/**
+ * Gestures that unlock audio, heard in the capture phase so the unlock comes before any handler's cue. A mouse
+ * activates the page on pointerdown; touch and pen only on pointerup (the HTML user-activation rules).
+ */
+const GESTURES = ['pointerdown', 'pointerup', 'keydown'] as const
 
 function pageEnv(): SoundEnv | null {
   return typeof window !== 'undefined' && typeof document !== 'undefined' ? { window, document } : null
@@ -43,14 +52,21 @@ function musicWanted(s: SoundState): boolean {
   return s.sound.music && !s.sound.muted && !!s.game && !s.readOnly
 }
 
-/** Unlocks the engine on the first gesture, then stops listening. Returns a function that stops listening early. */
-function unlockOnFirstGesture(engine: SoundEngine, target: Listenable): () => void {
+/**
+ * Unlocks the engine on every gesture until its context runs, then stops listening. A gesture may not count as
+ * activation (a touch pointerdown, Escape), and the context it creates stays suspended, so one unlock is not enough.
+ * Returns a function that stops listening early.
+ */
+function unlockOnGesture(engine: SoundEngine, target: Listenable): () => void {
   const stop = () => {
     for (const type of GESTURES) target.removeEventListener(type, onGesture, true)
   }
-  function onGesture() {
-    stop()
+  function onGesture(e: GestureEvent) {
+    if (e.type === 'pointerdown' && e.pointerType !== 'mouse') return
     engine.unlock()
+    // resume() settles after this handler, so a later gesture that finds the context running is the one that stops.
+    // An engine still locked right after unlock() can never make a context (no Web Audio, or disposed).
+    if (!engine.unlocked || engine.running) stop()
   }
   for (const type of GESTURES) target.addEventListener(type, onGesture, true)
   return stop
@@ -93,7 +109,7 @@ export function connectSound(source: SoundSource, engine: SoundEngine, env: Soun
     if (cue) engine.play(cue)
   })
 
-  const stops = env ? [unlockOnFirstGesture(engine, env.window), followVisibility(engine, env.document)] : []
+  const stops = env ? [unlockOnGesture(engine, env.window), followVisibility(engine, env.document)] : []
   return () => {
     unsubscribe()
     for (const stop of stops) stop()

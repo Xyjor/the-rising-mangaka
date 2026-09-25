@@ -9,6 +9,8 @@ export interface SoundEngine {
   /** Call from a user gesture: creates the context on the first call, resumes it on later ones. */
   unlock(): void
   readonly unlocked: boolean
+  /** True while the context is running. An unlock outside a real gesture leaves it suspended (unlocked, not running). */
+  readonly running: boolean
   /** Plays a cue now. Returns a function that stops it early (a no-op when nothing played). */
   play(cue: CueId, opts?: { pitch?: number }): () => void
   setPrefs(p: SoundPrefs): void
@@ -40,6 +42,11 @@ export const MUSIC_LEVEL = 0.5
 /** Time constants (s) for level changes: quick for volume and mute, slower for ducking. */
 const LEVEL_GLIDE = 0.02
 const DUCK_GLIDE = 0.08
+
+/** The bus levels the prefs ask for: master from mute and volume, fx fixed, music on or off (before any duck). */
+export function levelsFor(p: SoundPrefs): { master: number; fx: number; music: number } {
+  return { master: p.muted ? 0 : levelToGain(p.volume), fx: FX_LEVEL, music: p.music ? MUSIC_LEVEL : 0 }
+}
 
 const noop = () => {}
 const GAPS: Record<string, number> = Object.fromEntries(Object.entries(CUES).map(([id, cue]) => [id, cue.gapMs]))
@@ -84,11 +91,7 @@ export function createSoundEngine(o: SoundEngineOptions): SoundEngine {
   let wokeAt = Number.NEGATIVE_INFINITY
   let playing: Playing[] = []
 
-  const levels = () => ({
-    master: prefs.muted ? 0 : levelToGain(prefs.volume),
-    fx: FX_LEVEL,
-    music: prefs.music ? MUSIC_LEVEL : 0,
-  })
+  const levels = () => levelsFor(prefs)
   const musicLevel = () => levels().music * duckLevel
   const glide = (param: AudioParam, value: number, timeConstant: number) => {
     if (ctx) param.setTargetAtTime(value, ctx.currentTime, timeConstant)
@@ -109,6 +112,10 @@ export function createSoundEngine(o: SoundEngineOptions): SoundEngine {
   }
 
   return {
+    get running() {
+      return ctx?.state === 'running'
+    },
+
     get unlocked() {
       return graph !== null
     },

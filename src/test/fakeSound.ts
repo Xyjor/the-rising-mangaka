@@ -2,9 +2,9 @@
  * A recording SoundEngine for tests. It makes no sound and needs no AudioContext: pass it to `connectSound`, or
  * install it with `installSound` for UI tests, then read back what the game asked of it.
  */
-import { FX_LEVEL, MUSIC_LEVEL } from '../audio/engine'
+import { levelsFor } from '../audio/engine'
 import type { SoundEngine } from '../audio/engine'
-import { DEFAULT_SOUND, levelToGain } from '../audio/types'
+import { DEFAULT_SOUND } from '../audio/types'
 import type { CueId, SoundPrefs } from '../audio/types'
 
 export interface FakeSound extends SoundEngine {
@@ -21,6 +21,8 @@ export interface FakeSound extends SoundEngine {
   readonly unlocks: number
   readonly suspends: number
   readonly resumes: number
+  /** Whether the audio context runs: false until a test sets it. */
+  running: boolean
 }
 
 export function createFakeSound(): FakeSound {
@@ -38,6 +40,7 @@ export function createFakeSound(): FakeSound {
     prefs,
     music,
     ducks,
+    running: false,
     get musicOn() {
       return music.at(-1) === 'start'
     },
@@ -64,8 +67,7 @@ export function createFakeSound(): FakeSound {
       prefs.push({ ...p })
     },
     levels() {
-      const p = prefs.at(-1) ?? DEFAULT_SOUND
-      return { master: p.muted ? 0 : levelToGain(p.volume), fx: FX_LEVEL, music: p.music ? MUSIC_LEVEL : 0 }
+      return levelsFor(prefs.at(-1) ?? DEFAULT_SOUND)
     },
     startMusic() {
       music.push('start')

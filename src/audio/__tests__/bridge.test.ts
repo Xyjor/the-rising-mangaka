@@ -7,6 +7,8 @@ import { createFakeSound } from '../../test/fakeSound'
 import type { FakeSound } from '../../test/fakeSound'
 import { DRAFT } from '../../test/fixtures'
 import { connectSound } from '../bridge'
+import type { SoundEngine } from '../engine'
+import { nullEngine } from '../instance'
 import { cuesForTransition } from '../triggers'
 import { DEFAULT_SOUND } from '../types'
 
@@ -17,19 +19,22 @@ const { SAVE_KEY, useStore } = await import('../../state/store')
 
 const st = () => useStore.getState()
 
-interface Entry { type: string; fn: () => void; capture: boolean }
+/** The event a fake target hands its listeners: the type, plus whatever a test adds (a pointerType). */
+interface Fired { type: string; pointerType?: string }
+type Listener = (e: Fired) => void
+interface Entry { type: string; fn: Listener; capture: boolean }
 
 /** A stand-in for window or document: records its listeners by phase and fires them by hand. */
 function fakeTarget() {
   const entries: Entry[] = []
-  const find = (type: string, fn: () => void, capture: boolean) =>
+  const find = (type: string, fn: Listener, capture: boolean) =>
     entries.findIndex((e) => e.type === type && e.fn === fn && e.capture === capture)
   return {
     hidden: false,
-    addEventListener(type: string, fn: () => void, capture = false) {
+    addEventListener(type: string, fn: Listener, capture = false) {
       if (find(type, fn, capture) < 0) entries.push({ type, fn, capture })
     },
-    removeEventListener(type: string, fn: () => void, capture = false) {
+    removeEventListener(type: string, fn: Listener, capture = false) {
       const i = find(type, fn, capture)
       if (i >= 0) entries.splice(i, 1)
     },
@@ -37,11 +42,17 @@ function fakeTarget() {
       const of = entries.filter((e) => e.type === type)
       return { capture: of.filter((e) => e.capture).length, bubble: of.filter((e) => !e.capture).length }
     },
-    fire(type: string) {
-      for (const e of entries.filter((x) => x.type === type)) e.fn()
+    fire(type: string, init: Omit<Fired, 'type'> = {}) {
+      for (const e of entries.filter((x) => x.type === type)) e.fn({ type, ...init })
     },
   }
 }
+
+/** Listener counts for pointerdown, pointerup and keydown, in that order. */
+const gestureListeners = (win: ReturnType<typeof fakeTarget>) =>
+  ['pointerdown', 'pointerup', 'keydown'].map((type) => win.listeners(type))
+const ONE = { capture: 1, bubble: 0 }
+const NONE = { capture: 0, bubble: 0 }
 
 let sound: FakeSound
 let disconnect: () => void = () => {}
@@ -124,6 +135,7 @@ describe('connectSound: cues', () => {
     st().newGame('Rin')
     expect(st().game).not.toBeNull()
     expect(sound.plays).toEqual([])
+    expect(sound.music).toEqual(['start'])
   })
 })
 
@@ -188,23 +200,48 @@ describe('connectSound: prefs and music', () => {
 })
 
 describe('connectSound: the page', () => {
-  function connectPage() {
+  /** Connects `engine` (a fresh fake, `sound`, by default) with a fake window and document. */
+  function connectPage(engine?: SoundEngine) {
     const win = fakeTarget()
     const doc = fakeTarget()
     sound = createFakeSound()
-    disconnect = connectSound(useStore, sound, { window: win, document: doc })
+    disconnect = connectSound(useStore, engine ?? sound, { window: win, document: doc })
     return { win, doc }
   }
 
-  it('unlocks on the first gesture, once, and stops listening for both gestures', () => {
+  it('a touch unlocks on pointerup, not pointerdown, and listening goes on until the context runs', () => {
     const { win } = connectPage()
-    expect(win.listeners('pointerdown')).toEqual({ capture: 1, bubble: 0 })
-    expect(win.listeners('keydown')).toEqual({ capture: 1, bubble: 0 })
-    win.fire('pointerdown')
-    win.fire('keydown')
+    expect(gestureListeners(win)).toEqual([ONE, ONE, ONE])
+    win.fire('pointerdown', { pointerType: 'touch' })
+    expect(sound.unlocks).toBe(0)
+    win.fire('pointerup', { pointerType: 'touch' })
     expect(sound.unlocks).toBe(1)
-    expect(win.listeners('pointerdown')).toEqual({ capture: 0, bubble: 0 })
-    expect(win.listeners('keydown')).toEqual({ capture: 0, bubble: 0 })
+    expect(gestureListeners(win)).toEqual([ONE, ONE, ONE])
+    // The context runs now: the next gesture unlocks once more and is the last one heard.
+    sound.running = true
+    win.fire('keydown')
+    expect(sound.unlocks).toBe(2)
+    expect(gestureListeners(win)).toEqual([NONE, NONE, NONE])
+  })
+
+  it('a mouse unlocks on pointerdown', () => {
+    const { win } = connectPage()
+    win.fire('pointerdown', { pointerType: 'mouse' })
+    expect(sound.unlocks).toBe(1)
+  })
+
+  it('keeps unlocking on each gesture while the context is not running', () => {
+    const { win } = connectPage()
+    win.fire('keydown')
+    win.fire('keydown')
+    expect(sound.unlocks).toBe(2)
+    expect(gestureListeners(win)).toEqual([ONE, ONE, ONE])
+  })
+
+  it('stops listening after the first gesture when no context can ever exist', () => {
+    const { win } = connectPage(nullEngine)
+    win.fire('keydown')
+    expect(gestureListeners(win)).toEqual([NONE, NONE, NONE])
   })
 
   it('suspends while the page is hidden and resumes when it shows', () => {
@@ -223,8 +260,7 @@ describe('connectSound: the page', () => {
     disconnect()
     st().setSpeed(1)
     expect(sound.plays).toEqual([])
-    expect(win.listeners('pointerdown')).toEqual({ capture: 0, bubble: 0 })
-    expect(win.listeners('keydown')).toEqual({ capture: 0, bubble: 0 })
-    expect(doc.listeners('visibilitychange')).toEqual({ capture: 0, bubble: 0 })
+    expect(gestureListeners(win)).toEqual([NONE, NONE, NONE])
+    expect(doc.listeners('visibilitychange')).toEqual(NONE)
   })
 })

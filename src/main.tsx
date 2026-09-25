@@ -15,9 +15,16 @@ import { connectSound } from './audio/bridge'
 import { createSoundEngine } from './audio/engine'
 import { installSound, nullEngine } from './audio/instance'
 
-// One sound engine for the app, following the store. A browser without Web Audio stays silent.
-const engine =
-  typeof AudioContext === 'undefined' ? nullEngine : createSoundEngine({ createContext: () => new AudioContext() })
+// One sound engine for the app, following the store. A browser without Web Audio, or one that refuses a context,
+// stays silent.
+function newAudioContext(): AudioContext | null {
+  try {
+    return new AudioContext()
+  } catch {
+    return null
+  }
+}
+const engine = typeof AudioContext === 'undefined' ? nullEngine : createSoundEngine({ createContext: newAudioContext })
 installSound(engine)
 connectSound(useStore, engine)
 

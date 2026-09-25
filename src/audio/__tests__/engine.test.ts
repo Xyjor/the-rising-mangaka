@@ -297,6 +297,18 @@ describe('sound engine', () => {
     expect(fake.calls).toEqual(['suspend', 'resume', 'suspend'])
   })
 
+  it('runs only while its context state is running', () => {
+    const { fake, engine } = setup({ state: 'suspended', resumes: false })
+    expect(engine.running).toBe(false)
+    engine.unlock()
+    expect(engine.unlocked).toBe(true)
+    expect(engine.running).toBe(false)
+    fake.state = 'running'
+    expect(engine.running).toBe(true)
+    engine.dispose()
+    expect(engine.running).toBe(false)
+  })
+
   it('closes the context on dispose and stays locked after', () => {
     const { fake, engine, createContext } = setup()
     engine.unlock()

@@ -10,6 +10,7 @@ describe('shared sound engine', () => {
     expect(nullEngine.unlocked).toBe(false)
     nullEngine.unlock()
     expect(nullEngine.unlocked).toBe(false)
+    expect(nullEngine.running).toBe(false)
     const stop = nullEngine.play('fanfare', { pitch: 3 })
     stop()
     nullEngine.setPrefs({ muted: true, volume: 1, music: false })
