@@ -283,7 +283,12 @@ export const useStore = create<Store>()(
 
         dismissToast: (id) => set({ toasts: get().toasts.filter((t) => t.id !== id) }),
         setTheme: (t) => set({ theme: t }),
-        setSound: (patch) => set({ sound: normalizeSound({ ...get().sound, ...patch }) }),
+        setSound: (patch) => {
+          const current = get().sound
+          const next = normalizeSound({ ...current, ...patch })
+          if (next.muted === current.muted && next.volume === current.volume && next.music === current.music) return
+          set({ sound: next })
+        },
         finishTutorial: () => set({ tutorialStep: -1 }),
       }
     },

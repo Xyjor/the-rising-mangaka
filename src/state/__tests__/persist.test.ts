@@ -68,6 +68,17 @@ describe('persistence', () => {
     expect(lastSave().state.sound).toEqual({ muted: true, volume: 0.5, music: true })
   })
 
+  it('does not schedule a write when setSound does not change the value', () => {
+    useStore.getState().setSound({ muted: false })
+    vi.advanceTimersByTime(800)
+    storage.setItem.mockClear()
+    const before = useStore.getState().sound
+    useStore.getState().setSound({ muted: false })
+    vi.advanceTimersByTime(800)
+    expect(saveWrites()).toHaveLength(0)
+    expect(useStore.getState().sound).toBe(before)
+  })
+
   it('fills fields an older save lacks on rehydrate', async () => {
     const original = createGame('Old', 9)
     const stale = { ...original } as Partial<GameState>
