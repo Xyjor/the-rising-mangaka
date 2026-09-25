@@ -68,3 +68,34 @@ describe('SeriesModal rival column', () => {
     expect(rows.map((cells) => [cells[0], cells[2]])).toEqual([['Ch.2', '—'], ['Ch.1', '#7']])
   })
 })
+
+describe('SeriesModal anime line', () => {
+  const offer = { magazineId: 'kids-comic', title: 'Magic Club', genre: 'fantasy', theme: 'magic', audience: 'kids' } as const
+  /** Seed 1's Kids Comic Go! serial (id 1) with a Studio Kumo deal signed on day 100, viewed on `day`. */
+  function kumoOn(day: number): GameState {
+    const g = acceptOffer({ ...createGame('Rin', 1), pendingOffer: offer })
+    const deal = { studio: 'kumo', serialId: 1, signedDay: 100, airsDay: 142, endsDay: 226, tailEndsDay: 310 } as const
+    return { ...g, day, anime: [deal] }
+  }
+
+  it('says when a signed anime airs, what it pays each week on air, and how long the boost lasts after', () => {
+    const cases: [number, string][] = [
+      [100, 'Signed with Studio Kumo, airs in 6 weeks; volumes sell 1.3x.'],
+      [156, 'On air, week 3 of 12: +400 fans and ¥500 a week; volumes sell 1.3x.'],
+      [226, 'The anime has ended; volumes sell 1.3x for 12 more weeks.'],
+      [311, 'The Studio Kumo anime has ended, and volumes sell at the normal rate again.'],
+    ]
+    for (const [day, line] of cases) {
+      useStore.setState({ game: kumoOn(day), readOnly: false })
+      const { unmount } = render(<SeriesModal />)
+      expect(screen.getByText(line)).toBeTruthy()
+      unmount()
+    }
+  })
+
+  it('shows no anime line for a series without a deal', () => {
+    useStore.setState({ game: acceptOffer({ ...createGame('Rin', 1), pendingOffer: offer }), readOnly: false })
+    render(<SeriesModal />)
+    expect(screen.queryByText(/anime|On air/)).toBeNull()
+  })
+})

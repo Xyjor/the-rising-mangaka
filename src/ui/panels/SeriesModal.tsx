@@ -5,9 +5,10 @@ import {
 } from '../../sim'
 import type { Serial } from '../../sim'
 import { useStore } from '../../state/store'
+import { Icon } from '../Icon'
 import { Metric, Modal, RankChart, Reward, WarningPips } from '../components'
 import { bestRank, compact, money, plural } from '../format'
-import { GRACE_TEXT, inGrace, warningText } from '../labels'
+import { GRACE_TEXT, animeStatusLine, inGrace, warningText } from '../labels'
 
 export function SeriesModal() {
   const game = useStore((s) => s.game)!
@@ -37,7 +38,22 @@ export function SeriesModal() {
 }
 
 // Kept beside SeriesDetail so the header import stays untouched; ESM hoists it like any other import.
-import { VOLUME_EVERY_CHAPTERS } from '../../sim'
+import { VOLUME_EVERY_CHAPTERS, animeDealFor } from '../../sim'
+
+/** The series' anime adaptation, if it has one: when it airs, the week on air, or the volume boost left. */
+function AnimeLine({ ser }: { ser: Serial }) {
+  const line = useStore((s) => {
+    const deal = s.game && animeDealFor(s.game, ser.id)
+    return deal ? animeStatusLine(deal, s.game!.day) : null
+  })
+  if (!line) return null
+  return (
+    <p className="small row" style={{ gap: 6 }}>
+      <Icon name="tv" size={16} />
+      <span>{line}</span>
+    </p>
+  )
+}
 
 function SeriesDetail({ ser }: { ser: Serial }) {
   const mag = magazineById(ser.magazineId)
@@ -74,6 +90,8 @@ function SeriesDetail({ ser }: { ser: Serial }) {
         )}
         <span>Next volume in {plural(untilVolume, 'chapter')}</span>
       </div>
+
+      <AnimeLine ser={ser} />
 
       <div className="rewards" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))' }}>
         <Reward value={ser.chaptersSent} label="Chapters" />

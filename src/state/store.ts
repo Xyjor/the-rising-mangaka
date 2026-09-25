@@ -3,7 +3,8 @@ import { persist } from 'zustand/middleware'
 import type { PersistStorage, StorageValue } from 'zustand/middleware'
 import * as sim from '../sim'
 import type {
-  Activity, EquipmentId, Focus, GameState, LogKind, MagazineId, PlaceId, ProjectDraft, StatId, StudioTierId,
+  Activity, AnimeStudioId, EquipmentId, Focus, GameState, LogKind, MagazineId, PlaceId, ProjectDraft, StatId,
+  StudioTierId,
 } from '../sim'
 import { upgradeSave } from '../sim/migrate'
 import { claim, isOwner, startTabLock } from './tabLock'
@@ -60,6 +61,10 @@ interface Store {
   /** Move the studio one tier up, paying the move-in cost. */
   moveStudio: (tier: StudioTierId) => void
   buyEquipment: (id: EquipmentId) => void
+  /** Sign the anime adaptation offer waiting on the desk with one studio. */
+  signAnime: (studio: AnimeStudioId) => void
+  /** Pass on the anime adaptation offer waiting on the desk. */
+  declineAnime: () => void
   setActivity: (a: Activity) => void
   setFocus: (f: Focus) => void
   spendSkillPoint: (s: StatId) => void
@@ -225,7 +230,8 @@ export const useStore = create<Store>()(
             (sim.getPhase(game) === 'drawing' && sim.getPhase(next) === 'ready') ||
             deskEmptied ||
             tripEnded ||
-            (!!next.event && !game.event)
+            (!!next.event && !game.event) ||
+            (!!next.animeOffer && !game.animeOffer)
           if (needsDecision) patch.speed = 0
           set(patch)
         },
@@ -258,6 +264,8 @@ export const useStore = create<Store>()(
         resolveEvent: (c) => apply((g) => sim.resolveEvent(g, c)),
         moveStudio: (t) => apply((g) => sim.moveStudio(g, t)),
         buyEquipment: (id) => apply((g) => sim.buyEquipment(g, id)),
+        signAnime: (st) => apply((g) => sim.signAnime(g, st)),
+        declineAnime: () => apply((g) => sim.declineAnime(g)),
         setActivity: (a) => apply((g) => sim.setActivity(g, a)),
         setFocus: (f) => apply((g) => sim.setFocus(g, f)),
         spendSkillPoint: (s) => apply((g) => sim.spendSkillPoint(g, s)),

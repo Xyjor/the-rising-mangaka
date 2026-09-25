@@ -79,6 +79,39 @@ describe('store auto-pause', () => {
     expect(useStore.getState().game!.event).toBeNull()
   })
 
+  it('stops the clock once when an anime offer lands, and signing clears the desk card', () => {
+    // a Kids Comic Go! serial accepted on day 0 at the offer line: popularity 70, 15,000 copies sold
+    const offer = { magazineId: 'kids-comic', title: 'Magic Club', genre: 'fantasy', theme: 'magic', audience: 'kids' } as const
+    const g = acceptOffer({ ...createGame('Rin', 9), pendingOffer: offer })
+    load({ ...g, serial: { ...g.serial!, popularity: 70, totalCopies: 15_000 } })
+    const st = useStore.getState()
+    st.tick()
+    expect(useStore.getState().game!.animeOffer).toEqual({ serialId: g.serial!.id, expiresDay: 15 })
+    expect(useStore.getState().speed).toBe(0)
+    expect(useStore.getState().toasts.map((t) => t.text))
+      .toContain('Two anime studios want to adapt "Magic Club". Answer on your desk within 14 days.')
+    // still waiting the next day, but it only paused the clock the day it landed
+    useStore.setState({ speed: 1 })
+    st.tick()
+    expect(useStore.getState().game!.animeOffer).not.toBeNull()
+    expect(useStore.getState().speed).toBe(1)
+    st.signAnime('kumo')
+    const signed = useStore.getState().game!
+    expect(signed.animeOffer).toBeNull()
+    expect(signed.anime).toMatchObject([{ studio: 'kumo', serialId: g.serial!.id, signedDay: 2, airsDay: 44 }])
+    expect(useStore.getState().toasts.map((t) => t.text))
+      .toContain('You signed with Studio Kumo: +¥2,000. The "Magic Club" anime airs in 6 weeks.')
+  })
+
+  it('passing on the anime offer clears the desk card', () => {
+    const offer = { magazineId: 'kids-comic', title: 'Magic Club', genre: 'fantasy', theme: 'magic', audience: 'kids' } as const
+    const g = acceptOffer({ ...createGame('Rin', 9), pendingOffer: offer })
+    load({ ...g, animeOffer: { serialId: g.serial!.id, expiresDay: 14 }, animeOfferedFor: [g.serial!.id] })
+    useStore.getState().declineAnime()
+    expect(useStore.getState().game!.animeOffer).toBeNull()
+    expect(useStore.getState().game!.anime).toEqual([])
+  })
+
   it('refuses to open the wizard or the pitch in the wrong phase', () => {
     let s = drawUntilReady(startProject(createGame('Rin', 42), DRAFT))
     s = submitProject(s, 'weekly-bolt')

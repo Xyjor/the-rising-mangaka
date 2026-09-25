@@ -1,10 +1,11 @@
 // Short words the pitch, offer, series, desk and stats screens share. Pure functions of sim data, no React.
 import {
   MAGAZINES, PAY_FULL_RATE_SCORE, RIVAL_SCORE_SD, SERIAL_GRACE_CHAPTERS, SERIAL_OFFER_MIN_SCORE,
-  SERIAL_WARNINGS_TO_CANCEL, audienceById, genreById, magazineById, rankTier, suitedFocus, themeById,
+  SERIAL_WARNINGS_TO_CANCEL, animeStudioById, audienceById, genreById, magazineById, num, rankTier, suitedFocus,
+  themeById,
 } from '../sim'
 import type {
-  AudienceId, Forecast, GenreId, MagazineId, PollResult, RankTier, Rival, RivalPlacing, ScoreBreakdown, ThemeId,
+  AnimeDeal, AnimeStudio, AudienceId, Forecast, GenreId, MagazineId, PollResult, RankTier, Rival, RivalPlacing, ScoreBreakdown, ThemeId,
 } from '../sim'
 import { money, plural } from './format'
 
@@ -163,4 +164,36 @@ export function rivalCareerLine(rival: Rival, record: { wins: number; losses: nu
   return `${rival.name} draws "${rival.seriesTitle}" for ${sentenceEnd(magazineById(rival.magazineId).name)} `
     + `Usually scores ${rival.craft - RIVAL_SCORE_SD} to ${rival.craft + RIVAL_SCORE_SD}. `
     + `Head to head: ${plural(wins, 'win')}, ${losses} ${losses === 1 ? 'loss' : 'losses'}.`
+}
+
+/** "6 weeks" when at least a week is left, else "6 days": the anime countdowns. */
+function weeksOrDays(days: number, more = ''): string {
+  return days >= 7 ? plural(Math.ceil(days / 7), `${more}week`) : plural(days, `${more}day`)
+}
+
+/** An anime studio's terms as the offer card lists them, one sentence each. */
+export function animeTerms(st: AnimeStudio): string[] {
+  return [
+    st.fee ? `Pays you ${money(st.fee)} when you sign.` : 'No signing fee.',
+    `Airs in ${plural(st.airsAfterWeeks, 'week')} and runs ${plural(st.runsWeeks, 'week')}: +${num(st.weeklyFans)} fans and ${money(st.weeklyMoney)} a week.`,
+    `Volumes sell ${st.volumeMult}x from signing until ${plural(st.tailWeeks, 'week')} after the finale.`,
+    `Popularity +${st.premierePopularity} at the premiere, if the series is still running.`,
+  ]
+}
+
+/**
+ * Where a signed anime stands on `day`, for the Series panel: counting down to the premiere, the week on air (week 1
+ * starts on the premiere day, and each week pays when it ends), then the volume boost left after the finale.
+ */
+export function animeStatusLine(deal: AnimeDeal, day: number): string {
+  const st = animeStudioById(deal.studio)
+  const boost = `volumes sell ${st.volumeMult}x`
+  if (day < deal.airsDay) return `Signed with ${st.name}, airs in ${weeksOrDays(deal.airsDay - day)}; ${boost}.`
+  if (day < deal.endsDay) {
+    const week = Math.floor((day - deal.airsDay) / 7) + 1
+    return `On air, week ${week} of ${st.runsWeeks}: +${num(st.weeklyFans)} fans and ${money(st.weeklyMoney)} a week; ${boost}.`
+  }
+  if (day < deal.tailEndsDay) return `The anime has ended; ${boost} for ${weeksOrDays(deal.tailEndsDay - day, 'more ')}.`
+  if (day === deal.tailEndsDay) return `The anime has ended; today is the last day ${boost}.`
+  return `The ${st.name} anime has ended, and volumes sell at the normal rate again.`
 }

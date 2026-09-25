@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import type { PollResult, Rival } from '../../sim'
 import {
-  GRACE_TEXT, beatLabel, firstName, inGrace, likelyLine, offerLabel, payWhy, rivalCareerLine, rivalLine, warningText,
+  GRACE_TEXT, animeStatusLine, beatLabel, firstName, inGrace, likelyLine, offerLabel, payWhy, rivalCareerLine, rivalLine,
+  warningText,
 } from '../labels'
 
 describe('warningText', () => {
@@ -154,5 +155,35 @@ describe('rival copy', () => {
     )
     expect(rivalCareerLine(r, { wins: 1, losses: 1 })).toMatch(/Head to head: 1 win, 1 loss\.$/)
     expect(rivalCareerLine(r, { wins: 0, losses: 0 })).toMatch(/Head to head: 0 wins, 0 losses\.$/)
+  })
+})
+
+describe('animeStatusLine', () => {
+  const kumo = { studio: 'kumo', serialId: 1, signedDay: 100, airsDay: 142, endsDay: 226, tailEndsDay: 310 } as const
+  const hoshi = { studio: 'hoshi', serialId: 1, signedDay: 100, airsDay: 212, endsDay: 380, tailEndsDay: 548 } as const
+
+  it('counts down to the premiere in weeks, then in days in the last week', () => {
+    expect(animeStatusLine(kumo, 100)).toBe('Signed with Studio Kumo, airs in 6 weeks; volumes sell 1.3x.')
+    expect(animeStatusLine(kumo, 135)).toBe('Signed with Studio Kumo, airs in 1 week; volumes sell 1.3x.')
+    expect(animeStatusLine(kumo, 136)).toBe('Signed with Studio Kumo, airs in 6 days; volumes sell 1.3x.')
+    expect(animeStatusLine(kumo, 141)).toBe('Signed with Studio Kumo, airs in 1 day; volumes sell 1.3x.')
+    expect(animeStatusLine(hoshi, 100)).toBe('Signed with Hoshi Animation, airs in 16 weeks; volumes sell 1.6x.')
+  })
+
+  it('numbers the weeks on air from the premiere day', () => {
+    expect(animeStatusLine(kumo, 142)).toBe('On air, week 1 of 12: +400 fans and ¥500 a week; volumes sell 1.3x.')
+    expect(animeStatusLine(kumo, 155)).toBe('On air, week 2 of 12: +400 fans and ¥500 a week; volumes sell 1.3x.')
+    expect(animeStatusLine(kumo, 225)).toBe('On air, week 12 of 12: +400 fans and ¥500 a week; volumes sell 1.3x.')
+    expect(animeStatusLine(hoshi, 212)).toBe('On air, week 1 of 24: +900 fans and ¥1,000 a week; volumes sell 1.6x.')
+  })
+
+  it('counts down the boost after the finale, to its last day, then says it is over', () => {
+    expect(animeStatusLine(kumo, 226)).toBe('The anime has ended; volumes sell 1.3x for 12 more weeks.')
+    expect(animeStatusLine(kumo, 300)).toBe('The anime has ended; volumes sell 1.3x for 2 more weeks.')
+    expect(animeStatusLine(kumo, 303)).toBe('The anime has ended; volumes sell 1.3x for 1 more week.')
+    expect(animeStatusLine(kumo, 304)).toBe('The anime has ended; volumes sell 1.3x for 6 more days.')
+    expect(animeStatusLine(kumo, 309)).toBe('The anime has ended; volumes sell 1.3x for 1 more day.')
+    expect(animeStatusLine(kumo, 310)).toBe('The anime has ended; today is the last day volumes sell 1.3x.')
+    expect(animeStatusLine(kumo, 311)).toBe('The Studio Kumo anime has ended, and volumes sell at the normal rate again.')
   })
 })

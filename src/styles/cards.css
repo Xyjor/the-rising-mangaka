@@ -1,4 +1,4 @@
-/* Desk cards: game-driven moments (random events now) that wait on the desk instead of opening a popup. */
+/* Desk cards: game-driven moments (random events, anime offers) that wait on the desk instead of opening a popup. */
 
 .desk-card { display: flex; flex-direction: column; gap: 8px; padding: 12px; }
 
@@ -13,3 +13,7 @@
 .event-choice { display: flex; flex-direction: column; gap: 4px; }
 /* Answers state every effect, so their labels wrap instead of overflowing the desk. */
 .event-choice .btn { white-space: normal; text-align: center; }
+
+.card.flat.anime-card { border-color: var(--purple); }
+.anime-studio { display: flex; flex-direction: column; gap: 6px; }
+.anime-terms { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 2px; }
