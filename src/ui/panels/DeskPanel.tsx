@@ -9,7 +9,7 @@ import { Icon } from '../Icon'
 import { NextGoal } from '../NextGoal'
 import { Metric, WarningPips } from '../components'
 import { money, plural } from '../format'
-import { warningText } from '../labels'
+import { focusHint, warningText } from '../labels'
 import { ConfirmRow } from '../ConfirmRow'
 const COACH: Record<string, string> = {
   idle: 'Every career starts with one page. Plan your first manga: pick a genre, a theme, and who it is for.',
@@ -176,8 +176,9 @@ const QuickNav = memo(function QuickNav() {
 })
 
 const ActivityControls = memo(function ActivityControls() {
-  const { activity, focus, recovering, stamina } = useStore(useShallow((s) => ({
+  const { activity, focus, recovering, stamina, serialMagazine } = useStore(useShallow((s) => ({
     activity: s.game!.activity, focus: s.game!.focus, recovering: s.game!.recovering, stamina: s.game!.player.stamina,
+    serialMagazine: s.game!.project?.kind === 'serial' ? s.game!.project.magazineId : null,
   })))
   const setActivity = useStore((s) => s.setActivity)
   const setFocus = useStore((s) => s.setFocus)
@@ -200,6 +201,7 @@ const ActivityControls = memo(function ActivityControls() {
           <button aria-pressed={focus === 'story'} onClick={() => setFocus('story')} title="Story +25%, art -20%">Story</button>
         </div>
       </div>
+      <p className="tiny muted">{focusHint(serialMagazine)}</p>
       {recovering || (asleep && activity !== 'job')
         ? <p className="small warn-text">Exhausted. Resting until stamina is back to 60%, then back to the desk. No pages today.</p>
         : stamina < LOW_STAMINA_THRESHOLD && activity === 'work'

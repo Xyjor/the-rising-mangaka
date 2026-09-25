@@ -78,6 +78,9 @@ export function SubmitModal() {
                   <span>Likely rank #{est.expectedRank.low} to #{est.expectedRank.high} of {m.entrants + 1}.</span>
                   <span>Serial offer: {oddsWord(est.offerChance)}.</span>
                 </span>
+                <span className="taste">
+                  <span>{m.tasteLine}</span> <b>Art {m.taste.art}%, story {m.taste.story}%</b>
+                </span>
                 <span className="tiny faint">{m.blurb}</span>
                 {mismatch
                   ? <span className="warn row"><Icon name="alert" size={14} /> Readers are {audienceById(m.audience).name}, your manga is for {audienceById(p.audience).name}: −{MAGAZINE_MISMATCH_PENALTY} audience fit</span>

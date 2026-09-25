@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
-  RATING_LABEL, SCORE_WEIGHTS, SERIAL_OFFER_MIN_RANK, SERIAL_OFFER_MIN_SCORE, audienceById, genreById,
+  RATING_LABEL, SERIAL_OFFER_MIN_RANK, SERIAL_OFFER_MIN_SCORE, audienceById, genreById,
   magazineById, rankTier, themeById,
 } from '../../sim'
 import type { RankTier, ScoreBreakdown } from '../../sim'
@@ -82,7 +82,7 @@ export function ResultsModal() {
           <div className="lbl">Why this score</div>
           {ITEMS.map((it) => (
             <div className="item" key={it.key}>
-              <span className="l">{it.label}<small>weight {Math.round(SCORE_WEIGHTS[it.key] * 100)}%</small></span>
+              <span className="l">{it.label}<small>weight {mag.taste[it.key]}%</small></span>
               <Bar value={revealed ? r.breakdown[it.key] : 0} tone={it.tone} thick label={it.label} />
               <span className="v num">{r.breakdown[it.key]}</span>
             </div>

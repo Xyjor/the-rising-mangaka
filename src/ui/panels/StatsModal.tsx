@@ -1,13 +1,14 @@
-import { SCORE_WEIGHTS, xpToNext } from '../../sim'
+import { xpToNext } from '../../sim'
 import type { StatId } from '../../sim'
 import { useStore } from '../../state/store'
 import { Bar, Metric, Modal, Reward } from '../components'
 import { bestRank, compact, money, plural } from '../format'
+import { weightSpan } from '../labels'
 
 const STATS: { id: StatId; name: string; blurb: string; tone: string }[] = [
-  { id: 'art', name: 'Art', blurb: `Art score in polls (${Math.round(SCORE_WEIGHTS.art * 100)}%), and pages per day`, tone: 'blue' },
-  { id: 'story', name: 'Story', blurb: `Story score in polls (${Math.round(SCORE_WEIGHTS.story * 100)}%), and pages per day`, tone: 'purple' },
-  { id: 'pacing', name: 'Pacing', blurb: `Pacing score in polls (${Math.round(SCORE_WEIGHTS.pacing * 100)}%). Raise it with points or the Editing Seminar`, tone: 'gold' },
+  { id: 'art', name: 'Art', blurb: `Art score in polls (${weightSpan('art')}), and pages per day`, tone: 'blue' },
+  { id: 'story', name: 'Story', blurb: `Story score in polls (${weightSpan('story')}), and pages per day`, tone: 'purple' },
+  { id: 'pacing', name: 'Pacing', blurb: `Pacing score in polls (${weightSpan('pacing')}). Raise it with points or the Editing Seminar`, tone: 'gold' },
 ]
 
 export function StatsModal() {

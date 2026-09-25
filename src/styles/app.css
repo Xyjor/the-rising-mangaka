@@ -277,6 +277,7 @@
 .mag .meta { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--ink-2); font-weight: 700; }
 .mag .warn { grid-column: 1 / -1; font-size: 12px; font-weight: 800; color: var(--accent-text); }
 .mag .ok { grid-column: 1 / -1; font-size: 12px; font-weight: 800; color: var(--green-text); }
+.mag .taste { grid-column: 1 / -1; font-size: 12px; color: var(--ink-2); }
 
 /* ---------- results ---------- */
 .result-hero {
