@@ -8,18 +8,11 @@ import {
   stalenessCount, startProject, startTrip, submitProject, themeAudienceKey, tick, tickMany, volumeCopies,
 } from '../index'
 import type { Assistant, AssistantTrait, GameState, PendingChapter } from '../index'
+import { DRAFT as draft, drawUntilReady as drawUntilReadyFrom, withStats } from '../../test/fixtures'
 
-const draft = { title: 'Blade Club', genre: 'action', theme: 'samurai', audience: 'teens' } as const
-
+/** Thin wrapper keeping this file's default-argument call sites (`drawUntilReady()`) working. */
 function drawUntilReady(state = startProject(createGame('Rin', 42), draft)) {
-  let s = state
-  let guard = 0
-  while (getPhase(s) !== 'ready' && guard++ < 400) s = tick(s)
-  return s
-}
-
-function withStats(s: GameState, v: number): GameState {
-  return { ...s, player: { ...s.player, stats: { art: v, story: v, pacing: v } } }
+  return drawUntilReadyFrom(state)
 }
 
 function strongOneShot(): GameState {

@@ -2,12 +2,12 @@
 import { render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it } from 'vitest'
 import '../../test/dom'
-import { createGame, startProject, tickMany } from '../../sim'
-import { DRAFT } from '../../test/fixtures'
+import { createGame, startProject, submitProject, tickMany } from '../../sim'
+import { DRAFT, drawUntilReady } from '../../test/fixtures'
 import { useStore } from '../../state/store'
 import { StatsModal } from '../panels/StatsModal'
 import { DeskPanel } from '../panels/DeskPanel'
-import { Metric, Reward } from '../components'
+import { Metric, Reward, WarningPips } from '../components'
 
 beforeEach(() => {
   useStore.setState({ game: createGame('Rin', 1), readOnly: false })
@@ -56,6 +56,21 @@ describe('DeskPanel (characterisation)', () => {
     expect(artHead.textContent).toBe(artBar.getAttribute('aria-valuenow'))
     expect(storyHead.textContent).toBe(storyBar.getAttribute('aria-valuenow'))
   })
+
+  it('submitted with resultsDay already in the past: clamps the poll-wait count to 0 days, never -1', () => {
+    let game = drawUntilReady(startProject(createGame('Rin', 1), DRAFT))
+    game = submitProject(game, 'weekly-bolt')
+    // Force a state that should be impossible in play (resultsDay before the current day) to prove the
+    // display clamps rather than trusting the sign of resultsDay - day.
+    game = { ...game, project: { ...game.project!, resultsDay: game.day - 1 } }
+    useStore.setState({ game, tutorialStep: -1, readOnly: false })
+    render(<DeskPanel />)
+
+    const bar = screen.getByRole('progressbar', { name: 'Waiting for results' })
+    const head = bar.closest('.metric')!.querySelector('b.num')!
+    expect(head.textContent).toBe('0 days')
+    expect(head.textContent).not.toContain('-1')
+  })
 })
 
 // ---------- unit tests for the new components (fail until they exist) ----------
@@ -88,5 +103,16 @@ describe('Reward', () => {
 
     expect(container.querySelector('.reward .n')?.textContent).toBe('+¥1,200')
     expect(container.querySelector('.reward .l')?.textContent).toBe('Payment')
+  })
+})
+
+describe('WarningPips', () => {
+  it('lights up the pips at the warning count and labels the total', () => {
+    const { container } = render(<WarningPips warnings={2} />)
+
+    const pips = container.querySelectorAll('.warnings i')
+    expect(pips).toHaveLength(3)
+    expect([...pips].filter((i) => i.classList.contains('on'))).toHaveLength(2)
+    expect(container.querySelector('.warnings')?.getAttribute('aria-label')).toBe('2 of 3 warnings')
   })
 })

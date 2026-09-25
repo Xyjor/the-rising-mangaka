@@ -4,23 +4,16 @@ import {
   pendingMilestones, setActivity, startProject, submitProject, tick, tickMany, xpToNext,
 } from '../index'
 import type { GameState } from '../index'
+import { DRAFT, drawUntilReady as drawUntilReadyFrom, withStats } from '../../test/fixtures'
 
-const draft = { title: 'Blade Club', genre: 'action', theme: 'samurai', audience: 'teens' } as const
-
-function drawUntilReady(state = startProject(createGame('Rin', 42), draft)) {
-  let s = state
-  let guard = 0
-  while (getPhase(s) !== 'ready' && guard++ < 400) s = tick(s)
-  return s
-}
-
-function withStats(s: GameState, v: number): GameState {
-  return { ...s, player: { ...s.player, stats: { art: v, story: v, pacing: v } } }
+/** Thin wrapper keeping this file's default-argument call sites (`drawUntilReady()`) working. */
+function drawUntilReady(state = startProject(createGame('Rin', 42), DRAFT)) {
+  return drawUntilReadyFrom(state)
 }
 
 function strongOneShot(): GameState {
   let s = withStats(createGame('Rin', 42), 90)
-  s = drawUntilReady(startProject(s, draft))
+  s = drawUntilReady(startProject(s, DRAFT))
   s = submitProject(s, 'weekly-bolt')
   s = tickMany(s, 7)
   return s
@@ -44,7 +37,7 @@ describe('milestone ladder', () => {
   })
 
   it('awards the first manuscript at the end of the tick it becomes ready', () => {
-    let s = startProject(createGame('Rin', 42), draft)
+    let s = startProject(createGame('Rin', 42), DRAFT)
     let guard = 0
     while (getPhase(s) !== 'ready' && guard++ < 400) {
       const before = s
@@ -108,7 +101,7 @@ describe('milestone ladder', () => {
   it('stays deterministic: awarding milestones consumes no rng', () => {
     const run = () => {
       let s = hireAssistant(createGame('Rin', 42), createGame('Rin', 42).candidates[0].id)
-      s = startProject(s, draft)
+      s = startProject(s, DRAFT)
       return tickMany(s, 60)
     }
     const a = run()

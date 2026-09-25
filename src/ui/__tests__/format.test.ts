@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { compact, money, plural } from '../format'
+import { bestRank, compact, money, plural } from '../format'
 
 describe('money', () => {
   it('rounds and formats with the yen sign', () => {
@@ -40,5 +40,15 @@ describe('plural', () => {
 
   it('adds an s for a count of 0', () => {
     expect(plural(0, 'chapter')).toBe('0 chapters')
+  })
+})
+
+describe('bestRank', () => {
+  it('picks the lowest (best) rank across results', () => {
+    expect(bestRank([{ rank: 4 }, { rank: 2 }])).toBe('#2')
+  })
+
+  it('renders an em dash for an empty result list', () => {
+    expect(bestRank([])).toBe('—')
   })
 })

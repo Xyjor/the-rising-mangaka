@@ -1,27 +1,15 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
-  acceptOffer, createGame, dismissResult, getPhase, startProject, submitProject, tick, tickMany,
+  acceptOffer, createGame, dismissResult, startProject, submitProject, tickMany,
 } from '../../sim'
 import type { GameState } from '../../sim'
 import { useStore } from '../store'
-
-const draft = { title: 'Blade Club', genre: 'action', theme: 'samurai', audience: 'teens' } as const
-
-function withStats(s: GameState, v: number): GameState {
-  return { ...s, player: { ...s.player, stats: { art: v, story: v, pacing: v } } }
-}
-
-function drawUntilReady(state: GameState): GameState {
-  let s = state
-  let guard = 0
-  while (getPhase(s) !== 'ready' && guard++ < 400) s = tick(s)
-  return s
-}
+import { DRAFT, drawUntilReady, withStats } from '../../test/fixtures'
 
 /** A running serial whose author has just lost all their skill: the way engine.test.ts builds a cancellation. */
 function doomedSerial(): GameState {
   let s = withStats(createGame('Rin', 42), 90)
-  s = drawUntilReady(startProject(s, draft))
+  s = drawUntilReady(startProject(s, DRAFT))
   s = submitProject(s, 'weekly-bolt')
   s = tickMany(s, 7)
   s = dismissResult(s)
@@ -71,7 +59,7 @@ describe('store auto-pause', () => {
   })
 
   it('refuses to open the wizard or the pitch in the wrong phase', () => {
-    let s = drawUntilReady(startProject(createGame('Rin', 42), draft))
+    let s = drawUntilReady(startProject(createGame('Rin', 42), DRAFT))
     s = submitProject(s, 'weekly-bolt')
     s = tickMany(s, 7)
     expect(s.pendingResult).not.toBeNull()
@@ -79,11 +67,11 @@ describe('store auto-pause', () => {
     useStore.getState().openModal('wizard')
     expect(useStore.getState().modal).toBe('none')
 
-    load(startProject(createGame('Rin', 42), draft))
+    load(startProject(createGame('Rin', 42), DRAFT))
     useStore.getState().openModal('submit')
     expect(useStore.getState().modal).toBe('none')
 
-    load(drawUntilReady(startProject(createGame('Rin', 42), draft)))
+    load(drawUntilReady(startProject(createGame('Rin', 42), DRAFT)))
     useStore.getState().openModal('submit')
     expect(useStore.getState().modal).toBe('submit')
   })

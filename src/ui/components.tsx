@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { memo, useEffect, useId, useRef, useState } from 'react'
-import { PODIUM_RANK, RATING_LABEL, weakRankLine } from '../sim'
+import { PODIUM_RANK, RATING_LABEL, SERIAL_WARNINGS_TO_CANCEL, weakRankLine } from '../sim'
 import type { ChapterResult, Rating } from '../sim'
 import { Icon } from './Icon'
 
@@ -54,6 +54,15 @@ export function Reward({ value, label, className }: { value: ReactNode; label: R
       <div className="n">{value}</div>
       <div className="l">{label}</div>
     </div>
+  )
+}
+
+/** The serial-status "n of 3 warnings" pip row, shared by the desk panel and the series modal. */
+export function WarningPips({ warnings }: { warnings: number }) {
+  return (
+    <span className="warnings" role="img" aria-label={`${warnings} of ${SERIAL_WARNINGS_TO_CANCEL} warnings`}>
+      {Array.from({ length: SERIAL_WARNINGS_TO_CANCEL }, (_, i) => <i key={i} className={i < warnings ? 'on' : ''} />)}
+    </span>
   )
 }
 

@@ -6,7 +6,7 @@ import { useStore } from '../../state/store'
 import { ConfirmRow } from '../ConfirmRow'
 import { Icon } from '../Icon'
 import { Metric, Modal } from '../components'
-import { money } from '../format'
+import { money, plural } from '../format'
 
 import { LOOK_HAIRS, LOOK_SHIRTS } from '../looks'
 
@@ -76,7 +76,7 @@ export function StaffModal() {
             <div className="panel-title">Your studio <span className="small muted" style={{ fontFamily: 'var(--font-ui)', letterSpacing: 0 }}>({game.assistants.length} of {MAX_ASSISTANTS})</span></div>
             <span className="small muted">
               Weekly costs {money(costs)}: living {money(WEEKLY_LIVING_COST)}, salaries {money(costs - WEEKLY_LIVING_COST)}.{' '}
-              <span className={runway <= 1 ? 'warn-text' : undefined}>Runway: {runway} week{runway === 1 ? '' : 's'}</span>
+              <span className={runway <= 1 ? 'warn-text' : undefined}>Runway: {plural(runway, 'week')}</span>
             </span>
           </div>
           {game.assistants.length === 0
@@ -93,7 +93,7 @@ export function StaffModal() {
         <section className="col" style={{ gap: 10 }}>
           <div className="row between wrap">
             <div className="panel-title">Looking for work</div>
-            <span className="small muted row"><Icon name="info" size={14} /> New candidates in {refreshIn} day{refreshIn === 1 ? '' : 's'}</span>
+            <span className="small muted row"><Icon name="info" size={14} /> New candidates in {plural(refreshIn, 'day')}</span>
           </div>
           {game.candidates.length === 0
             ? <p className="muted small">Nobody is looking right now. Check back later.</p>

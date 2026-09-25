@@ -2,7 +2,7 @@ import { SCORE_WEIGHTS, xpToNext } from '../../sim'
 import type { StatId } from '../../sim'
 import { useStore } from '../../state/store'
 import { Bar, Metric, Modal, Reward } from '../components'
-import { compact, money } from '../format'
+import { bestRank, compact, money, plural } from '../format'
 
 const STATS: { id: StatId; name: string; blurb: string; tone: string }[] = [
   { id: 'art', name: 'Art', blurb: `Art score in polls (${Math.round(SCORE_WEIGHTS.art * 100)}%), and pages per day`, tone: 'blue' },
@@ -15,7 +15,6 @@ export function StatsModal() {
   const closeModal = useStore((s) => s.closeModal)
   const spend = useStore((s) => s.spendSkillPoint)
   const p = game.player
-  const best = game.history.reduce((b, r) => Math.min(b, r.rank), Infinity)
 
   return (
     <Modal title={p.name} sub={`Level ${p.level} mangaka`} onClose={closeModal} narrow>
@@ -25,7 +24,7 @@ export function StatsModal() {
         <section className="col" style={{ gap: 12 }} aria-label="Skills">
           <div className="row between">
             <div className="panel-title">Skills</div>
-            <span className={`chip ${p.skillPoints > 0 ? 'accent' : ''}`}>{p.skillPoints} point{p.skillPoints === 1 ? '' : 's'} to spend</span>
+            <span className={`chip ${p.skillPoints > 0 ? 'accent' : ''}`}>{plural(p.skillPoints, 'point')} to spend</span>
           </div>
           {STATS.map((s) => (
             <div className="stat-row" key={s.id}>
@@ -42,7 +41,7 @@ export function StatsModal() {
           <Reward value={compact(p.fans)} label="Fans" />
           <Reward value={p.maxStamina} label="Max stamina" />
           <Reward value={game.history.length} label="Published" />
-          <Reward value={best === Infinity ? '—' : `#${best}`} label="Best rank" />
+          <Reward value={bestRank(game.history)} label="Best rank" />
           <Reward value={game.history.length ? Math.round(game.history.reduce((a, r) => a + r.score, 0) / game.history.length) : '—'} label="Avg score" />
         </div>
       </div>

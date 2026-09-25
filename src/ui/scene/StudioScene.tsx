@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { LOW_STAMINA_THRESHOLD, getPhase, placeById } from '../../sim'
 import { SPEED_MS, useStore } from '../../state/store'
 import { LOOK_HAIRS, LOOK_SHIRTS } from '../looks'
+import { prefersReducedMotion } from '../motion'
 
 const W = 192
 const H = 108
@@ -273,7 +274,7 @@ export function StudioScene({ running }: { running: boolean }) {
     if (!ctx) return
     ctx.imageSmoothingEnabled = false
     ctxRef.current = ctx
-    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
+    const reduce = prefersReducedMotion()
     reduceMotion.current = reduce
     const step = reduce ? STEP_MS_REDUCED : STEP_MS
     let raf = 0

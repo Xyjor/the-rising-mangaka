@@ -234,6 +234,8 @@
 .toast[data-kind='levelup'] { border-color: var(--purple); box-shadow: 4px 4px 0 var(--purple); background: var(--purple-soft); }
 .toast[data-kind='series'] { border-color: var(--blue); box-shadow: 4px 4px 0 var(--blue); }
 .toast[data-kind='money'] { border-color: var(--gold); box-shadow: 4px 4px 0 var(--gold); }
+.toast[data-kind='staff'] { border-color: var(--purple); box-shadow: 4px 4px 0 var(--purple); }
+.toast[data-kind='trip'] { border-color: var(--green); box-shadow: 4px 4px 0 var(--green); }
 .toast .ico { display: inline-flex; flex: none; color: var(--ink-2); margin-top: 1px; }
 .toast button {
   margin-left: auto; border: 0; background: transparent; color: var(--ink-3);

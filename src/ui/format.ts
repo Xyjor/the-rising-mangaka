@@ -12,3 +12,9 @@ export function compact(n: number): string {
 export function plural(n: number, word: string): string {
   return `${n} ${n === 1 ? word : `${word}s`}`
 }
+
+/** The best (lowest) rank across a set of poll/chapter results, or an em dash for an empty set. */
+export function bestRank(results: { rank: number }[]): string {
+  const best = results.reduce((b, r) => Math.min(b, r.rank), Infinity)
+  return best === Infinity ? '—' : `#${best}`
+}

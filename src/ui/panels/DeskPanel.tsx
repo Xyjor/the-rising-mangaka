@@ -1,14 +1,15 @@
 import { memo } from 'react'
 import {
   JOB_PAY_PER_DAY, LOW_STAMINA_THRESHOLD, RESULTS_DELAY_DAYS, SERIAL_OFFER_MIN_RANK, SERIAL_OFFER_MIN_SCORE,
-  SERIAL_WARNINGS_TO_CANCEL, VOLUME_EVERY_CHAPTERS, audienceById, expectedPagesToday, genreById, getPhase,
+  VOLUME_EVERY_CHAPTERS, audienceById, expectedPagesToday, genreById, getPhase,
   magazineById, placeById, projectArtQuality, projectStoryQuality, themeById } from '../../sim'
 import { useStore } from '../../state/store'
 import { useShallow } from 'zustand/react/shallow'
 import { Icon } from '../Icon'
 import { NextGoal } from '../NextGoal'
-import { Metric } from '../components'
-import { money } from '../format'
+import { Metric, WarningPips } from '../components'
+import { money, plural } from '../format'
+import { warningText } from '../labels'
 import { ConfirmRow } from '../ConfirmRow'
 const COACH: Record<string, string> = {
   idle: 'Every career starts with one page. Plan your first manga: pick a genre, a theme, and who it is for.',
@@ -62,7 +63,7 @@ export function DeskPanel() {
               <span className="chip blue">{ser.status === 'ended' ? 'Final chapters in the poll' : 'Cancelled'}</span>
             </div>
             <p className="small muted">
-              {ser.pending.length} chapter{ser.pending.length === 1 ? '' : 's'} still waiting for reader votes. You can start a new one-shot meanwhile.
+              {plural(ser.pending.length, 'chapter')} still waiting for reader votes. You can start a new one-shot meanwhile.
             </p>
             <button className="btn primary" onClick={() => openModal('wizard')}>Plan a new manga</button>
           </div>
@@ -107,7 +108,7 @@ export function DeskPanel() {
             {phase === 'submitted' && p.resultsDay !== null && (
               <Metric
                 label="Poll results"
-                value={<>{Math.max(0, p.resultsDay - game.day)} day{p.resultsDay - game.day === 1 ? '' : 's'}</>}
+                value={plural(Math.max(0, p.resultsDay - game.day), 'day')}
                 bar={game.day - (p.submittedDay ?? game.day)}
                 max={p.resultsDay - (p.submittedDay ?? game.day)}
                 tone="blue"
@@ -217,23 +218,14 @@ const SerialStatus = memo(function SerialStatus() {
   const endSerial = useStore((s) => s.endSerial)
   const last = ser.results[ser.results.length - 1]
   const untilVolume = VOLUME_EVERY_CHAPTERS - (ser.results.length % VOLUME_EVERY_CHAPTERS)
-  const left = SERIAL_WARNINGS_TO_CANCEL - ser.warnings
   return (
     <div className="col" style={{ gap: 10 }}>
       <p className="small">
-        <b>Popularity {ser.popularity}</b>, {last ? `latest poll #${last.rank} of ${last.entrants}` : 'waiting for the first poll'}, volume {ser.volumes + 1} in {untilVolume} chapter{untilVolume === 1 ? '' : 's'}.
+        <b>Popularity {ser.popularity}</b>, {last ? `latest poll #${last.rank} of ${last.entrants}` : 'waiting for the first poll'}, volume {ser.volumes + 1} in {plural(untilVolume, 'chapter')}.
       </p>
       <div className="row" style={{ gap: 6 }}>
-        <span className="warnings" role="img" aria-label={`${ser.warnings} of ${SERIAL_WARNINGS_TO_CANCEL} warnings`}>
-          {Array.from({ length: SERIAL_WARNINGS_TO_CANCEL }, (_, i) => <i key={i} className={i < ser.warnings ? 'on' : ''} />)}
-        </span>
-        <span className="tiny muted">
-          {ser.warnings === 0
-            ? 'Safe'
-            : ser.warnings === SERIAL_WARNINGS_TO_CANCEL - 1
-              ? 'One more weak chapter cancels it'
-              : `${ser.warnings} warning${ser.warnings === 1 ? '' : 's'}. ${left} more weak chapters in a row cancel it`}
-        </span>
+        <WarningPips warnings={ser.warnings} />
+        <span className="tiny muted">{warningText(ser.warnings)}</span>
       </div>
       <div className="row wrap">
         <button className="btn sm" onClick={() => openModal('series')}><Icon name="book" size={14} /> Series details</button>
@@ -265,7 +257,7 @@ function TripCard() {
       <p className="small muted">{place.blurb} You are resting while away, and no pages get drawn.</p>
       <Metric
         label="Back in"
-        value={<>{left} day{left === 1 ? '' : 's'}</>}
+        value={plural(left, 'day')}
         bar={total - left}
         max={total}
         tone="green"
@@ -299,7 +291,7 @@ function Eta() {
   const days = Math.ceil(remaining / rate)
   return (
     <p className="tiny muted">
-      About {days} working day{days === 1 ? '' : 's'} left at this pace{game.assistants.length ? ' with your assistants' : ''}.
+      About {plural(days, 'working day')} left at this pace{game.assistants.length ? ' with your assistants' : ''}.
     </p>
   )
 }

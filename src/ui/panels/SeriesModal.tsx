@@ -4,8 +4,9 @@ import {
 } from '../../sim'
 import type { Serial } from '../../sim'
 import { useStore } from '../../state/store'
-import { Metric, Modal, RankChart, Reward } from '../components'
-import { compact, money } from '../format'
+import { Metric, Modal, RankChart, Reward, WarningPips } from '../components'
+import { bestRank, compact, money, plural } from '../format'
+import { warningText } from '../labels'
 
 export function SeriesModal() {
   const game = useStore((s) => s.game)!
@@ -35,14 +36,12 @@ export function SeriesModal() {
 }
 
 // Kept beside SeriesDetail so the header import stays untouched; ESM hoists it like any other import.
-import { SERIAL_WARNINGS_TO_CANCEL, VOLUME_EVERY_CHAPTERS } from '../../sim'
+import { VOLUME_EVERY_CHAPTERS } from '../../sim'
 
 function SeriesDetail({ ser }: { ser: Serial }) {
   const mag = magazineById(ser.magazineId)
   const started = describeDate(ser.startedDay)
-  const best = ser.results.reduce((b, r) => Math.min(b, r.rank), Infinity)
   const untilVolume = VOLUME_EVERY_CHAPTERS - (ser.results.length % VOLUME_EVERY_CHAPTERS)
-  const warningsLeft = SERIAL_WARNINGS_TO_CANCEL - ser.warnings
   const statusChip = ser.status === 'running' ? <span className="chip green">Running</span>
     : ser.status === 'ended' ? <span className="chip blue">Completed</span> : <span className="chip accent">Cancelled</span>
   return (
@@ -62,22 +61,14 @@ function SeriesDetail({ ser }: { ser: Serial }) {
       </Metric>
 
       <div className="row wrap small muted">
-        <span className="warnings" role="img" aria-label={`${ser.warnings} of ${SERIAL_WARNINGS_TO_CANCEL} warnings`}>
-          {Array.from({ length: SERIAL_WARNINGS_TO_CANCEL }, (_, i) => <i key={i} className={i < ser.warnings ? 'on' : ''} />)}
-        </span>
-        <span>
-          {ser.warnings === 0
-            ? 'Safe'
-            : ser.warnings === SERIAL_WARNINGS_TO_CANCEL - 1
-              ? 'One more weak chapter cancels it'
-              : `${ser.warnings} warning${ser.warnings === 1 ? '' : 's'}. ${warningsLeft} more weak chapters in a row cancel it`}
-        </span>
-        <span>Next volume in {untilVolume} chapter{untilVolume === 1 ? '' : 's'}</span>
+        <WarningPips warnings={ser.warnings} />
+        <span>{warningText(ser.warnings)}</span>
+        <span>Next volume in {plural(untilVolume, 'chapter')}</span>
       </div>
 
       <div className="rewards" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))' }}>
         <Reward value={ser.chaptersSent} label="Chapters" />
-        <Reward value={best === Infinity ? '—' : `#${best}`} label="Best rank" />
+        <Reward value={bestRank(ser.results)} label="Best rank" />
         <Reward value={ser.volumes} label="Volumes" />
         <Reward value={compact(ser.totalCopies)} label="Copies sold" />
         <Reward value={money(ser.totalMoney)} label="Earned" />

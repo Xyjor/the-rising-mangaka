@@ -1,20 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
   GENRES, MAGAZINES, PODIUM_RANK, RANK_MULTIPLIER, THEMES, binomialAtMost, createGame, estimateScore,
-  evaluateProject, genreThemeRating, getPhase, magazineById, normalCdf, previewSubmission, rankTier,
-  startProject, submitProject, themeAudienceRating, tick, tickMany, weakRankLine,
+  evaluateProject, genreThemeRating, magazineById, normalCdf, previewSubmission, rankTier,
+  startProject, submitProject, themeAudienceRating, tickMany, weakRankLine,
 } from '../index'
 import type { GameState, GenreId, ThemeId } from '../index'
+import { DRAFT as draft, drawUntilReady } from '../../test/fixtures'
 
-const draft = { title: 'Blade Club', genre: 'action', theme: 'samurai', audience: 'teens' } as const
 const kidsDraft = { title: 'Blade Club', genre: 'action', theme: 'samurai', audience: 'kids' } as const
-
-function drawUntilReady(state: GameState): GameState {
-  let s = state
-  let guard = 0
-  while (getPhase(s) !== 'ready' && guard++ < 400) s = tick(s)
-  return s
-}
 
 /** Force the ready manuscript's page quality so the estimator lands on a known score. */
 function withQuality(s: GameState, art: number, story: number): GameState {
