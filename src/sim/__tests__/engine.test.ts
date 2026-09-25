@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   CHAPTER_PAGES, JOB_PAY_PER_DAY, LOW_STAMINA_THRESHOLD, MAGAZINE_MISMATCH_PENALTY, ONE_SHOT_PAGES,
-  PACING_NOISE_SD, RATING_SCORE, REST_STAMINA_GAIN, SERIAL_CLIMAX_VOLUME_MULT, VOLUME_PRICE, WEEKLY_LIVING_COST,
+  PACING_NOISE_SD, RATING_SCORE, REST_STAMINA_GAIN, SERIAL_CLIMAX_VOLUME_MULT, SERIAL_GRACE_CHAPTERS, VOLUME_PRICE,
+  WEEKLY_LIVING_COST,
   WORK_STAMINA_COST, acceptOffer, clamp, createGame, declineOffer, describeDate, dismissResult, endSerial,
   evaluateChapter, evaluateProject, fireAssistant, genreThemeRating, getPhase, hireAssistant, magazineById,
   previewCombo, previewSubmission, projectArtQuality, serialFatigue, setActivity, spendSkillPoint,
@@ -265,6 +266,26 @@ describe('serialisation', () => {
     const ser = s.serial ?? s.serials[0]
     expect(ser.status).toBe('cancelled')
     expect(s.project).toBeNull()
+  })
+
+  it('grants a grace period: the first 4 results never warn, even when weak', () => {
+    let s = withStats(acceptOffer(dismissResult(strongOneShot())), 5)
+    let guard = 0
+    while (s.serial && s.serial.results.length < SERIAL_GRACE_CHAPTERS && guard++ < 900) s = autoDay(s)
+    expect(s.serial!.results).toHaveLength(SERIAL_GRACE_CHAPTERS)
+    expect(s.serial!.warnings).toBe(0)
+    expect(s.serial!.status).toBe('running')
+    // Popularity still moves during grace, only warnings are held back.
+    expect(s.serial!.popularity).not.toBe(50)
+  })
+
+  it('cancels a forced-weak serial at exactly its 7th result once the grace period ends', () => {
+    let s = withStats(acceptOffer(dismissResult(strongOneShot())), 5)
+    let guard = 0
+    while (s.serial && s.serial.status === 'running' && guard++ < 900) s = autoDay(s)
+    const ser = s.serial ?? s.serials[0]
+    expect(ser.status).toBe('cancelled')
+    expect(ser.results).toHaveLength(7)
   })
 })
 
@@ -571,7 +592,8 @@ describe('rules', () => {
       if (ser.results.length > seen) {
         seen = ser.results.length
         const r = ser.results[seen - 1]
-        expect(ser.warnings).toBe(r.rank >= firstWeak(r.entrants) ? prev + 1 : 0)
+        // The first SERIAL_GRACE_CHAPTERS results never warn, even when weak.
+        expect(ser.warnings).toBe(seen > SERIAL_GRACE_CHAPTERS && r.rank >= firstWeak(r.entrants) ? prev + 1 : 0)
       }
     }
     expect(seen).toBeGreaterThanOrEqual(3)

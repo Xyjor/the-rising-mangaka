@@ -1,4 +1,7 @@
-import { CHAPTER_PAGES, PAY_FULL_RATE_SCORE, SERIAL_WARNINGS_TO_CANCEL, VOLUME_EVERY_CHAPTERS, magazineById } from '../../sim'
+import {
+  CHAPTER_PAGES, PAY_FULL_RATE_SCORE, SERIAL_GRACE_CHAPTERS, SERIAL_WARNINGS_TO_CANCEL, VOLUME_EVERY_CHAPTERS,
+  magazineById,
+} from '../../sim'
 import { useStore } from '../../state/store'
 import { Modal, Reward } from '../components'
 import { money } from '../format'
@@ -36,7 +39,7 @@ export function OfferModal() {
           <span className="small muted">{comboLabel(offer.genre, offer.theme, offer.audience)}</span>
         </div>
         <div className="speech">
-          Readers loved it. Give me a chapter every {CHAPTER_PAGES} pages, keep the polls healthy, and we release a volume every {VOLUME_EVERY_CHAPTERS} chapters. Slip to the bottom {SERIAL_WARNINGS_TO_CANCEL} times in a row and I have to cancel. Deal?
+          Readers loved it. Give me a chapter every {CHAPTER_PAGES} pages, keep the polls healthy, and we release a volume every {VOLUME_EVERY_CHAPTERS} chapters. The first {SERIAL_GRACE_CHAPTERS} chapters are guaranteed; after that, {SERIAL_WARNINGS_TO_CANCEL} weak chapters in a row and I have to cancel. Deal?
         </div>
         <div className="terms">
           <Reward value={money(mag.pageRate)} label={`a page at a score of ${PAY_FULL_RATE_SCORE}`} />

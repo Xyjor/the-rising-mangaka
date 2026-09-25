@@ -6,7 +6,7 @@ import type { Serial } from '../../sim'
 import { useStore } from '../../state/store'
 import { Metric, Modal, RankChart, Reward, WarningPips } from '../components'
 import { bestRank, compact, money, plural } from '../format'
-import { warningText } from '../labels'
+import { GRACE_TEXT, inGrace, warningText } from '../labels'
 
 export function SeriesModal() {
   const game = useStore((s) => s.game)!
@@ -61,8 +61,14 @@ function SeriesDetail({ ser }: { ser: Serial }) {
       </Metric>
 
       <div className="row wrap small muted">
-        <WarningPips warnings={ser.warnings} />
-        <span>{warningText(ser.warnings)}</span>
+        {inGrace(ser.results.length) ? (
+          <span>{GRACE_TEXT}</span>
+        ) : (
+          <>
+            <WarningPips warnings={ser.warnings} />
+            <span>{warningText(ser.warnings)}</span>
+          </>
+        )}
         <span>Next volume in {plural(untilVolume, 'chapter')}</span>
       </div>
 

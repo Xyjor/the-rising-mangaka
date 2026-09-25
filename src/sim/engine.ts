@@ -4,12 +4,13 @@ import {
   HIRE_RUNWAY_WEEKS, JOB_PAY_PER_DAY, JOB_STAMINA_COST, LOW_STAMINA_THRESHOLD, MAGAZINES, MAX_ASSISTANTS,
   ONE_SHOT_PAGES, OVERDRAFT_FEE_MIN, OVERDRAFT_FEE_RATE,
   RATING_LABEL, RESULTS_DELAY_DAYS, REST_STAMINA_GAIN, SERIAL_CLIMAX_MIN_POPULARITY, SERIAL_CLIMAX_VOLUME_MULT,
-  SERIAL_OFFER_MIN_RANK, SERIAL_OFFER_MIN_SCORE, SERIAL_WARNINGS_TO_CANCEL, THEMES, VOLUME_EVERY_CHAPTERS,
+  SERIAL_GRACE_CHAPTERS, SERIAL_OFFER_MIN_RANK, SERIAL_OFFER_MIN_SCORE, SERIAL_WARNINGS_TO_CANCEL, THEMES,
+  VOLUME_EVERY_CHAPTERS,
   VOLUME_PRICE, WEEKLY_LIVING_COST, WORK_STAMINA_COST, audienceById, magazineById, placeById, themeById, genreById,
 } from './data'
 import { clamp, draw, range } from './rng'
 import {
-  evaluateChapter, evaluateProject, projectArtQuality, projectStoryQuality, rankScore, stalenessCount,
+  evaluateChapter, evaluateProject, projectArtQuality, projectStoryQuality, rankScore, stalenessCount, weakRankLine,
 } from './scoring'
 import { forecastPoll } from './forecast'
 import type { Forecast } from './forecast'
@@ -633,16 +634,18 @@ function resolveChapters(state: GameState): GameState {
     const mag = magazineById(ser.magazineId)
     const { result, seed } = evaluateChapter(s, ser, pc)
     const popularity = Math.round(ser.popularity * 0.65 + rankScore(result.rank, result.entrants) * 0.35)
-    const weak = result.rank > Math.ceil(result.entrants * 0.7)
-    const warnings = weak ? ser.warnings + 1 : 0
+    const weak = result.rank > weakRankLine(result.entrants)
     let serial: Serial = {
       ...ser,
       pending: ser.pending.slice(1),
       results: [...ser.results, result],
       popularity,
-      warnings,
+      warnings: ser.warnings,
       totalMoney: ser.totalMoney + result.rewards.money,
     }
+    // A new series gets SERIAL_GRACE_CHAPTERS results before a weak one can add a warning.
+    const warnings = !weak ? 0 : serial.results.length > SERIAL_GRACE_CHAPTERS ? ser.warnings + 1 : 0
+    serial = { ...serial, warnings }
     s = {
       ...s,
       seed,

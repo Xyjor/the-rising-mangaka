@@ -9,7 +9,7 @@ import { Icon } from '../Icon'
 import { NextGoal } from '../NextGoal'
 import { Metric, WarningPips } from '../components'
 import { money, plural } from '../format'
-import { focusHint, warningText } from '../labels'
+import { GRACE_TEXT, focusHint, inGrace, warningText } from '../labels'
 import { ConfirmRow } from '../ConfirmRow'
 const COACH: Record<string, string> = {
   idle: 'Every career starts with one page. Plan your first manga: pick a genre, a theme, and who it is for.',
@@ -226,8 +226,14 @@ const SerialStatus = memo(function SerialStatus() {
         <b>Popularity {ser.popularity}</b>, {last ? `latest poll #${last.rank} of ${last.entrants}` : 'waiting for the first poll'}, volume {ser.volumes + 1} in {plural(untilVolume, 'chapter')}.
       </p>
       <div className="row" style={{ gap: 6 }}>
-        <WarningPips warnings={ser.warnings} />
-        <span className="tiny muted">{warningText(ser.warnings)}</span>
+        {inGrace(ser.results.length) ? (
+          <span className="tiny muted">{GRACE_TEXT}</span>
+        ) : (
+          <>
+            <WarningPips warnings={ser.warnings} />
+            <span className="tiny muted">{warningText(ser.warnings)}</span>
+          </>
+        )}
       </div>
       <div className="row wrap">
         <button className="btn sm" onClick={() => openModal('series')}><Icon name="book" size={14} /> Series details</button>

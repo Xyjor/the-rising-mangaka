@@ -1,7 +1,7 @@
 // Short words the pitch, offer, series, desk and stats screens share. Pure functions of sim data, no React.
 import {
-  MAGAZINES, PAY_FULL_RATE_SCORE, SERIAL_OFFER_MIN_SCORE, SERIAL_WARNINGS_TO_CANCEL, audienceById, genreById,
-  magazineById, rankTier, suitedFocus, themeById,
+  MAGAZINES, PAY_FULL_RATE_SCORE, SERIAL_GRACE_CHAPTERS, SERIAL_OFFER_MIN_SCORE, SERIAL_WARNINGS_TO_CANCEL,
+  audienceById, genreById, magazineById, rankTier, suitedFocus, themeById,
 } from '../sim'
 import type { AudienceId, Forecast, GenreId, MagazineId, PollResult, RankTier, ScoreBreakdown, ThemeId } from '../sim'
 import { money, plural } from './format'
@@ -69,6 +69,14 @@ export function warningText(warnings: number): string {
   if (warnings === SERIAL_WARNINGS_TO_CANCEL - 1) return 'One more weak chapter cancels it'
   const left = SERIAL_WARNINGS_TO_CANCEL - warnings
   return `${plural(warnings, 'warning')}. ${plural(left, 'more weak chapter')} in a row cancel it`
+}
+
+/** The desk/series line shown while a new series is still within its grace period (no warnings possible yet). */
+export const GRACE_TEXT = `New series: no warnings until chapter ${SERIAL_GRACE_CHAPTERS + 1}.`
+
+/** Whether a serial's results are still within the grace period (no warnings possible yet). */
+export function inGrace(resultsLength: number): boolean {
+  return resultsLength < SERIAL_GRACE_CHAPTERS
 }
 
 /** "35%" when every value is the same, else "15% to 35%". */

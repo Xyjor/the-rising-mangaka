@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { PollResult } from '../../sim'
-import { likelyLine, offerLabel, payWhy, warningText } from '../labels'
+import { GRACE_TEXT, inGrace, likelyLine, offerLabel, payWhy, warningText } from '../labels'
 
 describe('warningText', () => {
   it('reads Safe with no warnings', () => {
@@ -13,6 +13,19 @@ describe('warningText', () => {
 
   it('gives the last-chance message one warning before cancellation', () => {
     expect(warningText(2)).toBe('One more weak chapter cancels it')
+  })
+})
+
+describe('GRACE_TEXT', () => {
+  it('names chapter 5, one past the 4-result grace period', () => {
+    expect(GRACE_TEXT).toBe('New series: no warnings until chapter 5.')
+  })
+})
+
+describe('inGrace', () => {
+  it('is true for 0 through 3 results, and false from 4 results on (the 5th result can warn)', () => {
+    expect([0, 1, 2, 3].map(inGrace)).toEqual([true, true, true, true])
+    expect([4, 5, 8].map(inGrace)).toEqual([false, false, false])
   })
 })
 

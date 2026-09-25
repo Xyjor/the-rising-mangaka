@@ -136,6 +136,8 @@ export const SERIAL_CLIMAX_MIN_POPULARITY = 50
 /** The final volume sells this many times the copies of a regular volume. */
 export const SERIAL_CLIMAX_VOLUME_MULT = 1.5
 export const SERIAL_WARNINGS_TO_CANCEL = 3
+/** A new series' first this-many results never add a warning, even when weak. */
+export const SERIAL_GRACE_CHAPTERS = 4
 export const SERIAL_OFFER_MIN_RANK = 3
 export const SERIAL_OFFER_MIN_SCORE = 65
 export const EDITOR_TIP_EVERY = 3

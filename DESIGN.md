@@ -102,6 +102,9 @@ The editor writes a one-line comment on the component that cost the most points 
 - **Popularity** (0-100) is a moving average of poll placement. Three consecutive weak chapters (roughly the bottom
   quarter, rank > ceil(0.7 x entrants)) cancel the series and cost 10% of fans. Every 4 chapters a **volume** ships;
   copies = (fans + circulation x 20) x popularity.
+- **Grace period**: every new series' first `SERIAL_GRACE_CHAPTERS` (4) results never add a warning, even when weak;
+  popularity still moves normally during grace. The earliest a warning can land is a series' 5th result, so the
+  earliest possible cancellation is its 7th result. Applies to every new series, not only a mangaka's first.
 - Freshness erodes 2 points per chapter after chapter 8, so every series has a natural arc. The player can wrap a
   series up at any time and converts popularity into loyal fans.
 - Wrapping up with popularity 50 or higher after at least one volume has shipped sells a final volume at 1.5x copies;
