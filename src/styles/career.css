@@ -1,4 +1,4 @@
-/* Milestones: the next-goal card on the desk and the Career panel. */
+/* Milestones: the next-goal card on the desk and the Career panel; the year review. */
 
 .next-goal { display: flex; gap: 10px; align-items: center; padding: 10px 12px; }
 
@@ -19,3 +19,12 @@
 .career-row .chips { display: flex; gap: 6px; align-items: center; }
 
 .career-rival { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; margin-bottom: 12px; }
+
+/* The Career panel's awards and past years, and the year review they share their lists with. */
+.career-section { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; margin-bottom: 12px; }
+.year-section { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; }
+.year-best { margin: 10px 0 0; }
+.year-list { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.year-list.plain { list-style: none; padding-left: 0; }
+.year-award { display: flex; gap: 8px; align-items: flex-start; }
+.year-award svg { flex: none; margin-top: 2px; color: var(--gold); }

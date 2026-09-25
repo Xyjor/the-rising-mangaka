@@ -1,4 +1,4 @@
-/* Desk cards: game-driven moments (random events, anime offers) that wait on the desk instead of opening a popup. */
+/* Desk cards: game-driven moments (random events, anime offers, the year review) that wait on the desk, never a popup. */
 
 .desk-card { display: flex; flex-direction: column; gap: 8px; padding: 12px; }
 
@@ -17,3 +17,5 @@
 .card.flat.anime-card { border-color: var(--purple); }
 .anime-studio { display: flex; flex-direction: column; gap: 6px; }
 .anime-terms { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 2px; }
+
+.card.flat.year-card { border-color: var(--accent); }

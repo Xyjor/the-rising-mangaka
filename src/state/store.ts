@@ -13,7 +13,7 @@ export type Speed = 0 | 1 | 2 | 3
 export type RunSpeed = Exclude<Speed, 0>
 export type Modal =
   | 'none' | 'wizard' | 'submit' | 'stats' | 'notebook' | 'history' | 'settings' | 'staff' | 'trips' | 'series'
-  | 'career' | 'studio'
+  | 'career' | 'studio' | 'year'
 export type ThemeMode = 'auto' | 'light' | 'dark'
 
 export interface Toast { id: number; kind: LogKind; text: string }
@@ -65,6 +65,8 @@ interface Store {
   signAnime: (studio: AnimeStudioId) => void
   /** Pass on the anime adaptation offer waiting on the desk. */
   declineAnime: () => void
+  /** The year review was opened: its desk card goes. */
+  markReviewRead: () => void
   setActivity: (a: Activity) => void
   setFocus: (f: Focus) => void
   spendSkillPoint: (s: StatId) => void
@@ -248,6 +250,7 @@ export const useStore = create<Store>()(
           if (!g || g.pendingResult || g.pendingOffer) return
           if (m === 'wizard' && (g.project || g.trip)) return
           if (m === 'submit' && sim.getPhase(g) !== 'ready') return
+          if (m === 'year' && !g.yearReviews.length) return
           set({ modal: m })
         },
         closeModal: () => set({ modal: 'none' }),
@@ -266,6 +269,7 @@ export const useStore = create<Store>()(
         buyEquipment: (id) => apply((g) => sim.buyEquipment(g, id)),
         signAnime: (st) => apply((g) => sim.signAnime(g, st)),
         declineAnime: () => apply((g) => sim.declineAnime(g)),
+        markReviewRead: () => apply((g) => sim.markReviewRead(g)),
         setActivity: (a) => apply((g) => sim.setActivity(g, a)),
         setFocus: (f) => apply((g) => sim.setFocus(g, f)),
         spendSkillPoint: (s) => apply((g) => sim.spendSkillPoint(g, s)),

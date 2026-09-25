@@ -10,6 +10,7 @@ import { AnimeOfferCard } from '../AnimeOfferCard'
 import { EventCard } from '../EventCard'
 import { Icon } from '../Icon'
 import { NextGoal } from '../NextGoal'
+import { YearReviewCard } from '../YearReviewCard'
 import { Metric, WarningPips } from '../components'
 import { money, plural } from '../format'
 import { GRACE_TEXT, focusHint, inGrace, warningText } from '../labels'
@@ -37,6 +38,7 @@ export function DeskPanel() {
       {/* On phones cards.css moves these after the project card, so "Today" stays in view. */}
       <EventCard />
       <AnimeOfferCard />
+      <YearReviewCard />
       {tutorialStep !== -1 && !game.trip && (
         <div className="coach" role="note">
           <Icon name="sparkle" />

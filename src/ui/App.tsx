@@ -20,6 +20,7 @@ import { StatsModal } from './panels/StatsModal'
 import { StudioModal } from './panels/StudioModal'
 import { SubmitModal } from './panels/SubmitModal'
 import { TripsModal } from './panels/TripsModal'
+import { YearModal } from './panels/YearModal'
 import { StudioScene } from './scene/StudioScene'
 
 function useTheme() {
@@ -122,6 +123,7 @@ export function App() {
       {free && modal === 'series' && <SeriesModal />}
       {free && modal === 'career' && <CareerModal />}
       {free && modal === 'studio' && <StudioModal />}
+      {free && modal === 'year' && <YearModal />}
     </div>
   )
 }

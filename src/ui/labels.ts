@@ -1,11 +1,13 @@
-// Short words the pitch, offer, series, desk and stats screens share. Pure functions of sim data, no React.
+// Short words the pitch, offer, series, desk, stats, career and year-review screens share. Pure functions of sim data,
+// no React.
 import {
   MAGAZINES, PAY_FULL_RATE_SCORE, RIVAL_SCORE_SD, SERIAL_GRACE_CHAPTERS, SERIAL_OFFER_MIN_SCORE,
-  SERIAL_WARNINGS_TO_CANCEL, animeStudioById, audienceById, genreById, magazineById, num, rankTier, suitedFocus,
-  themeById,
+  SERIAL_WARNINGS_TO_CANCEL, animeStudioById, audienceById, awardById, genreById, magazineById, num, rankTier,
+  suitedFocus, themeById,
 } from '../sim'
 import type {
-  AnimeDeal, AnimeStudio, AudienceId, Forecast, GenreId, MagazineId, PollResult, RankTier, Rival, RivalPlacing, ScoreBreakdown, ThemeId,
+  AnimeDeal, AnimeStudio, Award, AudienceId, Forecast, GenreId, MagazineId, NearMiss, PollResult, RankTier, Rival, RivalPlacing,
+  ScoreBreakdown, ThemeId, YearReview,
 } from '../sim'
 import { money, plural } from './format'
 
@@ -163,7 +165,12 @@ export function rivalCareerLine(rival: Rival, record: { wins: number; losses: nu
   const { wins, losses } = record
   return `${rival.name} draws "${rival.seriesTitle}" for ${sentenceEnd(magazineById(rival.magazineId).name)} `
     + `Usually scores ${rival.craft - RIVAL_SCORE_SD} to ${rival.craft + RIVAL_SCORE_SD}. `
-    + `Head to head: ${plural(wins, 'win')}, ${losses} ${losses === 1 ? 'loss' : 'losses'}.`
+    + `Head to head: ${headToHead(wins, losses)}.`
+}
+
+/** '3 wins, 1 loss' */
+function headToHead(wins: number, losses: number): string {
+  return `${plural(wins, 'win')}, ${losses} ${losses === 1 ? 'loss' : 'losses'}`
 }
 
 /** "6 weeks" when at least a week is left, else "6 days": the anime countdowns. */
@@ -203,4 +210,71 @@ export function animeStatusLine(deal: AnimeDeal, day: number, running: boolean):
   if (day < deal.tailEndsDay) return `The anime has ended; ${boost} for ${weeksOrDays(deal.tailEndsDay - day, 'more ')}.`
   if (day === deal.tailEndsDay) return `The anime has ended; today is the last day ${boost}.`
   return `The ${st.name} anime has ended, and volumes sell at the normal rate again.`
+}
+
+// ---------- the year review ----------
+
+/** '2 awards, 1 near miss', 'no awards, no near misses': the year review's count on the desk card and in Career. */
+export function yearSummary(r: YearReview): string {
+  const awards = r.awards.length ? plural(r.awards.length, 'award') : 'no awards'
+  const n = r.nearMisses.length
+  return `${awards}, ${n === 0 ? 'no near misses' : n === 1 ? '1 near miss' : `${n} near misses`}`
+}
+
+/** A year's gain with its sign: '+¥14,250', '-¥2,000', '+3,400', '0'. */
+export function yearGain(n: number, kind: 'money' | 'count'): string {
+  const text = kind === 'money' ? money(n) : num(n)
+  return n > 0 ? `+${text}` : text
+}
+
+/** '1 to 4' when the year brought levels, else the one level: '4'. */
+export function yearLevels(r: YearReview): string {
+  return r.levelFrom === r.levelTo ? `${r.levelTo}` : `${r.levelFrom} to ${r.levelTo}`
+}
+
+/** A past year in one line, for Career: 'Year 1: 2 awards, 1 near miss. Money +¥14,250, fans +3,400, level 1 to 4.' */
+export function yearCareerLine(r: YearReview): string {
+  return `Year ${r.year}: ${yearSummary(r)}. Money ${yearGain(r.moneyDelta, 'money')}, `
+    + `fans ${yearGain(r.fansDelta, 'count')}, level ${yearLevels(r)}.`
+}
+
+/** An award's prize: '+¥3,000, +500 fans, +100 XP'. */
+export function prizeText(a: Award): string {
+  return `+${money(a.prize.money)}, +${num(a.prize.fans)} fans, +${a.prize.xp} XP`
+}
+
+/** A near miss, what the player had against what the award needs: 'Golden Pen: 12,400 copies of 20,000.' */
+export function nearMissText(n: NearMiss): string {
+  const name = awardById(n.id).name
+  switch (n.id) {
+    case 'rookie': return `${name}: best one-shot #${n.have}, a #1 or a serial wins it.`
+    case 'readers': return `${name}: average rank ${n.have.toFixed(1)}, ${n.need.toFixed(1)} or better wins it.`
+    case 'critics': return `${name}: best score ${n.have} of ${n.need}.`
+    case 'golden-pen': return `${name}: ${num(n.have)} copies of ${num(n.need)}.`
+  }
+}
+
+/**
+ * The rival's year: the award they took, this year's head to head, and their craft and magazine for next year with
+ * the scores that craft usually brings (craft ± RIVAL_SCORE_SD).
+ */
+export function rivalYearLine(r: YearReview): string {
+  const x = r.rival
+  const mag = magazineById(x.toMagazine).name
+  const parts: string[] = []
+  if (r.rivalAward) parts.push(`${x.name} won the ${awardById(r.rivalAward).name}.`)
+  parts.push(x.wins + x.losses
+    ? `Head to head this year: ${headToHead(x.wins, x.losses)}.`
+    : `You never met ${x.name} in a poll this year.`)
+  if (x.craftAfter === x.craftBefore) {
+    parts.push(`${x.name} is at the top of their game at craft ${x.craftAfter} and stays in ${mag} `
+      + `with "${x.series}".`)
+  } else if (x.toMagazine !== x.fromMagazine) {
+    parts.push(`${x.name}'s craft grew from ${x.craftBefore} to ${x.craftAfter}, so they move up to ${mag} `
+      + `with a new series, "${x.series}".`)
+  } else {
+    parts.push(`${x.name}'s craft grew from ${x.craftBefore} to ${x.craftAfter}. They stay in ${mag} with "${x.series}".`)
+  }
+  parts.push(`They usually score ${x.craftAfter - RIVAL_SCORE_SD} to ${x.craftAfter + RIVAL_SCORE_SD} now.`)
+  return parts.join(' ')
 }
