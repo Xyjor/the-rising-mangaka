@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { acceptOffer, createGame, startProject, submitProject } from '../index'
 import type { ChapterResult, GameState, PollResult } from '../index'
-import { CARELESS, SENSIBLE, STRESS_BOLT, botStep, runBot } from '../bot'
+import { CARELESS, SENSIBLE, STRESS_BOLT, botStep, firstSixMean, runBot } from '../bot'
+import type { BotRun } from '../bot'
 import { DRAFT, drawUntilReady, withPendingResult } from '../../test/fixtures'
 
 const OFFER = { magazineId: 'kids-comic', title: 'Magic Club', genre: 'fantasy', theme: 'magic', audience: 'kids' } as const
@@ -164,8 +165,65 @@ describe('balance bot', () => {
       'action/samurai/teens', 'mystery/detective/adults', 'horror/cooking/kids',
       'romance/school/teens', 'action/samurai/teens', 'scifi/space/young-adults',
     ])
+    // the old balance script's seed-42 readout
+    expect(run.oneShots.slice(0, 6).map((o) => o.score)).toEqual([47, 50, 28, 47, 48, 44])
+    expect(run.oneShots.slice(0, 6).map((o) => o.rank)).toEqual([9, 6, 9, 9, 11, 10])
     expect(run.serials).toHaveLength(1)
     expect(run.serials[0]).toMatchObject({ magazineId: 'weekly-bolt', startedDay: run.oneShots[5].day })
     expect(run.final.player.stats).toEqual({ art: 38, story: 34, pacing: 30 })
+  })
+})
+
+/** A run whose one-shots scored `scores`, everything else filler. */
+function runWithScores(scores: number[]): BotRun {
+  return {
+    oneShots: scores.map((score, i) => ({
+      day: 24 * (i + 1), score, rank: 5, entrants: 11, magazineId: 'kids-comic', money: 3000, offer: false, offerChance: 0,
+    })),
+    firstOfferAt: null,
+    serials: [],
+    weeksInDebt: 0,
+    moneyAtDay: [3000],
+    final: createGame('Rin', 1),
+  }
+}
+
+describe('balance bot bookkeeping', () => {
+  it('first-six mean: the first six one-shots only, or all of them when fewer were published', () => {
+    // (40 + 50 + 60 + 30 + 45 + 55) / 6 = 280 / 6; the seventh (90) does not count
+    expect(firstSixMean(runWithScores([40, 50, 60, 30, 45, 55, 90]))).toBeCloseTo(46.667, 3)
+    // a serial took the rest of the run after two one-shots: (44 + 52) / 2
+    expect(firstSixMean(runWithScores([44, 52]))).toBe(48)
+    expect(firstSixMean(runWithScores([]))).toBeNull()
+  })
+
+  it('counts every week that ends in an overdraft, even one a same-day poll pays back', () => {
+    // idle on day 0 with ¥500, drawing all fortnight: day 7 500 - 400 = 100 (tight, not in debt);
+    // day 14 100 - 400 = -300, fee 50
+    const broke = createGame('Rin', 42)
+    const plain = runBot(42, SENSIBLE, { days: 14, start: { ...broke, player: { ...broke.player, money: 500 } } })
+    expect(plain.moneyAtDay[7]).toBe(100)
+    expect(plain.moneyAtDay[14]).toBe(-350)
+    expect(plain.weeksInDebt).toBe(1)
+
+    // a Kids Comic Go! one-shot polls on day 21 with ¥100 in the bank
+    const submitted = submitProject(drawUntilReady(startProject(createGame('Rin', 42), DRAFT)), 'kids-comic')
+    const start: GameState = {
+      ...submitted, day: 20,
+      project: { ...submitted.project!, resultsDay: 21 },
+      player: { ...submitted.player, money: 100, stamina: 100 },
+    }
+    const rescued = runBot(42, SENSIBLE, { days: 21, start })
+    // shift +120 = 220, costs -400 = -180, fee -50 = -230, then the poll pays at least 90 x 20 x 0.7 = 1260
+    expect(rescued.oneShots).toHaveLength(1)
+    expect(rescued.final.player.money).toBeGreaterThan(0)
+    expect(rescued.weeksInDebt).toBe(1)
+  })
+
+  it('stops after the first day `until` holds', () => {
+    // seed 42's sensible bot is offered a serial on its second one-shot and accepts it the next morning
+    const run = runBot(42, SENSIBLE, { days: 1008, until: (s) => s.serial !== null })
+    expect(run.serials).toHaveLength(1)
+    expect(run.final.day).toBe(run.serials[0].startedDay + 1)
   })
 })

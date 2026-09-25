@@ -66,14 +66,20 @@ export interface BotRun {
   serials: BotSerial[]
   /** weeks whose costs left the player below zero */
   weeksInDebt: number
-  /** money at the end of each day; index 0 is the starting money */
+  /** money at the end of each day; index 0 is the starting money (day 0 unless the run had a start state) */
   moneyAtDay: number[]
   final: GameState
 }
 
 export interface BotRunOptions {
+  /** stop once the game reaches this day */
   days: number
+  /** stop once this many one-shots have polled */
   maxOneShots?: number
+  /** stop after the first day on which this holds */
+  until?: (s: GameState) => boolean
+  /** play on from this state instead of a new game (the seed argument is then unused) */
+  start?: GameState
   /** Called after every day with the state the bot's decisions produced (before the tick) and the state after it. */
   observe?: (decided: GameState, next: GameState) => void
 }
@@ -243,7 +249,22 @@ function chooseActivity(s: GameState): GameState {
   return setActivity(s, short && s.player.stamina >= JOB_MIN_STAMINA ? 'job' : 'rest')
 }
 
-/** One day's decisions, before the tick. */
+/** The engine's log line for a week whose costs left the player below zero. */
+const OVERDRAFT_LOG_PREFIX = 'Overdraft fee'
+
+/**
+ * Did this day's weekly costs leave the player in debt? Read from the overdraft entry the tick logged, not from
+ * end-of-day money: a poll that pays out later in the same tick can lift the balance back above zero.
+ */
+function overdrawnToday(decided: GameState, next: GameState): boolean {
+  return next.log.some((e) => e.id >= decided.nextLogId && e.kind === 'money' && e.text.startsWith(OVERDRAFT_LOG_PREFIX))
+}
+
+/**
+ * One day's decisions, before the tick, in this order: dismiss the result; accept (or decline) the offer; spend
+ * points; force the stress serial; wrap a serial; plan a one-shot and set its focus; pitch a finished one; pick
+ * the activity.
+ */
 function decide(state: GameState, p: BotPolicy): GameState {
   let s = state
   if (s.pendingResult) s = dismissResult(s)
@@ -270,14 +291,17 @@ function decide(state: GameState, p: BotPolicy): GameState {
   return chooseActivity(s)
 }
 
-/** One bot day: dismiss, accept, spend, plan, pitch, pick the activity, then tick. */
+/**
+ * One bot day: dismiss the result, accept (or decline) the offer, spend points, force the stress serial, wrap a
+ * serial, plan a one-shot and set its focus, pitch a finished one, pick the activity, then tick.
+ */
 export function botStep(s: GameState, p: BotPolicy): GameState {
   return tick(decide(s, p))
 }
 
-/** Play a career from day 0 until `days` have passed or `maxOneShots` one-shots have polled, whichever is first. */
+/** Play a career until day `days`, `maxOneShots` one-shots or `until`, whichever comes first. */
 export function runBot(seed: number, p: BotPolicy, opts: BotRunOptions): BotRun {
-  let s = createGame('Rin', seed)
+  let s = opts.start ?? createGame('Rin', seed)
   const maxOneShots = opts.maxOneShots ?? Infinity
   const oneShots: BotOneShot[] = []
   const moneyAtDay = [s.player.money]
@@ -298,10 +322,11 @@ export function runBot(seed: number, p: BotPolicy, opts: BotRunOptions): BotRun 
         money: next.player.money, offer: !!next.pendingOffer, offerChance,
       })
     }
-    if (next.day % 7 === 0 && next.player.money < 0) weeksInDebt++
+    if (overdrawnToday(decided, next)) weeksInDebt++
     moneyAtDay.push(next.player.money)
     opts.observe?.(decided, next)
     s = next
+    if (opts.until?.(s)) break
   }
   const all = s.serial ? [...s.serials, s.serial] : s.serials
   const first = oneShots.findIndex((o) => o.offer)
@@ -313,4 +338,18 @@ export function runBot(seed: number, p: BotPolicy, opts: BotRunOptions): BotRun 
     moneyAtDay,
     final: s,
   }
+}
+
+// ---------- metrics ----------
+
+/** One-shots that count as a player's opening run: the balance bands judge the first six. */
+export const OPENING_ONE_SHOTS = 6
+
+/**
+ * Mean score of a run's first six one-shots. A run that published fewer (a serial or the day limit came first)
+ * averages the ones it did publish; null when it published none.
+ */
+export function firstSixMean(run: BotRun): number | null {
+  const opening = run.oneShots.slice(0, OPENING_ONE_SHOTS)
+  return opening.length ? opening.reduce((sum, o) => sum + o.score, 0) / opening.length : null
 }
