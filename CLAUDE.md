@@ -31,7 +31,8 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   - `types.ts` all domain types. `data.ts` content (genres, themes, audiences, magazines, places, constants).
   - `compat.ts` hidden compatibility ratings. `scoring.ts` poll scoring. `engine.ts` commands + `tick()`.
   - `core.ts` state helpers shared by the engine and its tick hooks (`addLog`, `grantXp`, `xpToNext`, `startTrip`).
-    `events.ts` random events (the weekly roll on its own `eventSeed`, the answers). Hook files never import engine.ts.
+    `events.ts` random events (the weekly roll on its own `eventSeed`, the answers). `studio.ts` studio tiers (desks,
+    rent) and equipment (effects, buying, moving, `studioLook`). Hook files never import engine.ts.
   - Add a unit test in `src/sim/__tests__/engine.test.ts` for every new rule.
 - `src/state/store.ts` — Zustand store. Wraps the sim, owns the real-time clock speed, modal state, toasts,
   and persists `game` to localStorage (`persist` version = `SAVE_VERSION`; new `GameState` fields default through
@@ -74,7 +75,9 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
 ## Balance touchpoints
 
 Starting stats 34/40/30 (story/art/pacing), rivals score 47 to 62, spread 8, the named rival starts at craft 50 in
-Kids Comic Go! (+4 a year, max 76), weekly living cost 400, one-shot 20 pages (~17 days solo), chapter 16 pages.
+Kids Comic Go! (+4 a year, max 76), weekly living cost 400 plus studio rent (flat 150, loft 350), one-shot 20 pages
+(~17 days solo), chapter 16 pages. Equipment prices and move-in costs go through `equipmentPrice` and `moveInCost`
+(`EQUIPMENT_PRICE_SCALE`).
 
 `src/sim/__tests__/balance.test.ts` asserts the Package 1 balance bands (DESIGN.md "Balance bots and bands") over
 seeds 1–20 as part of `npm test`, including a fresh player's first one-shot score (40–55 on 13 of 20 seeds, median

@@ -169,17 +169,55 @@ Forecast calibration is a balance band: over year one the offer chances quoted a
   it shows the rhythm ("Every 21 days"), the working days a chapter takes at the player's pace, "Rest days could make
   you miss issues." when tight and "You will miss issues at this pace: hire help first." when late. The Series panel
   lists the rhythm and the missed issues.
-- The balance bots hire help when the chapter on the desk is late, a desk is free, and the bank holds two weeks of
-  the candidate's salary on top of two weeks of current costs; they pick the most pages per day per yen of salary.
+- The balance bots hire help when the chapter on the desk is late, a desk is free in their studio (they never move or
+  buy equipment, so the apartment's one desk is theirs), and the bank holds two weeks of the candidate's salary on top
+  of two weeks of current costs; they pick the most pages per day per yen of salary.
 - Freshness erodes 2 points per chapter after chapter 8, so every series has a natural arc. The player can wrap a
   series up at any time and converts popularity into loyal fans.
 - Wrapping up with popularity 50 or higher after at least one volume has shipped sells a final volume at 1.5x copies;
   wrapping before any chapter has polled earns nothing.
 
 ### Staff
-- Up to 3 assistants. Three candidates rotate every 4 weeks. No hiring fee, weekly salary.
+- One assistant per desk: 1 in the apartment, 2 in the studio flat, 3 in the loft (see Studio and equipment). Three
+  candidates rotate every 4 weeks. No hiring fee, weekly salary. With every desk taken, the Staff panel's hire buttons
+  say "Move to a bigger studio for another desk" (in the loft: "Full, let someone go first").
 - Each adds pages per day and blends their own Art/Story into page quality. Traits: Fast, Careful, Inspiring, Steady.
 - Assistants tire like the player and rest when the player rests or works a part-time job.
+
+### Studio and equipment
+A money sink whose every effect is stated where it is sold (the Studio panel, from the desk's Studio button) and listed
+again under the reward tiles in Stats. `src/sim/studio.ts`; no RNG.
+- **Tiers.** A new career starts in the apartment. Moving goes one tier up at a time, never down, and costs the next
+  tier's move-in. The tier's rent is part of the weekly costs (living + rent + salaries), and the weekly log line names
+  it when it is not zero ("Weekly costs: -¥550 (living ¥400, rent ¥150)."). `hireAssistant` refuses once every desk is
+  taken, on top of the rule that the bank must hold two weeks of that salary.
+
+| Tier | Desks | Rent/week | Move-in |
+|---|---|---|---|
+| Apartment | 1 | ¥0 | ¥0 |
+| Studio flat | 2 | ¥150 | ¥5,000 |
+| Studio loft | 3 | ¥350 | ¥15,000 (from the flat) |
+
+- **Equipment** is bought once and kept. A piece cannot be bought twice, without the money, or (the pen tablet) below
+  the studio flat. Effects sum over everything owned; page multipliers multiply (drafting table and tablet: x1.265).
+  Art and story bonuses go on the player's own samples of every working day (clamped to 100), never the assistants'.
+  The page multiplier is part of `basePagesPerDay`, so the desk's pace, the ETA and the chapter deadline all include it.
+
+| Equipment | Price | Effect |
+|---|---|---|
+| Coffee machine | ¥2,000 | Resting restores 3 more stamina a day (the rest branch, not trips) |
+| Daylight lamp | ¥2,500 | Art +3 on your pages |
+| Reference shelf | ¥3,000 | Story +3 on your pages |
+| Ergonomic chair | ¥4,000 | Drawing costs 1 less stamina a day (min 2); adds to an Inspiring assistant's 1 |
+| Drafting table | ¥7,000 | 10% more pages a day |
+| Pen tablet | ¥12,000, needs the flat | 15% more pages a day, art +2 |
+
+- **Prices** go through `equipmentPrice(id)` and `moveInCost(tier)`: the base price times `EQUIPMENT_PRICE_SCALE`
+  (1 today), rounded to the nearest ¥100. The panel and the tests read the helpers, never the base prices.
+- **Saves** from before studios start in a studio with a desk for every assistant they have (3: loft, 2: flat,
+  otherwise the apartment) and no equipment.
+- `studioLook(s)` is what the studio scene will draw: the tier, its desks, the owned list itself (the same array, so
+  it can be compared by reference) and the volumes shipped across every serial, at most 24.
 
 ### Part-time job
 - A third daily activity: earns money, costs a little stamina, draws nothing. The money lifeline.
@@ -228,9 +266,9 @@ always pause.
 ## Roadmap
 0. Money sinks. Shipped: hiring needs two weeks of that salary in the bank; a week that ends below zero makes
    assistants quit and charges an overdraft fee (5% of the debt, at least ¥50), and a week that ends with less
-   than one week of costs warns first. Still to do: studio tiers that gate assistant slots with rent, equipment
-   purchases with stated effects, a volume curve that flattens with fans (sqrt), a smaller HUD on phones shipped
-   separately.
+   than one week of costs warns first; studio tiers gate assistant desks with rent, and equipment has stated effects
+   (see Studio and equipment). Still to do: a volume curve that flattens with fans (sqrt), a smaller HUD on phones
+   shipped separately.
 1. Awards (year end), anime adaptation offers, merchandise, conventions.
 2. Rival mangaka with visible careers and head-to-head polls.
 3. Random events with choices. Shipped: six events as desk cards (see Random events).
@@ -267,8 +305,8 @@ awarded on the next tick, at most one day later.
 The final hook order inside `tick()`:
 
 1. Day + 1.
-2. Trip, part-time job, or the work-or-rest branch (pages, stamina, assistants).
-3. Weekly costs (living cost and salaries, with the overdraft rules).
+2. Trip, part-time job, or the work-or-rest branch (pages, stamina, assistants; equipment effects apply here).
+3. Weekly costs (living cost, studio rent and salaries, with the overdraft rules).
 4. Candidate refresh.
 5. One-shot poll result and serialisation offer.
 6. `resolveChapters` (chapter polls, volumes, warnings, cancellation, archiving).
