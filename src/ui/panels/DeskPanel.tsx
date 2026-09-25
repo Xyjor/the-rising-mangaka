@@ -166,6 +166,9 @@ const QuickNav = memo(function QuickNav() {
         <Icon name="people" />Staff
         {staff > 0 && <span className="badge" style={{ background: 'var(--blue)' }}>{staff}</span>}
       </button>
+      <button className="btn" onClick={() => openModal('studio')} title="Studio">
+        <Icon name="home" />Studio
+      </button>
       <button className="btn" onClick={() => openModal('trips')} title="Trips (T)">
         <Icon name="map" />Trips
       </button>

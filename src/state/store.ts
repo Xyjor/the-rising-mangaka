@@ -2,7 +2,9 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { PersistStorage, StorageValue } from 'zustand/middleware'
 import * as sim from '../sim'
-import type { Activity, Focus, GameState, LogKind, MagazineId, PlaceId, ProjectDraft, StatId } from '../sim'
+import type {
+  Activity, EquipmentId, Focus, GameState, LogKind, MagazineId, PlaceId, ProjectDraft, StatId, StudioTierId,
+} from '../sim'
 import { upgradeSave } from '../sim/migrate'
 import { claim, isOwner, startTabLock } from './tabLock'
 
@@ -10,7 +12,7 @@ export type Speed = 0 | 1 | 2 | 3
 export type RunSpeed = Exclude<Speed, 0>
 export type Modal =
   | 'none' | 'wizard' | 'submit' | 'stats' | 'notebook' | 'history' | 'settings' | 'staff' | 'trips' | 'series'
-  | 'career'
+  | 'career' | 'studio'
 export type ThemeMode = 'auto' | 'light' | 'dark'
 
 export interface Toast { id: number; kind: LogKind; text: string }
@@ -55,6 +57,9 @@ interface Store {
   startTrip: (p: PlaceId) => void
   /** Answer the random event waiting on the desk. */
   resolveEvent: (choice: 'a' | 'b') => void
+  /** Move the studio one tier up, paying the move-in cost. */
+  moveStudio: (tier: StudioTierId) => void
+  buyEquipment: (id: EquipmentId) => void
   setActivity: (a: Activity) => void
   setFocus: (f: Focus) => void
   spendSkillPoint: (s: StatId) => void
@@ -251,6 +256,8 @@ export const useStore = create<Store>()(
         fireAssistant: (id) => apply((g) => sim.fireAssistant(g, id)),
         startTrip: (p) => apply((g) => sim.startTrip(g, p), { close: true, resume: true }),
         resolveEvent: (c) => apply((g) => sim.resolveEvent(g, c)),
+        moveStudio: (t) => apply((g) => sim.moveStudio(g, t)),
+        buyEquipment: (id) => apply((g) => sim.buyEquipment(g, id)),
         setActivity: (a) => apply((g) => sim.setActivity(g, a)),
         setFocus: (f) => apply((g) => sim.setFocus(g, f)),
         spendSkillPoint: (s) => apply((g) => sim.spendSkillPoint(g, s)),

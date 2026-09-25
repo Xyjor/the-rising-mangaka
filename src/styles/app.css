@@ -148,6 +148,8 @@
 
 .quick-nav { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .quick-nav .btn { position: relative; flex-direction: column; gap: 4px; padding: 10px 6px; font-size: 12px; min-height: 60px; }
+/* Seven menus in rows of three: the last one spans its row instead of sitting alone in the first column. */
+.quick-nav .btn:last-child:nth-child(3n + 1) { grid-column: 1 / -1; flex-direction: row; min-height: 44px; }
 .quick-nav .btn .badge {
   position: absolute; top: -6px; right: -6px;
   background: var(--accent); color: #fff; font-size: 10px; font-weight: 900;
@@ -359,7 +361,12 @@
 .place .name { font-weight: 900; font-size: 16px; }
 .place .meta { font-size: 12px; font-weight: 700; color: var(--ink-2); }
 .place .effect { font-size: 13px; font-weight: 800; color: var(--blue-text); }
-.place .btn { grid-column: 2; grid-row: 1 / span 3; }
+.place .btn, .place > .chip { grid-column: 2; grid-row: 1 / span 3; }
+/* Long labels ("Move to a bigger studio for another desk") wrap instead of overflowing a narrow card or phone. */
+.place .btn, .person .btn { white-space: normal; text-align: center; }
+
+/* Stats: what the studio's equipment does, one piece a line. */
+.effect-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
 
 /* ---------- offer ---------- */
 .offer-hero {

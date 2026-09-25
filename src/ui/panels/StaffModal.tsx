@@ -1,5 +1,6 @@
 import {
-  HIRE_RUNWAY_WEEKS, LOW_STAMINA_THRESHOLD, MAX_ASSISTANTS, TRAITS, WEEKLY_LIVING_COST, assistantPagesPerDay, weeklyCosts,
+  HIRE_RUNWAY_WEEKS, LOW_STAMINA_THRESHOLD, STUDIO_TIERS, TRAITS, WEEKLY_LIVING_COST, assistantPagesPerDay, studioSlots,
+  studioTier, weeklyCosts,
 } from '../../sim'
 import type { Assistant } from '../../sim'
 import { useStore } from '../../state/store'
@@ -63,9 +64,13 @@ export function StaffModal() {
   const closeModal = useStore((s) => s.closeModal)
   const hire = useStore((s) => s.hireAssistant)
   const fire = useStore((s) => s.fireAssistant)
-  const full = game.assistants.length >= MAX_ASSISTANTS
+  const desks = studioSlots(game)
+  const full = game.assistants.length >= desks
+  // Every desk taken: a bigger studio has more, until the biggest.
+  const canMove = game.studio.tier !== STUDIO_TIERS[STUDIO_TIERS.length - 1].id
   const refreshIn = Math.max(0, game.candidatesRefreshDay - game.day)
   const costs = weeklyCosts(game)
+  const rent = studioTier(game).rent
   const runway = Math.max(0, Math.floor(game.player.money / costs))
 
   return (
@@ -73,9 +78,9 @@ export function StaffModal() {
       <div className="col" style={{ gap: 20 }}>
         <section className="col" style={{ gap: 10 }}>
           <div className="row between wrap">
-            <div className="panel-title">Your studio <span className="small muted" style={{ fontFamily: 'var(--font-ui)', letterSpacing: 0 }}>({game.assistants.length} of {MAX_ASSISTANTS})</span></div>
+            <div className="panel-title">Your studio <span className="small muted" style={{ fontFamily: 'var(--font-ui)', letterSpacing: 0 }}>({game.assistants.length} of {plural(desks, 'desk')})</span></div>
             <span className="small muted">
-              Weekly costs {money(costs)}: living {money(WEEKLY_LIVING_COST)}, salaries {money(costs - WEEKLY_LIVING_COST)}.{' '}
+              Weekly costs {money(costs)}: living {money(WEEKLY_LIVING_COST)}, {rent ? `rent ${money(rent)}, ` : ''}salaries {money(costs - WEEKLY_LIVING_COST - rent)}.{' '}
               <span className={runway <= 1 ? 'warn-text' : undefined}>Runway: {plural(runway, 'week')}</span>
             </span>
           </div>
@@ -105,7 +110,9 @@ export function StaffModal() {
                     <Person
                       key={a.id}
                       a={a}
-                      actionLabel={full ? 'Full, let someone go first' : short ? `Need ${money(a.salary * HIRE_RUNWAY_WEEKS)} in the bank` : 'Hire'}
+                      actionLabel={full
+                        ? canMove ? 'Move to a bigger studio for another desk' : 'Full, let someone go first'
+                        : short ? `Need ${money(a.salary * HIRE_RUNWAY_WEEKS)} in the bank` : 'Hire'}
                       disabled={full || short}
                       action={() => hire(a.id)}
                     />

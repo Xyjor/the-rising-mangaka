@@ -17,6 +17,7 @@ import { SeriesModal } from './panels/SeriesModal'
 import { SettingsModal } from './panels/SettingsModal'
 import { StaffModal } from './panels/StaffModal'
 import { StatsModal } from './panels/StatsModal'
+import { StudioModal } from './panels/StudioModal'
 import { SubmitModal } from './panels/SubmitModal'
 import { TripsModal } from './panels/TripsModal'
 import { StudioScene } from './scene/StudioScene'
@@ -120,6 +121,7 @@ export function App() {
       {free && modal === 'trips' && <TripsModal />}
       {free && modal === 'series' && <SeriesModal />}
       {free && modal === 'career' && <CareerModal />}
+      {free && modal === 'studio' && <StudioModal />}
     </div>
   )
 }

@@ -1,4 +1,5 @@
-import { xpToNext } from '../../sim'
+import { useId } from 'react'
+import { EQUIPMENT, xpToNext } from '../../sim'
 import type { StatId } from '../../sim'
 import { useStore } from '../../state/store'
 import { Bar, Metric, Modal, Reward } from '../components'
@@ -16,6 +17,8 @@ export function StatsModal() {
   const closeModal = useStore((s) => s.closeModal)
   const spend = useStore((s) => s.spendSkillPoint)
   const p = game.player
+  const owned = EQUIPMENT.filter((e) => game.studio.owned.includes(e.id))
+  const equipmentId = useId()
 
   return (
     <Modal title={p.name} sub={`Level ${p.level} mangaka`} onClose={closeModal} narrow>
@@ -45,6 +48,17 @@ export function StatsModal() {
           <Reward value={bestRank(game.history)} label="Best rank" />
           <Reward value={game.history.length ? Math.round(game.history.reduce((a, r) => a + r.score, 0) / game.history.length) : '—'} label="Avg score" />
         </div>
+
+        <section className="col" style={{ gap: 8 }}>
+          <div className="panel-title" id={equipmentId}>Equipment</div>
+          {owned.length
+            ? (
+              <ul className="effect-list" aria-labelledby={equipmentId}>
+                {owned.map((e) => <li key={e.id}><b>{e.name}</b>: {e.effect}</li>)}
+              </ul>
+            )
+            : <p className="small muted">No equipment yet. The Studio sells gear that helps you draw and rest.</p>}
+        </section>
       </div>
     </Modal>
   )
