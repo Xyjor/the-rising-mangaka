@@ -68,6 +68,12 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
 
 ## Balance touchpoints
 
-Starting stats 34/38/30, rivals score 47 to 62, spread 8, weekly living cost 400, one-shot 20 pages (~17 days solo),
-chapter 16 pages. If you change formulas, re-run the balance script and keep one-shot scores in the 40–55 range
-for a fresh player.
+Starting stats 34/40/30 (story/art/pacing), rivals score 47 to 62, spread 8, weekly living cost 400, one-shot 20 pages
+(~17 days solo), chapter 16 pages.
+
+`src/sim/__tests__/balance.test.ts` asserts the Package 1 balance bands (DESIGN.md "Balance bots and bands") over
+seeds 1–20 as part of `npm test`, including a fresh player's first one-shot score (40–55 on 13 of 20 seeds, median
+44–52). The bot runs and row measurements live in `src/sim/balance.ts`, shared with `npm run balance`, which prints
+the same numbers per seed. If you change formulas or constants, run both. balance.test thresholds change only with
+owner sign-off: when a row fails, tune the knobs DESIGN.md lists, in order (the first-score row is tuned through the
+starting stats), record the change as a ruling, and re-derive by hand every test literal the change moves.

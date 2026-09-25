@@ -76,15 +76,44 @@ and `score = clamp(round(Σ component × weight / 100), 0, 100)`:
 | Kids Comic Go!  | 35  | 15    | 10     | 20  | 20        | Readers love bright art, and a manga made for them.       |
 
 This is what makes **focus** a decision: art focus (art ×1.25, story ×0.8) suits Weekly Bolt and Kids Comic Go!,
-story focus suits Monthly Petal and Ultra Seinen. For a fresh player drawing a kids one-shot, art focus scores about
-3.7 more than story focus at Kids Comic Go!, and story focus about 2.8 more at Monthly Petal. The desk's focus hint,
-the pitch screen, the wizard's audience step, the results breakdown ("weight N%") and the stats screen all show the
-weights, so the modifier is never hidden.
+story focus suits Monthly Petal and Ultra Seinen. For a fresh player (art 40, story 34) drawing a kids one-shot, the
+model expects art focus to score about 4.0 more than story focus at Kids Comic Go! (40 × 0.45 × 35% − 34 × 0.45 × 15%)
+and story focus about 2.7 more at Monthly Petal; measured over seeds 1–20 the gaps are 4.05 and 2.65. The desk's focus
+hint, the pitch screen, the wizard's audience step, the results breakdown ("weight N%") and the stats screen all show
+the weights, so the modifier is never hidden.
 
 Rank = 1 + number of rivals scoring higher, each drawn as `magazine.rivalMean + Gaussian noise (sd RIVAL_SCORE_SD)`
 (see CLAUDE.md balance touchpoints for the current rival score range and spread). Rewards scale with score and rank.
 The editor writes a one-line comment on the component that cost the most points at that magazine
 (`biggestLoss`: the largest weight × (100 − component), ties in the order art, story, pacing, fit, freshness).
+
+### Pay
+Every poll, one-shot or chapter, pays `round(pageRate × pages × score × tier% / (PAY_FULL_RATE_SCORE × 100))`
+(`pollPay`: integer factors and a single division, so x.5 cases round exactly). `PAY_FULL_RATE_SCORE` is 80: a score
+of 80 earns the full page rate, lower scores scale it down and higher ones up. The rank tier (`rankTier`,
+`RANK_MULTIPLIER_PCT`) sets `tier%`: first place 200, the podium (rank 3 or better) 140, mid-table (rank at most
+ceil(entrants / 2), entrants counting the player's work) 100, weak 70. A one-shot is paid on its 20 pages, a chapter
+on its 16. Example: a Kids Comic Go! one-shot scoring 52 in second place pays 90 × 20 × 52 × 140 / 8000 = ¥1,638.
+The results screen explains every payout in those terms (`payWhy`: pages at the page rate, scaled by the score, times
+the tier).
+
+### Pitch forecast
+For each magazine the pitch screen quotes "Likely score A to B. Likely rank #C to #D of N.", the serial-offer odds and
+"Pays about ¥X (¥L to ¥H)". `forecastPoll` (`forecast.ts`) computes them exactly and without RNG from what the player
+can know:
+- A pairing the Notebook has rated counts at that rating. An untested pairing is spread over `RATING_PRIOR` (Bad 0.15,
+  Meh 0.25, Good 0.3, Great 0.2, Perfect 0.1, the thresholds hidden ratings are drawn with); its hidden rating is
+  never read. The hand-authored "obvious" pairings in `compat.ts` count as untested too until the Notebook has them.
+- Pacing noise is integrated with a 25-node quadrature (z from −3 to 3 in steps of 0.25, Gaussian weights).
+- Every rating scenario and node goes through the poll's own `computeBreakdown` and `weightedScore`, so the rounding
+  is the real one.
+- For each score the rivals are a Poisson-binomial: rival i finishes above with 1 − Φ((score − rivalMean) / RIVAL_SCORE_SD).
+- The offer chance is P(rank 3 or better, or score 65 or more): "certain" when every outcome clears 65, "none while
+  <serial> runs" while a serial runs. The likely ranges are the 10th and 90th percentiles; the pay is the mean over every
+  score and rank, its range every outcome more likely than 1e-9.
+
+Forecast calibration is a balance band: over year one the offer chances quoted at each pitch, summed, must come within
+30% of the offers that arrived.
 
 ## Architecture
 
@@ -193,14 +222,67 @@ awarded on the next tick, at most one day later.
 ## Tick order
 The final hook order inside `tick()`:
 
-1. Trip, part-time job, or the work-or-rest branch (pages, stamina, assistants).
-2. Weekly costs (living cost and salaries, with the overdraft rules).
-3. Candidate refresh.
-4. One-shot poll result and serialisation offer.
-5. `resolveChapters` (chapter polls, volumes, warnings, cancellation, archiving).
-6. `checkDeadline` (a serial chapter not in by its due day misses the issue; warnings and cancellation).
-7. `awardMilestones`.
-8. Return.
+1. Day + 1.
+2. Trip, part-time job, or the work-or-rest branch (pages, stamina, assistants).
+3. Weekly costs (living cost and salaries, with the overdraft rules).
+4. Candidate refresh.
+5. One-shot poll result and serialisation offer.
+6. `resolveChapters` (chapter polls, volumes, warnings, cancellation, archiving).
+7. `checkDeadline` (a serial chapter not in by its due day misses the issue; warnings and cancellation).
+8. `awardMilestones`.
+9. Return.
 
 Future hooks (events, year review, anime) go between `checkDeadline` and `awardMilestones` so milestones see
 their effects the same day.
+
+## Balance bots and bands
+
+`src/sim/bot.ts` holds three deterministic player policies that drive the real sim: `botStep` makes one day's
+decisions through the same commands the store calls, then ticks. The game never plays itself, so `index.ts` does not
+export them.
+- **Sensible** plays the way the interface teaches. For each magazine it plans the best known pairing for that
+  magazine's readers, drawn with the focus the magazine suits, and keeps the magazine with the best forecast odds (ties:
+  higher expected pay, then the softer field). It spends every point as it arrives (every third on pacing, the rest on
+  art or story, whichever its target magazine weighs higher), takes shifts while money is under two weeks of costs,
+  hires when a chapter will miss its issue, and wraps a serial up at 16 results with popularity 50 or more.
+- **Careless** ignores the Notebook, the odds and the stats screen: every choice is a hash of the world seed and the
+  project id, the focus is balanced, and it never spends points.
+- **Stress case** draws six fixed one-shots rotating Weekly Bolt, Kids Comic Go!, Monthly Petal and Ultra Seinen
+  without spending points, then is forced into a Weekly Bolt serial with balanced focus; it declines organic offers
+  and never wraps up.
+
+`npm run balance -- [from=1] [to=20] [--detail seed]` prints a line per seed per bot, then one line per balance-band row
+(`--detail` adds every one-shot and chapter of that seed). The runs and the row measurements live in
+`src/sim/balance.ts`; the script prints them and `src/sim/__tests__/balance.test.ts` asserts them (the bots run once
+per test file), so the readout and the test cannot disagree. Each seed is played three ways: year one (336 days) for
+weeks in debt and calibration; up to the 6th one-shot (at most three years) for the first score, the first offer, the
+first-six mean and the money at the 6th; until the first serial ends or reaches 8 results (at most three years). The
+stress case plays 480 days.
+
+### Balance bands (Package 1, seeds 1 to 20)
+
+| Measure | Target |
+|---|---|
+| Sensible bot, first one-shot score | 40–55 on ≥ 13/20; median 44–52 |
+| Sensible minus careless, mean score of first 6 one-shots | ≥ 8 |
+| Sensible bot, organic offer within first 6 one-shots | ≥ 16/20; median first offer at one-shot ≤ 3 |
+| Careless bot, organic offer within 6 | ≤ 6/20 |
+| Sensible bot's first serial reaches 8 results | ≥ 14/20 |
+| Stress case (forced Weekly Bolt, no points, balanced) | cancelled on ≥ 15/20, never before its 5th result |
+| Careless bot money at its 6th result | < ¥3,000 on ≥ 15/20 |
+| Forecast calibration (Σ offer chances vs offers seen, year one) | within ±30% |
+| Sensible bot weeks in debt, year one | 0 on ≥ 18/20 |
+
+balance.test thresholds change only with owner sign-off. When a rule change pushes a row out of its band, tune a
+knob, not the threshold, in this order: the Kids Comic Go! rival mean (45–49), `SERIAL_GRACE_CHAPTERS` (4–6), Kids
+Comic Go! `chapterDays` (21–24), `MAGAZINE_MISMATCH_PENALTY` (25–35), and record the change as a ruling. A knob change
+moves hand-derived test literals (scores, ranks, due days, probabilities); re-derive each by hand in the same change.
+
+Those four knobs move ranks, offers and serials but not a fresh player's first one-shot score: on seeds 1–20 every
+sensible first pitch is a kids manuscript at Kids Comic Go! (so the mismatch penalty never applies, and moving the Kids
+rival mean across 45–49 leaves the pitch there), and grace and chapter rhythm only touch serials. That score comes from
+the starting stats, the page noise and the hidden ratings, so the first-score row is tuned through the starting stats.
+Package 1 raised the starting art from 38 to 40 (story 34 and pacing 30 unchanged): the median first score on seeds
+1–20 went from 43 to 44 and over seeds 1–100 from 47 to 48, the middle of the band.
+
+Package 2 adds rows for events, the rival, awards and equipment, and re-asserts every Package 1 row.
