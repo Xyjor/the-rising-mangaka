@@ -4,13 +4,15 @@ import { DEFAULT_SOUND } from '../types'
 import {
   FakeAudioContext, FakeBiquad, FakeBufferSource, FakeCompressor, FakeGain, FakeOscillator, asContext,
 } from './fakeAudio'
+import { FakeTimers } from './fakeTimers'
 
 function setup(o: { state?: AudioContextState; resumes?: boolean } = {}) {
   let clock = 0
   const fake = new FakeAudioContext(o)
+  const timers = new FakeTimers()
   const createContext = vi.fn(() => asContext(fake))
-  const engine = createSoundEngine({ createContext, now: () => clock })
-  return { fake, engine, createContext, at: (ms: number) => { clock = ms } }
+  const engine = createSoundEngine({ createContext, now: () => clock, timers })
+  return { fake, engine, createContext, timers, at: (ms: number) => { clock = ms } }
 }
 
 /** Finds the mixer by its wiring: master feeds the compressor, the lowpass and fx feed master, music feeds the lowpass. */
@@ -272,16 +274,73 @@ describe('sound engine', () => {
     expect(music.target).toBe(0.5)
   })
 
-  it('lets music start and stop at any time without making sound yet', () => {
-    const { fake, engine } = setup()
-    engine.stopMusic()
+  it('records startMusic before unlock, then plays the loop through its fade into the music bus once unlocked', () => {
+    const { fake, engine, createContext, timers } = setup()
+    engine.startMusic()
+    expect(createContext).not.toHaveBeenCalled()
+    expect(fake.nodes).toEqual([])
+    expect(timers.live).toEqual([])
+    engine.unlock()
+    fake.currentTime = 0.06
+    timers.fire() // 60 ms on: the first 50 ms tick
+    const { music } = mixer(fake)
+    const fades = fake.nodes.filter((n): n is FakeGain => n instanceof FakeGain && n.connections.includes(music))
+    expect(fades).toHaveLength(1)
+    const [fade] = fades
+    expect(fade.gain.events.at(-1)).toEqual({ kind: 'linearRampToValueAtTime', value: 1, time: 2 })
+    // Step 0: lead 76 and bass 48, each through its own envelope into the fade.
+    const oscillators = fake.sources as FakeOscillator[]
+    expect(oscillators.map((o) => o.type)).toEqual(['triangle', 'sine'])
+    for (const osc of oscillators) expect(osc.connections[0].connections).toEqual([fade])
+    expect(timers.live).toEqual([50])
+  })
+
+  it('starts nothing on unlock when the music was never asked for, or asked for and withdrawn', () => {
+    for (const ask of [false, true]) {
+      const { fake, engine, timers } = setup()
+      if (ask) {
+        engine.startMusic()
+        engine.stopMusic()
+      }
+      engine.unlock()
+      expect(fake.sources).toEqual([])
+      expect(timers.live).toEqual([])
+    }
+  })
+
+  it('plays one loop however often startMusic is called', () => {
+    const { fake, engine, timers } = setup()
+    engine.startMusic()
     engine.startMusic()
     engine.unlock()
-    const nodes = fake.nodes.length
     engine.startMusic()
+    expect(fake.sources).toHaveLength(2)
+    expect(timers.live).toEqual([50])
+  })
+
+  it('stopMusic fades the loop to 0 over 0.4 s and leaves the music bus to prefs and duck', () => {
+    const { fake, engine } = setup()
+    engine.unlock()
+    engine.startMusic()
+    const { music } = mixer(fake)
+    const fade = fake.nodes.find((n): n is FakeGain => n instanceof FakeGain && n.connections.includes(music))!
+    const busEvents = music.gain.events.length
+    fake.currentTime = 1
     engine.stopMusic()
+    expect(fade.gain.events.at(-1)).toEqual({ kind: 'linearRampToValueAtTime', value: 0, time: 1.4 })
+    expect(music.gain.events).toHaveLength(busEvents)
     engine.stopMusic()
-    expect(fake.nodes.length).toBe(nodes)
+    expect(fade.gain.events.filter((e) => e.kind === 'linearRampToValueAtTime' && e.value === 0)).toHaveLength(1)
+  })
+
+  it('clears the music timer on dispose', () => {
+    const { engine, timers } = setup()
+    engine.startMusic()
+    engine.unlock()
+    engine.dispose()
+    expect(timers.live).toEqual([])
+    engine.startMusic()
+    expect(timers.live).toEqual([])
   })
 
   it('passes suspend and resume through to the context, but stays suspended while muted', () => {

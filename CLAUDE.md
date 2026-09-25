@@ -43,9 +43,11 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   `src/sim/migrate.ts` `upgradeSave`; bump `SAVE_VERSION` only for shape changes that cannot be defaulted).
   Sim commands go through the `apply()` helper so toasts and auto-resume stay consistent.
 - `src/audio/` — Web Audio sound, framework-free, no files. `engine.ts` synthesises the cues and owns the AudioContext,
-  `triggers.ts` maps a state change to cues, `instance.ts` holds the one shared engine (`getSound`/`installSound`), and
-  `bridge.ts` `connectSound` (wired in `main.tsx`) makes it follow the store: prefs, music, cues (never in a read-only
-  tab or for a loaded save, via the store's `saveLoads`), and the gestures that unlock it, until the context runs.
+  `music.ts` is the music loop (its score and look-ahead scheduler; the engine starts it on unlock when asked for
+  before, and each start plays through its own fade gain), `triggers.ts` maps a state change to cues, `instance.ts`
+  holds the one shared engine (`getSound`/`installSound`), and `bridge.ts` `connectSound` (wired in `main.tsx`) makes
+  it follow the store: prefs, music, cues (never in a read-only tab or for a loaded save, via the store's `saveLoads`),
+  and the gestures that unlock it, until the context runs.
 - `src/ui/` — React 19 components. `App.tsx` (shell, clock, hotkeys), `Hud.tsx`, `panels/*` (modals and the desk
   panel), `scene/StudioScene.tsx` (pixel-art canvas, 192×108 logical pixels, sprites as string maps),
   `components.tsx` (Bar, Pips, Modal, RankChart, money/compact formatters), `Icon.tsx` (inline SVG icon set).

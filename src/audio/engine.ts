@@ -1,7 +1,9 @@
 // The sound engine: owns the AudioContext (created lazily on the first user gesture), the mixer, mute and volume,
-// and the guards that keep cues from piling up. Framework-free; time comes from the injected `now()` in ms.
+// the guards that keep cues from piling up, and whether the music loop is wanted. Framework-free; time comes from the
+// injected `now()` in ms, and the music scheduler's timer from the injected `timers`.
 import { CUES } from './cues'
 import { createLimiter } from './limiter'
+import { createMusicPlayer, type MusicPlayer, type Timers } from './music'
 import { buildGraph, playVoices, type Graph } from './synth'
 import { DEFAULT_SOUND, clamp01, levelToGain, type CueId, type SoundPrefs } from './types'
 
@@ -15,7 +17,12 @@ export interface SoundEngine {
   play(cue: CueId, opts?: { pitch?: number }): () => void
   setPrefs(p: SoundPrefs): void
   levels(): { master: number; fx: number; music: number }
+  /**
+   * Asks for the music loop. Before unlock() this only records the wish, and the loop starts when unlock() builds the
+   * mixer. A no-op while the loop plays; while it fades out after stopMusic(), a fresh loop starts from its first step.
+   */
   startMusic(): void
+  /** Withdraws the wish and fades the loop out over 0.4 s. A no-op when the loop is not playing. */
   stopMusic(): void
   /** Lowers the music bus to `level` (0..1) of its normal level; duck(1) restores it. */
   duck(level: number): void
@@ -28,6 +35,8 @@ export interface SoundEngineOptions {
   createContext: () => AudioContext | null
   /** Milliseconds, any origin. Defaults to performance.now. */
   now?: () => number
+  /** The music scheduler's timer. Defaults to the global setInterval and clearInterval. */
+  timers?: Timers
 }
 
 /** Most voices that may sound at the same moment. */
@@ -49,6 +58,10 @@ export function levelsFor(p: SoundPrefs): { master: number; fx: number; music: n
 }
 
 const noop = () => {}
+const globalTimers: Timers = {
+  setInterval: (fn, ms) => globalThis.setInterval(fn, ms),
+  clearInterval: (id) => globalThis.clearInterval(id as number),
+}
 const GAPS: Record<string, number> = Object.fromEntries(Object.entries(CUES).map(([id, cue]) => [id, cue.gapMs]))
 
 /** When a voice sounds, in now() ms: from s (start) to e (end). */
@@ -79,12 +92,16 @@ function peakOverlap(spans: readonly Span[], t: number): number {
 
 export function createSoundEngine(o: SoundEngineOptions): SoundEngine {
   const now = o.now ?? (() => performance.now())
+  const timers = o.timers ?? globalTimers
   const limiter = createLimiter(GAPS)
   const turns = new Map<CueId, number>()
   let prefs: SoundPrefs = { ...DEFAULT_SOUND }
   let duckLevel = 1
   let ctx: AudioContext | null = null
   let graph: Graph | null = null
+  let music: MusicPlayer | null = null
+  /** Whether the loop should play: set by startMusic, even before unlock, and cleared by stopMusic. */
+  let musicWanted = false
   let created = false
   let disposed = false
   /** When the context was last asked to resume: the start of the grace. */
@@ -125,7 +142,11 @@ export function createSoundEngine(o: SoundEngineOptions): SoundEngine {
       if (!created) {
         created = true
         ctx = o.createContext()
-        if (ctx) graph = buildGraph(ctx, { ...levels(), music: musicLevel() })
+        if (ctx) {
+          graph = buildGraph(ctx, { ...levels(), music: musicLevel() })
+          music = createMusicPlayer(ctx, graph.music, timers)
+          if (musicWanted) music.start()
+        }
       }
       if (!ctx) return
       if (prefs.muted) {
@@ -172,9 +193,15 @@ export function createSoundEngine(o: SoundEngineOptions): SoundEngine {
 
     levels,
 
-    // Music arrives in a later task; until then these are safe no-ops.
-    startMusic() {},
-    stopMusic() {},
+    startMusic() {
+      musicWanted = true
+      music?.start()
+    },
+
+    stopMusic() {
+      musicWanted = false
+      music?.stop()
+    },
 
     duck(level) {
       duckLevel = clamp01(level)
@@ -191,6 +218,8 @@ export function createSoundEngine(o: SoundEngineOptions): SoundEngine {
 
     dispose() {
       disposed = true
+      music?.dispose()
+      music = null
       if (ctx) void ctx.close().catch(noop)
       ctx = null
       graph = null

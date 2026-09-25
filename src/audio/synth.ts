@@ -1,5 +1,5 @@
-// The only file that creates Web Audio nodes: the mixer graph, the shared noise buffer and one short-lived chain
-// per voice (source, optional filter, envelope gain). Scheduling is in context time (seconds).
+// The mixer graph, the shared noise buffer and one short-lived chain per cue voice (source, optional filter, envelope
+// gain). The music loop's notes and fades are made in music.ts. Scheduling is in context time (seconds).
 import type { Voice } from './types'
 
 /** The mixer: the fx and music buses feed master, which feeds a gentle compressor and the speakers. */
@@ -93,7 +93,7 @@ export function playVoices(
 }
 
 /** Drops a param's automation after `t` but keeps its level at `t`, so a fade from there starts without a jump. */
-function holdAt(param: AudioParam, t: number) {
+export function holdAt(param: AudioParam, t: number) {
   // Firefox has no cancelAndHoldAtTime.
   if (typeof param.cancelAndHoldAtTime === 'function') {
     param.cancelAndHoldAtTime(t)
