@@ -1,6 +1,8 @@
 import { Fragment } from 'react'
+import { getSound } from '../../audio/instance'
 import { useStore } from '../../state/store'
 import { ConfirmRow } from '../ConfirmRow'
+import { Icon } from '../Icon'
 import { Modal } from '../components'
 
 const KEYS: [string, string][] = [
@@ -13,17 +15,60 @@ export function SettingsModal() {
   const closeModal = useStore((s) => s.closeModal)
   const theme = useStore((s) => s.theme)
   const setTheme = useStore((s) => s.setTheme)
+  const sound = useStore((s) => s.sound)
+  const setSound = useStore((s) => s.setSound)
   const abandon = useStore((s) => s.abandonGame)
+
+  const volumePct = Math.round(sound.volume * 100)
+  const volumeReadout = sound.muted ? 'Off' : `${volumePct}%`
 
   return (
     <Modal title="Settings" onClose={closeModal} narrow>
       <div className="col" style={{ gap: 18 }}>
         <div className="row between">
           <span style={{ fontWeight: 800 }}>Appearance</span>
-          <div className="seg sm">
+          <div className="seg sm" role="group" aria-label="Appearance">
             <button aria-pressed={theme === 'auto'} onClick={() => setTheme('auto')}>Auto</button>
             <button aria-pressed={theme === 'light'} onClick={() => setTheme('light')}>Light</button>
             <button aria-pressed={theme === 'dark'} onClick={() => setTheme('dark')}>Dark</button>
+          </div>
+        </div>
+
+        <div className="row between">
+          <span style={{ fontWeight: 800 }}>Sound</span>
+          <div className="row">
+            <button
+              className="btn ghost icon"
+              aria-pressed={sound.muted}
+              aria-label="Mute sound"
+              title="Mute sound"
+              onClick={() => setSound({ muted: !sound.muted })}
+            >
+              <Icon name={sound.muted ? 'mute' : 'sound'} />
+            </button>
+            <input
+              className="range"
+              type="range"
+              min={0}
+              max={100}
+              step={5}
+              value={volumePct}
+              aria-label="Volume"
+              aria-valuetext={volumeReadout}
+              onChange={(e) => {
+                setSound({ volume: Number(e.target.value) / 100, muted: false })
+                getSound().play('click')
+              }}
+            />
+            <span className="tiny num" style={{ minWidth: 32, textAlign: 'right' }}>{volumeReadout}</span>
+          </div>
+        </div>
+
+        <div className="row between">
+          <span style={{ fontWeight: 800 }}>Music</span>
+          <div className="seg sm" role="group" aria-label="Music">
+            <button aria-pressed={sound.music} onClick={() => setSound({ music: true })}>On</button>
+            <button aria-pressed={!sound.music} onClick={() => setSound({ music: false })}>Off</button>
           </div>
         </div>
 
