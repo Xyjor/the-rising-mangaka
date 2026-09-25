@@ -7,6 +7,8 @@ import type {
   StudioTierId,
 } from '../sim'
 import { upgradeSave } from '../sim/migrate'
+import { DEFAULT_SOUND, normalizeSound } from '../audio/types'
+import type { SoundPrefs } from '../audio/types'
 import { claim, isOwner, startTabLock } from './tabLock'
 
 export type Speed = 0 | 1 | 2 | 3
@@ -37,6 +39,7 @@ interface Store {
   tutorialStep: number
   /** True while another tab owns the save: this tab mirrors it and its clock never runs. */
   readOnly: boolean
+  sound: SoundPrefs
 
   newGame: (name: string) => void
   /** Claim the save for this tab and reload the latest state from storage. */
@@ -72,6 +75,7 @@ interface Store {
   spendSkillPoint: (s: StatId) => void
   dismissToast: (id: number) => void
   setTheme: (t: ThemeMode) => void
+  setSound: (patch: Partial<SoundPrefs>) => void
   finishTutorial: () => void
 }
 
@@ -97,6 +101,7 @@ interface Persisted {
   theme: ThemeMode
   resumeSpeed: RunSpeed
   tutorialStep: number
+  sound: SoundPrefs
 }
 
 /**
@@ -147,7 +152,8 @@ const saveStorage: PersistStorage<Persisted> = {
       s.game === last.game &&
       s.theme === last.theme &&
       s.resumeSpeed === last.resumeSpeed &&
-      s.tutorialStep === last.tutorialStep
+      s.tutorialStep === last.tutorialStep &&
+      s.sound === last.sound
     ) return
     const gameReplaced =
       !!s.game !== !!last?.game || (!!s.game && !!last?.game && s.game.worldSeed !== last.game.worldSeed)
@@ -198,6 +204,7 @@ export const useStore = create<Store>()(
         theme: 'auto',
         tutorialStep: 0,
         readOnly: false,
+        sound: DEFAULT_SOUND,
 
         takeOver: () => {
           claim()
@@ -276,6 +283,7 @@ export const useStore = create<Store>()(
 
         dismissToast: (id) => set({ toasts: get().toasts.filter((t) => t.id !== id) }),
         setTheme: (t) => set({ theme: t }),
+        setSound: (patch) => set({ sound: normalizeSound({ ...get().sound, ...patch }) }),
         finishTutorial: () => set({ tutorialStep: -1 }),
       }
     },
@@ -283,12 +291,17 @@ export const useStore = create<Store>()(
       name: SAVE_KEY,
       version: SAVE_VERSION,
       storage: saveStorage,
-      partialize: (s): Persisted => ({ game: s.game, theme: s.theme, resumeSpeed: s.resumeSpeed, tutorialStep: s.tutorialStep }),
+      partialize: (s): Persisted => ({
+        game: s.game, theme: s.theme, resumeSpeed: s.resumeSpeed, tutorialStep: s.tutorialStep, sound: s.sound,
+      }),
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<Store>
-        const merged: Store = { ...current, ...p, game: p.game ? upgradeSave(p.game) : null }
+        const merged: Store = { ...current, ...p, game: p.game ? upgradeSave(p.game) : null, sound: normalizeSound(p.sound) }
         // What just loaded is the baseline for the reference check, so opening a modal after a reload does not write.
-        lastAccepted = { game: merged.game, theme: merged.theme, resumeSpeed: merged.resumeSpeed, tutorialStep: merged.tutorialStep }
+        lastAccepted = {
+          game: merged.game, theme: merged.theme, resumeSpeed: merged.resumeSpeed, tutorialStep: merged.tutorialStep,
+          sound: merged.sound,
+        }
         return merged
       },
       migrate: (persisted, version) => {
@@ -298,6 +311,7 @@ export const useStore = create<Store>()(
           theme: p.theme ?? 'auto',
           resumeSpeed: p.resumeSpeed ?? 1,
           tutorialStep: p.tutorialStep ?? 0,
+          sound: normalizeSound(p.sound),
         }
         // Older saves predate serialisation and staff; start fresh rather than crash.
         if (version < SAVE_VERSION || (base.game && base.game.version !== 2)) return { ...base, game: null }

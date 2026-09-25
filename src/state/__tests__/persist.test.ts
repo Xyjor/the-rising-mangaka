@@ -1,6 +1,8 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createGame, tick as simTick } from '../../sim'
 import type { GameState } from '../../sim'
+import { DEFAULT_SOUND } from '../../audio/types'
+import type { SoundPrefs } from '../../audio/types'
 import { installFakeStorage } from '../../test/fakeStorage'
 
 vi.useFakeTimers()
@@ -10,7 +12,8 @@ const { OWNER_KEY } = await import('../tabLock')
 const { upgradeSave } = await import('../../sim/migrate')
 
 const saveWrites = () => storage.setItem.mock.calls.filter(([k]) => k === SAVE_KEY)
-const lastSave = () => JSON.parse(saveWrites().at(-1)![1]) as { version: number; state: { game: GameState | null } }
+const lastSave = () =>
+  JSON.parse(saveWrites().at(-1)![1]) as { version: number; state: { game: GameState | null; sound: SoundPrefs } }
 
 describe('persistence', () => {
   beforeAll(() => { vi.useFakeTimers() })
@@ -57,6 +60,14 @@ describe('persistence', () => {
     storage.removeItem(OWNER_KEY)
   })
 
+  it('debounces a sound-only change into one write', () => {
+    useStore.getState().setSound({ muted: true })
+    expect(saveWrites()).toHaveLength(0)
+    vi.advanceTimersByTime(800)
+    expect(saveWrites()).toHaveLength(1)
+    expect(lastSave().state.sound).toEqual({ muted: true, volume: 0.5, music: true })
+  })
+
   it('fills fields an older save lacks on rehydrate', async () => {
     const original = createGame('Old', 9)
     const stale = { ...original } as Partial<GameState>
@@ -66,6 +77,24 @@ describe('persistence', () => {
     const game = useStore.getState().game!
     expect(game.recovering).toBe(false)
     expect(game).toEqual(original)
+  })
+
+  it('defaults sound prefs when a v2 save has none', async () => {
+    storage.setItem(SAVE_KEY, JSON.stringify({ version: 2, state: { game: null, theme: 'auto', resumeSpeed: 1, tutorialStep: 0 } }))
+    await useStore.persist.rehydrate()
+    expect(useStore.getState().sound).toEqual(DEFAULT_SOUND)
+  })
+
+  it('clamps an out-of-range saved volume on rehydrate', async () => {
+    storage.setItem(
+      SAVE_KEY,
+      JSON.stringify({
+        version: 2,
+        state: { game: null, theme: 'auto', resumeSpeed: 1, tutorialStep: 0, sound: { muted: false, volume: 7, music: true } },
+      }),
+    )
+    await useStore.persist.rehydrate()
+    expect(useStore.getState().sound.volume).toBe(1)
   })
 })
 
