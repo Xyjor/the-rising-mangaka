@@ -148,7 +148,8 @@ Forecast calibration is a balance band: over year one the offer chances quoted a
 - **Popularity** (0-100) is a moving average of poll placement, minus 10 for each missed issue. Three warnings in a
   row (a weak chapter, roughly the bottom quarter with rank > ceil(0.7 x entrants), or a missed issue) cancel the
   series and cost 10% of fans; the log says "after 3 warnings in a row" whichever mix it was. Every 4 chapters a **volume** ships;
-  copies = (fans + circulation x 20) x popularity.
+  copies = (fans + circulation x 20) x popularity, times an anime deal's multiplier while its boost lasts (see Anime
+  adaptations).
 - **Grace period**: every new series' first `SERIAL_GRACE_CHAPTERS` (4) results never add a warning, even when weak;
   popularity still moves normally during grace. The earliest a weak chapter can warn is a series' 5th result, so the
   earliest cancellation by weak chapters alone is its 7th result. Applies to every new series, not only a mangaka's
@@ -219,7 +220,8 @@ again under the reward tiles in Stats. `src/sim/studio.ts`; no RNG.
 - **Saves** from before studios start in a studio with a desk for every assistant they have (3: loft, 2: flat,
   otherwise the apartment) and no equipment.
 - `studioLook(s)` is what the studio scene will draw: the tier, its desks, the owned list itself (the same array, so
-  it can be compared by reference) and the volumes shipped across every serial, at most 24.
+  it can be compared by reference), the volumes shipped across every serial, at most 24, and `animePoster`, true from
+  an anime's premiere until its volume boost ends.
 
 ### Part-time job
 - A third daily activity: earns money, costs a little stamina, draws nothing. The money lifeline.
@@ -260,10 +262,43 @@ every effect they have, and says how many days are left to answer. `src/sim/even
 Stamina changes clamp to 0..max stamina. Each assistant asks for a raise once, whatever the answer. A reprint is for
 the running serial when it has shipped a volume, else the latest archived one that has.
 
+### Anime adaptations
+A hit serial is offered one adaptation, shown as a card on the desk and never as a popup (pillar 3). The card lists
+both studios' terms, with "Sign with Studio Kumo", "Sign with Hoshi Animation" and "Not now", and says how many days
+are left to answer. `src/sim/anime.ts`; no RNG.
+- **The offer.** Checked every day (`animeTick`): a running serial with popularity 70 or more and 15,000 or more
+  copies sold across its volumes, never offered one before (`animeOfferedFor`), with no offer waiting and no earlier
+  deal whose volume boost is still on (`day <= tailEndsDay`). It toasts, pauses the clock once, and stands for 14 days
+  (answerable up to and including `expiresDay` = the day it landed + 14); the day after, it lapses with a log line.
+  The serial stays in `animeOfferedFor` whether the offer is signed, passed on or lapses: studios ask once per series.
+- **Wrapping up or cancellation.** The offer is for a running series: wrapping the series up withdraws a waiting
+  offer at once (`endSerial`), and a cancellation withdraws it in the same tick (`animeTick` runs after
+  `resolveChapters` and `checkDeadline`), each with a log line.
+- **A deal.** Signing fixes every day: `airsDay` = signing + weeks to air, `endsDay` = `airsDay` + weeks on air,
+  `tailEndsDay` = `endsDay` + the boost weeks. Week k on air pays on `airsDay` + 7k (when `(day - airsDay) % 7 === 0`
+  and `airsDay < day <= endsDay`), so the premiere day pays nothing and the finale day pays the last week. At the
+  premiere the serial's popularity rises by the studio's lift (capped at 100) only if it is still running; the anime
+  airs and pays either way. Signing, the premiere and the finale toast; weekly pay and the end of the boost are log
+  lines.
+- **Volumes.** `animeVolumeMult(s, serialId)` is the deal's multiplier from signing while `day <= tailEndsDay`, else 1.
+  Regular volumes sell round(copies x multiplier) and the wrap-up volume round(copies x 1.5 x multiplier); the volume
+  log says "(1.3x with the anime)". The Series panel shows the deal: "Signed with Studio Kumo, airs in 6 weeks;
+  volumes sell 1.3x.", then "On air, week 3 of 12: +400 fans and ¥500 a week; volumes sell 1.3x.", then the boost
+  left after the finale.
+
+| Studio | Fee | Airs after | Runs | Per week | Volume mult | Popularity at premiere |
+|---|---|---|---|---|---|---|
+| Studio Kumo | ¥2,000, paid at signing | 6 weeks | 12 weeks | +400 fans, +¥500 | 1.3x, until 12 weeks after the finale | +5 |
+| Hoshi Animation | ¥0 | 16 weeks | 24 weeks | +900 fans, +¥1,000 | 1.6x, until 24 weeks after the finale | +12 |
+
+Signed on day 100, Kumo airs on day 142, ends on day 226 and boosts volumes to day 310 (12 payouts: +4,800 fans and
++¥6,000, plus the ¥2,000 fee); Hoshi airs on day 212, ends on day 380 and boosts to day 548 (24 payouts: +21,600 fans
+and +¥24,000). The balance bots never sign, so every offer lapses for them.
+
 ### Auto-pause rules
 The clock stops whenever the game needs a decision: a manuscript becomes ready, poll results arrive, a
-serialisation offer lands, a serial is cancelled (the desk empties), a trip ends, or a random event lands. Menus
-always pause.
+serialisation offer lands, a serial is cancelled (the desk empties), a trip ends, a random event lands, or an anime
+offer lands. Menus always pause.
 
 ## Roadmap
 0. Money sinks. Shipped: hiring needs two weeks of that salary in the bank; a week that ends below zero makes
@@ -271,7 +306,7 @@ always pause.
    than one week of costs warns first; studio tiers gate assistant desks with rent, and equipment has stated effects
    (see Studio and equipment). Still to do: a volume curve that flattens with fans (sqrt), a smaller HUD on phones
    shipped separately.
-1. Awards (year end), anime adaptation offers, merchandise, conventions.
+1. Awards (year end), merchandise, conventions. Shipped: anime adaptation offers (see Anime adaptations).
 2. Rival mangaka with visible careers and head-to-head polls.
 3. Random events with choices. Shipped: six events as desk cards (see Random events).
 4. Save slots, achievements, sound, mobile polish.
@@ -313,12 +348,14 @@ The final hook order inside `tick()`:
 5. One-shot poll result and serialisation offer.
 6. `resolveChapters` (chapter polls, volumes, warnings, cancellation, archiving).
 7. `checkDeadline` (a serial chapter not in by its due day misses the issue; warnings and cancellation).
-8. `eventTick` (an unanswered event past its last day lapses; the weekly random-event roll).
-9. `awardMilestones`.
-10. Return.
+8. `animeTick` (a waiting anime offer whose series stopped running is withdrawn, one past its last day lapses; each
+   deal's premiere, weekly pay, finale and end of boost; a new offer to a running hit).
+9. `eventTick` (an unanswered event past its last day lapses; the weekly random-event roll).
+10. `awardMilestones`.
+11. Return.
 
-Future hooks (year review `closeYear`, then `animeTick`) go between `checkDeadline` and `eventTick`, so events and
-milestones see their effects the same day.
+The future year review `closeYear` goes between `checkDeadline` and `animeTick`, so the anime, events and milestones
+see its effects the same day.
 
 ## Balance bots and bands
 

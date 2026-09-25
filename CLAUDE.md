@@ -33,7 +33,8 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   - `core.ts` state helpers shared by the engine and its tick hooks (`addLog`, `grantXp`, `xpToNext`, `startTrip`,
     and `num`/`yen`, locale-free thousands commas for log lines).
     `events.ts` random events (the weekly roll on its own `eventSeed`, the answers). `studio.ts` studio tiers (desks,
-    rent) and equipment (effects, buying, moving, `studioLook`). Hook files never import engine.ts.
+    rent) and equipment (effects, buying, moving, `studioLook`). `anime.ts` anime adaptation offers and deals
+    (`animeTick`, signing, `animeVolumeMult`). Hook files never import engine.ts.
   - Add a unit test in `src/sim/__tests__/engine.test.ts` for every new rule.
 - `src/state/store.ts` — Zustand store. Wraps the sim, owns the real-time clock speed, modal state, toasts,
   and persists `game` to localStorage (`persist` version = `SAVE_VERSION`; new `GameState` fields default through
@@ -55,9 +56,11 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
 - Log entries: `addLog(state, kind, text, toast)`. `toast: true` only for things the player must notice; chapter results
   and money events are toasts, daily chatter is not. Identical toasts are de-duplicated by the store.
 - The clock auto-pauses whenever the game needs a decision (manuscript ready, poll result, serialisation offer,
-  a serial is cancelled, a trip ends, a random event lands). Keep it that way for any new blocking decision.
-- Game-driven moments (random events) are desk cards, never popups: a component that returns null when empty,
-  imports its own stylesheet (`src/styles/cards.css`), uses `card flat desk-card`, toasts on arrival and pauses once.
+  a serial is cancelled, a trip ends, a random event or an anime offer lands). Keep it that way for any new blocking
+  decision.
+- Game-driven moments (random events, anime offers) are desk cards, never popups: a component that returns null when
+  empty, imports its own stylesheet (`src/styles/cards.css`), uses `card flat desk-card`, toasts on arrival and pauses
+  once.
 
 ## UI rules (from the design pass)
 
