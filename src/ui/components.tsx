@@ -47,10 +47,15 @@ export function Metric({
   )
 }
 
-/** A single value/label tile, used inside a `.rewards` or `.terms` grid. */
-export function Reward({ value, label, className }: { value: ReactNode; label: ReactNode; className?: string }) {
+/**
+ * A single value/label tile, used inside a `.rewards` or `.terms` grid. `landed` is for the results reveal: false
+ * keeps the tile hidden, true slides it in (app.css); leave it out for a static tile.
+ */
+export function Reward({ value, label, className, landed }: {
+  value: ReactNode; label: ReactNode; className?: string; landed?: boolean
+}) {
   return (
-    <div className={`reward ${className ?? ''}`.trim()}>
+    <div className={`reward ${className ?? ''}`.trim()} data-landed={landed === undefined ? undefined : String(landed)}>
       <div className="n">{value}</div>
       <div className="l">{label}</div>
     </div>

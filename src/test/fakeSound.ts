@@ -10,6 +10,10 @@ import type { CueId, SoundPrefs } from '../audio/types'
 export interface FakeSound extends SoundEngine {
   /** Every cue played, in order. */
   readonly plays: CueId[]
+  /** The `pitch` option of each play, parallel to `plays` (undefined when a play passed none). */
+  readonly pitches: (number | undefined)[]
+  /** The cue of each stop function called, in call order. Only a stop function's first call counts. */
+  readonly stops: CueId[]
   /** Every setPrefs call, in order (copies). */
   readonly prefs: SoundPrefs[]
   /** Every startMusic ('start') and stopMusic ('stop') call, in order. */
@@ -27,6 +31,8 @@ export interface FakeSound extends SoundEngine {
 
 export function createFakeSound(): FakeSound {
   const plays: CueId[] = []
+  const pitches: (number | undefined)[] = []
+  const stops: CueId[] = []
   const prefs: SoundPrefs[] = []
   const music: ('start' | 'stop')[] = []
   const ducks: number[] = []
@@ -37,6 +43,8 @@ export function createFakeSound(): FakeSound {
 
   return {
     plays,
+    pitches,
+    stops,
     prefs,
     music,
     ducks,
@@ -59,9 +67,15 @@ export function createFakeSound(): FakeSound {
     unlock() {
       unlocks++
     },
-    play(cue) {
+    play(cue, opts) {
       plays.push(cue)
-      return noop
+      pitches.push(opts?.pitch)
+      let stopped = false
+      return () => {
+        if (stopped) return
+        stopped = true
+        stops.push(cue)
+      }
     },
     setPrefs(p) {
       prefs.push({ ...p })
