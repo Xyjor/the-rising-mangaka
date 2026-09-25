@@ -15,6 +15,9 @@ import type { Assistant, EventId, GameEvent, GameState, PlaceId, PlayerStats, Se
 /** Every event, in the order the pool lists them (the second draw indexes into the eligible ones). */
 export const EVENT_IDS: readonly EventId[] = ['letter', 'cold', 'convention', 'raise', 'reprint', 'workshop']
 
+/** What seeing a doctor about a cold costs. */
+const DOCTOR_FEE = 300
+
 /** Stat names for log lines and answers. */
 export const STAT_NAME: Record<StatId, string> = { art: 'Art', story: 'Story', pacing: 'Pacing' }
 
@@ -132,7 +135,7 @@ export function eventChoices(s: GameState): EventPrompt | null {
         id: ev.id,
         title: 'You caught a cold',
         body: 'Your head is heavy and the lines will not come out straight.',
-        a: choice(s, 'See a doctor: -¥300, stamina +25', 300),
+        a: choice(s, `See a doctor: ${yen(-DOCTOR_FEE)}, stamina +25`, DOCTOR_FEE),
         b: choice(s, 'Tea and an early night: stamina +8'),
       }
     case 'convention': {
@@ -213,8 +216,8 @@ export function resolveEvent(state: GameState, key: 'a' | 'b'): GameState {
     }
     case 'cold': {
       if (!a) return addLog(addStamina(s, 8), 'event', 'Tea and an early night. Stamina +8.', true)
-      const next = addStamina({ ...s, player: { ...s.player, money: s.player.money - 300 } }, 25)
-      return addLog(next, 'event', 'The doctor sorted you out. -¥300, stamina +25.', true)
+      const next = addStamina({ ...s, player: { ...s.player, money: s.player.money - DOCTOR_FEE } }, 25)
+      return addLog(next, 'event', `The doctor sorted you out. ${yen(-DOCTOR_FEE)}, stamina +25.`, true)
     }
     case 'convention':
       return a ? startTrip(s, 'convention') : addLog(s, 'event', 'You skipped the convention.', false)
