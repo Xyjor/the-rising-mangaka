@@ -231,6 +231,55 @@ export interface Place {
 
 export interface Trip { placeId: PlaceId; startedDay: number; endsDay: number }
 
+// ---------- studio ----------
+
+export type StudioTierId = 'apartment' | 'flat' | 'loft'
+
+export interface StudioTier {
+  id: StudioTierId
+  name: string
+  /** desks for assistants: hiring stops when every desk is taken */
+  desks: number
+  /** added to the weekly costs */
+  rent: number
+  /** base price of moving in from the tier below (see `moveInCost`) */
+  moveIn: number
+}
+
+export type EquipmentId = 'coffee' | 'lamp' | 'shelf' | 'chair' | 'drafting-table' | 'tablet'
+
+/** What one piece of equipment adds; `equipmentEffects` sums them over everything the studio owns. */
+export interface EquipmentBonus {
+  /** added to the player's art sample on every working day */
+  art?: number
+  /** added to the player's story sample on every working day */
+  story?: number
+  /** multiplies the player's pages a day (several multiply together) */
+  pagesMult?: number
+  /** added to the stamina a working day costs (negative is cheaper) */
+  workCost?: number
+  /** added to the stamina a rest day restores */
+  restBonus?: number
+}
+
+export interface Equipment {
+  id: EquipmentId
+  name: string
+  /** base price (see `equipmentPrice`) */
+  price: number
+  /** what it does, in the words the Studio panel shows */
+  effect: string
+  bonus: EquipmentBonus
+  /** sold only from this studio tier up */
+  needsTier?: StudioTierId
+}
+
+export interface Studio {
+  tier: StudioTierId
+  /** equipment bought, in the order it was bought */
+  owned: EquipmentId[]
+}
+
 export interface EditorRel { relationship: number; tips: number }
 
 // ---------- misc ----------
@@ -308,6 +357,8 @@ export interface GameState {
   eventSeed: number
   /** no event is rolled before this day */
   nextEventDay: number
+  /** where the mangaka works and the equipment bought for it */
+  studio: Studio
 }
 
 export type Phase = 'idle' | 'drawing' | 'ready' | 'submitted'

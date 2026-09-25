@@ -4,8 +4,8 @@
 // copies of the state, so a bot never advances the state's RNG seed except through tick().
 import { genreThemeKey, themeAudienceKey } from './compat'
 import {
-  AUDIENCES, GENRES, LOW_STAMINA_THRESHOLD, MAGAZINES, MAX_ASSISTANTS, ONE_SHOT_PAGES, RATING_SCORE, STALENESS_PENALTY,
-  THEMES, magazineById,
+  AUDIENCES, GENRES, LOW_STAMINA_THRESHOLD, MAGAZINES, ONE_SHOT_PAGES, RATING_SCORE, STALENESS_PENALTY, THEMES,
+  magazineById,
 } from './data'
 import {
   acceptOffer, assistantPagesPerDay, chapterDeadline, createGame, declineOffer, dismissResult, endSerial,
@@ -15,6 +15,7 @@ import {
 import type { SubmissionPreview } from './engine'
 import { clamp, hashString } from './rng'
 import { stalenessCount, suitedFocus } from './scoring'
+import { studioSlots } from './studio'
 import type {
   Assistant, AudienceId, Focus, GameState, GenreId, MagazineId, Project, ProjectDraft, SerialOffer, SerialStatus,
   StatId, ThemeId,
@@ -269,12 +270,13 @@ function chooseActivity(s: GameState): GameState {
 }
 
 /**
- * When the chapter on the desk will miss its issue at the studio's pace and a desk is free, hire the candidate who
- * draws the most pages per yen of salary among those the bank covers (two weeks of their salary on top of two weeks
- * of current costs). Ties go to the earlier candidate.
+ * When the chapter on the desk will miss its issue at the studio's pace and a desk is free (`studioSlots`: the
+ * apartment has one, and the bot never moves or buys equipment), hire the candidate who draws the most pages per yen
+ * of salary among those the bank covers (two weeks of their salary on top of two weeks of current costs). Ties go to
+ * the earlier candidate.
  */
 function hireIfLate(s: GameState): GameState {
-  if (chapterDeadline(s)?.status !== 'late' || s.assistants.length >= MAX_ASSISTANTS) return s
+  if (chapterDeadline(s)?.status !== 'late' || s.assistants.length >= studioSlots(s)) return s
   const reserve = HIRE_COST_WEEKS * weeklyCosts(s)
   const affordable = s.candidates.filter((c) => s.player.money >= HIRE_SALARY_WEEKS * c.salary + reserve)
   if (!affordable.length) return s

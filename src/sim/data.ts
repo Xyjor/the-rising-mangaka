@@ -1,6 +1,6 @@
 import type {
-  AssistantTrait, Audience, AudienceId, Genre, GenreId, Magazine, MagazineId, Place, PlaceId, ScoreWeights, Theme,
-  ThemeId,
+  AssistantTrait, Audience, AudienceId, Equipment, EquipmentId, Genre, GenreId, Magazine, MagazineId, Place, PlaceId,
+  ScoreWeights, StudioTier, StudioTierId, Theme, ThemeId,
 } from './types'
 
 export const GENRES: Genre[] = [
@@ -151,7 +151,51 @@ export const REST_STAMINA_GAIN = 14
 export const LOW_STAMINA_THRESHOLD = 20
 export const JOB_PAY_PER_DAY = 120
 export const JOB_STAMINA_COST = 3
+/** the most assistants any studio seats: the loft's desks */
 export const MAX_ASSISTANTS = 3
+/** Equipment can make a working day cheaper, never cheaper than this much stamina. */
+export const MIN_WORK_STAMINA_COST = 2
+
+/** Where the mangaka works, smallest first. Moving goes one tier up at a time and never back down. */
+export const STUDIO_TIERS: StudioTier[] = [
+  { id: 'apartment', name: 'Apartment', desks: 1, rent: 0, moveIn: 0 },
+  { id: 'flat', name: 'Studio flat', desks: 2, rent: 150, moveIn: 5000 },
+  { id: 'loft', name: 'Studio loft', desks: MAX_ASSISTANTS, rent: 350, moveIn: 15000 },
+]
+
+/** Every piece of equipment, in the order the studio scene draws them. */
+export const EQUIPMENT_IDS = ['coffee', 'lamp', 'shelf', 'chair', 'drafting-table', 'tablet'] as const satisfies
+  readonly EquipmentId[]
+
+/** The equipment the Studio panel sells, in `EQUIPMENT_IDS` order. */
+export const EQUIPMENT: Equipment[] = [
+  { id: 'coffee', name: 'Coffee machine', price: 2000, effect: 'Resting restores 3 more stamina a day', bonus: { restBonus: 3 } },
+  { id: 'lamp', name: 'Daylight lamp', price: 2500, effect: 'Art +3 on your pages', bonus: { art: 3 } },
+  { id: 'shelf', name: 'Reference shelf', price: 3000, effect: 'Story +3 on your pages', bonus: { story: 3 } },
+  {
+    id: 'chair', name: 'Ergonomic chair', price: 4000, effect: `Drawing costs 1 less stamina a day (min ${MIN_WORK_STAMINA_COST})`,
+    bonus: { workCost: -1 },
+  },
+  { id: 'drafting-table', name: 'Drafting table', price: 7000, effect: '10% more pages a day', bonus: { pagesMult: 1.1 } },
+  {
+    id: 'tablet', name: 'Pen tablet', price: 12000, effect: '15% more pages a day, art +2', bonus: { pagesMult: 1.15, art: 2 },
+    needsTier: 'flat',
+  },
+]
+
+/** Scales every equipment price and move-in cost (see `equipmentPrice`, `moveInCost`). */
+export const EQUIPMENT_PRICE_SCALE = 1
+
+/** What a piece of equipment costs: its base price times `EQUIPMENT_PRICE_SCALE`, rounded to the nearest ¥100. */
+export function equipmentPrice(id: EquipmentId): number {
+  return Math.round((equipmentById(id).price * EQUIPMENT_PRICE_SCALE) / 100) * 100
+}
+
+/** What moving into a tier costs: its base move-in times `EQUIPMENT_PRICE_SCALE`, rounded to the nearest ¥100. */
+export function moveInCost(tier: StudioTierId): number {
+  return Math.round((studioTierById(tier).moveIn * EQUIPMENT_PRICE_SCALE) / 100) * 100
+}
+
 /** weeks of a candidate's salary you must have in the bank before hiring them */
 export const HIRE_RUNWAY_WEEKS = 2
 /** a week that ends below zero charges this share of the debt as a fee */
@@ -204,3 +248,5 @@ export function themeById(id: ThemeId): Theme { return THEMES.find((t) => t.id =
 export function audienceById(id: AudienceId): Audience { return AUDIENCES.find((a) => a.id === id)! }
 export function magazineById(id: MagazineId): Magazine { return MAGAZINES.find((m) => m.id === id)! }
 export function placeById(id: PlaceId): Place { return PLACES.find((p) => p.id === id)! }
+export function studioTierById(id: StudioTierId): StudioTier { return STUDIO_TIERS.find((t) => t.id === id)! }
+export function equipmentById(id: EquipmentId): Equipment { return EQUIPMENT.find((e) => e.id === id)! }

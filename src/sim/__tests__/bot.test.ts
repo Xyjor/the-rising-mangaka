@@ -259,6 +259,22 @@ describe('balance bot', () => {
     expect(hired(at(1, 100000, full))).toEqual(['Big', 'Cheap', 'Quick'])
   })
 
+  it('hires only into a free desk: one assistant fills the apartment, the flat seats a second', () => {
+    const candidates: Assistant[] = [
+      { id: 101, name: 'Quick', art: 30, story: 30, salary: 360, stamina: 80, maxStamina: 80, trait: 'fast', look: 0 },
+    ]
+    const helper: Assistant = { ...candidates[0], id: 201, name: 'Aki', trait: 'steady' }
+    const s = acceptOffer({ ...createGame('Rin', 42), pendingOffer: OFFER })
+    // due tomorrow with 16 pages to draw: late whatever the staff, and the bank covers any salary
+    const late: GameState = {
+      ...s, candidates, assistants: [helper], serial: { ...s.serial!, nextDueDay: s.day + 1 },
+      player: { ...s.player, money: 100000 },
+    }
+    const names = (g: GameState) => botStep(g, SENSIBLE).assistants.map((a) => a.name)
+    expect(names(late)).toEqual(['Aki'])
+    expect(names({ ...late, studio: { tier: 'flat', owned: [] } })).toEqual(['Aki', 'Quick'])
+  })
+
   it('stress case: six rotating one-shots, then one forced Weekly Bolt serial, organic offers declined', () => {
     const run = runBot(42, STRESS_BOLT, { days: 480 })
     expect(run.oneShots.slice(0, 6).map((o) => o.magazineId)).toEqual([

@@ -2,7 +2,7 @@ import { EVENT_GAP_DAYS, magazineById } from './data'
 import { createGame, describeDate } from './engine'
 import { makeRival } from './rival'
 import { hashString } from './rng'
-import type { GameState, Serial } from './types'
+import type { GameState, Serial, StudioTierId } from './types'
 
 /**
  * Fill any top-level or player field a saved game predates with the createGame default.
@@ -28,5 +28,12 @@ export function upgradeSave(g: GameState): GameState {
     // weeks from the day of loading. `event` defaults to null through the createGame base.
     eventSeed: g.eventSeed ?? (hashString(`events:${g.worldSeed}`) | 0),
     nextEventDay: g.nextEventDay ?? g.day + EVENT_GAP_DAYS,
+    // Studios: a save from before them keeps every assistant it has, so it starts in a studio with a desk for each.
+    studio: g.studio ?? { tier: studioTierFor(g.assistants.length), owned: [] },
   }
+}
+
+function studioTierFor(assistants: number): StudioTierId {
+  if (assistants >= 3) return 'loft'
+  return assistants === 2 ? 'flat' : 'apartment'
 }

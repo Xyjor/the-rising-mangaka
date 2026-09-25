@@ -78,6 +78,25 @@ describe('upgradeSave', () => {
     expect(upgradeSave(old(1)).eventSeed).toBe(-1641078744)
   })
 
+  it('gives a save from before studios a studio with a desk for every assistant it has, and no equipment', () => {
+    const old = (assistants: number): GameState => {
+      const g = createGame('Rin', 42)
+      const save = { ...g, assistants: g.candidates.slice(0, assistants) } as Partial<GameState>
+      delete save.studio
+      return save as GameState
+    }
+    expect(upgradeSave(old(3)).studio).toEqual({ tier: 'loft', owned: [] })
+    expect(upgradeSave(old(2)).studio).toEqual({ tier: 'flat', owned: [] })
+    expect(upgradeSave(old(1)).studio).toEqual({ tier: 'apartment', owned: [] })
+    expect(upgradeSave(old(0)).studio).toEqual({ tier: 'apartment', owned: [] })
+  })
+
+  it('keeps the studio a newer save already has', () => {
+    const studio: GameState['studio'] = { tier: 'flat', owned: ['lamp', 'coffee'] }
+    const g = createGame('Rin', 42)
+    expect(upgradeSave({ ...g, assistants: g.candidates.slice(0, 3), studio }).studio).toEqual(studio)
+  })
+
   it('keeps the event, event seed and next roll a newer save already has', () => {
     const event = { id: 'letter', day: 31, expiresDay: 38 } as const
     const up = upgradeSave({ ...createGame('Rin', 4), day: 33, event, eventSeed: 12345, nextEventDay: 45 })

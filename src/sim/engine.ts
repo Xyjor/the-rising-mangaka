@@ -2,7 +2,7 @@ import { genreThemeKey, genreThemeRating, themeAudienceKey, themeAudienceRating 
 import {
   ASSISTANT_NAMES, AUDIENCES, CANDIDATE_REFRESH_DAYS, CHAPTER_PAGES, DEADLINE_REST_FACTOR, EDITOR_TIP_EVERY,
   EVENT_FIRST_DAY, GENRES,
-  HIRE_RUNWAY_WEEKS, JOB_PAY_PER_DAY, JOB_STAMINA_COST, LOW_STAMINA_THRESHOLD, MAGAZINES, MAX_ASSISTANTS,
+  HIRE_RUNWAY_WEEKS, JOB_PAY_PER_DAY, JOB_STAMINA_COST, LOW_STAMINA_THRESHOLD, MAGAZINES, MIN_WORK_STAMINA_COST,
   ONE_SHOT_PAGES, OVERDRAFT_FEE_MIN, OVERDRAFT_FEE_RATE,
   RATING_LABEL, RESULTS_DELAY_DAYS, REST_STAMINA_GAIN, SERIAL_CLIMAX_MIN_POPULARITY, SERIAL_CLIMAX_VOLUME_MULT,
   SERIAL_GRACE_CHAPTERS, SERIAL_MISSED_ISSUE_POPULARITY, SERIAL_OFFER_MIN_RANK, SERIAL_OFFER_MIN_SCORE,
@@ -24,6 +24,7 @@ import type {
 } from './types'
 import { pendingMilestones } from './milestones'
 import { makeRival } from './rival'
+import { equipmentEffects, studioSlots, studioTier } from './studio'
 
 const TRAIT_LIST: AssistantTrait[] = ['fast', 'careful', 'inspiring', 'steady']
 
@@ -74,6 +75,7 @@ export function createGame(name: string, seed: number): GameState {
     event: null,
     eventSeed: hashString(`events:${worldSeed}`) | 0,
     nextEventDay: EVENT_FIRST_DAY,
+    studio: { tier: 'apartment', owned: [] },
   }
   state = generateCandidates(state)
   return addLog(state, 'info', `Welcome, ${name}. Your studio is ready. Plan your first manga.`, false)
@@ -114,10 +116,10 @@ export function staminaFactor(state: GameState): number {
   return 1
 }
 
-/** Expected pages per working day at full stamina for the player alone (no noise). */
+/** Expected pages per working day at full stamina for the player alone (no noise), with the studio's equipment. */
 export function basePagesPerDay(state: GameState): number {
   const { art, story } = state.player.stats
-  return 0.5 + ((art + story) / 2) * 0.02
+  return (0.5 + ((art + story) / 2) * 0.02) * equipmentEffects(state).pagesMult
 }
 
 /** Expected pages per day from one assistant at full stamina. */
@@ -180,8 +182,9 @@ export function chapterDeadline(state: GameState): ChapterDeadline | null {
   return { dueDay, daysLeft, workDaysLeft, status: deadlineStatus(workDaysLeft, daysLeft) }
 }
 
+/** Living cost, the studio's rent and every assistant's salary. */
 export function weeklyCosts(state: GameState): number {
-  return WEEKLY_LIVING_COST + state.assistants.reduce((sum, a) => sum + a.salary, 0)
+  return WEEKLY_LIVING_COST + studioTier(state).rent + state.assistants.reduce((sum, a) => sum + a.salary, 0)
 }
 
 export function focusMultipliers(focus: Focus): { art: number; story: number } {
@@ -488,7 +491,8 @@ export function endSerial(state: GameState): GameState {
 
 export function hireAssistant(state: GameState, candidateId: number): GameState {
   const c = state.candidates.find((a) => a.id === candidateId)
-  if (!c || state.assistants.length >= MAX_ASSISTANTS) return state
+  // One assistant per desk: a bigger studio has more (studio.ts).
+  if (!c || state.assistants.length >= studioSlots(state)) return state
   // Two weeks of that hire's salary in the bank: allows one early hire, blocks the day-one triple hire.
   if (state.player.money < c.salary * HIRE_RUNWAY_WEEKS) return state
   const s: GameState = {
@@ -568,10 +572,12 @@ function workDay(state: GameState): GameState {
   let s: GameState = { ...state, seed }
   const factor = staminaFactor(s)
   const mult = focusMultipliers(s.focus)
+  // Equipment helps the player's own pages; assistants draw with their own tools.
+  const fx = equipmentEffects(s)
 
   let pages = basePagesPerDay(s) * factor * range(values[0], 0.85, 1.15)
-  const artSample = clamp(s.player.stats.art * mult.art + range(values[1], -8, 8), 0, 100)
-  const storySample = clamp(s.player.stats.story * mult.story + range(values[2], -8, 8), 0, 100)
+  const artSample = clamp(s.player.stats.art * mult.art + range(values[1], -8, 8) + fx.art, 0, 100)
+  const storySample = clamp(s.player.stats.story * mult.story + range(values[2], -8, 8) + fx.story, 0, 100)
   let artAcc = artSample * pages
   let storyAcc = storySample * pages
 
@@ -600,7 +606,8 @@ function workDay(state: GameState): GameState {
     storySum: p.storySum + storyAcc * scale,
   }
   const inspiring = s.assistants.some((a) => a.trait === 'inspiring') ? 1 : 0
-  const stamina = clamp(s.player.stamina - (WORK_STAMINA_COST - inspiring), 0, s.player.maxStamina)
+  const cost = Math.max(MIN_WORK_STAMINA_COST, WORK_STAMINA_COST - inspiring + fx.workCost)
+  const stamina = clamp(s.player.stamina - cost, 0, s.player.maxStamina)
   s = { ...s, project, assistants, player: { ...s.player, stamina } }
 
   if (project.pagesDone >= project.pagesTarget - 1e-6) {
@@ -774,7 +781,7 @@ export function tick(state: GameState): GameState {
     const working = !!p && p.status === 'drawing' && s.activity === 'work' && s.player.stamina > 0
     if (working) s = workDay(s)
     else {
-      s = restPlayer(s, REST_STAMINA_GAIN)
+      s = restPlayer(s, REST_STAMINA_GAIN + equipmentEffects(s).restBonus)
       s = restAssistants(s)
       // A shift chosen at zero stamina is slept through and pays nothing.
       if (s.activity === 'job') s = addLog({ ...s, activity: 'rest' }, 'warn', 'Too exhausted for a shift. You slept instead.', false)
@@ -788,9 +795,13 @@ export function tick(state: GameState): GameState {
 
   if (s.day % 7 === 0) {
     const cost = weeklyCosts(s)
+    const rent = studioTier(s).rent
     s = { ...s, player: { ...s.player, money: s.player.money - cost } }
-    s = addLog(s, 'money', s.assistants.length
-      ? `Weekly costs: -¥${cost} (living ¥${WEEKLY_LIVING_COST}, salaries ¥${cost - WEEKLY_LIVING_COST}).`
+    const parts = [`living ¥${WEEKLY_LIVING_COST}`]
+    if (rent) parts.push(`rent ¥${rent}`)
+    if (s.assistants.length) parts.push(`salaries ¥${cost - WEEKLY_LIVING_COST - rent}`)
+    s = addLog(s, 'money', parts.length > 1
+      ? `Weekly costs: -¥${cost} (${parts.join(', ')}).`
       : `Weekly living costs: -¥${cost}.`, false)
     if (s.player.money < 0) {
       // Unpaid assistants quit before the fee is computed, so the tight-week check below uses the new roster.
