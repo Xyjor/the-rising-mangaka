@@ -1,16 +1,17 @@
 // Balance readout: runs the balance bots (src/sim/bot.ts) over a range of seeds and prints one line per seed per
-// bot, then one line per row of the balance-band table. The runs and the row measurements come from
-// src/sim/balance.ts, the same code src/sim/__tests__/balance.test.ts asserts on; nothing is asserted here, and the
-// targets printed are for reference only.
+// bot, then one line per row of the balance-band table. The runs, the row measurements and the targets (`BANDS`) come
+// from src/sim/balance.ts, the same code src/sim/__tests__/balance.test.ts asserts on; nothing is asserted here. Two
+// lines only this readout prints: anime offers within two years, and S1, the money that sets the equipment prices.
 // Run with: npm run balance -- [from=1] [to=20] [--detail seed]
 //   --detail seed  also prints every one-shot and chapter of that seed for each bot, in the old readout's format.
 import { CARELESS, OPENING_ONE_SHOTS, SENSIBLE, STRESS_BOLT, firstSixMean, runBot } from '../src/sim/bot'
 import type { BotPolicy } from '../src/sim/bot'
 import {
-  LONG, SERIAL_TARGET_RESULTS, STRESS_DAYS, YEAR, calibrationError, measureP1, median, offerInOpening, runBalance,
+  BANDS, LONG, SERIAL_TARGET_RESULTS, STRESS_DAYS, YEAR, calibrationError, countIn, firstAnimeOffer, meanOf,
+  measureP1, measureP2, median, moneyBuyingNothing, offerInOpening, runBalance, winShare,
 } from '../src/sim/balance'
 import type { Calibration, SeedRuns } from '../src/sim/balance'
-import { magazineById, previewSubmission } from '../src/sim/index'
+import { EQUIPMENT_PRICE_SCALE, magazineById, num, previewSubmission } from '../src/sim/index'
 import type { GameState, Serial } from '../src/sim/index'
 
 const STRESS_SEEDS = [1, 42, 99]
@@ -148,35 +149,55 @@ for (const seed of STRESS_SEEDS) {
   console.log(seedLine(seed, STRESS_BOLT, { year: run, opening: run, serial: run }))
 }
 
-// Aggregates, one per balance-band row, from the measurements balance.test.ts asserts. The targets here are for
-// reference only; the test holds the thresholds.
+// Aggregates, one per balance-band row, from the measurements balance.test.ts asserts, against the same targets.
 const m = measureP1(runs)
-const inBand = m.firstScores.filter((x) => x !== null && x >= 40 && x <= 55).length
+const B = BANDS
+const inBand = countIn(m.firstScores, B.firstScore.low, B.firstScore.high)
 const { sensible: sMean, careless: cMean } = m.firstSixMean
 const earliestCancel = m.stressCancelledAt.length ? Math.min(...m.stressCancelledAt) : null
-const under3000 = m.carelessMoneyAtSixth.filter((x) => x !== null && x < 3000).length
+const underMoney = m.carelessMoneyAtSixth.filter((x) => x !== null && x < B.carelessMoney.under).length
 const calText = (c: Calibration) => `Σ ${c.expected.toFixed(2)} vs ${c.seen} seen`
 const calErr = calibrationError(m.calibration.all)
-const calOff = calErr === null ? 'n/a' : `${calErr >= 0 ? '+' : ''}${(calErr * 100).toFixed(0)}%`
-const debtFree = m.sensibleWeeksInDebt.filter((w) => w === 0).length
+const pct = (x: number) => `${(x * 100).toFixed(0)}%`
+const calOff = calErr === null ? 'n/a' : `${calErr >= 0 ? '+' : ''}${pct(calErr)}`
+const debtFree = countIn(m.sensibleWeeksInDebt, 0, 0)
 const sShort = shortNote(m.shortOfSix.sensible, n)
 const cShort = shortNote(m.shortOfSix.careless, n)
 
 console.log(`\nBalance bands, P1 (${n} seeds)`)
-console.log(`Sensible bot, first one-shot score: ${inBand}/${n} in 40-55, median ${fmt(median(m.firstScores), 1)} (target 40-55 on >= 13/20; median 44-52)`)
-console.log(`Sensible minus careless, mean score of first 6 one-shots: ${sMean.toFixed(1)} - ${cMean.toFixed(1)} = ${(sMean - cMean).toFixed(1)}${shortNote(m.shortOfSix.sensible, n, 'sensible: ')}${shortNote(m.shortOfSix.careless, n, 'careless: ')} (target >= 8)`)
-console.log(`Sensible bot, organic offer within first 6 one-shots: ${m.offerWithinSix.sensible}/${n}, median first offer at one-shot ${m.medianFirstOffer === null ? 'none' : fmt(m.medianFirstOffer, 1)}${sShort} (target >= 16/20; median <= 3)`)
-console.log(`Careless bot, organic offer within 6: ${m.offerWithinSix.careless}/${n}${cShort} (target <= 6/20)`)
-console.log(`Sensible bot's first serial reaches 8 results: ${m.firstSerialReached8}/${n}${m.noFirstSerial ? ` (${m.noFirstSerial} had no serial within ${LONG} days)` : ''} (target >= 14/20)`)
-console.log(`Stress case (forced Weekly Bolt, no points, balanced): cancelled ${m.stressCancelledAt.length}/${n}, earliest at result ${fmt(earliestCancel)} (target cancelled on >= 15/20, never before its 5th result)`)
-console.log(`Careless bot money at its 6th result: under ¥3000 on ${under3000}/${n}${cShort} (target < ¥3000 on >= 15/20)`)
-console.log(`Forecast calibration (Σ offer chances vs offers seen): ${calText(m.calibration.all)}, ${calOff} over year one (sensible ${calText(m.calibration.sensible)}, careless ${calText(m.calibration.careless)}) (target within ±30%)`)
-console.log(`Sensible bot weeks in debt, year one: 0 on ${debtFree}/${n} (target 0 on >= 18/20)`)
-console.log('\nBalance bands, P2')
-for (const name of [
-  'Events per year (sensible)', 'Rival met in year one', 'Award or near miss in year one',
-  'Equipment owned at day 336 (sensible, buying)',
-]) console.log(`${name}: n/a until Phase 2`)
+const fs = B.firstScore
+console.log(`Sensible bot, first one-shot score: ${inBand}/${n} in ${fs.low}-${fs.high}, median ${fmt(median(m.firstScores), 1)} (target ${fs.low}-${fs.high} on >= ${fs.atLeast}/20; median ${fs.medianLow}-${fs.medianHigh})`)
+console.log(`Sensible minus careless, mean score of first 6 one-shots: ${sMean.toFixed(1)} - ${cMean.toFixed(1)} = ${(sMean - cMean).toFixed(1)}${shortNote(m.shortOfSix.sensible, n, 'sensible: ')}${shortNote(m.shortOfSix.careless, n, 'careless: ')} (target >= ${B.firstSixGap.atLeast})`)
+console.log(`Sensible bot, organic offer within first 6 one-shots: ${m.offerWithinSix.sensible}/${n}, median first offer at one-shot ${m.medianFirstOffer === null ? 'none' : fmt(m.medianFirstOffer, 1)}${sShort} (target >= ${B.sensibleOffer.atLeast}/20; median <= ${B.sensibleOffer.medianAtMost})`)
+console.log(`Careless bot, organic offer within 6: ${m.offerWithinSix.careless}/${n}${cShort} (target <= ${B.carelessOffer.atMost}/20)`)
+console.log(`Sensible bot's first serial reaches ${SERIAL_TARGET_RESULTS} results: ${m.firstSerialReached8}/${n}${m.noFirstSerial ? ` (${m.noFirstSerial} had no serial within ${LONG} days)` : ''} (target >= ${B.firstSerial.atLeast}/20)`)
+console.log(`Stress case (forced Weekly Bolt, no points, balanced): cancelled ${m.stressCancelledAt.length}/${n}, earliest at result ${fmt(earliestCancel)} (target cancelled on >= ${B.stress.atLeast}/20, never before its ${B.stress.notBefore}th result)`)
+console.log(`Careless bot money at its 6th result: under ¥${B.carelessMoney.under} on ${underMoney}/${n}${cShort} (target < ¥${B.carelessMoney.under} on >= ${B.carelessMoney.atLeast}/20)`)
+console.log(`Forecast calibration (Σ offer chances vs offers seen): ${calText(m.calibration.all)}, ${calOff} over year one (sensible ${calText(m.calibration.sensible)}, careless ${calText(m.calibration.careless)}) (target within ±${pct(B.calibration.within)})`)
+console.log(`Sensible bot weeks in debt, year one: 0 on ${debtFree}/${n} (target 0 on >= ${B.debtFree.atLeast}/20)`)
+
+// The P2 rows read the sensible bot's year-one run (it answers events, signs anime deals and shops).
+const m2 = measureP2(runs)
+const met = m2.rival.filter((r) => r.wins + r.losses > 0).length
+const wins = m2.rival.reduce((a, r) => a + r.wins, 0)
+const meetings = m2.rival.reduce((a, r) => a + r.wins + r.losses, 0)
+const share = winShare(m2.rival)
+const awarded = m2.awards.filter((a) => a.won.length + a.near.length > 0).length
+const goldenPen = m2.awards.filter((a) => a.won.includes('golden-pen')).length
+const kit = B.equipment
+const animeDays = firstAnimeOffer(seeds)
+const offered = animeDays.filter((d): d is number => d !== null)
+const s1 = median(moneyBuyingNothing(seeds))
+const range = (xs: number[]) => (xs.length ? `${Math.min(...xs)} to ${Math.max(...xs)}` : 'none')
+
+console.log(`\nBalance bands, P2 (${n} seeds)`)
+console.log(`Events per year (sensible): ${meanOf(m2.events).toFixed(1)} a seed in year one, ${range(m2.events)} (target ${B.events.low}-${B.events.high})`)
+console.log(`Rival met in year one: ${met}/${n}, the bot won ${wins} of ${meetings} meetings (${share === null ? 'n/a' : pct(share)}) (target >= ${B.rival.metAtLeast}/20; bot wins ${pct(B.rival.winShareLow)}-${pct(B.rival.winShareHigh)} of meetings)`)
+console.log(`Award or near miss in year one: ${awarded}/${n}, Golden Pen ${goldenPen}/${n} (target >= ${B.awards.atLeast}/20; Golden Pen in year one <= ${B.awards.goldenPenAtMost}/20)`)
+console.log(`Equipment owned at day ${YEAR} (sensible, buying): ${kit.low}-${kit.high} pieces on ${countIn(m2.equipment, kit.low, kit.high)}/${n} (pieces per seed: ${m2.equipment.join(' ')}) (target ${kit.low}-${kit.high} on >= ${kit.atLeast}/20)`)
+console.log('\nReported here only')
+console.log(`Anime offer within two years (sensible): ${offered.length}/${n}, days ${range(offered)} (target ${B.anime.low}-${B.anime.high} of 20)`)
+console.log(`S1, sensible money at day ${YEAR} buying nothing: median ¥${s1 === null ? '-' : num(s1)}, S1 / 9000 = ${s1 === null ? '-' : (s1 / 9000).toFixed(2)} (EQUIPMENT_PRICE_SCALE is ${EQUIPMENT_PRICE_SCALE}: S1 / 9000 rounded to 0.25, clamped to 0.75-4)`)
 
 if (detailSeed !== null) {
   printDetail(detailSeed, SENSIBLE, YEAR)

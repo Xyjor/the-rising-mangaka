@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { acceptOffer, createGame, startProject, submitProject } from '../index'
-import type { Assistant, AssistantTrait, ChapterResult, GameState, PollResult } from '../index'
-import { CARELESS, SENSIBLE, STRESS_BOLT, botStep, firstSixMean, runBot } from '../bot'
+import { acceptOffer, createGame, equipmentPrice, moveInCost, startProject, submitProject } from '../index'
+import type {
+  Assistant, AssistantTrait, ChapterResult, EquipmentId, GameState, PollResult, StudioTierId,
+} from '../index'
+import { CARELESS, SENSIBLE, STRESS_BOLT, botStep, firstSixMean, hypotheticalPreview, runBot } from '../bot'
 import type { BotRun } from '../bot'
 import { DRAFT, drawUntilReady, withPendingResult, withReadyOneShot } from '../../test/fixtures'
 
@@ -270,9 +272,108 @@ describe('balance bot', () => {
       ...s, candidates, assistants: [helper], serial: { ...s.serial!, nextDueDay: s.day + 1 },
       player: { ...s.player, money: 100000 },
     }
-    const names = (g: GameState) => botStep(g, SENSIBLE).assistants.map((a) => a.name)
+    // the careless bot never moves, so the apartment's one desk stays the limit
+    const names = (g: GameState) => botStep(g, CARELESS).assistants.map((a) => a.name)
     expect(names(late)).toEqual(['Aki'])
     expect(names({ ...late, studio: { tier: 'flat', owned: [] } })).toEqual(['Aki', 'Quick'])
+  })
+
+  it('sensible moves to the flat when a late chapter needs a second desk and the bank covers the move and the hire', () => {
+    const quick: Assistant = { id: 101, name: 'Quick', art: 30, story: 30, salary: 360, stamina: 80, maxStamina: 80, trait: 'fast', look: 0 }
+    const aki: Assistant = { ...quick, id: 201, name: 'Aki', trait: 'steady' }
+    const s = acceptOffer({ ...createGame('Rin', 42), pendingOffer: OFFER })
+    const late = (money: number, due = 1): GameState => ({
+      ...s, candidates: [quick], assistants: [aki], serial: { ...s.serial!, nextDueDay: s.day + due },
+      player: { ...s.player, money },
+    })
+    // In the flat Quick needs 2 x 360 of salary on top of 2 weeks of the flat's costs, 400 + 150 rent + Aki's 360
+    // = 910 a week: 720 + 1,820 = 2,540 after the move-in.
+    const enough = moveInCost('flat') + 2540
+    const moved = botStep(late(enough), SENSIBLE)
+    expect(moved.studio.tier).toBe('flat')
+    expect(moved.assistants.map((a) => a.name)).toEqual(['Aki', 'Quick'])
+    expect(moved.player.money).toBe(2540)
+    // one yen short: no move, no hire
+    const short = botStep(late(enough - 1), SENSIBLE)
+    expect(short.studio.tier).toBe('apartment')
+    expect(short.assistants.map((a) => a.name)).toEqual(['Aki'])
+    // a chapter that is not late moves nobody, however rich: with Aki (0.15 + 30 x 0.008 = 0.39 pages a day) the
+    // studio draws 1.24 + 0.39 = 1.63 a day, 16 / 1.63 = 9.8, so 10 working days fit in 13
+    expect(botStep(late(100000, 13), SENSIBLE).studio.tier).toBe('apartment')
+    // neither the careless bot nor the stress case ever moves
+    expect(botStep(late(100000), CARELESS).studio.tier).toBe('apartment')
+    expect(botStep(late(100000), STRESS_BOLT).studio.tier).toBe('apartment')
+  })
+
+  it('sensible buys the cheapest equipment it may once the bank holds its price and four weeks of costs', () => {
+    const g = createGame('Rin', 42)
+    const at = (money: number, owned: EquipmentId[] = [], tier: StudioTierId = 'apartment'): GameState =>
+      ({ ...g, studio: { tier, owned }, player: { ...g.player, money } })
+    const bought = (s: GameState, p = SENSIBLE) => botStep(s, p).studio.owned
+    // four weeks of the apartment's costs: 4 x 400 = 1,600
+    expect(bought(at(equipmentPrice('coffee') + 1600))).toEqual(['coffee'])
+    expect(bought(at(equipmentPrice('coffee') + 1599))).toEqual([])
+    // one piece a day, cheapest first: the lamp once the coffee machine is in
+    expect(bought(at(100000))).toEqual(['coffee'])
+    expect(bought(at(100000, ['coffee']))).toEqual(['coffee', 'lamp'])
+    // the pen tablet needs the flat: the apartment has nothing left to sell it
+    const allButTablet: EquipmentId[] = ['coffee', 'lamp', 'shelf', 'chair', 'drafting-table']
+    expect(bought(at(100000, allButTablet))).toEqual(allButTablet)
+    // in the flat four weeks of costs are 4 x (400 + 150) = 2,200
+    expect(bought(at(equipmentPrice('tablet') + 2200, allButTablet, 'flat'))).toEqual([...allButTablet, 'tablet'])
+    expect(bought(at(equipmentPrice('tablet') + 2199, allButTablet, 'flat'))).toEqual(allButTablet)
+    // the careless bot and the stress case never buy
+    expect(bought(at(100000), CARELESS)).toEqual([])
+    expect(bought(at(100000), STRESS_BOLT)).toEqual([])
+  })
+
+  it('sensible plans with its equipment: the lamp and shelf add to art and story inside the clamp, as on the page', () => {
+    const g = createGame('Rin', 42)
+    const draft = { title: 'Magic Club', genre: 'fantasy', theme: 'magic', audience: 'kids' } as const
+    const plan = (art: number, owned: EquipmentId[]) =>
+      hypotheticalPreview({ ...g, studio: { tier: 'apartment', owned }, player: { ...g.player, stats: { art, story: 34, pacing: 30 } } }, draft, 'kids-comic', 'art')
+    // art focus: 40 x 1.25 = 50 and 34 x 0.8 = 27.2, shown as 50 and 27
+    expect(plan(40, [])).toMatchObject({ art: 50, story: 27 })
+    // the lamp (+3 art) and the shelf (+3 story): 53 and 30.2, shown as 53 and 30
+    expect(plan(40, ['lamp', 'shelf'])).toMatchObject({ art: 53, story: 30 })
+    // 78 x 1.25 = 97.5; with the lamp 100.5, clamped to 100 like a drawn page
+    expect(plan(78, ['lamp'])).toMatchObject({ art: 100 })
+  })
+
+  it('sensible answers an event a when that leaves two weeks of costs in the bank, else b', () => {
+    const g = createGame('Rin', 42)
+    const cold = (money: number): GameState =>
+      ({ ...g, event: { id: 'cold', day: 0, expiresDay: 7 }, player: { ...g.player, money, stamina: 50 } })
+    const answer = (s: GameState, p = SENSIBLE) => botStep(s, p).log.find((e) => e.kind === 'event')?.text
+    // the doctor costs 300: 1,100 - 300 = 800 is two weeks of 400
+    const doctor = botStep(cold(1100), SENSIBLE)
+    expect(doctor.event).toBeNull()
+    expect(answer(cold(1100))).toBe('The doctor sorted you out. -¥300, stamina +25.')
+    expect(doctor.player.money).toBe(800)
+    // 1,099 would leave 799: tea instead
+    expect(answer(cold(1099))).toBe('Tea and an early night. Stamina +8.')
+    // the careless bot always answers b, the stress case lets the card lapse
+    expect(answer(cold(100000), CARELESS)).toBe('Tea and an early night. Stamina +8.')
+    const ignored = botStep(cold(100000), STRESS_BOLT)
+    expect(ignored.event).toMatchObject({ id: 'cold' })
+    expect(answer(cold(100000), STRESS_BOLT)).toBeUndefined()
+  })
+
+  it('sensible signs Hoshi Animation while its serial has under 12 results, else Studio Kumo', () => {
+    const offered = (results: number): GameState => {
+      const s = serialWith(results, 75)
+      return { ...s, animeOffer: { serialId: s.serial!.id, expiresDay: s.day + 14 }, animeOfferedFor: [s.serial!.id] }
+    }
+    expect(botStep(offered(11), SENSIBLE).anime.map((d) => d.studio)).toEqual(['hoshi'])
+    expect(botStep(offered(12), SENSIBLE).anime.map((d) => d.studio)).toEqual(['kumo'])
+    // the careless bot and the stress case leave the offer to lapse
+    expect(botStep(offered(11), CARELESS)).toMatchObject({ anime: [], animeOffer: { expiresDay: 14 } })
+    expect(botStep(offered(11), STRESS_BOLT)).toMatchObject({ anime: [], animeOffer: { expiresDay: 14 } })
+  })
+
+  it('reads the year review as soon as it is on the desk', () => {
+    const s: GameState = { ...createGame('Rin', 42), reviewUnread: 1 }
+    for (const p of [SENSIBLE, CARELESS, STRESS_BOLT]) expect(botStep(s, p).reviewUnread).toBeNull()
   })
 
   it('stress case: six rotating one-shots, then one forced Weekly Bolt serial, organic offers declined', () => {
@@ -327,6 +428,7 @@ function runWithScores(scores: number[]): BotRun {
     firstOfferAt: null,
     serials: [],
     weeksInDebt: 0,
+    events: 0,
     moneyAtDay: [3000],
     final: createGame('Rin', 1),
   }
@@ -362,6 +464,15 @@ describe('balance bot bookkeeping', () => {
     expect(rescued.oneShots).toHaveLength(1)
     expect(rescued.final.player.money).toBeGreaterThan(0)
     expect(rescued.weeksInDebt).toBe(1)
+  })
+
+  it('counts each random event once, on the day it lands', () => {
+    // the stress case leaves every card to lapse, so each event sits on the desk for 7 days: counted once, not 7 times
+    const run = runBot(42, STRESS_BOLT, { days: 120 })
+    const landed = run.final.log.filter((e) => e.kind === 'event' && e.text.endsWith('Answer on your desk within 7 days.'))
+    expect(run.final.log[0].day).toBe(0)
+    expect(landed.length).toBeGreaterThan(0)
+    expect(run.events).toBe(landed.length)
   })
 
   it('stops after the first day `until` holds', () => {

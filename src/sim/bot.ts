@@ -2,10 +2,11 @@
 // Not re-exported from index.ts: the game never plays itself. A bot has no randomness of its own. Every choice
 // is either a rule or a hash of the world seed and the next project id, and planning previews run on throwaway
 // copies of the state, so a bot never advances the state's RNG seed except through tick().
+import { signAnime } from './anime'
 import { genreThemeKey, themeAudienceKey } from './compat'
 import {
-  AUDIENCES, GENRES, LOW_STAMINA_THRESHOLD, MAGAZINES, ONE_SHOT_PAGES, RATING_SCORE, STALENESS_PENALTY, THEMES,
-  magazineById,
+  AUDIENCES, EQUIPMENT, GENRES, LOW_STAMINA_THRESHOLD, MAGAZINES, ONE_SHOT_PAGES, RATING_SCORE, STALENESS_PENALTY,
+  THEMES, equipmentPrice, magazineById,
 } from './data'
 import {
   acceptOffer, assistantPagesPerDay, chapterDeadline, createGame, declineOffer, dismissResult, endSerial,
@@ -13,13 +14,15 @@ import {
   submitProject, tick, weeklyCosts,
 } from './engine'
 import type { SubmissionPreview } from './engine'
+import { resolveEvent } from './events'
 import { clamp, hashString } from './rng'
 import { stalenessCount, suitedFocus } from './scoring'
-import { studioSlots } from './studio'
+import { buyEquipment, equipmentEffects, moveStudio, studioAtLeast, studioSlots } from './studio'
 import type {
-  Assistant, AudienceId, Focus, GameState, GenreId, MagazineId, Project, ProjectDraft, SerialOffer, SerialStatus,
-  StatId, ThemeId,
+  Assistant, AudienceId, EquipmentId, Focus, GameState, GenreId, MagazineId, Project, ProjectDraft, SerialOffer,
+  SerialStatus, StatId, ThemeId,
 } from './types'
+import { markReviewRead } from './year'
 
 export interface BotPolicy {
   name: string
@@ -31,6 +34,19 @@ export interface BotPolicy {
   pickMagazine(s: GameState): MagazineId
   /** Spend skill points as they arrive (every third on pacing, the rest on the favoured stat). */
   spendPoints: boolean
+  /**
+   * How it answers a random event on the desk: 'afford' answers 'a' when that answer can be given and leaves two
+   * weeks of costs in the bank (costs as they stand after answering, so a raise counts the new salary), else 'b';
+   * 'b' always answers 'b'; null leaves the card to lapse.
+   */
+  events: 'afford' | 'b' | null
+  /** Sign an anime offer as it lands: Hoshi Animation while the serial has under 12 results, else Studio Kumo. */
+  signsAnime: boolean
+  /**
+   * Spend on the studio: the cheapest equipment it may buy once the bank holds its price and four weeks of costs, and
+   * a move to the flat when a late chapter needs a second desk (see `hireIfLate`).
+   */
+  shops: boolean
   /**
    * Stress case only: once `afterOneShots` one-shots have polled, hire the first candidate and force this offer.
    * A policy with a forced serial declines organic offers and never wraps its serial up.
@@ -68,6 +84,8 @@ export interface BotRun {
   serials: BotSerial[]
   /** weeks whose costs left the player below zero */
   weeksInDebt: number
+  /** random events that landed on the desk */
+  events: number
   /** money at the end of each day; index 0 is the starting money (day 0 unless the run had a start state) */
   moneyAtDay: number[]
   final: GameState
@@ -100,6 +118,12 @@ const JOB_MIN_STAMINA = 40
 const HIRE_SALARY_WEEKS = 2
 /** ...on top of this many weeks of the studio's current costs. */
 const HIRE_COST_WEEKS = 2
+/** An event's 'a' answer is given only if it leaves this many weeks of costs in the bank. */
+const EVENT_COST_WEEKS = 2
+/** Equipment is bought only with this many weeks of costs left over after paying for it. */
+const BUY_COST_WEEKS = 4
+/** An anime offer for a serial with fewer results than this goes to Hoshi Animation (slow, big), else Studio Kumo. */
+const HOSHI_BELOW_RESULTS = 12
 
 // ---------- shared rules ----------
 
@@ -156,11 +180,15 @@ function bestDraft(s: GameState, audience: AudienceId): ProjectDraft {
   return { title: `Work ${s.nextProjectId}`, genre: best.genre, theme: best.theme, audience }
 }
 
-/** Preview a finished one-shot of `draft` drawn at the player's current stats, without touching the real state. */
-function hypotheticalPreview(s: GameState, draft: ProjectDraft, m: MagazineId, focus: Focus): SubmissionPreview {
+/**
+ * Preview a finished one-shot of `draft` drawn at the player's current stats and the studio's equipment, without
+ * touching the real state. The page samples are workDay's without the noise: equipment adds inside the clamp.
+ */
+export function hypotheticalPreview(s: GameState, draft: ProjectDraft, m: MagazineId, focus: Focus): SubmissionPreview {
   const mult = focusMultipliers(focus)
-  const art = clamp(s.player.stats.art * mult.art, 0, 100)
-  const story = clamp(s.player.stats.story * mult.story, 0, 100)
+  const fx = equipmentEffects(s)
+  const art = clamp(s.player.stats.art * mult.art + fx.art, 0, 100)
+  const story = clamp(s.player.stats.story * mult.story + fx.story, 0, 100)
   const project: Project = {
     id: s.nextProjectId, kind: 'oneshot', chapter: 0, ...draft,
     pagesTarget: ONE_SHOT_PAGES, pagesDone: ONE_SHOT_PAGES, artSum: art * ONE_SHOT_PAGES, storySum: story * ONE_SHOT_PAGES,
@@ -206,6 +234,9 @@ export const SENSIBLE: BotPolicy = {
     return best ? best.magazineId : MAGAZINES[0].id
   },
   spendPoints: true,
+  events: 'afford',
+  signsAnime: true,
+  shops: true,
 }
 
 function carelessPick<T>(s: GameState, projectId: number, slot: string, list: readonly T[]): T {
@@ -231,6 +262,10 @@ export const CARELESS: BotPolicy = {
   // The project's id is the nextProjectId it was planned under, so the pitch goes where the plan said.
   pickMagazine: (s) => carelessPick(s, s.project?.id ?? s.nextProjectId, 'magazine', MAGAZINES).id,
   spendPoints: false,
+  // clicks the answer that costs no money without reading the card; never signs an anime or shops
+  events: 'b',
+  signsAnime: false,
+  shops: false,
 }
 
 const STRESS_COMBOS = [
@@ -253,6 +288,9 @@ export const STRESS_BOLT: BotPolicy = {
   focusFor: () => 'balanced',
   pickMagazine: (s) => STRESS_MAGAZINES[s.history.length % 4],
   spendPoints: false,
+  events: null,
+  signsAnime: false,
+  shops: false,
   forcedSerial: {
     afterOneShots: 6,
     offer: { magazineId: 'weekly-bolt', title: 'Blade Club', genre: 'action', theme: 'samurai', audience: 'teens' },
@@ -270,19 +308,67 @@ function chooseActivity(s: GameState): GameState {
 }
 
 /**
- * When the chapter on the desk will miss its issue at the studio's pace and a desk is free (`studioSlots`: the
- * apartment has one, and the bot never moves or buys equipment), hire the candidate who draws the most pages per yen
- * of salary among those the bank covers (two weeks of their salary on top of two weeks of current costs). Ties go to
- * the earlier candidate.
+ * The candidate who draws the most pages per yen of salary among those the bank covers (two weeks of their salary on
+ * top of two weeks of the studio's current costs); ties go to the earlier candidate. Undefined when none is covered.
  */
-function hireIfLate(s: GameState): GameState {
-  if (chapterDeadline(s)?.status !== 'late' || s.assistants.length >= studioSlots(s)) return s
+function bestAffordableHire(s: GameState): Assistant | undefined {
   const reserve = HIRE_COST_WEEKS * weeklyCosts(s)
   const affordable = s.candidates.filter((c) => s.player.money >= HIRE_SALARY_WEEKS * c.salary + reserve)
-  if (!affordable.length) return s
+  if (!affordable.length) return undefined
   const value = (c: Assistant) => assistantPagesPerDay(c) / c.salary
-  const best = affordable.reduce((b, c) => (value(c) > value(b) ? c : b))
-  return hireAssistant(s, best.id)
+  return affordable.reduce((b, c) => (value(c) > value(b) ? c : b))
+}
+
+/**
+ * When the chapter on the desk will miss its issue at the studio's pace, hire `bestAffordableHire` into a free desk
+ * (`studioSlots`). With every desk taken, a policy that shops and still lives in the apartment first moves to the flat
+ * for a second desk, but only when the bank covers the hire after the move-in (two weeks of the flat's costs, rent
+ * included, on top of two weeks of the salary); otherwise it stays put.
+ */
+function hireIfLate(state: GameState, p: BotPolicy): GameState {
+  if (chapterDeadline(state)?.status !== 'late') return state
+  let s = state
+  if (s.assistants.length >= studioSlots(s)) {
+    if (!p.shops || s.studio.tier !== 'apartment') return state
+    s = moveStudio(s, 'flat')
+    if (s === state || s.assistants.length >= studioSlots(s) || !bestAffordableHire(s)) return state
+  }
+  const best = bestAffordableHire(s)
+  return best ? hireAssistant(s, best.id) : state
+}
+
+/** The cheapest equipment the studio may buy and does not own yet (ties: the Studio panel's order), if any. */
+function nextPurchase(s: GameState): EquipmentId | undefined {
+  let best: EquipmentId | undefined
+  for (const e of EQUIPMENT) {
+    if (s.studio.owned.includes(e.id) || (e.needsTier && !studioAtLeast(s, e.needsTier))) continue
+    if (best === undefined || equipmentPrice(e.id) < equipmentPrice(best)) best = e.id
+  }
+  return best
+}
+
+/** A policy that shops buys `nextPurchase` once the bank holds its price and four weeks of costs: one piece a day. */
+function shop(s: GameState, p: BotPolicy): GameState {
+  const id = p.shops ? nextPurchase(s) : undefined
+  if (id === undefined || s.player.money < equipmentPrice(id) + BUY_COST_WEEKS * weeklyCosts(s)) return s
+  return buyEquipment(s, id)
+}
+
+/** Answer the event on the desk the policy's way (`BotPolicy.events`). */
+function answerEvent(s: GameState, p: BotPolicy): GameState {
+  if (!s.event || !p.events) return s
+  if (p.events === 'afford') {
+    // resolveEvent returns the same state when the answer cannot be given (blocked, or what it was about is gone)
+    const a = resolveEvent(s, 'a')
+    if (a !== s && a.player.money >= EVENT_COST_WEEKS * weeklyCosts(a)) return a
+  }
+  return resolveEvent(s, 'b')
+}
+
+/** Sign the anime offer on the desk: Hoshi Animation for a young serial, Studio Kumo for one past 11 results. */
+function signIfOffered(s: GameState, p: BotPolicy): GameState {
+  if (!s.animeOffer || !p.signsAnime) return s
+  return signAnime(s, (s.serial?.results.length ?? 0) < HOSHI_BELOW_RESULTS ? 'hoshi' : 'kumo')
 }
 
 /** The engine's log line for a week whose costs left the player below zero. */
@@ -297,9 +383,10 @@ function overdrawnToday(decided: GameState, next: GameState): boolean {
 }
 
 /**
- * One day's decisions, before the tick, in this order: dismiss the result; accept (or decline) the offer; spend
- * points; force the stress serial; wrap a serial; plan a one-shot and set its focus; pitch a finished one; hire help
- * for a chapter that will miss its issue; pick the activity.
+ * One day's decisions, before the tick, in this order: dismiss the result; accept (or decline) the offer; read the
+ * year review; answer the event; sign the anime offer; spend points; force the stress serial; wrap a serial; plan a
+ * one-shot and set its focus; pitch a finished one; hire help (moving to the flat if need be) for a chapter that will
+ * miss its issue; buy equipment; pick the activity.
  */
 function decide(state: GameState, p: BotPolicy): GameState {
   let s = state
@@ -309,6 +396,9 @@ function decide(state: GameState, p: BotPolicy): GameState {
     const accepted = p.forcedSerial ? s : acceptOffer(s)
     s = accepted === s ? declineOffer(s) : setFocus(accepted, p.focusFor(accepted, offer.magazineId))
   }
+  s = markReviewRead(s)
+  s = answerEvent(s, p)
+  s = signIfOffered(s, p)
   if (p.spendPoints) s = spendAllPoints(s)
   const forced = p.forcedSerial
   if (forced && !s.serial && !s.serials.length && !s.project && s.history.length >= forced.afterOneShots) {
@@ -324,14 +414,15 @@ function decide(state: GameState, p: BotPolicy): GameState {
     s = setFocus(startProject(s, draft), p.focusFor(s, target))
   }
   if (s.project?.status === 'ready') s = submitProject(s, p.pickMagazine(s))
-  s = hireIfLate(s)
+  s = hireIfLate(s, p)
+  s = shop(s, p)
   return chooseActivity(s)
 }
 
 /**
- * One bot day: dismiss the result, accept (or decline) the offer, spend points, force the stress serial, wrap a
- * serial, plan a one-shot and set its focus, pitch a finished one, hire for a late chapter, pick the activity, then
- * tick.
+ * One bot day: dismiss the result, accept (or decline) the offer, read the year review, answer the event, sign the
+ * anime offer, spend points, force the stress serial, wrap a serial, plan a one-shot and set its focus, pitch a
+ * finished one, hire (or move and hire) for a late chapter, buy equipment, pick the activity, then tick.
  */
 export function botStep(s: GameState, p: BotPolicy): GameState {
   return tick(decide(s, p))
@@ -344,6 +435,7 @@ export function runBot(seed: number, p: BotPolicy, opts: BotRunOptions): BotRun 
   const oneShots: BotOneShot[] = []
   const moneyAtDay = [s.player.money]
   let weeksInDebt = 0
+  let events = 0
   let offerChance = 0
   // Every step ticks exactly one day, so the step counter bounds the loop even if a rule stops the clock.
   for (let step = 0; step < opts.days && s.day < opts.days && oneShots.length < maxOneShots; step++) {
@@ -361,6 +453,8 @@ export function runBot(seed: number, p: BotPolicy, opts: BotRunOptions): BotRun 
       })
     }
     if (overdrawnToday(decided, next)) weeksInDebt++
+    // an event's day is the day it landed
+    if (next.event?.day === next.day) events++
     moneyAtDay.push(next.player.money)
     opts.observe?.(decided, next)
     s = next
@@ -373,6 +467,7 @@ export function runBot(seed: number, p: BotPolicy, opts: BotRunOptions): BotRun 
     firstOfferAt: first < 0 ? null : first + 1,
     serials: all.map((x) => ({ magazineId: x.magazineId, startedDay: x.startedDay, results: x.results.length, status: x.status })),
     weeksInDebt,
+    events,
     moneyAtDay,
     final: s,
   }

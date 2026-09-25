@@ -1,12 +1,50 @@
 // Balance-band measurements: plays the balance bots (bot.ts) over a range of seeds and reduces the runs to one
-// measurement per row of the balance-band table (DESIGN.md "Balance bands"). Only the measurements live here; the
-// targets live in src/sim/__tests__/balance.test.ts, which asserts them, and scripts/balance.ts, which prints them
-// for reference. Both read these functions, so the readout and the tests cannot drift apart. Pure: no clock, no
-// random source; every run is a deterministic function of its seed.
+// measurement per row of the balance-band table (DESIGN.md "Balance bands"), and holds that table's targets (`BANDS`).
+// src/sim/__tests__/balance.test.ts asserts the targets against the measurements and scripts/balance.ts prints both,
+// so the readout and the tests cannot drift apart. Pure: no clock, no random source; every run is a deterministic
+// function of its seed.
 import { CARELESS, OPENING_ONE_SHOTS, SENSIBLE, STRESS_BOLT, firstSixMean, runBot } from './bot'
 import { DAYS_PER_YEAR } from './data'
 import type { BotPolicy, BotRun } from './bot'
-import type { GameState } from './types'
+import type { AwardId, GameState } from './types'
+
+/**
+ * The balance-band table's targets, judged over 20 seeds (seeds 1 to 20): counts are out of 20. balance.test.ts asserts
+ * every row but the anime one, which only the script reports. These change only with owner sign-off: when a rule
+ * change pushes a row out of its band, tune a knob (DESIGN.md lists them) and record the change, never these numbers.
+ */
+export const BANDS = {
+  // Package 1
+  /** sensible bot, first one-shot score: in low-high on at least `atLeast` seeds, median in medianLow-medianHigh */
+  firstScore: { low: 40, high: 55, atLeast: 13, medianLow: 44, medianHigh: 52 },
+  /** sensible minus careless, mean score of the first 6 one-shots */
+  firstSixGap: { atLeast: 8 },
+  /** sensible bot, organic offer within the first 6 one-shots; median first offer by one-shot `medianAtMost` */
+  sensibleOffer: { atLeast: 16, medianAtMost: 3 },
+  /** careless bot, organic offer within 6 */
+  carelessOffer: { atMost: 6 },
+  /** sensible bot's first serial reaches SERIAL_TARGET_RESULTS results */
+  firstSerial: { atLeast: 14 },
+  /** stress case cancelled on at least `atLeast` seeds, never before its `notBefore`th result */
+  stress: { atLeast: 15, notBefore: 5 },
+  /** careless bot's money at its 6th result under `under` */
+  carelessMoney: { under: 3000, atLeast: 15 },
+  /** forecast calibration, (seen - expected) / expected over year one */
+  calibration: { within: 0.3 },
+  /** sensible bot, no week in debt in year one */
+  debtFree: { atLeast: 18 },
+  // Package 2
+  /** sensible bot, mean random events that land in year one */
+  events: { low: 8, high: 13 },
+  /** sensible bot meets the rival in year one on `metAtLeast` seeds; its share of the meetings won */
+  rival: { metAtLeast: 16, winShareLow: 0.35, winShareHigh: 0.75 },
+  /** sensible bot, an award or a near miss in year one; the Golden Pen in year one on at most `goldenPenAtMost` */
+  awards: { atLeast: 16, goldenPenAtMost: 5 },
+  /** sensible bot (buying), low-high pieces of equipment owned at day 336 */
+  equipment: { low: 2, high: 3, atLeast: 12 },
+  /** sensible bot, an anime offer within two years (script only) */
+  anime: { low: 6, high: 16 },
+} as const
 
 /** One in-game year. */
 export const YEAR = DAYS_PER_YEAR
@@ -97,6 +135,11 @@ export function calibrationError(c: Calibration): number | null {
   return c.expected > 0 ? (c.seen - c.expected) / c.expected : null
 }
 
+/** How many of `xs` lie in low..high, both included (missing values never do). */
+export function countIn(xs: (number | null)[], low: number, high: number): number {
+  return xs.filter((x) => x !== null && x >= low && x <= high).length
+}
+
 // ---------- the P1 rows ----------
 
 /** One measurement per P1 row, in the table's order. Counts are out of `seeds.length`. */
@@ -150,4 +193,69 @@ export function measureP1(runs: BalanceRuns): P1Measures {
     },
     sensibleWeeksInDebt: sYear.map((r) => r.weeksInDebt),
   }
+}
+
+// ---------- the P2 rows ----------
+
+/** One measurement per P2 row, per seed, all from the sensible bot's year-one run (it answers events, signs anime, shops). */
+export interface P2Measures {
+  /** random events that landed in year one */
+  events: number[]
+  /** year one's head to head with the rival (from the year-one review) */
+  rival: { wins: number; losses: number }[]
+  /** year one's awards and near misses (from the year-one review) */
+  awards: { won: AwardId[]; near: AwardId[] }[]
+  /** pieces of equipment owned at day 336 */
+  equipment: number[]
+}
+
+export function measureP2(runs: BalanceRuns): P2Measures {
+  const years = runs.sensible.map((r) => r.year)
+  // A year run always reaches the close on day 336; without a review there was no year one to judge.
+  const review = (r: BotRun) => r.final.yearReviews.find((y) => y.year === 1)
+  return {
+    events: years.map((r) => r.events),
+    rival: years.map((r) => {
+      const y = review(r)
+      return { wins: y?.rival.wins ?? 0, losses: y?.rival.losses ?? 0 }
+    }),
+    awards: years.map((r) => {
+      const y = review(r)
+      return { won: y?.awards ?? [], near: y?.nearMisses.map((n) => n.id) ?? [] }
+    }),
+    equipment: years.map((r) => r.final.studio.owned.length),
+  }
+}
+
+/** The mean of `xs` (0 for none). */
+export function meanOf(xs: number[]): number {
+  return xs.length ? mean(xs) : 0
+}
+
+/** Share of the meetings with the rival the player won, over every seed together; null when they never met. */
+export function winShare(records: { wins: number; losses: number }[]): number | null {
+  const wins = records.reduce((a, r) => a + r.wins, 0)
+  const meetings = records.reduce((a, r) => a + r.wins + r.losses, 0)
+  return meetings ? wins / meetings : null
+}
+
+// ---------- reported by the script only ----------
+
+/** The sensible bot with its shopping switched off: no equipment, no move. */
+export const SENSIBLE_BUYING_NOTHING: BotPolicy = { ...SENSIBLE, name: 'sensible, buying nothing', shops: false }
+
+/**
+ * Money at day 336 for the sensible bot buying nothing, per seed. Its median is S1, which sets
+ * `EQUIPMENT_PRICE_SCALE` (S1 / 9000 rounded to 0.25 and clamped to 0.75-4; DESIGN.md "Studio and equipment").
+ */
+export function moneyBuyingNothing(seeds: number[]): number[] {
+  return seeds.map((seed) => runBot(seed, SENSIBLE_BUYING_NOTHING, { days: YEAR }).final.player.money)
+}
+
+/** The day of the sensible bot's first anime offer within two years, per seed (null when none came). */
+export function firstAnimeOffer(seeds: number[]): (number | null)[] {
+  return seeds.map((seed) => {
+    const run = runBot(seed, SENSIBLE, { days: 2 * YEAR, until: (s) => s.animeOfferedFor.length > 0 })
+    return run.final.animeOfferedFor.length ? run.final.day : null
+  })
 }
