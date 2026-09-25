@@ -32,4 +32,4 @@ jobs:
       - name: Contrast gate (WCAG AA 4.5:1)
         run: npm run contrast
       - name: Balance smoke run
-        run: npm run balance -- 42
+        run: npm run balance -- 1 3

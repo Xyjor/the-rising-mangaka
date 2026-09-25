@@ -33,5 +33,5 @@ Vitest tests; the UI never touches game rules directly.
 npm test                              # simulation tests
 npx tsc -b                            # type check
 npm run build                         # production build
-npx vite-node scripts/balance.ts 42   # balance readout for a seed
+npm run balance -- 1 20               # balance bots over seeds 1-20 (add --detail 42 for one seed's full readout)
 ```

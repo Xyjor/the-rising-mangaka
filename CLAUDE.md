@@ -13,7 +13,7 @@ npm run build          # Production build
 npm run lint           # oxlint
 npm run check           # Lint (deny warnings) + typecheck + tests + build + contrast gate; mirrors CI
 npm run contrast        # WCAG AA 4.5:1 contrast gate over src/styles/tokens.css
-npm run balance -- <seed>   # Balance readout: simulates a career and prints the numbers
+npm run balance -- [from=1] [to=20] [--detail seed]   # Balance bots (src/sim/bot.ts): a line per seed per bot, then the balance-band rows
 ```
 
 Every change must pass `npx tsc -b`, `npm test`, and `npm run build` before it is called done. Run them; do not assume.
