@@ -160,6 +160,29 @@ function glyph(ctx: CanvasRenderingContext2D, ch: string, x: number, y: number, 
 
 // ---------- the characters (canvas space, from the actor table) ----------
 
+const PROP_PAPER = '#fdfcf7'
+const PROP_LINE = '#b8b2a5'
+const PROP_BLUE = '#3b6fd6'
+const PROP_RED = '#e5484d'
+const PROP_GOLD = '#f5b700'
+const PROP_BASE = '#8b5a2b'
+
+/** What the standing editor holds in the leading hand, and the ! bobbing above them. */
+function drawVisitorProp(ctx: CanvasRenderingContext2D, prop: Snapshot['visitorProp'], x: number, y: number, frame: number) {
+  switch (prop) {
+    case 'envelope':
+      rawRect(ctx, x - 4, y + 8, 5, 3, PROP_PAPER); rawRect(ctx, x - 4, y + 9, 5, 1, PROP_LINE); break
+    case 'letter':
+      rawRect(ctx, x - 4, y + 7, 4, 5, PROP_PAPER); rawRect(ctx, x - 4, y + 8, 4, 1, PROP_LINE); rawRect(ctx, x - 4, y + 10, 4, 1, PROP_LINE); break
+    case 'contract':
+      rawRect(ctx, x - 4, y + 7, 4, 6, PROP_PAPER); rawRect(ctx, x - 4, y + 9, 4, 1, PROP_BLUE); rawRect(ctx, x - 4, y + 11, 4, 1, PROP_RED); break
+    case 'trophy':
+      rawRect(ctx, x - 4, y + 7, 3, 3, PROP_GOLD); rawRect(ctx, x - 3, y + 10, 1, 2, PROP_GOLD); rawRect(ctx, x - 4, y + 12, 3, 1, PROP_BASE); break
+    case 'none': return
+  }
+  glyph(ctx, '!', x + 5, y - 10 - (Math.floor(frame / 16) % 2), '#e5484d')
+}
+
 /**
  * The mangaka, in whatever pose the table holds. Called twice: before the desk (paints only when y < 92: seated,
  * behind the desk top) and after it (only when y >= 92: standing, walking or in bed, in front of it).
@@ -407,6 +430,7 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
   }
   const editor = s.actors.editor
   if (editor.state !== 'hidden' && editor.state !== 'away') drawSprite(ctx, EDITOR, editor.x, editor.y, 15, PAL, editor.facing === 1)
+  if (s.visitor === 'editor' && editor.state === 'standing' && editor.facing === -1) drawVisitorProp(ctx, s.visitorProp, editor.x, editor.y, frame)
 
   if (night) {
     ctx.fillStyle = 'rgba(20, 24, 60, 0.28)'; ctx.fillRect(0, 0, W, H)

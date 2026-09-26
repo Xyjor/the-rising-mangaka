@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { getSound } from '../../audio/instance'
 import { useShallow } from 'zustand/react/shallow'
 import { getPhase, placeById, studioLook } from '../../sim'
 import type { StudioLook } from '../../sim'
@@ -9,6 +10,7 @@ import { anyWalking, newActorTable, planActors, settleActors, stepActors } from 
 import { H, W, render } from './render'
 import type { Snapshot } from './render'
 import { seasonOf } from './season'
+import { PROP_FOR, visitorReasonOf } from './visitor'
 import { NO_EQUIPMENT, SHOWN_TROPHIES, ownedFlags } from './studioArt'
 
 /** Frame budget in ms: 24 fps for the 320x180 sprite scene. */
@@ -36,6 +38,17 @@ export function StudioScene({ running }: { running: boolean }) {
   // (one table for the component's life, mutated in place: useState's lazy initialiser, so render may read it)
   const [actors] = useState(newActorTable)
   const saveLoads = useStore((s) => s.saveLoads)
+  const reason = useStore((s) => visitorReasonOf(s.game))
+  // Walks everyone for dtMs; the editor coming to a stand is an arrival, and knocks (never in a read-only tab or while
+  // the window is hidden). A settle (mount, loaded save) is not a step, so it never knocks.
+  const advance = useCallback((dtMs: number, reduced: boolean) => {
+    const before = actors.editor.state
+    stepActors(actors, dtMs, reduced)
+    if (before !== 'standing' && actors.editor.state === 'standing') {
+      const st = useStore.getState()
+      if (!st.readOnly && !st.windowHidden) getSound().play('knock')
+    }
+  }, [actors])
 
   const phase = useStore((s) => (s.game ? getPhase(s.game) : 'idle'))
   const activity = useStore((s) => s.game?.activity ?? 'rest')
@@ -61,20 +74,20 @@ export function StudioScene({ running }: { running: boolean }) {
       // the studio as flags and counts, so render never walks a list per frame
       tier: look.tier, owned: ownedFlags(look.equipment), volumes: look.volumes, animePoster: look.animePoster,
       trophies: Math.min(SHOWN_TROPHIES, look.trophies.length),
-      visitor: 'none', visitorProp: 'none', actors: actors,
+      visitor: reason === 'none' ? 'none' : 'editor', visitorProp: PROP_FOR[reason], actors: actors,
     }
     planActors(actors, snap.current)
     // Under reduced motion the loop only repaints once a second, so state changes repaint at once.
     // ctxRef is still null on first mount (this effect runs before the loop effect); the loop's first frame covers it.
     if (reduceMotion.current && ctxRef.current) {
-      stepActors(actors, 0, true)
+      advance(0, true)
       const t = useClock.getState().t
       render(ctxRef.current, snap.current, t, 0)
       lastT.current = t
       lastFrame.current = 0
       lastSnap.current = snap.current
     }
-  }, [actors, phase, activity, progress, stamina, running, trip, assistants, season, look])
+  }, [actors, advance, phase, activity, progress, stamina, running, trip, assistants, season, look, reason])
 
   // On mount and on a loaded save everyone is simply in place: nobody walks in. (After the plan above: effects run in
   // order.) The repaint follows on the loop's next step, which sees the changed actors through lastSnap being reset.
@@ -105,7 +118,7 @@ export function StudioScene({ running }: { running: boolean }) {
       const s = snap.current
       // the actors walk whether or not the clock runs: the editor must arrive while the game waits on them
       const moving = anyWalking(actors)
-      stepActors(actors, Math.min(dt, MAX_ACTOR_STEP_MS), reduce)
+      advance(Math.min(dt, MAX_ACTOR_STEP_MS), reduce)
       if (!reduce) frame.current += s.running ? 2.5 : 1.25
       const t = useClock.getState().t
       const f = reduce ? 0 : Math.floor(frame.current)
@@ -133,7 +146,7 @@ export function StudioScene({ running }: { running: boolean }) {
       document.removeEventListener('visibilitychange', start)
       ctxRef.current = null
     }
-  }, [actors])
+  }, [actors, advance])
 
   const status =
     trip ? `Away at the ${placeById(trip.placeId).name}` :

@@ -217,4 +217,27 @@ describe('the characters, from the actor table', () => {
     expect(has(log, '#2b2140', 236, 102)).toBe(true)
     expect(log).toContainEqual({ style: '#2f5ecf', x: 242, y: 94, w: 1, h: 1 })
   })
+
+  it('hands the editor their prop and bobs the ! above them while they stand facing left', () => {
+    const at = (over: Parameters<typeof sceneSnapshot>[0], frame: number) => {
+      const { ctx, log } = fakeContext()
+      render(ctx, sceneSnapshot(over), 0.3, frame)
+      return log
+    }
+    const env = at({ visitor: 'editor', visitorProp: 'envelope' }, 100)
+    expect(env).toContainEqual({ style: '#2b2140', x: 207, y: 102, w: 1, h: 1 })
+    expect(env).toContainEqual({ style: '#fdfcf7', x: 200, y: 110, w: 5, h: 3 })
+    // frame 100: floor(100 / 16) % 2 = 0, so the ! tops out at 102 - 10 = 92, its stroke in the glyph's middle column
+    expect(env).toContainEqual({ style: '#e5484d', x: 210, y: 92, w: 1, h: 1 })
+    expect(at({ visitor: 'editor', visitorProp: 'trophy' }, 100)).toContainEqual({ style: '#f5b700', x: 200, y: 109, w: 3, h: 3 })
+    expect(at({ visitor: 'editor', visitorProp: 'envelope' }, 16)).toContainEqual({ style: '#e5484d', x: 210, y: 91, w: 1, h: 1 })
+  })
+
+  it('paints no prop while the editor walks', () => {
+    const table = newActorTable()
+    Object.assign(table.editor, { x: 204, y: 102, targetX: 180, targetY: 102, state: 'walking', goal: 'standing', facing: -1 })
+    const { ctx, log } = fakeContext()
+    render(ctx, sceneSnapshot({ visitor: 'editor', visitorProp: 'envelope', actors: table }), 0.3, 100)
+    expect(log.some((c) => c.style === '#fdfcf7' && c.x === 200 && c.y === 110)).toBe(false)
+  })
 })
