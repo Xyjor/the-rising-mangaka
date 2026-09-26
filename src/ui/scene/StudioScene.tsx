@@ -13,6 +13,8 @@ import { seasonOf } from './season'
 import { GREETING, PROP_FOR, visitorReasonOf } from './visitor'
 import { BUBBLE_MS, Bubble } from './Bubble'
 import { sceneToCss, useSceneRect } from './sceneAnchor'
+import { Pops, popsFor } from './Pops'
+import type { PopKind } from './Pops'
 import '../../styles/scene.css'
 import type { Actor } from './actors'
 import { NO_EQUIPMENT, SHOWN_TROPHIES, ownedFlags } from './studioArt'
@@ -37,6 +39,11 @@ function placeBubble(el: HTMLDivElement | null, rect: { width: number; height: n
   el.style.left = `${p.left}px`
   el.style.top = `${p.top}px`
 }
+
+/** Pop sounds step up by kind: money, fans, xp. */
+const POP_PITCH: Record<PopKind, number> = { money: 0, fans: 4, xp: 7 }
+/** Pops rise from the desk while the mangaka is out of sight. */
+const DESK = { x: 145, y: 96 }
 
 const lastLogId = (g: { log: readonly { id: number }[] } | null) => (g && g.log.length ? g.log[g.log.length - 1].id : -1)
 
@@ -145,6 +152,17 @@ export function StudioScene({ running }: { running: boolean }) {
     return () => { unsub(); clearTimeout(timer) }
   }, [actors])
 
+  // Numbers pop from the mangaka (or the desk when they are out of sight); each pop plays its pitch, never in a
+  // read-only tab or while the window is hidden.
+  const popAnchor = useCallback(() => {
+    const m = actors.mangaka
+    return m.state === 'away' || m.state === 'hidden' ? DESK : { x: m.x + 6, y: m.y - 4 }
+  }, [actors])
+  useEffect(() => useStore.subscribe((next, prev) => {
+    if (next.windowHidden) return
+    for (const p of popsFor(prev, next, DESK)) getSound().play('pop', { pitch: POP_PITCH[p.kind] })
+  }), [])
+
   // placed at once when a bubble appears or the wrap resizes, then after every painted frame
   useLayoutEffect(() => {
     rectRef.current = rect
@@ -227,6 +245,7 @@ export function StudioScene({ running }: { running: boolean }) {
         <span className="chip">{status}</span>
       </div>
       {line && <Bubble key={line.id} ref={mangakaBubble} who="mangaka" text={line.text} />}
+      <Pops rect={rect} anchor={popAnchor} />
       {greeting && <Bubble ref={editorBubble} who="editor" text={greeting} />}
       {showPaused && (
         <div className="scene-paused" aria-hidden="true"><span>Paused</span></div>

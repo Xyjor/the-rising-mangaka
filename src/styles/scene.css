@@ -14,3 +14,20 @@
   from { opacity: 0; transform: translate(-50%, calc(-100% - 2px)) scale(0.9); }
   to { opacity: 1; transform: translate(-50%, calc(-100% - 6px)); }
 }
+
+/* Pop numbers: money, fans and xp rising from the mangaka. */
+.pop {
+  position: absolute; transform: translate(-50%, -100%); padding: 1px 6px; border-radius: 999px;
+  font: 800 13px var(--font-ui); background: var(--panel); border: 2px solid var(--line-strong);
+  pointer-events: none; animation: pop-rise 1200ms var(--ease-out) forwards;
+}
+.pop[data-kind='money'] { color: var(--green-text); }
+.pop[data-kind='fans'] { color: var(--blue-text); }
+.pop[data-kind='xp'] { color: var(--purple-text); }
+@keyframes pop-rise {
+  to { transform: translate(-50%, calc(-100% - 24px)); opacity: 0; }
+}
+/* base.css's 0.01 ms animation rule with forwards would hide a pop at once */
+@media (prefers-reduced-motion: reduce) {
+  .pop { animation: none; }
+}

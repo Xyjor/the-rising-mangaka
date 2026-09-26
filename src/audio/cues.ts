@@ -142,4 +142,6 @@ export const CUES: Record<CueId, CueDef> = {
       noise(0.09, 0.05, 0.22, { type: 'lowpass', freq: 600 }, 0.002), sine(A3, 0.09, 0.07, 0.2, { to: A2, attack: 0.002 }),
     ],
   },
+  // a number floats up from the mangaka: a short bright blip, pitched per kind
+  pop: { gapMs: 80, vary: [0, 4, 7], voices: [sine(A5, 0, 0.04, 0.12, { attack: 0.002 })] },
 }

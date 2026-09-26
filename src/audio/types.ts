@@ -6,7 +6,7 @@ export type CueId =
   | 'hire' | 'depart' | 'return' | 'chapter' | 'chapter-top' | 'chapter-weak' | 'coins'
   | 'levelup' | 'milestone' | 'warn' | 'cancel' | 'offer' | 'serialised' | 'event' | 'award'
   | 'drumroll' | 'bar' | 'stamp' | 'fanfare' | 'jingle-up' | 'jingle-mid' | 'jingle-down'
-  | 'knock'
+  | 'knock' | 'pop'
 
 /** What every voice has. Times are seconds from the start of the cue. */
 interface VoiceShape {
