@@ -73,13 +73,20 @@
   .only-phone { display: inline; }
   .not-phone { display: none; }
 
-  .top-left, .top-right { left: 8px; right: 8px; top: 8px; }
+  .top-left, .top-right { left: 8px; right: 8px; top: 8px; max-width: 50%; overflow: hidden; }
   .top-right { left: auto; }
-  .badge-hud { padding: 4px 8px; font-size: 11px; }
+  .badge-hud { padding: 4px 8px; font-size: 11px; max-width: 100%; }
+  .badge-hud .num { font-size: 8px; }
   .badge-hud.stat { min-width: 0; }
   .speed button { min-width: 36px; }
   .rail-log { left: 8px; bottom: 8px; }
   .rail-settings { right: 8px; bottom: 8px; }
   .status-card { grid-template-columns: 1fr; }
   .status-right { order: -1; }
+
+  /* Rail: this must win over hud.css's own desktop rule above, and over stage.css's phone rule (hud.css
+     loads after stage.css in main.tsx, so a same-file, later media block is what actually wins the
+     cascade at 375px; stage.css's copy of this rule is dead weight there and has been removed). */
+  .rail { position: static; transform: none; flex-direction: row; overflow-x: auto; padding: 8px 12px 16px; gap: 8px; }
+  .rail .btn { flex: none; }
 }

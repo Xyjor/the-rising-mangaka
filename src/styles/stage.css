@@ -33,6 +33,6 @@
     padding: 8px 12px 0; gap: 8px; pointer-events: auto;
   }
   .status-stack, .desk-tray { width: 100%; max-height: none; overflow: visible; }
-  .rail { position: static; transform: none; flex-direction: row; overflow-x: auto; padding: 8px 12px 16px; gap: 8px; }
-  .rail .btn { flex: none; }
+  /* .rail's phone override lives in hud.css, which loads after this file (see main.tsx) — a copy here
+     would lose the cascade to hud.css's desktop .rail rule at the same specificity. */
 }
