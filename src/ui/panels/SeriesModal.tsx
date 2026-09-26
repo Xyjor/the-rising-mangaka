@@ -14,24 +14,19 @@ export function SeriesModal() {
   const game = useStore((s) => s.game)!
   const closeModal = useStore((s) => s.closeModal)
   const all: Serial[] = [...(game.serial ? [game.serial] : []), ...[...game.serials].reverse()]
-  const [pick, setPick] = useState(0)
-  const ser = all[pick]
+  const [pickId, setPickId] = useState<string | undefined>(undefined)
+  const ser = all.find((s) => String(s.id) === pickId) ?? all[0]
+  const tabs = all.length > 1 ? all.map((s) => ({ id: String(s.id), label: s.title })) : undefined
 
   return (
-    <Modal title="Series" sub="Weekly chapter polls, popularity, and volume sales." onClose={closeModal}>
+    <Modal title="Series" sub="Weekly chapter polls, popularity, and volume sales." onClose={closeModal} wide
+      tabs={tabs} tab={ser ? String(ser.id) : undefined} onTab={setPickId}>
       {!ser ? (
         <p className="muted">
           No serialised work yet. Finish top {SERIAL_OFFER_MIN_RANK} in a magazine poll, or score {SERIAL_OFFER_MIN_SCORE}+, and that magazine will offer you a serial. Kids Comic Go! is the easiest place to start.
         </p>
       ) : (
-        <div className="col" style={{ gap: 16 }}>
-          {all.length > 1 && (
-            <div className="seg sm" role="group" aria-label="Series" style={{ alignSelf: 'flex-start', flexWrap: 'wrap' }}>
-              {all.map((s, i) => <button key={s.id} aria-pressed={i === pick} onClick={() => setPick(i)}>{s.title}</button>)}
-            </div>
-          )}
-          <SeriesDetail ser={ser} />
-        </div>
+        <SeriesDetail ser={ser} />
       )}
     </Modal>
   )
@@ -102,6 +97,7 @@ function SeriesDetail({ ser }: { ser: Serial }) {
       </div>
 
       {ser.results.length > 0 && (
+      <div className="series-grid">
         <section>
           <div className="small" style={{ fontWeight: 800, marginBottom: 6 }}>Poll rank by chapter</div>
           <RankChart results={ser.results} entrants={mag.entrants + 1} height={150} />
@@ -111,9 +107,7 @@ function SeriesDetail({ ser }: { ser: Serial }) {
             <span><i style={{ background: 'var(--accent)' }} />Weak (counts toward cancellation)</span>
           </div>
         </section>
-      )}
-
-      {ser.results.length > 0 && (
+        <div className="series-table">
         <table className="table">
           <thead><tr><th>Chapter</th><th className="num">Rank</th><th className="num">Rival</th><th className="num">Score</th><th className="num">Art</th><th className="num">Story</th><th className="num">Freshness</th><th className="num">Paid</th></tr></thead>
           <tbody>
@@ -131,6 +125,8 @@ function SeriesDetail({ ser }: { ser: Serial }) {
             ))}
           </tbody>
         </table>
+        </div>
+      </div>
       )}
     </div>
   )

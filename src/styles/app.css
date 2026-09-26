@@ -193,6 +193,13 @@
   .rewards .reward[data-landed='true'] { animation: none; }
 }
 
+/* ---------- series ---------- */
+.series-grid { display: grid; grid-template-columns: 1fr; gap: 16px; align-items: start; }
+.series-table { overflow-x: auto; min-width: 0; }
+@media (min-width: 900px) {
+  .series-grid { grid-template-columns: minmax(0, 55fr) minmax(0, 45fr); }
+}
+
 /* ---------- notebook ---------- */
 .nb-grid { display: grid; gap: 2px; justify-content: start; font-size: 11px; overflow: auto; }
 .nb-grid .hdr { font-weight: 800; color: var(--ink-2); padding: 4px 2px; font-size: 10px; line-height: 1.1; overflow-wrap: anywhere; align-self: end; }
