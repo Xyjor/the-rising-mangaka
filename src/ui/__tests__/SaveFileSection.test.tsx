@@ -126,7 +126,10 @@ describe('Load save file', () => {
   const refusals: [string, string, string][] = [
     ['not JSON', 'hello', 'That file is not a Rising Mangaka save. Pick a .json file made with Export save file.'],
     ['not a save', '{"name":"notes"}', 'That file is not a Rising Mangaka save. Pick a .json file made with Export save file.'],
-    ['too old', fileText(createGame('Aoi', 7), 1), 'That save comes from an older version of the game and cannot be loaded.'],
+    [
+      'too old', fileText(createGame('Aoi', 7), 1),
+      'That save comes from an older version of the game and cannot be loaded here. Keep playing it where it was made.',
+    ],
     [
       'too new', fileText(createGame('Aoi', 7), 3),
       'That save comes from a newer version of the game. Update the game, then load it again.',

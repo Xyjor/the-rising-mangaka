@@ -71,13 +71,17 @@ function RecoveryScreen({ error }: { error: unknown }) {
         <div className="col" style={{ gap: 10, alignItems: 'center' }}>
           {hasSave && <button className="btn primary" onClick={() => void exportFile()}>Export save file</button>}
           {owner ? (
-            <ConfirmRow
-              label="Start over"
-              confirmLabel="Yes, delete save"
-              cancelLabel="Keep the save"
-              hint="Deletes this save. There is no undo."
-              onConfirm={startOver}
-            />
+            <>
+              {/* The desktop release build cancels F5 and Ctrl+R, so reopening would otherwise mean closing the window. */}
+              <button className="btn" onClick={() => window.location.reload()}>Reload the game</button>
+              <ConfirmRow
+                label="Start over"
+                confirmLabel="Yes, delete save"
+                cancelLabel="Keep the save"
+                hint="Deletes this save. There is no undo."
+                onConfirm={startOver}
+              />
+            </>
           ) : (
             <>
               <button className="btn" onClick={() => window.location.reload()}>Reload the game</button>

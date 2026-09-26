@@ -34,7 +34,7 @@ export function OfferModal() {
     >
       <div className="col" style={{ gap: 16 }}>
         <p id="offer-summary" className="sr-only">
-          {mag.name} offers to serialise {offer.title} at {money(mag.pageRate)} per page, {mag.circulation}k readers, {mag.entrants} rival series.
+          {mag.name} offers to serialise {offer.title} at {money(mag.pageRate)} a page at a score of {PAY_FULL_RATE_SCORE}, {mag.circulation}k readers, {mag.entrants} rival series.
         </p>
         <div className="offer-hero">
           <span className="small muted">{mag.name} wants to run</span>

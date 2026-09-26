@@ -8,7 +8,7 @@ import { useStore } from '../state/store'
 export const SAVE_FILE_ERRORS: Record<SaveFileError, string> = {
   'not-json': 'That file is not a Rising Mangaka save. Pick a .json file made with Export save file.',
   'not-a-save': 'That file is not a Rising Mangaka save. Pick a .json file made with Export save file.',
-  'too-old': 'That save comes from an older version of the game and cannot be loaded.',
+  'too-old': 'That save comes from an older version of the game and cannot be loaded here. Keep playing it where it was made.',
   'too-new': 'That save comes from a newer version of the game. Update the game, then load it again.',
   damaged: 'That save file is damaged. Try another export.',
 }

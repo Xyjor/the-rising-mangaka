@@ -322,4 +322,38 @@ describe('random events: ignoring one', () => {
     expect(tick(s).event).toBeNull()
     expect(tick(startTrip(s, 'library')).event).toBeNull()
   })
+
+  it('lapses the same day when what it was about is gone, so it never holds up the next roll unseen', () => {
+    // A raise asked on day 31 (answerable to day 38) by an assistant who has since left: no card can show it.
+    const { s: staffed, a } = withAssistant(createGame('Rin', 1), 400)
+    const gone: GameState = {
+      ...withEvent({ ...staffed, day: 32, nextEventDay: 45 }, 'raise', { day: 31, expiresDay: 38, assistantId: a.id }),
+      assistants: [],
+    }
+    const after = eventTick(gone)
+    expect(after.event).toBeNull()
+    expect(after.log.at(-1)).toMatchObject({
+      day: 32, kind: 'event', toast: false, text: 'Your assistant stopped asking about the raise. Nothing changed.',
+    })
+    // day 32 is not a roll day (32 % 7 = 4): nothing is drawn, only the event and the log change
+    expect({ ...after, event: gone.event, log: gone.log, nextLogId: gone.nextLogId }).toEqual(gone)
+    // a reprint for a serial that is not on record goes the same way
+    const reprint = withEvent({ ...createGame('Rin', 1), day: 32 }, 'reprint', { serialId: 999 })
+    expect(eventTick(reprint).log.at(-1)!.text).toBe('The reprint offer lapsed. Nothing changed.')
+  })
+
+  it('a roll day with such an event cleared rolls as usual', () => {
+    // Day 38 is a roll day (38 % 7 = 3) past nextEventDay 0: with the stale raise cleared, the two draws are taken.
+    const { s: staffed, a } = withAssistant(createGame('Rin', 1), 400)
+    const gone: GameState = {
+      ...withEvent({ ...staffed, day: 38, nextEventDay: 0 }, 'raise', { day: 31, expiresDay: 45, assistantId: a.id }),
+      assistants: [],
+    }
+    const after = eventTick(gone)
+    expect(after.eventSeed).toBe(draw(gone.eventSeed, 2).seed)
+    // a raise whose assistant is still on the payroll keeps waiting, and blocks the roll as before
+    const kept = eventTick({ ...gone, assistants: staffed.assistants })
+    expect(kept.event).toEqual(gone.event)
+    expect(kept.eventSeed).toBe(gone.eventSeed)
+  })
 })

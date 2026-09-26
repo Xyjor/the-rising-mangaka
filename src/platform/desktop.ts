@@ -43,11 +43,14 @@ export async function installDesktopShell(
   if (release) window.addEventListener('contextmenu', onContextMenu, true)
 
   // Minimising reports as a resize. Only a change of minimised state reaches the store: an ordinary resize must not
-  // show a window the page itself reported hidden.
+  // show a window the page itself reported hidden. Only the latest resize's answer counts: a minimise and a restore
+  // inside one round trip could otherwise answer out of order and leave a visible window marked hidden.
   let minimized = false
+  let latest = 0
   const onResized = async () => {
+    const mine = ++latest
     const now = await win.isMinimized()
-    if (now === minimized) return
+    if (mine !== latest || now === minimized) return
     minimized = now
     useStore.getState().setWindowHidden(now)
   }

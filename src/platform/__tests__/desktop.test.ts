@@ -218,6 +218,22 @@ describe('installDesktopShell', () => {
     expect([sound.suspends, sound.resumes]).toEqual([1, 1])
   })
 
+  it('answers that come back out of order leave the state of the last resize', async () => {
+    uninstall = await installDesktopShell(win, true)
+    // Each minimised check waits until the test answers it.
+    const answers: ((minimized: boolean) => void)[] = []
+    win.isMinimized = () => new Promise<boolean>((resolve) => answers.push(resolve))
+    // Minimise, then restore inside one round trip; the restore's answer arrives first.
+    win.resize()
+    win.resize()
+    expect(answers).toHaveLength(2)
+    answers[1](false)
+    await new Promise((r) => setTimeout(r, 10))
+    answers[0](true)
+    await new Promise((r) => setTimeout(r, 10))
+    expect(st().windowHidden).toBe(false)
+  })
+
   it('a resize that neither minimises nor restores leaves the hidden flag to the page', async () => {
     uninstall = await installDesktopShell(win, true)
     // The page reported itself hidden (the store's visibility listener); an ordinary resize must not undo that.

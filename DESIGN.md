@@ -306,7 +306,9 @@ every effect they have, and says how many days are left to answer. `src/sim/even
   from the eligible pool, in the table's order. `eventSeed` is its own stream (`hashString('events:' + worldSeed)`),
   so an event landing or not never moves the main `seed`. A landed event expires 7 days later and the next roll waits
   14 days. It toasts and pauses the clock once, the day it lands.
-- **Ignoring one.** The day after it expires, the event lapses: a log line, nothing else.
+- **Ignoring one.** The day after it expires, the event lapses: a log line, nothing else. An event whose subject is
+  gone (a raise asked by an assistant who has since left) has no card to show, so it lapses the same way on the day
+  `eventTick` finds it gone, and never holds up the next roll unseen.
 - **Money and trips.** An answer that costs more than the player has is disabled and says what it needs, so an event
   never takes money below zero. A waiting event survives a trip: the card stays on the desk and every answer except a
   new trip can be given while away.
@@ -545,7 +547,8 @@ The final hook order inside `tick()`:
    baseline).
 9. `animeTick` (a waiting anime offer whose series stopped running is withdrawn, one past its last day lapses; each
    deal's premiere, weekly pay, finale and end of boost; a new offer to a running hit).
-10. `eventTick` (an unanswered event past its last day lapses; the weekly random-event roll).
+10. `eventTick` (an unanswered event past its last day, or one whose subject is gone, lapses; the weekly random-event
+    roll).
 11. `awardMilestones`.
 12. Return.
 

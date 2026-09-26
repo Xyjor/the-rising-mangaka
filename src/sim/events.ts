@@ -258,14 +258,18 @@ function lapseText(s: GameState, ev: GameEvent): string {
 }
 
 /**
- * Once a day, after checkDeadline: an event past its last day lapses (a log line, nothing else). Then, on days where
- * day % 7 is EVENT_ROLL_WEEKDAY, from `nextEventDay` on, with no event waiting and no trip under way, two values are
- * drawn from `eventSeed`: the first under EVENT_CHANCE lands an event, the second picks it from the eligible pool.
+ * Once a day, after checkDeadline: an event past its last day lapses (a log line, nothing else), and so does one whose
+ * subject is gone (a raise asked by an assistant who has left: `eventChoices` has no card for it), the same day, so it
+ * never holds up the roll unseen. Then, on days where day % 7 is EVENT_ROLL_WEEKDAY, from `nextEventDay` on, with no
+ * event waiting and no trip under way, two values are drawn from `eventSeed`: the first under EVENT_CHANCE lands an
+ * event, the second picks it from the eligible pool.
  */
 export function eventTick(state: GameState): GameState {
   let s = state
   const pending = s.event
-  if (pending && s.day > pending.expiresDay) s = addLog({ ...s, event: null }, 'event', lapseText(s, pending), false)
+  if (pending && (s.day > pending.expiresDay || !eventChoices(s))) {
+    s = addLog({ ...s, event: null }, 'event', lapseText(s, pending), false)
+  }
   if (s.day % 7 !== EVENT_ROLL_WEEKDAY || s.day < s.nextEventDay || s.event || s.trip) return s
   const { values, seed } = draw(s.eventSeed, 2)
   s = { ...s, eventSeed: seed }

@@ -92,6 +92,22 @@ describe('ErrorBoundary', () => {
     expect(screen.getByRole('alert').textContent).toBe('Could not write the file. Pick another folder and try again.')
   })
 
+  it('gives the owner a reload too, which keeps the save', () => {
+    // In the desktop release build F5 and Ctrl+R are cancelled, so the button is the only way to reload in place.
+    useStore.setState({ game: createGame('Rin', 42) })
+    const saved = localStorage.getItem(SAVE_KEY)
+    expect(saved).not.toBeNull()
+    render(<ErrorBoundary><Crash /></ErrorBoundary>)
+    expect(screen.getByRole('button', { name: 'Start over' })).toBeTruthy()
+    // The note about another tab is for a tab that does not own the save.
+    expect(screen.queryByText('Another tab holds this save, so reloading here leaves it as it is.')).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reload the game' }))
+    expect(reload).toHaveBeenCalledTimes(1)
+    expect(localStorage.getItem(SAVE_KEY)).toBe(saved)
+    expect(useStore.getState().game?.player.name).toBe('Rin')
+  })
+
   it('Start over, once confirmed, deletes the save and reloads, and nothing writes it back', () => {
     useStore.setState({ game: createGame('Rin', 42) })
     // A tick in the last moment before the crash leaves a write waiting on the debounce.

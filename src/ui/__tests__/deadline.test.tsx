@@ -97,6 +97,15 @@ describe('offer: the chapter deadline and the studio pace', () => {
     expect(screen.queryByText(TIGHT)).toBeNull()
   })
 
+  it('tells a screen reader the page rate the tile shows: the full rate at a score of 80', () => {
+    // Kids Comic Go!: ¥90 a page, 120k readers, 10 rival series
+    useStore.setState({ game: offerFrom('kids-comic') })
+    render(<OfferModal />)
+    expect(document.getElementById('offer-summary')!.textContent).toBe(
+      'Kids Comic Go! offers to serialise Magic Club at ¥90 a page at a score of 80, 120k readers, 10 rival series.',
+    )
+  })
+
   it('states the deal: pages every chapterDays, and weak chapters or missed issues cancel after grace', () => {
     useStore.setState({ game: offerFrom('kids-comic') })
     render(<OfferModal />)
