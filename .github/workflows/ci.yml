@@ -21,6 +21,8 @@ jobs:
       - uses: actions/setup-node@v7
         with: { node-version: 24, cache: npm }
       - run: npm ci --no-audit --no-fund
+      - name: Version check (package.json vs src-tauri/Cargo.toml)
+        run: npm run version:check
       - name: Lint (warnings fail)
         run: npx oxlint --deny-warnings
       - name: Type check (app, vite config, scripts)

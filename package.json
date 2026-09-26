@@ -17,6 +17,8 @@
     "contrast": "vite-node scripts/contrast.ts",
     "balance": "vite-node scripts/balance.ts",
     "check": "oxlint --deny-warnings && tsc -b && vitest run && vite build && vite-node scripts/contrast.ts",
+    "version:check": "vite-node scripts/sync-version.ts --check",
+    "version": "vite-node scripts/sync-version.ts && cargo update --workspace --manifest-path src-tauri/Cargo.toml && git add src-tauri/Cargo.toml src-tauri/Cargo.lock",
     "tauri": "tauri"
   },
   "dependencies": {
