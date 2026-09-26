@@ -14,7 +14,7 @@ import { LOOK_HAIRS, LOOK_SHIRTS } from '../looks'
 function Avatar({ a }: { a: Assistant }) {
   // A tiny pixel portrait: hair, face, shirt.
   return (
-    <svg className="avatar" viewBox="0 0 8 8" width={40} height={40} aria-hidden shapeRendering="crispEdges">
+    <svg className="avatar" viewBox="0 0 8 8" width={48} height={48} aria-hidden shapeRendering="crispEdges">
       <rect width="8" height="8" fill="var(--paper-2)" />
       <rect x="2" y="1" width="4" height="2" fill={LOOK_HAIRS[a.look % LOOK_HAIRS.length]} />
       <rect x="2" y="3" width="4" height="2" fill="#f4cfa5" />
@@ -77,7 +77,7 @@ export function StaffModal() {
   return (
     <Modal title="Staff" sub="Assistants draw pages alongside you and add their own skill to every page." onClose={closeModal}>
       <div className="col" style={{ gap: 20 }}>
-        <section className="col" style={{ gap: 10 }}>
+        <section className="col staff-section" style={{ gap: 10 }}>
           <div className="row between wrap">
             <div className="panel-title">Your studio <span className="small muted" style={{ fontFamily: 'var(--font-ui)', letterSpacing: 0 }}>({game.assistants.length} of {plural(desks, 'desk')})</span></div>
             <span className="small muted">
@@ -96,7 +96,7 @@ export function StaffModal() {
             )}
         </section>
 
-        <section className="col" style={{ gap: 10 }}>
+        <section className="col staff-section" style={{ gap: 10 }}>
           <div className="row between wrap">
             <div className="panel-title">Looking for work</div>
             <span className="small muted row"><Icon name="info" size={14} /> New candidates in {plural(refreshIn, 'day')}</span>
