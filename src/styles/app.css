@@ -220,15 +220,32 @@
 .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; margin-right: 4px; }
 
 /* ---------- stats ---------- */
+.rewards.stats-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 399px) { .rewards.stats-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .stat-row { display: grid; grid-template-columns: 110px 1fr 40px auto; gap: 12px; align-items: center; }
 .stat-row .n { font-weight: 800; }
 .stat-row .n small { display: block; font-weight: 700; color: var(--ink-3); font-size: 11px; }
+.stat-row b.num { font-family: var(--font-num); font-size: 16px; letter-spacing: 0; text-align: right; }
 
-/* ---------- history ---------- */
-.table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.table th, .table td { padding: 8px 10px; text-align: left; border-bottom: 1.5px solid var(--line); }
-.table th { font-size: 12px; font-weight: 700; color: var(--ink-3); }
+/* ---------- history (the table is shared with the Series modal) ---------- */
+.table {
+  width: 100%; border-collapse: collapse; font-size: 13px;
+  border: 2px solid var(--line-strong); background: var(--panel);
+}
+.table th, .table td { padding: 8px 10px; text-align: left; border-bottom: 2px solid var(--line); vertical-align: middle; }
+.table th { font-size: 12px; font-weight: 700; color: var(--ink-2); background: var(--paper-2); border-bottom-color: var(--line-strong); }
+.table tbody tr:last-child td { border-bottom: 0; }
 .table td.num, .table th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.table td.num { font-family: var(--font-num); font-size: 16px; letter-spacing: 0; }
+.spine {
+  --spine: var(--accent); --spine-soft: var(--accent-soft);
+  display: block; width: 24px; height: 32px; border: 2px solid var(--line-strong); border-radius: 0;
+  background: linear-gradient(90deg, var(--spine) 0 30%, var(--spine-soft) 30% 70%, var(--spine) 70% 100%);
+}
+.spine[data-tone='blue'] { --spine: var(--blue); --spine-soft: var(--blue-soft); }
+.spine[data-tone='gold'] { --spine: var(--gold); --spine-soft: var(--gold-soft); }
+.spine[data-tone='green'] { --spine: var(--green); --spine-soft: var(--green-soft); }
+.spine[data-tone='purple'] { --spine: var(--purple); --spine-soft: var(--purple-soft); }
 
 /* ---------- staff & trips ---------- */
 .staff-section + .staff-section { border-top: 2px solid var(--line-strong); padding-top: 20px; }

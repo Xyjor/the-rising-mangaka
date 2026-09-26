@@ -2,6 +2,7 @@ import { genreById, magazineById, shortDate, themeById } from '../../sim'
 import { useStore } from '../../state/store'
 import { Modal } from '../components'
 import { money } from '../format'
+import { GENRE_TONE } from '../looks'
 
 export function HistoryModal() {
   const history = useStore((s) => s.game!.history)
@@ -15,13 +16,14 @@ export function HistoryModal() {
         <table className="table">
           <thead>
             <tr>
-              <th>When</th><th>Title</th><th>Pairing</th><th>Magazine</th>
+              <th><span className="sr-only">Cover</span></th><th>When</th><th>Title</th><th>Pairing</th><th>Magazine</th>
               <th className="num">Rank</th><th className="num">Score</th><th className="num">Paid</th>
             </tr>
           </thead>
           <tbody>
             {[...history].reverse().map((r) => (
               <tr key={r.projectId}>
+                <td><span className="spine" data-tone={GENRE_TONE[r.genre]} aria-hidden="true" /></td>
                 <td className="tiny faint">{shortDate(r.day)}</td>
                 <td><b>{r.title}</b></td>
                 <td className="small">{genreById(r.genre).name} × {themeById(r.theme).name}</td>

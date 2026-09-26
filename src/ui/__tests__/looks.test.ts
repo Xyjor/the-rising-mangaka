@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { createGame } from '../../sim'
-import { LOOK_HAIRS, LOOK_SHIRTS } from '../looks'
+import { GENRES, MAGAZINES, createGame } from '../../sim'
+import { GENRE_TONE, LOOK_HAIRS, LOOK_SHIRTS, MAG_TONE, TONES } from '../looks'
 
 describe('shared look palette', () => {
   it('has one hair colour per shirt colour', () => {
@@ -20,5 +20,15 @@ describe('shared look palette', () => {
         expect(c.look).toBeLessThan(LOOK_SHIRTS.length)
       }
     }
+  })
+})
+
+describe('genre and magazine tones', () => {
+  it('gives every genre a tone', () => {
+    for (const g of GENRES) expect(TONES).toContain(GENRE_TONE[g.id])
+  })
+
+  it('gives every magazine a tone', () => {
+    for (const m of MAGAZINES) expect(TONES).toContain(MAG_TONE[m.id])
   })
 })
