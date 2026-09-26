@@ -144,4 +144,9 @@ export const CUES: Record<CueId, CueDef> = {
   },
   // a number floats up from the mangaka: a short bright blip, pitched per kind
   pop: { gapMs: 80, vary: [0, 4, 7], voices: [sine(A5, 0, 0.04, 0.12, { attack: 0.002 })] },
+  // a window unfolds (a rising blip) and folds away (a falling one)
+  open: { gapMs: 150, voices: [sq(E5, 0, 0.05, 0.05), tri(C6, 0.05, 0.11, 0.14)] },
+  close: { gapMs: 150, voices: [tri(C6, 0, 0.05, 0.14), sq(E5, 0.05, 0.11, 0.05)] },
+  // a tab changes: a soft band-passed paper click, no pitch
+  tab: { gapMs: 60, voices: [noise(0, 0.02, 0.16, { type: 'bandpass', freq: 1200, q: 1.2 }, 0.002)] },
 }
