@@ -340,13 +340,32 @@
 
 /* ---------- title screen ---------- */
 .title-screen {
-  height: 100%; display: grid; place-items: center; padding: 24px;
+  position: relative; overflow: hidden; height: 100%; display: grid; place-items: center; padding: 24px;
   background: var(--paper);
-  background-image: var(--halftone); background-size: 8px 8px;
 }
-.title-card { width: min(520px, 100%); display: flex; flex-direction: column; gap: 18px; text-align: center; }
-.title-card h1 { font-family: var(--font-display); font-size: clamp(24px, 7vw, 48px); line-height: 1.1; letter-spacing: 0; }
+/* A band of pixel clouds drifting behind the card, one 240px tile per loop. */
+.title-screen::before {
+  content: ''; position: absolute; top: 8%; left: 0; width: calc(100% + 240px); height: 96px; pointer-events: none;
+  background: var(--paper-3);
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='96' shape-rendering='crispEdges'%3E%3Crect x='16' y='24' width='48' height='8'/%3E%3Crect x='8' y='32' width='72' height='8'/%3E%3Crect x='0' y='40' width='96' height='8'/%3E%3Crect x='136' y='56' width='40' height='8'/%3E%3Crect x='128' y='64' width='64' height='8'/%3E%3Crect x='120' y='72' width='88' height='8'/%3E%3Crect x='184' y='8' width='24' height='8'/%3E%3Crect x='176' y='16' width='48' height='8'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='96' shape-rendering='crispEdges'%3E%3Crect x='16' y='24' width='48' height='8'/%3E%3Crect x='8' y='32' width='72' height='8'/%3E%3Crect x='0' y='40' width='96' height='8'/%3E%3Crect x='136' y='56' width='40' height='8'/%3E%3Crect x='128' y='64' width='64' height='8'/%3E%3Crect x='120' y='72' width='88' height='8'/%3E%3Crect x='184' y='8' width='24' height='8'/%3E%3Crect x='176' y='16' width='48' height='8'/%3E%3C/svg%3E");
+  -webkit-mask-repeat: repeat-x; mask-repeat: repeat-x;
+  animation: cloud-drift 48s steps(60) infinite;
+}
+@keyframes cloud-drift {
+  from { transform: translateX(0); }
+  to { transform: translateX(-240px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .title-screen::before { animation: none; }
+}
+.title-card {
+  position: relative; width: min(520px, 100%); display: flex; flex-direction: column; gap: 18px; text-align: center;
+  border: 3px solid var(--line-strong); border-radius: var(--radius-s); background: var(--panel);
+  box-shadow: 6px 6px 0 var(--line-strong);
+}
+.title-card h1 { font-family: var(--font-display); font-size: 32px; line-height: 1.25; letter-spacing: 0; }
 .title-card h1 span { display: block; color: var(--accent); }
+@media (max-width: 640px) { .title-screen { padding: 16px; } }
 
 /* ---------- tab lock banner ---------- */
 .tab-banner {
