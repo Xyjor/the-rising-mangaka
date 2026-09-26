@@ -4,6 +4,7 @@ import { isDesktop } from '../../platform/env'
 import { useStore } from '../../state/store'
 import { ConfirmRow } from '../ConfirmRow'
 import { Icon } from '../Icon'
+import { SaveFileSection } from '../SaveFileSection'
 import { Modal } from '../components'
 
 const KEYS: [string, string][] = [
@@ -84,6 +85,8 @@ export function SettingsModal() {
             ))}
           </div>
         </section>
+
+        <SaveFileSection />
 
         <div className="divider" />
 

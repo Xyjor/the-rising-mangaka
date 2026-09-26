@@ -1,6 +1,7 @@
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createGame, getPhase, startProject, tick } from '../../sim'
 import type { GameState } from '../../sim'
+import { parseSave, serializeSave } from '../../state/saveFile'
 import type { Speed } from '../../state/store'
 import { installFakeStorage } from '../../test/fakeStorage'
 import { createFakeSound } from '../../test/fakeSound'
@@ -193,6 +194,19 @@ describe('connectSound: loading a save', () => {
     start(before)
     writeSave(saved)
     await useStore.persist.rehydrate()
+    const loaded = st().game!
+    expect(loaded.project?.title).toBe('Blade Club')
+    expect(cuesForTransition(before, loaded)).toEqual(['start'])
+    expect(sound.plays).toEqual([])
+    st().setSpeed(1)
+    expect(sound.plays).toEqual(['resume'])
+  })
+
+  it('a save file loaded over the same day plays nothing, and play after it sounds again', () => {
+    start(before)
+    const file = parseSave(serializeSave({ game: saved, tutorialStep: -1, resumeSpeed: 1 }))
+    if (!file.ok) throw new Error(file.error)
+    expect(st().loadSave(file.save)).toBe(true)
     const loaded = st().game!
     expect(loaded.project?.title).toBe('Blade Club')
     expect(cuesForTransition(before, loaded)).toEqual(['start'])

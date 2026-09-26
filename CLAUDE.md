@@ -45,6 +45,9 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
 - `src/state/store.ts` — Zustand store. Wraps the sim, owns the real-time clock speed, modal state, toasts,
   and persists `game` to localStorage (`persist` version = `SAVE_VERSION`; new `GameState` fields default through
   `src/sim/migrate.ts` `upgradeSave`; bump `SAVE_VERSION` only for shape changes that cannot be defaulted).
+  `saveFile.ts` owns `SAVE_VERSION`, the saved log length and the save file (`serializeSave`; `parseSave`, strict,
+  every refusal a `SaveFileError`; `saveFileName`; `storedSaveFile` for the recovery screen); the store's `loadSave`
+  installs a parsed file (refused in a tab that does not own the save), bumps `saveLoads` and writes at once.
   Sim commands go through the `apply()` helper so toasts and auto-resume stay consistent. `setWindowHidden` (from
   the page's `visibilitychange` and the desktop shell's minimise) stops the clock and suspends the sound; the
   non-persisted `windowHidden` flag keeps that pause silent. `flushSave` writes the debounced save at once. The tab
@@ -63,14 +66,19 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   id, so a new tier or piece fails `tsc` until it is drawn, plus the volumes, anime poster, trophies and lights);
   `paint.ts` the shared pixel helpers (`rect`, `paneRect` clipped to the window pane, the pane bounds);
   `StudioScene.tsx` is the component and its frame loop, reading `studioLook` through `useShallow`),
-  `components.tsx` (Bar, Pips, Modal, RankChart, money/compact formatters), `Icon.tsx` (inline SVG icon set). Tests
-  live in `src/ui/__tests__` and `src/ui/scene/__tests__`; see the UI-test docblock rule under Commands above.
+  `components.tsx` (Bar, Pips, Modal, RankChart, money/compact formatters), `Icon.tsx` (inline SVG icon set),
+  `SaveFileSection.tsx` and `useSaveFile.ts` (export and load, in Settings and on the title screen), and
+  `ErrorBoundary.tsx` (wraps `App` in `main.tsx`; a render crash shows a recovery screen that exports the stored save
+  or starts over). Tests live in `src/ui/__tests__` and `src/ui/scene/__tests__`; see the UI-test docblock rule under
+  Commands above.
 - `src/platform/` — where the game runs, and the only place that imports `@tauri-apps/*`. `env.ts` `isDesktop()`
   (reads `globalThis.isTauri`, no Tauri import), `keys.ts` (`isBrowserShortcut`, `isEditableTarget`), `desktop.ts`
   `installDesktopShell` (save on close, F11 full screen, minimise pauses; in a production build, which every
   `tauri build` is, `--debug` too, the browser engine's shortcuts are cancelled everywhere, text fields included, and
   its context menu everywhere except text fields; only `npm run tauri dev` keeps both), loaded by `main.tsx` with a
-  dynamic import on desktop only, so the browser's main chunk carries no Tauri code. Tests in `src/platform/__tests__`.
+  dynamic import on desktop only, so the browser's main chunk carries no Tauri code. `saveTransfer.ts` `exportSave` /
+  `importSave` move a save file (a browser download and file picker), handing over to `saveTransfer.desktop.ts` (the
+  dialog and fs plugins) by dynamic import on desktop. Tests in `src/platform/__tests__`.
 - `src/test/` — shared test-only helpers: `dom.ts` (happy-dom setup, imported for side effects), `fixtures.ts`
   (game-state builders such as `withPendingResult`, shared across UI test files), `fakeSound.ts` (a recording
   sound engine for `connectSound` or `installSound`) and `fakeCanvas.ts` (a recording 2D context that logs each
@@ -79,10 +87,12 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   `cards.css` (desk cards; on phones they follow the project card).
 - `src-tauri/` — Tauri 2 desktop shell around the unchanged `dist` build (`tauri.conf.json`: window, CSP, NSIS bundle,
   version from `package.json`; `capabilities/default.json`: window `main`, `core:default` plus
-  `core:window:allow-set-fullscreen` and `core:window:allow-destroy`; crates pinned to `"2"`). `src/lib.rs` registers
-  the single-instance plugin first (a second launch focuses the window), window-state (size, position, maximised)
-  and `fit.rs` (on a first launch, with no saved window, a window too big for its monitor shrinks to at most 90% of
-  the work area on each axis, and the window is centred in the work area with its title bar on screen).
+  `core:window:allow-set-fullscreen`, `core:window:allow-destroy`, `dialog:allow-open`, `dialog:allow-save`,
+  `fs:allow-read-text-file` and `fs:allow-write-text-file`, no `fs:scope`: the dialogs add each picked file to the fs
+  scope for the session; crates pinned to `"2"`). `src/lib.rs` registers the single-instance plugin first (a second
+  launch focuses the window), window-state (size, position, maximised), dialog and fs, and `fit.rs` (on a first
+  launch, with no saved window, a window too big for its monitor shrinks to at most 90% of the work area on each axis,
+  and the window is centred in the work area with its title bar on screen).
   Never change `identifier` `com.xyjor.risingmangaka` or set `useHttpsScheme`: either one loses every save.
 
 ## Conventions

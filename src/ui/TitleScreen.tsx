@@ -1,10 +1,15 @@
 import { useState } from 'react'
 import { isDesktop } from '../platform/env'
 import { useStore } from '../state/store'
+import { SaveFileNoticeLine } from './SaveFileSection'
+import { useSaveFile } from './useSaveFile'
 
 export function TitleScreen() {
   const newGame = useStore((s) => s.newGame)
+  const readOnly = useStore((s) => s.readOnly)
   const [name, setName] = useState('')
+  // With no game to replace, a picked save loads straight away.
+  const { notice, pickFile } = useSaveFile()
 
   const start = () => newGame(name.trim() || 'Rookie')
 
@@ -36,6 +41,11 @@ export function TitleScreen() {
           </label>
           <button className="btn primary lg block" type="submit">Open your studio</button>
         </form>
+        <div className="col" style={{ gap: 6 }}>
+          <button className="btn ghost block" disabled={readOnly} onClick={() => void pickFile()}>Load a save file</button>
+          {readOnly && <div className="tiny muted">Take over this tab to load a save.</div>}
+          <SaveFileNoticeLine notice={notice} />
+        </div>
         <p className="tiny faint">
           {isDesktop() ? 'Saves automatically on this computer.' : 'Saves automatically in this browser (one tab at a time).'}
         </p>

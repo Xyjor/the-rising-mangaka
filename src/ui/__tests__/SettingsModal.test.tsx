@@ -123,3 +123,12 @@ describe('SettingsModal keyboard list', () => {
     expect(screen.queryByText('Full screen')).toBeNull()
   })
 })
+
+describe('SettingsModal save file', () => {
+  it('has the Save file section with export and load', () => {
+    render(<SettingsModal />)
+    expect(screen.getByText('Save file')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Export save file' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Load save file…' })).toBeTruthy()
+  })
+})

@@ -1,6 +1,7 @@
 //! The desktop shell: one window around the unchanged Vite build in `../dist`. The window, the content security
 //! policy and the bundle live in `tauri.conf.json`; the capabilities in `capabilities/`. On the desktop, a second
-//! launch brings the running window forward, and the window keeps its size, position and maximised state between runs.
+//! launch brings the running window forward, the window keeps its size, position and maximised state between runs,
+//! and the file dialogs export and load a save file.
 
 #[cfg(desktop)]
 mod fit;
@@ -32,6 +33,10 @@ fn desktop<R: Runtime>(builder: tauri::Builder<R>) -> tauri::Builder<R> {
                 .with_state_flags(StateFlags::SIZE | StateFlags::POSITION | StateFlags::MAXIMIZED)
                 .build(),
         )
+        // Export and load a save file: the dialogs pick the file, and each picked path joins the fs scope for the
+        // session, so reading or writing it needs no standing scope.
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_fs::init())
         .setup(|app| {
             // A window that cannot be fitted still opens: report it and carry on rather than fail the setup.
             if let Err(err) = fit::first_launch_fit(app.handle()) {

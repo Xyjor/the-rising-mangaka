@@ -11,6 +11,8 @@ import { getSound } from '../audio/instance'
 import { DEFAULT_SOUND, normalizeSound } from '../audio/types'
 import type { SoundPrefs } from '../audio/types'
 import { isDesktop } from '../platform/env'
+import { SAVE_VERSION, trimLog } from './saveFile'
+import type { SaveFile } from './saveFile'
 import { claim, disableTabLock, isOwner, startTabLock } from './tabLock'
 
 export type Speed = 0 | 1 | 2 | 3
@@ -23,12 +25,9 @@ export type ThemeMode = 'auto' | 'light' | 'dark'
 export interface Toast { id: number; kind: LogKind; text: string }
 
 export const SPEED_MS: Record<RunSpeed, number> = { 1: 1000, 2: 500, 3: 220 }
-const SAVE_VERSION = 2
 export const SAVE_KEY = 'rising-mangaka-save'
 /** How long the save waits for more changes before it is written. */
 const SAVE_DEBOUNCE_MS = 800
-/** The log is trimmed to what the EventLog shows; the live state keeps the full log. */
-const SAVED_LOG_ENTRIES = 80
 
 interface Store {
   game: GameState | null
@@ -54,6 +53,11 @@ interface Store {
   windowHidden: boolean
 
   newGame: (name: string) => void
+  /**
+   * Replace the game with one read from a save file, stopped, and write it at once. Refused (false) in a tab that does
+   * not own the save. Counts as a save load, so the sound bridge plays nothing for the jump.
+   */
+  loadSave: (save: SaveFile) => boolean
   /** Claim the save for this tab and reload the latest state from storage. */
   takeOver: () => void
   abandonGame: () => void
@@ -144,7 +148,7 @@ export function flushSave() {
   if (!job || !isOwner()) return
   const { name, value } = job
   const game = value.state.game
-  const state: Persisted = { ...value.state, game: game && { ...game, log: game.log.slice(-SAVED_LOG_ENTRIES) } }
+  const state: Persisted = { ...value.state, game: game && trimLog(game) }
   try {
     localStorage.setItem(name, JSON.stringify({ version: value.version, state }))
   } catch {
@@ -239,6 +243,17 @@ export const useStore = create<Store>()(
         newGame: (name) => {
           const seed = (Date.now() ^ (Math.random() * 0xffffffff)) | 0
           set({ game: sim.createGame(name, seed), speed: 0, modal: 'none', toasts: [], tutorialStep: 0 })
+        },
+
+        loadSave: (save) => {
+          if (get().readOnly || !isOwner()) return false
+          set({
+            game: save.game, tutorialStep: save.tutorialStep, resumeSpeed: save.resumeSpeed, speed: 0, modal: 'none',
+            toasts: [{ id: toastSeq++, kind: 'success', text: 'Save loaded' }], saveLoads: get().saveLoads + 1,
+          })
+          // A save of the same career is not a replaced game to the save storage, so it would wait for the debounce.
+          flushSave()
+          return true
         },
 
         abandonGame: () => set({ game: null, speed: 0, modal: 'none', toasts: [] }),

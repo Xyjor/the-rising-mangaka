@@ -9,6 +9,7 @@ import '@fontsource/bangers/400.css'
 import './styles/base.css'
 import './styles/app.css'
 import { App } from './ui/App'
+import { ErrorBoundary } from './ui/ErrorBoundary'
 import { useStore } from './state/store'
 import * as sim from './sim'
 import { connectSound } from './audio/bridge'
@@ -39,6 +40,8 @@ if (import.meta.env.DEV) {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
   </StrictMode>,
 )

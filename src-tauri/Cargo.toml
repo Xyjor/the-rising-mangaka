@@ -15,10 +15,13 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 tauri = { version = "2", features = [] }
 
-# Desktop only: one running copy of the game, the window's size and position remembered between runs, and serde_json
-# (already in the tree through tauri) to read that saved state on a first launch.
+# Desktop only: one running copy of the game, the window's size and position remembered between runs, serde_json
+# (already in the tree through tauri) to read that saved state on a first launch, and the file dialogs and file access
+# that export and load a save file.
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 serde_json = "1"
+tauri-plugin-dialog = "2"
+tauri-plugin-fs = "2"
 tauri-plugin-single-instance = "2"
 tauri-plugin-window-state = "2"
 
