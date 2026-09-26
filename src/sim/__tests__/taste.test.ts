@@ -137,7 +137,7 @@ describe('biggestLoss', () => {
     const s = drawUntilReady(startProject(createGame('Rin', 42), DRAFT))
     const p = { ...s.project!, artSum: 20 * s.project!.pagesDone, storySum: 20 * s.project!.pagesDone }
     // art and story both 20. Kids loses 35 x 80 = 2800 on art, Petal 35 x 80 = 2800 on story; nothing else can
-    // lose that much (fit 20 x 100 = 2000 at most, freshness 20 x 80 = 1600, pacing 20 x 76 = 1520)
+    // lose that much (fit 20 x 100 = 2000 at most, freshness 20 x 80 = 1600, pacing 10 x 76 = 760)
     expect(evaluateProject(s, p, 'kids-comic').result.editorComment).toContain('The linework is holding you back')
     expect(evaluateProject(s, p, 'monthly-petal').result.editorComment).toContain('the plot loses them halfway')
   })

@@ -419,6 +419,11 @@
 .place .btn, .place > .chip { grid-column: 2; grid-row: 1 / span 3; }
 /* An armed ConfirmRow (moving studio) takes the button's cell. */
 .place > .row { grid-column: 2; grid-row: 1 / span 3; }
+@media (max-width: 640px) {
+  /* On a phone the armed confirm is too wide for that cell: it takes a line of its own under the name, and the lines
+     after it span the card as well, so auto-placement cannot pair them up in a squeezed column. */
+  .place > .row, .place > .row ~ * { grid-column: 1 / -1; grid-row: auto; }
+}
 /* Long labels ("Move to a bigger studio for another desk") wrap instead of overflowing a narrow card or phone. */
 .place .btn, .person .btn { white-space: normal; text-align: center; }
 

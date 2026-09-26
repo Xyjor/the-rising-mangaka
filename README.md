@@ -83,9 +83,9 @@ names that version.
 
 `.github/workflows/ci.yml` runs on every push and pull request: a version check, lint (warnings fail the build),
 type check, the test suite, the production build, the contrast gate, and a balance smoke run. `desktop.yml` runs
-whenever `src-tauri/` or `package.json` changes: Rust format and clippy checks and the Rust unit tests. Both need
-GitHub Actions billing enabled on the account to run at all; the repository is private, so nothing here is hosted
-for players.
+whenever `src-tauri/`, `package.json`, `package-lock.json` or the workflow file itself changes: Rust format and clippy
+checks and the Rust unit tests. Both need GitHub Actions billing enabled on the account to run at all; the repository
+is private, so nothing here is hosted for players.
 
 ## Stack
 

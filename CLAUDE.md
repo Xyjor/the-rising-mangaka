@@ -11,15 +11,17 @@ npm test               # Vitest: sim (src/sim/__tests__), state (src/state/__tes
 npx tsc -b             # Type check (must exit 0)
 npm run build          # Production build
 npm run lint           # oxlint
-npm run check           # Lint (deny warnings) + typecheck + tests + build + contrast gate; mirrors CI
+npm run check           # Version check (package.json vs src-tauri/Cargo.toml) + lint (deny warnings) + typecheck +
+                        # tests + build + contrast gate; CI runs these plus a balance smoke run
 npm run contrast        # WCAG AA 4.5:1 contrast gate over src/styles/tokens.css
 npm run balance -- [from=1] [to=20] [--detail seed]   # Balance bots (src/sim/bot.ts): a line per seed per bot, then the balance-band rows
 npm run tauri dev       # Desktop window; stop any running `npm run dev` first (it starts its own, strict port 5173)
 npm run tauri build     # Windows NSIS installer, in src-tauri/target/release/bundle/nsis/
 npx tauri build --debug --no-bundle   # Debug desktop exe only (src-tauri/target/debug/rising-mangaka.exe), no installer
 cargo test --locked --lib              # In src-tauri: the Rust unit tests (the first-launch window fit)
-npm version <patch|minor|major>        # Bumps package.json, syncs src-tauri/Cargo.toml (scripts/sync-version.ts) and
-                                        # stages it; never run this here (it commits and tags)
+npm version <patch|minor|major>        # Bumps package.json, syncs src-tauri/Cargo.toml (scripts/sync-version.ts), runs
+                                        # `cargo update --workspace` and stages Cargo.toml and Cargo.lock; never run
+                                        # this here (it commits and tags)
 ```
 
 Every change must pass `npx tsc -b`, `npm test`, and `npm run build` before it is called done. Run them; do not assume.

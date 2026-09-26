@@ -282,7 +282,9 @@ describe('ResultsModal reveal', () => {
     expect(frame).toBeNull()
   })
 
-  it('plays the whole sequence: the bars at their pitches, the score count, the stamp, the jingle and a coin per tile', () => {
+  // About 200 renders of 16 ms frames: its own budget, so a slow CI runner (release.yml runs on windows-latest) cannot
+  // time it out at vitest's 5 s default.
+  it('plays the whole sequence: the bars at their pitches, the score count, the stamp, the jingle and a coin per tile', { timeout: 15000 }, () => {
     const { container } = render(<Harness />)
     advanceTo(400)
 
