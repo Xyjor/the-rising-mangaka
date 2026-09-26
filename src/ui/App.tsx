@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect } from 'react'
 import { getPhase } from '../sim'
 import { SPEED_MS, useStore } from '../state/store'
+import { useArrival } from './hooks/useArrival'
 import { useClockLoop, useClockSync } from './hooks/useClockLoop'
 import { DeskTray } from './hud/DeskTray'
 import { LogButton, Rail, SettingsButton } from './hud/Rail'
@@ -100,6 +101,8 @@ export function App() {
   const phase = useStore((s) => (s.game ? getPhase(s.game) : 'idle'))
   const trip = useStore((s) => !!s.game?.trip)
   const running = useGameClock()
+  // the results and the offer open once the editor has walked in with them (the clock is already paused)
+  const arrived = useArrival(hasResult || hasOffer)
   useHotkeys()
 
   if (!hasGame) return <TitleScreen />
@@ -123,8 +126,8 @@ export function App() {
         <Rail />
       </div>
       <Toasts />
-      {hasResult && <ResultsModal />}
-      {!hasResult && hasOffer && <OfferModal />}
+      {arrived && hasResult && <ResultsModal />}
+      {arrived && !hasResult && hasOffer && <OfferModal />}
       {free && modal === 'wizard' && phase === 'idle' && !trip && <NewMangaWizard />}
       {free && modal === 'submit' && phase === 'ready' && <SubmitModal />}
       {free && modal === 'notebook' && <NotebookModal />}

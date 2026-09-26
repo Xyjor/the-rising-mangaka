@@ -5,7 +5,11 @@ import '../../test/dom'
 import { stubReducedMotion } from '../../test/dom'
 import { fakeContext } from '../../test/fakeCanvas'
 import type { FakeContext } from '../../test/fakeCanvas'
+import { installSound, nullEngine } from '../../audio/instance'
 import { createGame } from '../../sim'
+import { createFakeSound } from '../../test/fakeSound'
+import type { FakeSound } from '../../test/fakeSound'
+import { withPendingResult } from '../../test/fixtures'
 import type { GameState } from '../../sim'
 import { useClock } from '../../state/clock'
 import { useStore } from '../../state/store'
@@ -88,5 +92,50 @@ describe('StudioScene', () => {
     fake.log.length = 0
     act(() => useStore.setState({ game: { ...game, studio: { tier: 'loft', owned: [] } } }))
     expect(fake.log).toContainEqual(NOREN)
+  })
+
+  describe('the editor visits', () => {
+    let sound: FakeSound
+    const HAIR = { style: '#2b2140', x: 207, y: 102, w: 1, h: 1 }
+    beforeEach(() => { sound = createFakeSound(); installSound(sound) })
+    afterEach(() => { installSound(nullEngine) })
+
+    it('knocks once when the editor arrives with the results, and paints them at the spot', () => {
+      render(<StudioScene running={false} />)
+      fake.log.length = 0
+      const pending = withPendingResult()
+      act(() => useStore.setState({ game: pending }))
+      expect(sound.plays).toEqual(['knock'])
+      expect(fake.log).toContainEqual(HAIR)
+      act(() => useStore.setState({ game: { ...pending, day: pending.day } }))
+      expect(sound.plays).toEqual(['knock'])
+    })
+
+    it('never knocks in a read-only tab', () => {
+      useStore.setState({ readOnly: true })
+      render(<StudioScene running={false} />)
+      act(() => useStore.setState({ game: withPendingResult() }))
+      expect(sound.plays).toEqual([])
+    })
+
+    it('never knocks while the window is hidden', () => {
+      useStore.setState({ windowHidden: true })
+      render(<StudioScene running={false} />)
+      act(() => useStore.setState({ game: withPendingResult() }))
+      expect(sound.plays).toEqual([])
+      useStore.setState({ windowHidden: false })
+    })
+
+    it('the editor leaves once the result is dismissed', () => {
+      render(<StudioScene running={false} />)
+      const pending = withPendingResult()
+      act(() => useStore.setState({ game: pending }))
+      fake.log.length = 0
+      act(() => useStore.setState({
+        game: { ...pending, pendingResult: null, pendingOffer: null, event: null, animeOffer: null, reviewUnread: null },
+      }))
+      expect(fake.log.length).toBeGreaterThan(0)
+      expect(fake.log).not.toContainEqual(HAIR)
+    })
   })
 })
