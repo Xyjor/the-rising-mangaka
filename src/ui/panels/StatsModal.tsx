@@ -1,13 +1,15 @@
-import { SCORE_WEIGHTS, xpToNext } from '../../sim'
+import { useId } from 'react'
+import { EQUIPMENT, xpToNext } from '../../sim'
 import type { StatId } from '../../sim'
 import { useStore } from '../../state/store'
 import { Bar, Metric, Modal, Reward } from '../components'
 import { bestRank, compact, money, plural } from '../format'
+import { weightSpan } from '../labels'
 
 const STATS: { id: StatId; name: string; blurb: string; tone: string }[] = [
-  { id: 'art', name: 'Art', blurb: `Art score in polls (${Math.round(SCORE_WEIGHTS.art * 100)}%), and pages per day`, tone: 'blue' },
-  { id: 'story', name: 'Story', blurb: `Story score in polls (${Math.round(SCORE_WEIGHTS.story * 100)}%), and pages per day`, tone: 'purple' },
-  { id: 'pacing', name: 'Pacing', blurb: `Pacing score in polls (${Math.round(SCORE_WEIGHTS.pacing * 100)}%). Raise it with points or the Editing Seminar`, tone: 'gold' },
+  { id: 'art', name: 'Art', blurb: `Art score in polls (${weightSpan('art')}), and pages per day`, tone: 'blue' },
+  { id: 'story', name: 'Story', blurb: `Story score in polls (${weightSpan('story')}), and pages per day`, tone: 'purple' },
+  { id: 'pacing', name: 'Pacing', blurb: `Pacing score in polls (${weightSpan('pacing')}). Raise it with points or the Editing Seminar`, tone: 'gold' },
 ]
 
 export function StatsModal() {
@@ -15,6 +17,8 @@ export function StatsModal() {
   const closeModal = useStore((s) => s.closeModal)
   const spend = useStore((s) => s.spendSkillPoint)
   const p = game.player
+  const owned = EQUIPMENT.filter((e) => game.studio.owned.includes(e.id))
+  const equipmentId = useId()
 
   return (
     <Modal title={p.name} sub={`Level ${p.level} mangaka`} onClose={closeModal} narrow>
@@ -44,6 +48,17 @@ export function StatsModal() {
           <Reward value={bestRank(game.history)} label="Best rank" />
           <Reward value={game.history.length ? Math.round(game.history.reduce((a, r) => a + r.score, 0) / game.history.length) : '—'} label="Avg score" />
         </div>
+
+        <section className="col" style={{ gap: 8 }}>
+          <div className="panel-title" id={equipmentId}>Equipment</div>
+          {owned.length
+            ? (
+              <ul className="effect-list" aria-labelledby={equipmentId}>
+                {owned.map((e) => <li key={e.id}><b>{e.name}</b>: {e.effect}</li>)}
+              </ul>
+            )
+            : <p className="small muted">No equipment yet. The Studio sells gear that helps you draw and rest.</p>}
+        </section>
       </div>
     </Modal>
   )

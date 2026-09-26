@@ -1,19 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
-  GENRES, MAGAZINES, PODIUM_RANK, RANK_MULTIPLIER, THEMES, binomialAtMost, createGame, estimateScore,
-  evaluateProject, genreThemeRating, magazineById, normalCdf, previewSubmission, rankTier,
+  GENRES, MAGAZINES, PODIUM_RANK, THEMES, createGame, forecastPoll,
+  genreThemeRating, normalCdf, previewSubmission, rankTier,
   startProject, submitProject, themeAudienceRating, tickMany, weakRankLine,
 } from '../index'
-import type { GameState, GenreId, ThemeId } from '../index'
-import { DRAFT as draft, drawUntilReady } from '../../test/fixtures'
+import type { GenreId, ThemeId } from '../index'
+import { DRAFT as draft, drawUntilReady, withReadyOneShot } from '../../test/fixtures'
 
 const kidsDraft = { title: 'Blade Club', genre: 'action', theme: 'samurai', audience: 'kids' } as const
-
-/** Force the ready manuscript's page quality so the estimator lands on a known score. */
-function withQuality(s: GameState, art: number, story: number): GameState {
-  const p = s.project!
-  return { ...s, project: { ...p, artSum: art * p.pagesDone, storySum: story * p.pagesDone } }
-}
 
 describe('submission preview', () => {
   it('gives a sane band and odds for every magazine on the seed-42 manuscript', () => {
@@ -28,35 +22,19 @@ describe('submission preview', () => {
       expect(pv.offerChance).toBeLessThanOrEqual(1)
       expect(pv.expectedScore).toBeGreaterThanOrEqual(0)
       expect(pv.expectedScore).toBeLessThanOrEqual(100)
+      expect(pv.scoreRange.low).toBeLessThanOrEqual(pv.expectedScore)
+      expect(pv.scoreRange.high).toBeGreaterThanOrEqual(pv.expectedScore)
+      expect(pv.payRange.low).toBeLessThanOrEqual(pv.expectedPay)
+      expect(pv.payRange.high).toBeGreaterThanOrEqual(pv.expectedPay)
       byId[m.id] = pv.offerChance
     }
     expect(byId['kids-comic']).toBeGreaterThan(byId['weekly-bolt'])
   })
 
-  it('reproduces the worked examples: score 50 at Kids Comic, score 47 at Weekly Bolt', () => {
-    const base = drawUntilReady(startProject(createGame('Rin', 42), kidsDraft))
-
-    const kids = withQuality(base, 49, 49)
-    expect(estimateScore(kids, kids.project!, 'kids-comic')).toBe(50)
-    const pk = previewSubmission(kids, 'kids-comic')!
-    expect(pk.expectedScore).toBe(50)
-    expect(pk.expectedRank).toEqual({ low: 2, high: 7 })
-    expect(Math.abs(pk.offerChance - 0.29)).toBeLessThanOrEqual(0.02)
-
-    const bolt = withQuality(base, 50, 51)
-    expect(estimateScore(bolt, bolt.project!, 'weekly-bolt')).toBe(47)
-    const pb = previewSubmission(bolt, 'weekly-bolt')!
-    expect(pb.expectedScore).toBe(47)
-    expect(pb.expectedRank).toEqual({ low: 9, high: 13 })
-  })
-
-  it('has a normal CDF and binomial tail that match the tables', () => {
+  it('has a normal CDF that matches the tables', () => {
     expect(Math.abs(normalCdf(0) - 0.5)).toBeLessThan(1e-4)
     expect(Math.abs(normalCdf(1.96) - 0.975)).toBeLessThan(1e-4)
     expect(Math.abs(normalCdf(-1.96) - 0.025)).toBeLessThan(1e-4)
-    expect(Math.abs(binomialAtMost(10, 2, 0.338) - 0.288)).toBeLessThan(1e-3)
-    expect(binomialAtMost(10, 10, 0.5)).toBeCloseTo(1, 10)
-    expect(binomialAtMost(10, -1, 0.5)).toBe(0)
   })
 
   it('tiers ranks the same way rewards do', () => {
@@ -69,23 +47,19 @@ describe('submission preview', () => {
     expect(PODIUM_RANK).toBe(3)
   })
 
-  it('quotes the same pay floor and ceiling the poll would hand out', () => {
-    const base = drawUntilReady(startProject(createGame('Rin', 42), kidsDraft))
-    const mag = magazineById('kids-comic')
-    const pages = base.project!.pagesDone
-    const pv = previewSubmission(base, 'kids-comic')!
-    expect(pv.minMoney).toBe(Math.round(mag.pageRate * pages * RANK_MULTIPLIER.weak))
-    expect(pv.maxMoney).toBe(Math.round(mag.pageRate * pages * RANK_MULTIPLIER.first))
-
-    const strong = withQuality(base, 100, 100)
-    const top = evaluateProject(strong, strong.project!, 'kids-comic').result
-    expect(top.rank).toBe(1)
-    expect(top.rewards.money).toBe(pv.maxMoney)
-
-    const feeble = withQuality(base, 0, 0)
-    const bottom = evaluateProject(feeble, feeble.project!, 'kids-comic').result
-    expect(bottom.rank).toBeGreaterThan(Math.ceil(bottom.entrants / 2))
-    expect(bottom.rewards.money).toBe(pv.minMoney)
+  it('wraps the forecast and counts the pairings the notebook has not rated', () => {
+    const fresh = withReadyOneShot(createGame('Rin', 42), kidsDraft, 46, 46)
+    const pv = previewSubmission(fresh, 'kids-comic')!
+    expect(pv).toMatchObject({
+      magazineId: 'kids-comic', mismatch: false, art: 46, story: 46, pacing: 30,
+      audienceFit: null, freshness: null, staleness: 0, unknownPairings: 2,
+    })
+    expect(pv).toMatchObject(forecastPoll(fresh, fresh.project!, 'kids-comic'))
+    const one = { ...fresh, notebook: { genreTheme: { 'action|samurai': 3 as const }, themeAudience: {} } }
+    expect(previewSubmission(one, 'kids-comic')).toMatchObject({ freshness: 3, audienceFit: null, unknownPairings: 1 })
+    const both = { ...one, notebook: { ...one.notebook, themeAudience: { 'samurai|kids': 1 as const } } }
+    expect(previewSubmission(both, 'kids-comic')).toMatchObject({ freshness: 3, audienceFit: 1, unknownPairings: 0 })
+    expect(previewSubmission({ ...fresh, project: null }, 'kids-comic')).toBeNull()
   })
 
   it('lets a fresh player reach the serial gate at Kids Comic with a well-matched combo', () => {

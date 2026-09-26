@@ -1,10 +1,11 @@
-import { MILESTONES, doneIds } from '../../sim'
+import { MILESTONES, awardById, describeDate, doneIds, rivalRecord } from '../../sim'
 import { useStore } from '../../state/store'
 import { Icon } from '../Icon'
 import { Modal } from '../components'
+import { rivalCareerLine, yearCareerLine } from '../labels'
 import '../../styles/career.css'
 
-/** The milestone ladder: what has been reached, what is next, and what each goal pays. */
+/** The career so far: the rival, the awards won and every past year, then the milestone ladder. */
 export function CareerModal() {
   const game = useStore((s) => s.game)!
   const closeModal = useStore((s) => s.closeModal)
@@ -13,6 +14,32 @@ export function CareerModal() {
 
   return (
     <Modal title="Career" sub={`${done.length} of ${MILESTONES.length} goals reached`} onClose={closeModal} narrow>
+      <section className="card flat career-rival" aria-labelledby="career-rival">
+        <div className="lbl" id="career-rival">Rival</div>
+        <p className="small">{rivalCareerLine(game.rival, rivalRecord(game))}</p>
+      </section>
+      <section className="card flat career-section" aria-labelledby="career-awards">
+        <div className="lbl" id="career-awards">Awards</div>
+        {game.awards.length > 0 ? (
+          <ul className="year-list plain small">
+            {game.awards.map((a) => (
+              <li key={`${a.id}-${a.year}`} className="year-award">
+                <Icon name="trophy" size={16} />{awardById(a.id).name}, year {a.year}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="small">No awards yet. Awards are handed out when year {describeDate(game.day).year} ends.</p>
+        )}
+      </section>
+      {game.yearReviews.length > 0 && (
+        <section className="card flat career-section" aria-labelledby="career-years">
+          <div className="lbl" id="career-years">Past years</div>
+          <ul className="year-list plain small">
+            {game.yearReviews.map((r) => <li key={r.year}>{yearCareerLine(r)}</li>)}
+          </ul>
+        </section>
+      )}
       <ol className="career-list" aria-label="Milestones">
         {MILESTONES.map((m, i) => {
           const isDone = done.includes(m.id)

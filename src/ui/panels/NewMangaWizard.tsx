@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import {
-  AUDIENCES, GENRES, ONE_SHOT_PAGES, RATING_LABEL, STALENESS_PENALTY, THEMES, audienceById, genreById,
+  AUDIENCES, GENRES, MAGAZINES, ONE_SHOT_PAGES, RATING_LABEL, STALENESS_PENALTY, THEMES, audienceById, genreById,
   genreThemeKey, previewCombo, stalenessCount, themeAudienceKey, themeById,
 } from '../../sim'
 import type { AudienceId, GenreId, ThemeId } from '../../sim'
@@ -136,6 +136,9 @@ export function NewMangaWizard() {
                 <button key={a.id} className="choice" aria-pressed={audience === a.id} onClick={() => { setAudience(a.id); setStep(3) }}>
                   <span className="name">{a.name}</span>
                   <span className="blurb">{a.blurb}</span>
+                  {MAGAZINES.filter((m) => m.audience === a.id).map((m) => (
+                    <span className="blurb" key={m.id}>Read by {m.name}: {m.tasteLine}</span>
+                  ))}
                   <span className="hint">
                     <Pips rating={known ?? null} />
                     <span className={known === undefined ? 'faint' : ''}>

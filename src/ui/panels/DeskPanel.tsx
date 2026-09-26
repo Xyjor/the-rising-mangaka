@@ -1,15 +1,19 @@
 import { memo } from 'react'
 import {
   JOB_PAY_PER_DAY, LOW_STAMINA_THRESHOLD, RESULTS_DELAY_DAYS, SERIAL_OFFER_MIN_RANK, SERIAL_OFFER_MIN_SCORE,
-  VOLUME_EVERY_CHAPTERS, audienceById, expectedPagesToday, genreById, getPhase,
+  VOLUME_EVERY_CHAPTERS, audienceById, chapterDeadline, expectedPagesToday, genreById, getPhase,
   magazineById, placeById, projectArtQuality, projectStoryQuality, themeById } from '../../sim'
+import type { DeadlineStatus } from '../../sim'
 import { useStore } from '../../state/store'
 import { useShallow } from 'zustand/react/shallow'
+import { AnimeOfferCard } from '../AnimeOfferCard'
+import { EventCard } from '../EventCard'
 import { Icon } from '../Icon'
 import { NextGoal } from '../NextGoal'
+import { YearReviewCard } from '../YearReviewCard'
 import { Metric, WarningPips } from '../components'
 import { money, plural } from '../format'
-import { warningText } from '../labels'
+import { GRACE_TEXT, focusHint, inGrace, warningText } from '../labels'
 import { ConfirmRow } from '../ConfirmRow'
 const COACH: Record<string, string> = {
   idle: 'Every career starts with one page. Plan your first manga: pick a genre, a theme, and who it is for.',
@@ -31,6 +35,10 @@ export function DeskPanel() {
   return (
     <aside className="desk">
       <NextGoal />
+      {/* On phones cards.css moves these after the project card, so "Today" stays in view. */}
+      <EventCard />
+      <AnimeOfferCard />
+      <YearReviewCard />
       {tutorialStep !== -1 && !game.trip && (
         <div className="coach" role="note">
           <Icon name="sparkle" />
@@ -162,6 +170,9 @@ const QuickNav = memo(function QuickNav() {
         <Icon name="people" />Staff
         {staff > 0 && <span className="badge" style={{ background: 'var(--blue)' }}>{staff}</span>}
       </button>
+      <button className="btn" onClick={() => openModal('studio')} title="Studio">
+        <Icon name="home" />Studio
+      </button>
       <button className="btn" onClick={() => openModal('trips')} title="Trips (T)">
         <Icon name="map" />Trips
       </button>
@@ -176,8 +187,9 @@ const QuickNav = memo(function QuickNav() {
 })
 
 const ActivityControls = memo(function ActivityControls() {
-  const { activity, focus, recovering, stamina } = useStore(useShallow((s) => ({
+  const { activity, focus, recovering, stamina, serialMagazine } = useStore(useShallow((s) => ({
     activity: s.game!.activity, focus: s.game!.focus, recovering: s.game!.recovering, stamina: s.game!.player.stamina,
+    serialMagazine: s.game!.project?.kind === 'serial' ? s.game!.project.magazineId : null,
   })))
   const setActivity = useStore((s) => s.setActivity)
   const setFocus = useStore((s) => s.setFocus)
@@ -200,6 +212,7 @@ const ActivityControls = memo(function ActivityControls() {
           <button aria-pressed={focus === 'story'} onClick={() => setFocus('story')} title="Story +25%, art -20%">Story</button>
         </div>
       </div>
+      <p className="tiny muted">{focusHint(serialMagazine)}</p>
       {recovering || (asleep && activity !== 'job')
         ? <p className="small warn-text">Exhausted. Resting until stamina is back to 60%, then back to the desk. No pages today.</p>
         : stamina < LOW_STAMINA_THRESHOLD && activity === 'work'
@@ -212,20 +225,40 @@ const ActivityControls = memo(function ActivityControls() {
   )
 })
 
+/** What the desk says after "About n working days left:" for each deadline status. */
+const DEADLINE_TEXT: Record<DeadlineStatus, string> = {
+  'on-track': 'on track',
+  tight: 'tight, rest days could make you miss it',
+  late: 'at this pace you will miss the issue',
+}
+
 const SerialStatus = memo(function SerialStatus() {
   const ser = useStore((s) => s.game!.serial)!
+  const chapter = useStore((s) => s.game!.project?.chapter ?? 0)
+  const deadline = useStore(useShallow((s) => chapterDeadline(s.game!)))
   const openModal = useStore((s) => s.openModal)
   const endSerial = useStore((s) => s.endSerial)
   const last = ser.results[ser.results.length - 1]
   const untilVolume = VOLUME_EVERY_CHAPTERS - (ser.results.length % VOLUME_EVERY_CHAPTERS)
   return (
     <div className="col" style={{ gap: 10 }}>
+      {deadline && (
+        <p className={deadline.status === 'late' ? 'small warn-text' : 'small'}>
+          Chapter {chapter} due in {plural(deadline.daysLeft, 'day')}. About {plural(deadline.workDaysLeft, 'working day')} left: {DEADLINE_TEXT[deadline.status]}.
+        </p>
+      )}
       <p className="small">
         <b>Popularity {ser.popularity}</b>, {last ? `latest poll #${last.rank} of ${last.entrants}` : 'waiting for the first poll'}, volume {ser.volumes + 1} in {plural(untilVolume, 'chapter')}.
       </p>
       <div className="row" style={{ gap: 6 }}>
-        <WarningPips warnings={ser.warnings} />
-        <span className="tiny muted">{warningText(ser.warnings)}</span>
+        {inGrace(ser.results.length) ? (
+          <span className="tiny muted">{GRACE_TEXT}</span>
+        ) : (
+          <>
+            <WarningPips warnings={ser.warnings} />
+            <span className="tiny muted">{warningText(ser.warnings)}</span>
+          </>
+        )}
       </div>
       <div className="row wrap">
         <button className="btn sm" onClick={() => openModal('series')}><Icon name="book" size={14} /> Series details</button>

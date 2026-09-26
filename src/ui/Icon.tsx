@@ -3,7 +3,7 @@ import type { SVGProps } from 'react'
 export type IconName =
   | 'pen' | 'moon' | 'briefcase' | 'notebook' | 'chart' | 'trophy' | 'gear' | 'people' | 'map' | 'book'
   | 'close' | 'dice' | 'check' | 'alert' | 'star' | 'yen' | 'sparkle' | 'info' | 'play' | 'pause' | 'fast' | 'faster'
-  | 'plus' | 'bolt' | 'heart'
+  | 'plus' | 'bolt' | 'heart' | 'home' | 'tv' | 'sound' | 'mute'
 
 const PATHS: Record<IconName, string> = {
   pen: 'M4 20l4-1 11-11-3-3L5 16l-1 4zM14 6l3 3',
@@ -31,6 +31,10 @@ const PATHS: Record<IconName, string> = {
   plus: 'M12 5v14M5 12h14',
   bolt: 'M13 2L4 14h7l-1 8 9-12h-7z',
   heart: 'M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z',
+  home: 'M3 11l9-7 9 7M5 9v11h14V9M10 20v-6h4v6',
+  tv: 'M3 7h18v13H3zM8 3l4 4 4-4',
+  sound: 'M4 9h4l5-4v14l-5-4H4zM16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12',
+  mute: 'M4 9h4l5-4v14l-5-4H4zM16 9l5 6M21 9l-5 6',
 }
 
 export function Icon({ name, size = 18, ...rest }: { name: IconName; size?: number } & SVGProps<SVGSVGElement>) {

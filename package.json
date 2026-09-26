@@ -1,7 +1,7 @@
 {
   "name": "the-rising-mangaka",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "engines": {
     "node": "^22.12.0 || >=24.0.0"
@@ -16,16 +16,23 @@
     "typecheck": "tsc -b",
     "contrast": "vite-node scripts/contrast.ts",
     "balance": "vite-node scripts/balance.ts",
-    "check": "oxlint --deny-warnings && tsc -b && vitest run && vite build && vite-node scripts/contrast.ts"
+    "check": "vite-node scripts/sync-version.ts --check && oxlint --deny-warnings && tsc -b && vitest run && vite build && vite-node scripts/contrast.ts",
+    "version:check": "vite-node scripts/sync-version.ts --check",
+    "version": "vite-node scripts/sync-version.ts && cargo update --workspace --manifest-path src-tauri/Cargo.toml && git add src-tauri/Cargo.toml src-tauri/Cargo.lock",
+    "tauri": "tauri"
   },
   "dependencies": {
     "@fontsource/bangers": "^5.3.0",
     "@fontsource/nunito": "^5.3.0",
+    "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-dialog": "^2",
+    "@tauri-apps/plugin-fs": "^2",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@tauri-apps/cli": "^2",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/react": "^16.3.3",
     "@types/node": "^24.13.3",

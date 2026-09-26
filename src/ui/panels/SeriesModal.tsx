@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import {
-  SERIAL_OFFER_MIN_RANK, SERIAL_OFFER_MIN_SCORE, audienceById, describeDate, genreById, magazineById, themeById,
+  SERIAL_MISSED_ISSUE_POPULARITY, SERIAL_OFFER_MIN_RANK, SERIAL_OFFER_MIN_SCORE, audienceById, describeDate, genreById,
+  magazineById, themeById,
 } from '../../sim'
 import type { Serial } from '../../sim'
 import { useStore } from '../../state/store'
+import { Icon } from '../Icon'
 import { Metric, Modal, RankChart, Reward, WarningPips } from '../components'
 import { bestRank, compact, money, plural } from '../format'
-import { warningText } from '../labels'
+import { GRACE_TEXT, animeStatusLine, inGrace, warningText } from '../labels'
 
 export function SeriesModal() {
   const game = useStore((s) => s.game)!
@@ -36,7 +38,22 @@ export function SeriesModal() {
 }
 
 // Kept beside SeriesDetail so the header import stays untouched; ESM hoists it like any other import.
-import { VOLUME_EVERY_CHAPTERS } from '../../sim'
+import { VOLUME_EVERY_CHAPTERS, animeDealFor } from '../../sim'
+
+/** The series' anime adaptation, if it has one: when it airs, the week on air, or the volume boost left. */
+function AnimeLine({ ser }: { ser: Serial }) {
+  const line = useStore((s) => {
+    const deal = s.game && animeDealFor(s.game, ser.id)
+    return deal ? animeStatusLine(deal, s.game!.day, ser.status === 'running') : null
+  })
+  if (!line) return null
+  return (
+    <p className="small row" style={{ gap: 6 }}>
+      <Icon name="tv" size={16} />
+      <span>{line}</span>
+    </p>
+  )
+}
 
 function SeriesDetail({ ser }: { ser: Serial }) {
   const mag = magazineById(ser.magazineId)
@@ -57,14 +74,24 @@ function SeriesDetail({ ser }: { ser: Serial }) {
       </div>
 
       <Metric label="Popularity" bar={ser.popularity} tone={ser.popularity >= 60 ? 'green' : ser.popularity >= 40 ? 'gold' : 'accent'} thick>
-        <p className="tiny muted">A moving average of recent poll placements. Three weak chapters in a row and the magazine pulls the plug.</p>
+        <p className="tiny muted">A moving average of recent poll placements, minus {SERIAL_MISSED_ISSUE_POPULARITY} for each missed issue. Three weak chapters or missed issues in a row and the magazine pulls the plug.</p>
       </Metric>
 
+      <p className="small muted">A chapter every {plural(mag.chapterDays, 'day')}. Missed issues: {ser.missedIssues}.</p>
+
       <div className="row wrap small muted">
-        <WarningPips warnings={ser.warnings} />
-        <span>{warningText(ser.warnings)}</span>
+        {inGrace(ser.results.length) ? (
+          <span>{GRACE_TEXT}</span>
+        ) : (
+          <>
+            <WarningPips warnings={ser.warnings} />
+            <span>{warningText(ser.warnings)}</span>
+          </>
+        )}
         <span>Next volume in {plural(untilVolume, 'chapter')}</span>
       </div>
+
+      <AnimeLine ser={ser} />
 
       <div className="rewards" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))' }}>
         <Reward value={ser.chaptersSent} label="Chapters" />
@@ -88,12 +115,13 @@ function SeriesDetail({ ser }: { ser: Serial }) {
 
       {ser.results.length > 0 && (
         <table className="table">
-          <thead><tr><th>Chapter</th><th className="num">Rank</th><th className="num">Score</th><th className="num">Art</th><th className="num">Story</th><th className="num">Freshness</th><th className="num">Paid</th></tr></thead>
+          <thead><tr><th>Chapter</th><th className="num">Rank</th><th className="num">Rival</th><th className="num">Score</th><th className="num">Art</th><th className="num">Story</th><th className="num">Freshness</th><th className="num">Paid</th></tr></thead>
           <tbody>
             {[...ser.results].reverse().map((r) => (
               <tr key={r.chapter}>
                 <td><b>Ch.{r.chapter}</b></td>
                 <td className="num">#{r.rank}<span className="faint">/{r.entrants}</span></td>
+                <td className="num">{r.rival ? `#${r.rival.rank}` : '—'}</td>
                 <td className="num">{r.score}</td>
                 <td className="num">{r.breakdown.art}</td>
                 <td className="num">{r.breakdown.story}</td>

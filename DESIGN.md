@@ -26,7 +26,8 @@ Plan manga  →  Draw pages (days pass)  →  Submit to a magazine  →  Reader 
 ```
 
 ### Time
-- 1 tick = 1 day. 7 days = 1 week, 4 weeks = 1 month, 12 months = 1 year.
+- 1 tick = 1 day. 7 days = 1 week, 4 weeks = 1 month, 12 months = 1 year (336 days, `DAYS_PER_YEAR`). Every year
+  ends with awards and a year review (see Year end and awards).
 - Speeds: paused / 1x / 2x / 3x. Opening any modal pauses. Closing restores previous speed.
 
 ### Player
@@ -48,29 +49,146 @@ Plan manga  →  Draw pages (days pass)  →  Submit to a magazine  →  Reader 
 - Reusing the same genre×theme in the last 3 works applies a staleness penalty (shown in the wizard).
 
 ### Magazines
-- Each has an audience lean, a page rate, circulation, and a rival strength.
+- Each has an audience lean, a page rate, circulation, a rival strength, and a chapter rhythm for serials
+  (`chapterDays`: Weekly Bolt 14, Monthly Petal 28, Ultra Seinen 21, Kids Comic Go! 21).
 - Submitting to a magazine whose audience differs from the manga's audience costs Audience fit.
   The submit panel shows this before the player commits.
 
 ### Reader poll scoring (0–100)
-| Component    | Weight | Source                                   |
-|--------------|--------|------------------------------------------|
-| Art          | 25     | accumulated art quality                  |
-| Story        | 25     | accumulated story quality                |
-| Pacing       | 15     | Pacing stat + noise                      |
-| Audience fit | 15     | theme×audience rating, magazine mismatch |
-| Freshness    | 20     | genre×theme rating, staleness penalty    |
+Each component is scored 0–100:
 
-Rank = 1 + number of rivals scoring higher. Rewards scale with score and rank.
-The editor writes a one-line comment pointing at the weakest component.
+| Component    | Source                                   |
+|--------------|------------------------------------------|
+| Art          | accumulated art quality                  |
+| Story        | accumulated story quality                |
+| Pacing       | Pacing stat + noise (Gaussian, sd `PACING_NOISE_SD`) |
+| Audience fit | theme×audience rating, magazine mismatch |
+| Freshness    | genre×theme rating, staleness penalty    |
+
+Every magazine weighs them to its own taste (integer percentages summing to 100; `Magazine.taste` in `data.ts`),
+and `score = clamp(round(Σ component × weight / 100), 0, 100)`:
+
+| Magazine        | Art | Story | Pacing | Fit | Freshness | Taste line (shown on the pitch screen and in the wizard) |
+|-----------------|-----|-------|--------|-----|-----------|-----------------------------------------------------------|
+| Default         | 25  | 25    | 15     | 15  | 20        | (`SCORE_WEIGHTS`, the fallback for `weightedScore`)       |
+| Weekly Bolt     | 35  | 15    | 20     | 10  | 20        | Readers love big art and fast pacing.                     |
+| Monthly Petal   | 15  | 35    | 10     | 20  | 20        | Readers want a story, and a manga made for them.          |
+| Ultra Seinen    | 15  | 35    | 20     | 10  | 20        | Readers prize story and pacing.                           |
+| Kids Comic Go!  | 35  | 15    | 10     | 20  | 20        | Readers love bright art, and a manga made for them.       |
+
+This is what makes **focus** a decision: art focus (art ×1.25, story ×0.8) suits Weekly Bolt and Kids Comic Go!,
+story focus suits Monthly Petal and Ultra Seinen. For a fresh player (art 40, story 34) drawing a kids one-shot, the
+model expects art focus to score about 4.0 more than story focus at Kids Comic Go! (40 × 0.45 × 35% − 34 × 0.45 × 15%)
+and story focus about 2.7 more at Monthly Petal; measured over seeds 1–20 the gaps are 4.05 and 2.65. The desk's focus
+hint, the pitch screen, the wizard's audience step, the results breakdown ("weight N%") and the stats screen all show
+the weights, so the modifier is never hidden.
+
+Rank = 1 + number of rivals scoring higher, each drawn as `magazine.rivalMean + Gaussian noise (sd RIVAL_SCORE_SD)`
+(see CLAUDE.md balance touchpoints for the current rival score range and spread). Rewards scale with score and rank.
+The named rival (below) is entrant 0 of the magazine it runs in, drawn around its craft instead of the rivalMean.
+
+### Named rival
+Every world has one named rival mangaka (`rival.ts`): the name (`RIVAL_NAMES`) and series title (`RIVAL_SERIES`, three
+per magazine) come from a hash of the world seed, so making the rival consumes no RNG. A new career's rival has craft
+`RIVAL_START_CRAFT` 57. At every year end (`closeYear`, see Year end and awards) `growRival` adds
+`RIVAL_YEARLY_GROWTH` 4, capped at `RIVAL_MAX_CRAFT` 76, so after n years the rival is `makeRival(worldSeed, n)`:
+craft `min(76, 57 + 4n)`. The rival runs in the magazine with the highest rivalMean at most craft − 6
+(`RIVAL_FIELD_MARGIN`), else Kids Comic Go!, so they climb one magazine a year (57 Kids, 61 Petal, 65 Bolt, 69 and up
+Ultra); when growth moves them, they take that magazine's series
+(the same hash), a log line says so, and the year review tells it. In that magazine's polls (`pollField`) the rival
+takes entrant 0's draw slots, so a poll still draws `2 + entrants × 2` values and the other magazines' polls are
+unchanged. The polls and the pitch forecast share one check for whether the rival runs in a magazine (`rivalIn`).
+The rival's rank is 1 + other entrants above it + 1 if the player scored higher; results store `{ name, score, rank }`
+(score rounded, 0 to 100). The pitch screen marks the rival's magazine ("Rival: name", "Beat first name: N%"), the
+results screen says where the rival placed and whether the player finished ahead or behind, the series table has a
+Rival column, and the Career screen shows the series, the usual score range (craft ± 8) and the head-to-head record
+(`rivalRecord`: a win is a better rank). Saves
+from before the rival get the one their world would have by the save's day (`upgradeSave`, `makeRival` with the
+whole years played).
+The editor writes a one-line comment on the component that cost the most points at that magazine
+(`biggestLoss`: the largest weight × (100 − component), ties in the order art, story, pacing, fit, freshness).
+
+### Pay
+Every poll, one-shot or chapter, pays `round(pageRate × pages × score × tier% / (PAY_FULL_RATE_SCORE × 100))`
+(`pollPay`: integer factors and a single division, so x.5 cases round exactly). `PAY_FULL_RATE_SCORE` is 80: a score
+of 80 earns the full page rate, lower scores scale it down and higher ones up. The rank tier (`rankTier`,
+`RANK_MULTIPLIER_PCT`) sets `tier%`: first place 200, the podium (rank 3 or better) 140, mid-table (rank at most
+ceil(entrants / 2), entrants counting the player's work) 100, weak 70. A one-shot is paid on its 20 pages, a chapter
+on its 16. Example: a Kids Comic Go! one-shot scoring 52 in second place pays 90 × 20 × 52 × 140 / 8000 = ¥1,638.
+The results screen explains every payout in those terms (`payWhy`: pages at the page rate, scaled by the score, times
+the tier).
+
+### Pitch forecast
+For each magazine the pitch screen quotes "Likely score A to B. Likely rank #C to #D of N.", the serial-offer odds and
+"Pays about ¥X (¥L to ¥H)". `forecastPoll` (`forecast.ts`) computes them exactly and without RNG from what the player
+can know:
+- A pairing the Notebook has rated counts at that rating. An untested pairing is spread over `RATING_PRIOR` (Bad 0.15,
+  Meh 0.25, Good 0.3, Great 0.2, Perfect 0.1, the thresholds hidden ratings are drawn with); its hidden rating is
+  never read. The hand-authored "obvious" pairings in `compat.ts` count as untested too until the Notebook has them.
+- Pacing noise is integrated with a 25-node quadrature (z from −3 to 3 in steps of 0.25, Gaussian weights).
+- Every rating scenario and node goes through the poll's own `computeBreakdown` and `weightedScore`, so the rounding
+  is the real one.
+- For each score the rivals are a Poisson-binomial: rival i finishes above with 1 − Φ((score − mean_i) / RIVAL_SCORE_SD),
+  mean_i the rivalMean, or the named rival's craft for entrant 0 in its magazine (`rivalMeans`, shared with the polls).
+  There the pitch also quotes the chance to beat the rival: Σ P(score) × Φ((score − craft) / RIVAL_SCORE_SD).
+- The offer chance is P(rank 3 or better, or score 65 or more): "certain" when every outcome clears 65, "none while
+  <serial> runs" while a serial runs. The likely ranges are the 10th and 90th percentiles; the pay is the mean over every
+  score and rank, its range every outcome more likely than 1e-9.
+
+Forecast calibration is a balance band: over year one the offer chances quoted at each pitch, summed, must come within
+30% of the offers that arrived.
 
 ## Architecture
 
 - `src/sim/` — pure TypeScript simulation. No React, no DOM. Deterministic given a seed.
   Fully unit-tested with Vitest. Every state change is a pure function `(state, input) => state`.
 - `src/state/` — Zustand store: wraps the sim, owns the real-time clock and UI state, persists to localStorage.
-- `src/ui/` — React components. `scene/` is the pixel-art canvas studio. `panels/` are the management screens.
+- `src/ui/` — React components. `scene/` is the pixel-art canvas studio (`render.ts` paints a frame from a snapshot,
+  `season.ts` the window's season, `studioArt.ts` the player's studio, `paint.ts` the shared pixel helpers,
+  `StudioScene.tsx` runs the frame loop).
+  `panels/` are the management screens.
+- `src/audio/` — Web Audio sound, synthesised, no files (see Sound).
+- `src/platform/` — where the game runs (browser or desktop) and the only place that imports the desktop APIs;
+  `src-tauri/` is the Windows desktop shell itself (see The desktop app and save files).
 - `src/styles/` — design tokens (CSS variables), light/dark, base styles.
+
+### Seasons
+The studio window follows the calendar (`describeDate`'s month, floor((day mod 336) / 28) + 1): months 1-3 spring,
+4-6 summer, 7-9 autumn and 10-12 winter, so every year opens in spring (`seasonOf`). The season is decoration only; it
+changes no rule.
+- **Spring**: a cherry branch in blossom and 12 petals blowing down and across the pane.
+- **Summer**: a green canopy and a wind chime whose strip swings; at night 5 fireflies glow over the dark.
+- **Autumn**: a rust canopy and 12 leaves swaying as they fall.
+- **Winter**: a bare branch capped with snow, 16 snowflakes and snow on the sill.
+
+Everything but the sill's snow stays inside the pane (x 118-161, y 12-43), behind the window bars; the fireflies, drawn
+over the night, keep off the bars (rows 18-25 and 29-36, never columns 139-140). The sun and the clouds are clipped to
+the pane too, so a cloud slides out behind the frame. The particles and the clouds move with the scene's frame, so they
+hold still under reduced motion (the cloud whole at the pane's left edge).
+
+### The studio in the scene
+The scene draws what `studioLook` says the player has built (`studioArt.ts`). It is decoration only; the Studio panel
+states every effect. `StudioScene` reads the look through `useShallow` and turns it into flags and counts when it
+changes, so a frame never walks a list.
+- **Tiers.** The studio flat opens a lit doorway in the right wall with an indigo noren (x 168-184, from y 20 down to
+  the bed), which spills warm light at night. The loft keeps the doorway and adds a potted plant on the sill (x 150-155)
+  and a tall one on the floor in front of the bed (x 172-184, y 80-105).
+- **Equipment.** Coffee machine on the sill's left (x 118-126). Arm lamp in place of the small desk lamp (x 92-105), its
+  bulb and glow lit at night or while the mangaka works. Reference shelf, a slim three-shelf unit between the bookshelf
+  and the poster (x 43-50, y 20-57). Tall mesh chair in place of the plain one, behind the seated mangaka (x 68-91).
+  Drafting table in place of the desk, wider (x 44-111), with a lightbox on its left end. Pen tablet under the pen
+  (x 86-95, y 60-61), and the ink pot moves right to make room.
+- **Volumes**: one spine per volume shipped on top of the bookshelf, in sets of six, at most 24 (x 10-36, y 13-17).
+- **Anime poster**: while an anime's boost runs, its key visual replaces the poster (x 52-73, y 14-41).
+- **Trophies**: one gold trophy per award on the sill, the most recent 4 (x 130-144, y 38-44).
+
+Draw order: the coffee machine and the trophies after the sill and its snow; the volumes and the reference shelf after
+the bookshelf; the tier after the bed (the doorway stops where the bed begins, y 66, so the two never overlap) and
+before the sleeping mangaka's Zz; the chair
+before the mangaka at the desk, the drafting table, the lamp and the tablet after; the lamp's glow and the doorway's
+spill last, over the night overlay. Everything stays inside x 8-184 (a phone's `object-fit: cover` crops about 7 px a
+side) and off the mangaka at the desk and at the standing spot. The full scene (all of it, three assistants, winter,
+night) paints 615 rects against 499 without the studio; the budget is 1.5 x 499.
 
 ## Systems beyond the slice (implemented)
 
@@ -78,18 +196,93 @@ The editor writes a one-line comment pointing at the weakest component.
 - A one-shot that ranks top 3 or scores 65+ earns a serialisation offer from that magazine (one serial at a time).
 - Chapters are 16 pages. A finished chapter goes to the weekly poll automatically and the next chapter starts at once.
   Chapter results never block play: they arrive as toasts and in the Series panel.
-- **Popularity** (0-100) is a moving average of poll placement. Three consecutive weak chapters (roughly the bottom
-  quarter, rank > ceil(0.7 x entrants)) cancel the series and cost 10% of fans. Every 4 chapters a **volume** ships;
-  copies = (fans + circulation x 20) x popularity.
+- **Popularity** (0-100) is a moving average of poll placement, minus 10 for each missed issue. Three warnings in a
+  row (a weak chapter, roughly the bottom quarter with rank > ceil(0.7 x entrants), or a missed issue) cancel the
+  series and cost 10% of fans; the log says "after 3 warnings in a row" whichever mix it was. Every 4 chapters a **volume** ships;
+  copies = round((circulation x 20 + 40 x sqrt(fans)) x popularity / 100), times an anime deal's multiplier while its
+  boost lasts (see Anime adaptations), at ¥2 a copy (`VOLUME_PRICE`). Fans count through their square root, so a big
+  following keeps selling more without running away with the economy: at Kids Comic Go! (circulation 120) and
+  popularity 80, 2,500 fans sell (2,400 + 2,000) x 0.8 = 3,520 copies and 10,000 fans (2,400 + 4,000) x 0.8 = 5,120.
+  `volumeCopies` in engine.ts is the one place the curve lives.
+- **Grace period**: every new series' first `SERIAL_GRACE_CHAPTERS` (4) results never add a warning, even when weak;
+  popularity still moves normally during grace. The earliest a weak chapter can warn is a series' 5th result, so the
+  earliest cancellation by weak chapters alone is its 7th result. Applies to every new series, not only a mangaka's
+  first.
+- **Chapter deadlines**: accepting an offer makes chapter 1 due `chapterDays` later. Each chapter sent makes the next
+  one due `chapterDays` after the previous due day (not after the day it was sent), so finishing early banks time.
+  If the due day arrives while the chapter is still being drawn, the issue is **missed** (`checkDeadline`): popularity
+  -10 (`SERIAL_MISSED_ISSUE_POPULARITY`, never below 0), `missedIssues` +1, the same chapter is due one `chapterDays`
+  later, and a toast says so. A miss adds a warning only once the series has 4 results (the grace period); during
+  grace it costs popularity alone. Weak chapters and misses share the warning count (a chapter that is not weak
+  resets it), and the third warning cancels the series through one path (`cancelSerial`: fans -10%, the desk
+  empties). With 4 results in and nothing sent, three misses cancel. A trip does not stop the presses: an issue due
+  while the mangaka is away, or on the day they come home, is missed.
+- The desk shows the chapter's due day and the studio's pace: `chapterDeadline` counts working days left with
+  `chapterWorkDays` (ceil(pages left / studio pages per day at full stamina)) and rates them with `deadlineStatus`:
+  late when they exceed the days left, tight when they exceed them once `DEADLINE_REST_FACTOR` (1.25) is applied for
+  rest days, on track otherwise. The offer screen uses the same two helpers for a whole chapter against the rhythm:
+  it shows the rhythm ("Every 21 days"), the working days a chapter takes at the player's pace, "Rest days could make
+  you miss issues." when tight and "You will miss issues at this pace: hire help first." when late. The Series panel
+  lists the rhythm and the missed issues.
+- The balance bots hire help when the chapter on the desk is late, a desk is free in their studio, and the bank holds
+  two weeks of the candidate's salary on top of two weeks of current costs; they pick the most pages per day per yen of
+  salary. With the apartment's one desk taken, the sensible bot moves to the studio flat first, but only when the bank
+  still covers that hire after the move-in (two weeks of the flat's costs, rent included).
 - Freshness erodes 2 points per chapter after chapter 8, so every series has a natural arc. The player can wrap a
   series up at any time and converts popularity into loyal fans.
 - Wrapping up with popularity 50 or higher after at least one volume has shipped sells a final volume at 1.5x copies;
   wrapping before any chapter has polled earns nothing.
 
 ### Staff
-- Up to 3 assistants. Three candidates rotate every 4 weeks. No hiring fee, weekly salary.
+- One assistant per desk: 1 in the apartment, 2 in the studio flat, 3 in the loft (see Studio and equipment). Three
+  candidates rotate every 4 weeks. No hiring fee, weekly salary. With every desk taken, the Staff panel's hire buttons
+  say "Move to a bigger studio for another desk" and open the Studio panel (in the loft: "Full, let someone go
+  first").
 - Each adds pages per day and blends their own Art/Story into page quality. Traits: Fast, Careful, Inspiring, Steady.
 - Assistants tire like the player and rest when the player rests or works a part-time job.
+
+### Studio and equipment
+A money sink whose every effect is stated where it is sold (the Studio panel, from the desk's Studio button) and listed
+again under the reward tiles in Stats. `src/sim/studio.ts`; no RNG.
+- **Tiers.** A new career starts in the apartment. Moving goes one tier up at a time, never down, and costs the next
+  tier's move-in; the panel asks to confirm a move ("Yes, move in for ¥56,300" or "Stay here"), and the next tier's line
+  says "You cannot move back down." Equipment is a single click. The tier's rent is part of the weekly costs (living + rent + salaries), and the weekly log line names
+  it when it is not zero ("Weekly costs: -¥550 (living ¥400, rent ¥150)."). `hireAssistant` refuses once every desk is
+  taken, on top of the rule that the bank must hold two weeks of that salary.
+
+| Tier | Desks | Rent/week | Move-in (base) | Move-in at scale 11.25 |
+|---|---|---|---|---|
+| Apartment | 1 | ¥0 | ¥0 | ¥0 |
+| Studio flat | 2 | ¥150 | ¥5,000 | ¥56,300 |
+| Studio loft | 3 | ¥350 | ¥15,000 (from the flat) | ¥168,800 (from the flat) |
+
+- **Equipment** is bought once and kept. A piece cannot be bought twice, without the money, or (the pen tablet) below
+  the studio flat. Effects sum over everything owned; page multipliers multiply (drafting table and tablet: x1.265).
+  Art and story bonuses go on the player's own samples of every working day (clamped to 100), never the assistants'.
+  The page multiplier is part of `basePagesPerDay`, so the desk's pace, the ETA and the chapter deadline all include it.
+
+| Equipment | Base price | Price at scale 11.25 | Effect |
+|---|---|---|---|
+| Coffee machine | ¥2,000 | ¥22,500 | Resting restores 3 more stamina a day (the rest branch, not trips) |
+| Daylight lamp | ¥2,500 | ¥28,100 | Art +3 on your pages |
+| Reference shelf | ¥3,000 | ¥33,800 | Story +3 on your pages |
+| Ergonomic chair | ¥4,000 | ¥45,000 | Drawing costs 1 less stamina a day (min 2); adds to an Inspiring assistant's 1 |
+| Drafting table | ¥7,000 | ¥78,800 | 10% more pages a day |
+| Pen tablet | ¥12,000, needs the flat | ¥135,000 | 15% more pages a day, art +2 |
+
+- **Prices** go through `equipmentPrice(id)` and `moveInCost(tier)`: the base price times `EQUIPMENT_PRICE_SCALE`,
+  rounded to the nearest ¥100. The panel and the tests read the helpers, never the base prices. The scale is
+  S1 / 9000 rounded to 0.25 and held within 0.75-16 (`priceScale` in balance.ts), where S1 is the sensible balance
+  bot's median money at day 336 with its shopping switched off (seeds 1-20; `npm run balance` prints it). S1 is
+  ¥101,816.5, so S1 / 9000 = 11.31 and the scale is 11.25; balance.test checks the constant is the scale S1 gives, so
+  a change that moves the economy says when the prices need re-deriving. The Full studio milestone (three assistants)
+  needs the loft: ¥225,100 in move-ins at this scale (¥56,300 for the flat, ¥168,800 for the loft), then ¥350 a week
+  in rent and three salaries.
+- **Saves** from before studios start in a studio with a desk for every assistant they have (3: loft, 2: flat,
+  otherwise the apartment) and no equipment.
+- `studioLook(s)` is what the studio scene draws (see The studio in the scene): the tier, its desks, the owned list
+  itself (the same array, so it can be compared by reference), the volumes shipped across every serial, at most 24, and
+  `animePoster`, true from an anime's premiere until its volume boost ends (the same window as the volume multiplier).
 
 ### Part-time job
 - A third daily activity: earns money, costs a little stamina, draws nothing. The money lifeline.
@@ -98,25 +291,220 @@ The editor writes a one-line comment pointing at the weakest component.
 ### Trips and training
 - Library / Reader survey reveal Notebook cells. Classes add +2 to a stat. Hot spring restores and raises max stamina.
 - The player is away for the trip's length; nothing is drawn.
+- Two trips are reached only by answering a random event, and the Trips panel does not list them: the Comic
+  Convention (2 days, ¥500, fans on return) and the Manga Masterclass (3 days, ¥400, +3 to the lowest stat).
 
 ### Editors
 - Each magazine has an editor. Every result raises the relationship; every 3 points the editor shares a tip that
   reveals a theme x audience pairing for that magazine's readers.
 
+### Random events
+One decision at a time, shown as a card on the desk and never as a popup (pillar 3). The card names both answers with
+every effect they have, and says how many days are left to answer. `src/sim/events.ts`.
+- **The roll.** On days where day % 7 is 3, from `nextEventDay` on (day 28 in a new career), with no event waiting and
+  no trip under way, two values are drawn from `eventSeed`: the first under 0.35 lands an event, the second picks it
+  from the eligible pool, in the table's order. `eventSeed` is its own stream (`hashString('events:' + worldSeed)`),
+  so an event landing or not never moves the main `seed`. A landed event expires 7 days later and the next roll waits
+  14 days. It toasts and pauses the clock once, the day it lands.
+- **Ignoring one.** The day after it expires, the event lapses: a log line, nothing else. An event whose subject is
+  gone (a raise asked by an assistant who has since left) has no card to show, so it lapses the same way on the day
+  `eventTick` finds it gone, and never holds up the next roll unseen.
+- **Money and trips.** An answer that costs more than the player has is disabled and says what it needs, so an event
+  never takes money below zero. A waiting event survives a trip: the card stays on the desk and every answer except a
+  new trip can be given while away.
+
+| Event | Eligible | A | B |
+|---|---|---|---|
+| Fan letter | fans ≥ 300 | Write back: stamina −5, fans + clamp(round(fans × 0.02), 50, 1,500) | Keep it: stamina +8 |
+| Cold | always | See a doctor: −¥300, stamina +25 | Tea and an early night: stamina +8 |
+| Convention | fans ≥ 1,000, money ≥ ¥500 | Book a table: 2-day trip, ¥500; on return fans + min(5,000, 150 + round(fans × 0.04)) | Skip it |
+| Raise | the first assistant who has not asked yet | Give the raise: salary becomes round(salary × 1.2 / 10) × 10, their art and story +3 | Not this year: their max stamina −10 |
+| Reprint | a serial, running or archived, with a volume | Approve: + round(average copies a volume × 0.25) × VOLUME_PRICE | Colour page: stamina −12, + round(average copies a volume × 0.4) × VOLUME_PRICE |
+| Workshop | level ≥ 3, money ≥ ¥400 | Attend: 3-day trip, ¥400; on return +3 to the lowest stat (ties: art, story, pacing) | Decline |
+
+Stamina changes clamp to 0..max stamina. Each assistant asks for a raise once, whatever the answer. A reprint is for
+the running serial when it has shipped a volume, else the latest archived one that has.
+
+### Anime adaptations
+A hit serial is offered one adaptation, shown as a card on the desk and never as a popup (pillar 3). The card lists
+both studios' terms, with "Sign with Studio Kumo", "Sign with Hoshi Animation" and "Not now", and says how many days
+are left to answer. `src/sim/anime.ts`; no RNG.
+- **The offer.** Checked every day (`animeTick`): a running serial with popularity 70 or more and 37,000 or more
+  copies sold across its volumes, never offered one before (`animeOfferedFor`), with no offer waiting and no earlier
+  deal short of its tail's end (`day <= tailEndsDay`: signed and waiting to air, on air, or in its volume boost). One
+  adaptation at a time. It toasts, pauses the clock once, and stands for 14 days
+  (answerable up to and including `expiresDay` = the day it landed + 14); the day after, it lapses with a log line.
+  The serial stays in `animeOfferedFor` whether the offer is signed, passed on or lapses: studios ask once per series.
+- **Wrapping up or cancellation.** The offer is for a running series: wrapping the series up withdraws a waiting
+  offer at once (`endSerial`), and a cancellation withdraws it in the same tick (`animeTick` runs after
+  `resolveChapters` and `checkDeadline`), each with a log line.
+- **A deal.** Signing fixes every day: `airsDay` = signing + weeks to air, `endsDay` = `airsDay` + weeks on air,
+  `tailEndsDay` = `endsDay` + the boost weeks. Week k on air pays on `airsDay` + 7k (when `(day - airsDay) % 7 === 0`
+  and `airsDay < day <= endsDay`), so the premiere day pays nothing and the finale day pays the last week. At the
+  premiere the serial's popularity rises by the studio's lift (capped at 100) only if it is still running; the anime
+  airs and pays either way. Signing, the premiere and the finale toast; weekly pay and the end of the boost are log
+  lines. Log lines and the Series panel speak of volume sales only while the series runs (an ended series ships no
+  more volumes): for a running series the premiere toast adds "Volumes sell 1.3x from today." and the finale toast
+  "Volumes sell 1.3x for 12 more weeks."; for an ended one both leave it out and the end of the boost is not logged.
+- **Volumes.** `animeVolumeMult(s, serialId)` is the deal's multiplier from the premiere
+  (`airsDay <= day <= tailEndsDay`), else 1; the scene's anime poster (`studioLook`'s `animePoster`) uses the same
+  window. A deal signed but not yet on air boosts nothing. Regular volumes sell round(copies x multiplier) and the
+  wrap-up volume round(copies x 1.5 x multiplier); the volume log says "(1.3x with the anime)". The Series panel shows
+  the deal: "Signed with Studio Kumo, airs in 6 weeks; volumes sell 1.3x from the premiere.", then "On air, week 3 of
+  12: +400 fans and ¥500 a week; volumes sell 1.3x.", then the boost left after the finale (for an ended series,
+  without the volume clauses). The card's terms say "Volumes sell 1.3x from the premiere until 12 weeks after the
+  finale."
+
+| Studio | Fee | Airs after | Runs | Per week | Volume mult | Popularity at premiere |
+|---|---|---|---|---|---|---|
+| Studio Kumo | ¥2,000, paid at signing | 6 weeks | 12 weeks | +400 fans, +¥500 | 1.3x, from the premiere until 12 weeks after the finale | +5 |
+| Hoshi Animation | ¥0 | 16 weeks | 24 weeks | +900 fans, +¥1,000 | 1.6x, from the premiere until 24 weeks after the finale | +12 |
+
+Signed on day 100, Kumo airs on day 142, ends on day 226 and boosts volumes from day 142 to day 310 (12 payouts:
++4,800 fans and +¥6,000, plus the ¥2,000 fee); Hoshi airs on day 212, ends on day 380 and boosts volumes from day 212
+to day 548 (24 payouts: +21,600 fans and +¥24,000). The sensible balance bot signs every offer the day it lands:
+Hoshi Animation while the serial has fewer than 12 results, Studio Kumo after that. The careless bot and the stress
+case let it lapse.
+
+### Year end and awards
+Every `DAYS_PER_YEAR` (336) days the year closes: `closeYear` (`src/sim/year.ts`) runs when `day % 336 === 0` and
+`day > 0`, after `checkDeadline` and before `animeTick`. No RNG.
+- **This year.** `yearStart` is the baseline `{day, money, fans, level, copies, volumes}` (copies and volumes are
+  totals across the running serial and every past one). The year's poll results are those with a day in
+  (`yearStart.day`, closing day]: the polls run before `closeYear` in the same tick, so a result landing on the
+  closing day counts for the year that closes (year one counts days 1 to 336, year two days 337 to 672). A serial
+  counts as started this year from `yearStart.day` on: commands run between ticks, so one accepted on a closing day
+  starts the new year. For the Rookie Prize, a serialisation offer still waiting at the year-one close (earned by a
+  year-one one-shot, perhaps on the closing day itself) counts as a serial started; accepting it later pays nothing
+  more. A new career takes its baseline on day 0.
+- **Awards.** `buildYearReview` judges each award in the table's order. A near miss is listed only when the award was
+  not won. The Readers' Choice takes the serial with the best average rank among those with 8 or more results this
+  year; a near miss shows that average rounded up to one decimal, so a miss never reads as the 3.0 that wins.
+
+| Award | Rule | Near miss | Prize |
+|---|---|---|---|
+| Rookie Prize (year 1 only) | a serial started, or a #1 one-shot | best one-shot #3 or better | ¥3,000, 500 fans, 100 XP |
+| Readers' Choice | a serial with ≥ 8 results this year, average rank ≤ 3.0 | average ≤ 4.5 | ¥5,000, 2,000 fans, 150 XP |
+| Critics' Prize | best score this year ≥ 75 (one-shots and chapters) | ≥ 68 | ¥4,000, 1,000 fans, 150 XP |
+| Golden Pen | copies sold this year ≥ 37,000 | ≥ 22,000 | ¥8,000, 3,000 fans, 200 XP |
+
+On screen each award's rule is worded from its bar (`awardRule` in ui/labels.ts: "a poll score of 75 or more",
+"37,000 copies sold in the year"), so the copy follows the data.
+
+- **The close.** The year is judged once. Its prizes are paid (money, fans, and XP through `grantXp`; a log line
+  each), and that same judgment is filed as the review (`yearReviews`, `reviewUnread` = its year) with the prizes
+  counted in its money, fans and level; then the rival grows and the new `yearStart` is taken, so next year's deltas
+  start clean. When the player missed year one's Rookie Prize,
+  the rival won it (`rivalAward`). The review holds the year's one-shots, best one-shot, chapters, volumes, copies,
+  best score, money and fans gained, the level before and after, the awards, the near misses, and the rival's year
+  (this year's head to head, craft and magazine before and after). A fresh career left alone for year one pays 48
+  weeks of living costs (days 7 to 336): −¥19,200, no awards, and the rival takes the Rookie Prize and moves up to
+  Monthly Petal at craft 61.
+- **On screen.** One toast: "Year 1 is over. You won the Rookie Prize. Your year in review is on the desk." (or "No
+  awards this year"). The year end never pauses the clock. The review waits on the desk as a card ("Year 1 in review:
+  2 awards, 1 near miss.", "Read the year review") until the review modal is opened, which marks it read. The modal
+  shows the year in numbers, the awards with their prizes and what wins them (or, with none, what to aim for next
+  year), the near misses ("Golden Pen: 24,800 copies of 37,000."), and the rival's year. Career lists every award won
+  and a line for each past year. `studioLook`'s `trophies` is the awards list itself (one trophy per entry, the
+  same reference every call), for the scene.
+- **Saves** from before the year end start their year on its first day (`floor(day / 336) × 336`) with the current
+  money, fans, level, copies and volumes, so the first review's deltas count from loading; no reviews, no awards.
+
+### Sound
+Web Audio, synthesised: no audio files, no framework dependency (`src/audio/`). `cues.ts` holds every cue's recipe
+(every voice on the C major pentatonic scale, every cue over within a second, the drumroll within 2.4 s); `engine.ts`
+builds the mixer and the one `AudioContext` and plays them. A cue plays for most changes a player would notice:
+submitting a manuscript, a chapter result (plain, weak, or top of the poll), a level-up or milestone, a warning or
+cancellation, hiring, a trip's start or end, a random event or anime offer landing, an award, and the result
+reveal's own beats (see The results reveal). `triggers.ts` decides the cues purely from two game states, never the
+log's wording, at most two per change, so a busy tick is not noisy; a cancellation plays alone, since the warnings
+that land with it would only repeat the bad news.
+
+A light music loop (`music.ts`) plays under play: two parts (lead and bass), scheduled a look-ahead's worth of
+notes at a time from the audio clock's own time, fading in over 2 s when it starts and out over 0.4 s when it
+stops. The context is created lazily and only from a real user gesture — a browser refuses to start audio before
+one. Until the first gesture the loop is only wished for and every cue is silently skipped; `bridge.ts` listens for
+that gesture (a mouse's pointerdown, touch or pen's pointerup, or any keydown, matching the platform's own
+user-activation rules) and unlocks the context, then stops listening once it is running.
+
+Settings has Sound and Music rows: a mute button, one volume slider (its gain the slider's square, so equal steps
+sound like equal loudness steps), and a Music on/off toggle independent of mute. Other systems can duck the music
+bus to a fraction of its level and back (the results reveal ducks to 30% for as long as its modal is open). Hiding
+or minimising the window suspends the `AudioContext`: nothing plays while it is frozen, and a fade already under
+way finishes at once rather than waiting for a clock that will never move again; showing the window resumes it,
+silently (a 'pause' cue would only sound on return, so none plays for the hide or the show). A read-only tab
+(mirroring another tab's save) and the update that loads a save make no sound at all, matching the store's
+`windowHidden` and `saveLoads` guards.
+
+### The results reveal
+A poll result never simply appears: `ResultsModal.tsx` plays it out in beats, timed by a pure plan (`reveal.ts`'s
+`revealPlan`) that a real-time clock (`useReveal.ts`) drives frame by frame. In order: a drumroll leads into five
+bars growing to their component scores (art, story, pacing, audience fit, freshness), each pitched by its own
+value; the overall score counts up; the rank stamp lands; its jingle plays (`TIER_JINGLE`: a fanfare for first
+place, a rising jingle for the podium, a level jingle mid-table, a falling one for a weak result); then the reward
+tiles (payment, fans, XP) slide in one by one. Everything after the stamp — the exact rank and score, the rival's
+placement, the payout breakdown, the serial-offer line — stays in the layout but hidden until the stamp lands, so
+nothing spoils the countdown early.
+
+A pointer-down anywhere in the modal's body, or any key, skips straight to the end; reduced motion collapses the
+whole plan to instant (every beat at time 0). A gap of more than 250 ms between two animation frames
+(`MAX_FRAME_GAP`), including between mount and the first frame, means the window was hidden while the reveal ran:
+it skips too, rather than firing every missed beat in a burst once the tab is visible again. A skip, reduced
+motion, and a frame gap all still play the stamp and its jingle, just with nothing before them. The music ducks to
+30% for as long as the modal is open and returns to full when it closes; a drumroll still rolling is stopped the
+moment the stamp lands or the modal closes, whichever comes first.
+
+### The desktop app and save files
+The same build also runs as a Windows desktop app (Tauri 2, `src-tauri/`): one window around the unchanged web
+build, with a native shell wired only on desktop (`src/platform/desktop.ts`). A second launch brings the running
+window forward instead of opening another (the single-instance plugin); the window remembers its size, position,
+and whether it was maximised between runs, and on a first launch with nothing saved, a window that would not fit
+its monitor shrinks to at most 90% of the work area on each axis and opens centred in the work area with its title
+bar on screen (`src-tauri/src/fit.rs`). F11 toggles full screen. Minimising the window pauses the clock and
+suspends the sound, the same as hiding a browser tab; closing writes the save at once, leaving full screen first so
+the size remembered is the windowed one. In every production build (`npm run tauri build`, its `--debug` variant
+included), the browser engine's own shortcuts (reload, print, going back) are cancelled everywhere, text fields
+included, and its right-click menu everywhere except text fields; only `npm run tauri dev` keeps both, for
+development.
+
+**Where a career lives.** In the browser it is `localStorage` under the key `rising-mangaka-save`. In the desktop
+app that same storage lives inside the app's own WebView2 profile, under the identifier
+`com.xyjor.risingmangaka` in `%LOCALAPPDATA%`; the remembered window state is a small file under the same
+identifier in `%APPDATA%`. Only one tab or window plays at a time: a tab lock (`tabLock.ts`, browser only — the
+desktop app has a single window and disables it) lets one tab own the save and run the clock while any other
+mirrors it read-only and stays silent, with a heartbeat so a tab that closed or crashed without saying so goes
+stale and another can take over.
+
+**Save files.** A career can be written out as a `.json` file (`saveFile.ts`) and read back on any computer:
+Settings' Save file section, and the title screen before a career starts, offer Export save file and Load a save
+file. The file names itself after the pen name and the in-game date (year only after the first), carries a format
+marker and the save version, and a load is strict: text that is not valid JSON, does not carry that marker, comes
+from an older or newer save version, runs over 5,000,000 characters, or holds a game the sim cannot even advance by
+a day is refused, each refusal saying what to do next rather than only that it failed. If the game ever crashes, a
+recovery screen offers to export whatever is in storage before starting over — or, in a tab that has lost the save
+to another, only a reload, since starting over is not that tab's to do.
+
 ### Auto-pause rules
 The clock stops whenever the game needs a decision: a manuscript becomes ready, poll results arrive, a
-serialisation offer lands, a serial is cancelled (the desk empties), or a trip ends. Menus always pause.
+serialisation offer lands, a serial is cancelled (the desk empties), a trip ends, a random event lands, or an anime
+offer lands. Menus always pause. The year end is not a decision: it toasts and leaves a desk card, and the clock keeps
+running.
 
 ## Roadmap
 0. Money sinks. Shipped: hiring needs two weeks of that salary in the bank; a week that ends below zero makes
    assistants quit and charges an overdraft fee (5% of the debt, at least ¥50), and a week that ends with less
-   than one week of costs warns first. Still to do: studio tiers that gate assistant slots with rent, equipment
-   purchases with stated effects, a volume curve that flattens with fans (sqrt), a smaller HUD on phones shipped
-   separately.
-1. Awards (year end), anime adaptation offers, merchandise, conventions.
-2. Rival mangaka with visible careers and head-to-head polls.
-3. Random events with choices (fan letters, illness, editor requests).
-4. Save slots, achievements, sound, mobile polish.
+   than one week of costs warns first; studio tiers gate assistant desks with rent, equipment has stated effects and
+   prices scaled to what a career earns (see Studio and equipment); volume sales flatten with fans (the square-root
+   curve, see Serialisation); the smaller HUD on phones shipped separately.
+1. Awards and success. Shipped: year-end awards with a year review (see Year end and awards), anime adaptation offers
+   (see Anime adaptations) and conventions (an event-only trip, see Random events). Merchandise is not built.
+2. Rival mangaka. Shipped: one named rival per world with a visible career (a magazine and series, craft growing at
+   every year end) and head-to-head results in every poll they share (see Named rival).
+3. Random events with choices. Shipped: six events as desk cards (see Random events).
+4. Sound, mobile polish and a desktop app. Shipped in 0.1.0: synthesised sound effects and a music loop (see Sound),
+   the animated poll-result reveal (see The results reveal), the responsive phone layout, and a Windows desktop app
+   with save export and import (see The desktop app and save files). Save slots and achievements beyond the existing
+   milestones ladder are not built.
 
 ### Milestones
 A visible ladder of 18 career goals. The next unreached goal sits at the top of the desk ("Next goal") and the
@@ -148,13 +536,95 @@ awarded on the next tick, at most one day later.
 ## Tick order
 The final hook order inside `tick()`:
 
-1. Trip, part-time job, or the work-or-rest branch (pages, stamina, assistants).
-2. Weekly costs (living cost and salaries, with the overdraft rules).
-3. Candidate refresh.
-4. One-shot poll result and serialisation offer.
-5. `resolveChapters` (chapter polls, volumes, warnings, cancellation, archiving).
-6. `awardMilestones`.
-7. Return.
+1. Day + 1.
+2. Trip, part-time job, or the work-or-rest branch (pages, stamina, assistants; equipment effects apply here).
+3. Weekly costs (living cost, studio rent and salaries, with the overdraft rules).
+4. Candidate refresh.
+5. One-shot poll result and serialisation offer.
+6. `resolveChapters` (chapter polls, volumes, warnings, cancellation, archiving).
+7. `checkDeadline` (a serial chapter not in by its due day misses the issue; warnings and cancellation).
+8. `closeYear` (on day % 336 == 0, day > 0: awards and prizes, the year review, the rival's growth, the new year's
+   baseline).
+9. `animeTick` (a waiting anime offer whose series stopped running is withdrawn, one past its last day lapses; each
+   deal's premiere, weekly pay, finale and end of boost; a new offer to a running hit).
+10. `eventTick` (an unanswered event past its last day, or one whose subject is gone, lapses; the weekly random-event
+    roll).
+11. `awardMilestones`.
+12. Return.
 
-Future hooks (events, year review, anime) go between `resolveChapters` and `awardMilestones` so milestones see
-their effects the same day.
+`closeYear` runs before `animeTick`, `eventTick` and `awardMilestones`, so they see the prizes and the grown rival
+the same day; a milestone that lands on the closing day counts toward the new year.
+
+## Balance bots and bands
+
+`src/sim/bot.ts` holds three deterministic player policies that drive the real sim: `botStep` makes one day's
+decisions through the same commands the store calls, then ticks. The game never plays itself, so `index.ts` does not
+export them.
+- **Sensible** plays the way the interface teaches. For each magazine it plans the best known pairing for that
+  magazine's readers, drawn with the focus the magazine suits and the studio's equipment (its art and story bonuses,
+  inside the clamp, as on a drawn page), and keeps the magazine with the best forecast odds (ties: higher expected pay,
+  then the softer field). It spends every point as it arrives (every third on pacing, the rest on art or story,
+  whichever its target magazine weighs higher), takes shifts while money is under two weeks of costs, hires when a
+  chapter will miss its issue (moving to the flat when the apartment's desk is taken, see Serialisation), and wraps a
+  serial up at 16 results with popularity 50 or more. It answers a random event 'a' when that answer can be given and
+  leaves two weeks of costs in the bank (costs after answering, so a raise counts the new salary), else 'b'; signs an
+  anime offer the day it lands (Hoshi Animation under 12 results, else Studio Kumo); buys the cheapest equipment its
+  studio may have once the bank holds the price plus four weeks of costs, one piece a day; and reads the year review.
+- **Careless** ignores the Notebook, the odds and the stats screen: every choice is a hash of the world seed and the
+  project id, the focus is balanced, and it never spends points. It answers every event 'b' (the answer that costs no
+  money), lets anime offers lapse, never buys or moves, and reads the year review.
+- **Stress case** draws six fixed one-shots rotating Weekly Bolt, Kids Comic Go!, Monthly Petal and Ultra Seinen
+  without spending points, then is forced into a Weekly Bolt serial with balanced focus; it declines organic offers
+  and never wraps up. It leaves events and anime offers to lapse, never buys or moves, and reads the year review.
+
+`npm run balance -- [from=1] [to=20] [--detail seed]` prints a line per seed per bot, then one line per balance-band row
+(`--detail` adds every one-shot and chapter of that seed). The runs, the row measurements and the targets (`BANDS`)
+live in `src/sim/balance.ts`; the script prints them and `src/sim/__tests__/balance.test.ts` asserts them (the bots run
+once per test file), so the readout and the test cannot disagree. Each seed is played three ways: year one (336 days)
+for weeks in debt, calibration and the Package 2 rows but anime; up to the 6th one-shot (at most three years) for the
+first score, the first offer, the first-six mean and the money at the 6th; until the first serial ends or reaches 8
+results (at most three years). The stress case plays 480 days. Two more runs per seed: the sensible bot until its first
+anime offer (at most 672 days) for the anime row, and year one with its shopping switched off for S1, the money that
+sets `EQUIPMENT_PRICE_SCALE` (balance.test checks the constant matches it).
+
+### Balance bands (seeds 1 to 20)
+
+| Package | Measure | Target |
+|---|---|---|
+| 1 | Sensible bot, first one-shot score | 40–55 on ≥ 13/20; median 44–52 |
+| 1 | Sensible minus careless, mean score of first 6 one-shots | ≥ 8 |
+| 1 | Sensible bot, organic offer within first 6 one-shots | ≥ 16/20; median first offer at one-shot ≤ 3 |
+| 1 | Careless bot, organic offer within 6 | ≤ 6/20 |
+| 1 | Sensible bot's first serial reaches 8 results | ≥ 14/20 |
+| 1 | Stress case (forced Weekly Bolt, no points, balanced) | cancelled on ≥ 15/20, never before its 5th result |
+| 1 | Careless bot money at its 6th result | < ¥3,000 on ≥ 15/20 |
+| 1 | Forecast calibration (Σ offer chances vs offers seen, year one) | within ±30% |
+| 1 | Sensible bot weeks in debt, year one | 0 on ≥ 18/20 |
+| 2 | Events per year (sensible, mean events that land in year one) | 8–13 |
+| 2 | Rival met in year one (sensible) | ≥ 16/20; bot wins 35–75% of meetings (all seeds pooled) |
+| 2 | Award or near miss in year one (sensible) | ≥ 16/20; Golden Pen in year one ≤ 5/20 |
+| 2 | Equipment owned at day 336 (sensible, buying) | 2–3 items on ≥ 12/20 |
+| 2 | Anime offer within two years (sensible) | 6–16 of 20 |
+
+balance.test thresholds change only with owner sign-off. When a rule change pushes a row out of its band, tune a
+knob, not the threshold, in this order: the Kids Comic Go! rival mean (45–49), `SERIAL_GRACE_CHAPTERS` (4–6), Kids
+Comic Go! `chapterDays` (21–24), `MAGAZINE_MISMATCH_PENALTY` (25–35), and record the change as a ruling. A knob change
+moves hand-derived test literals (scores, ranks, due days, probabilities); re-derive each by hand in the same change.
+
+Those four knobs move ranks, offers and serials but not a fresh player's first one-shot score: on seeds 1–20 every
+sensible first pitch is a kids manuscript at Kids Comic Go! (so the mismatch penalty never applies, and moving the Kids
+rival mean across 45–49 leaves the pitch there), and grace and chapter rhythm only touch serials. That score comes from
+the starting stats, the page noise and the hidden ratings, so the first-score row is tuned through the starting stats.
+Package 1 raised the starting art from 38 to 40 (story 34 and pacing 30 unchanged): the median first score on seeds
+1–20 went from 43 to 44 and over seeds 1–100 from 47 to 48, the middle of the band.
+
+Package 2 re-asserts every Package 1 row and adds its own; balance.test asserts all of them, the anime row included
+(the file runs in about 2 seconds). The square-root volume curve and the listed knobs left the sensible bot's first
+Kids Comic Go! serial a runaway hit: #1 or #2 on most chapters, 5 volumes and 30,000 to 45,000 copies in year one, S1
+¥127,356. So Package 2 moved four constants instead (tuned in 0.1.0, "Package A"): the anime offer needs 37,000
+copies (was 15,000), the Golden Pen 37,000 with a near miss from 22,000 (was 20,000 and 12,000), the rival starts at
+craft 57 with a field margin of 6 (was 50 and 2), and the price scale follows S1 / 9000 within 0.75-16 (was clamped at
+4). On seeds 1–20 every row then passes: events 11.1 a year (8 to 15 per seed), the rival met on 20/20 and beaten in
+71% of year-one meetings, an award or near miss on 20/20 and the Golden Pen on 2/20, 2 or 3 pieces of equipment at day
+336 on 18/20, and anime offers within two years on 12/20 (days 507 to 574). The cause stays a candidate for a later,
+root-level retune (the pace of year one: XP, chapter fans or chapter pay).

@@ -148,6 +148,8 @@
 
 .quick-nav { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .quick-nav .btn { position: relative; flex-direction: column; gap: 4px; padding: 10px 6px; font-size: 12px; min-height: 60px; }
+/* Seven menus in rows of three: the last one spans its row instead of sitting alone in the first column. */
+.quick-nav .btn:last-child:nth-child(3n + 1) { grid-column: 1 / -1; flex-direction: row; min-height: 44px; }
 .quick-nav .btn .badge {
   position: absolute; top: -6px; right: -6px;
   background: var(--accent); color: #fff; font-size: 10px; font-weight: 900;
@@ -199,6 +201,7 @@
 .log li[data-kind='series'] .dot { background: var(--blue); }
 .log li[data-kind='staff'] .dot { background: var(--purple); }
 .log li[data-kind='trip'] .dot { background: var(--green); }
+.log li[data-kind='event'] .dot { background: var(--gold); }
 .log.collapsed ul { max-height: 24px; overflow: hidden; }
 @media (max-width: 640px) {
   .log { padding: 4px 12px; max-height: 30vh; }
@@ -236,6 +239,7 @@
 .toast[data-kind='money'] { border-color: var(--gold); box-shadow: 4px 4px 0 var(--gold); }
 .toast[data-kind='staff'] { border-color: var(--purple); box-shadow: 4px 4px 0 var(--purple); }
 .toast[data-kind='trip'] { border-color: var(--green); box-shadow: 4px 4px 0 var(--green); }
+.toast[data-kind='event'] { border-color: var(--gold); box-shadow: 4px 4px 0 var(--gold); background: var(--gold-soft); }
 .toast .ico { display: inline-flex; flex: none; color: var(--ink-2); margin-top: 1px; }
 .toast button {
   margin-left: auto; border: 0; background: transparent; color: var(--ink-3);
@@ -273,10 +277,11 @@
 .mag:hover { border-color: var(--ink); transform: translateY(-2px); box-shadow: var(--shadow-1); }
 .mag[aria-pressed='true'] { border-color: var(--blue); background: var(--blue-soft); box-shadow: 3px 3px 0 var(--blue); }
 .mag .name { font-family: var(--font-display); font-size: 20px; letter-spacing: 0.03em; }
-.mag > .chip { justify-self: end; align-self: start; }
+.mag > .mag-chips { justify-self: end; align-self: start; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
 .mag .meta { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--ink-2); font-weight: 700; }
 .mag .warn { grid-column: 1 / -1; font-size: 12px; font-weight: 800; color: var(--accent-text); }
 .mag .ok { grid-column: 1 / -1; font-size: 12px; font-weight: 800; color: var(--green-text); }
+.mag .taste { grid-column: 1 / -1; font-size: 12px; color: var(--ink-2); }
 
 /* ---------- results ---------- */
 .result-hero {
@@ -314,6 +319,61 @@
 .reward { min-width: 0; text-align: center; padding: 10px; border-radius: var(--radius-m); border: 2px solid var(--line); background: var(--paper); }
 .reward .n { font-family: var(--font-display); font-size: clamp(18px, 6vw, 24px); overflow-wrap: anywhere; }
 .reward .l { font-size: 12px; font-weight: 700; color: var(--ink-3); }
+
+/* ---------- results reveal (ResultsModal, timeline in panels/reveal.ts) ---------- */
+/* The bars follow the counted value frame by frame; their own width transition would only lag behind it. */
+.breakdown .bar > i { transition: none; }
+/* Each before/after pair (the headings, the counting and ranked lines) shares one grid cell, so the hero keeps its
+   height, and its line count at 375 px, when they swap at the stamp. */
+.reveal-swap { display: grid; }
+.reveal-swap > * { grid-area: 1 / 1; }
+.rank-badge { position: relative; }
+/* Before the stamp: an empty dashed ring with a "?", no tier colour to give the rank away. */
+.result-hero[data-stamped='false'] .rank-badge {
+  border-style: dashed; background: var(--paper); color: var(--ink-2); box-shadow: none;
+}
+/* The stamp slams down (scale 2.2, -18deg), bites (0.9, -4deg) and settles at a tilt (1, -6deg). */
+.result-hero[data-stamped='true'] .rank-badge {
+  transform: rotate(-6deg);
+  animation: rank-stamp 320ms both;
+}
+@keyframes rank-stamp {
+  0% { transform: scale(2.2) rotate(-18deg); opacity: 0; animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45); }
+  55% { transform: scale(0.9) rotate(-4deg); opacity: 1; animation-timing-function: cubic-bezier(0, 0.55, 0.45, 1); }
+  100% { transform: scale(1) rotate(-6deg); opacity: 1; }
+}
+/* On impact (55% of the stamp, 176 ms) the hero shakes and a gold ring bursts out of the badge. The shake is four
+   steps: step-end holds each keyframe's offset for its whole 50 ms segment, where steps(4) would split every segment. */
+.result-hero[data-stamped='true'] { animation: hero-shake 200ms step-end 176ms; }
+@keyframes hero-shake {
+  0% { transform: translate(-3px, 2px); }
+  25% { transform: translate(3px, -2px); }
+  50% { transform: translate(-2px, -1px); }
+  75% { transform: translate(2px, 1px); }
+  100% { transform: none; }
+}
+.result-hero[data-stamped='true'] .rank-badge::after {
+  content: ''; position: absolute; inset: -8px; border-radius: 50%;
+  border: 4px solid var(--gold); opacity: 0; pointer-events: none;
+  animation: ring-burst 480ms var(--ease-out) 176ms;
+}
+@keyframes ring-burst {
+  from { transform: scale(0.9); opacity: 1; }
+  to { transform: scale(1.6); opacity: 0; }
+}
+/* Reward tiles keep their place in the grid while hidden, then slide up into it as they land. */
+.rewards .reward[data-landed='false'] { visibility: hidden; }
+.rewards .reward[data-landed='true'] { animation: reward-land 400ms var(--ease-out) both; }
+@keyframes reward-land {
+  from { transform: translateY(14px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .result-hero[data-stamped='true'],
+  .result-hero[data-stamped='true'] .rank-badge,
+  .result-hero[data-stamped='true'] .rank-badge::after,
+  .rewards .reward[data-landed='true'] { animation: none; }
+}
 
 /* ---------- notebook ---------- */
 .nb-grid { display: grid; gap: 3px; font-size: 11px; overflow: auto; }
@@ -356,7 +416,19 @@
 .place .name { font-weight: 900; font-size: 16px; }
 .place .meta { font-size: 12px; font-weight: 700; color: var(--ink-2); }
 .place .effect { font-size: 13px; font-weight: 800; color: var(--blue-text); }
-.place .btn { grid-column: 2; grid-row: 1 / span 3; }
+.place .btn, .place > .chip { grid-column: 2; grid-row: 1 / span 3; }
+/* An armed ConfirmRow (moving studio) takes the button's cell. */
+.place > .row { grid-column: 2; grid-row: 1 / span 3; }
+@media (max-width: 640px) {
+  /* On a phone the armed confirm is too wide for that cell: it takes a line of its own under the name, and the lines
+     after it span the card as well, so auto-placement cannot pair them up in a squeezed column. */
+  .place > .row, .place > .row ~ * { grid-column: 1 / -1; grid-row: auto; }
+}
+/* Long labels ("Move to a bigger studio for another desk") wrap instead of overflowing a narrow card or phone. */
+.place .btn, .person .btn { white-space: normal; text-align: center; }
+
+/* Stats: what the studio's equipment does, one piece a line. */
+.effect-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
 
 /* ---------- offer ---------- */
 .offer-hero {
@@ -382,6 +454,9 @@
   background: var(--gold-soft); border-bottom: 2px solid var(--gold);
   font-size: 13px; font-weight: 700;
 }
+
+/* On the title screen the banner sits inside the card, so it gets a full border rather than a bottom rule. */
+.title-card .tab-banner { flex-wrap: wrap; border: 2px solid var(--gold); border-radius: var(--radius-m); }
 
 /* The banner is a fourth grid child of .app; give it its own row so hud, main and log keep theirs. */
 .app:has(> .tab-banner) { grid-template-rows: auto auto 1fr auto; }

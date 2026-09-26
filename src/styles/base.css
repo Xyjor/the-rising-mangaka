@@ -93,6 +93,7 @@ p { margin: 0; }
 
 @media (pointer: coarse) {
   .btn, .btn.sm, .seg button, .seg.sm button, .steps button, .toast button { min-height: 44px; }
+  .range { min-height: 44px; }
   .toast button { min-width: 44px; margin: -13px -12px -13px 0; }
   .btn.icon { width: 44px; height: 44px; }
   .hud-bar.as-button { padding: 7px 0; margin: -7px 0; }
@@ -221,6 +222,8 @@ p { margin: 0; }
   font-weight: 700; font-size: 16px;
 }
 .input:focus { outline: 3px solid var(--blue); outline-offset: 2px; }
+.range { width: 140px; accent-color: var(--accent); }
+.range:focus-visible { outline: 3px solid var(--blue); outline-offset: -3px; }
 
 /* ---------- misc ---------- */
 .kbd {

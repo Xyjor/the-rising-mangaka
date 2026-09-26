@@ -1,10 +1,12 @@
 /// <reference types="node" />
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
 // The simulation must be deterministic and locale-free: no clocks, no random source, no locale formatting.
 // The pattern is assembled from fragments so a grep for the forbidden names over src/sim stays empty.
-const FILES = ['engine.ts', 'rng.ts', 'scoring.ts', 'data.ts', 'compat.ts']
+// Every .ts file in src/sim is checked, so a new sim file is covered the day it lands.
+const FILES = readdirSync(fileURLToPath(new URL('..', import.meta.url))).filter((f) => f.endsWith('.ts'))
 const FORBIDDEN = new RegExp(
   ['toLocale' + 'String', 'Intl' + '\\.', 'Math' + '\\.random', 'new ' + 'Date\\(', 'Date' + '\\.now'].join('|'),
 )

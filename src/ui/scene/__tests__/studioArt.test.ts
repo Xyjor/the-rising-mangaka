@@ -1,0 +1,378 @@
+// The player's studio in the scene: the tier, the equipment, the volumes, the anime poster and the trophies, asserted
+// through what render paints into the recording context (src/test/fakeCanvas.ts). Pure drawing, no DOM: the default
+// node environment.
+import { describe, expect, it } from 'vitest'
+import { EQUIPMENT_IDS } from '../../../sim'
+import type { EquipmentId, StudioTierId } from '../../../sim'
+import { fakeContext, sceneSnapshot } from '../../../test/fakeCanvas'
+import type { FillCall } from '../../../test/fakeCanvas'
+import { render } from '../render'
+import type { Snapshot } from '../render'
+import {
+  EQUIPMENT_ART, TIER_ART, drawAnimePoster, drawStudioLights, drawTrophies, drawVolumes, ownedFlags,
+} from '../studioArt'
+
+const NONE: Record<EquipmentId, boolean> = {
+  coffee: false, lamp: false, shelf: false, chair: false, 'drafting-table': false, tablet: false,
+}
+const ALL: Record<EquipmentId, boolean> = {
+  coffee: true, lamp: true, shelf: true, chair: true, 'drafting-table': true, tablet: true,
+}
+const THREE_ASSISTANTS = [{ look: 0, stamina: 80 }, { look: 1, stamina: 80 }, { look: 2, stamina: 80 }]
+/** The full scene with no studio look: three assistants in winter (rendered at night, t 0.9). */
+const BARE_FULL: Partial<Snapshot> = { assistants: THREE_ASSISTANTS, season: 'winter' }
+/** The full scene: all the equipment, the loft, 24 volumes, the anime poster, 4 trophies, three assistants, winter. */
+const EVERYTHING: Partial<Snapshot> = {
+  ...BARE_FULL, tier: 'loft', owned: ALL, volumes: 24, animePoster: true, trophies: 4,
+}
+
+/**
+ * fillRect calls for the full scene with no studio look (`BARE_FULL`: three assistants, looks 0-2 at stamina 80, in
+ * winter, otherwise the reference scene) at night, t 0.9, frame 100: 499. Measured on the Task 28 code before any
+ * studio art, by rendering it into the recording context and reading `log.length`. By hand: the reference scene's 290
+ * (render.test.ts), two more assistants at 85 each (84 sprite pixels and an arm; the desk's 4 rects are shared) 170,
+ * night 12 (9 stars and the moon's 2 rects in place of the sun, the night overlay, the working glow), winter 27 (the
+ * branch 5, its snow 3, 16 flakes, the sill's 3). The full scene must stay under 1.5 times this (controller ruling:
+ * each assistant costs 85 fills, so the one-assistant 290 cannot bound a three-assistant scene).
+ */
+const FULL_BASELINE = 499
+
+function paint(over: Partial<Snapshot> = {}, t = 0.3, frame = 100): FillCall[] {
+  const { ctx, log } = fakeContext()
+  render(ctx, sceneSnapshot(over), t, frame)
+  return log
+}
+
+function key(log: FillCall[]): string {
+  return JSON.stringify(log)
+}
+
+/** What one painter puts down on its own. */
+function alone(draw: (ctx: CanvasRenderingContext2D) => void): FillCall[] {
+  const { ctx, log } = fakeContext()
+  draw(ctx)
+  return log
+}
+
+/** An inclusive pixel box, as the brief's region table gives them: columns x0-x1, rows y0-y1. */
+type Box = readonly [x0: number, x1: number, y0: number, y1: number]
+
+function inBox(c: FillCall, [x0, x1, y0, y1]: Box): boolean {
+  return c.x >= x0 && c.x + c.w <= x1 + 1 && c.y >= y0 && c.y + c.h <= y1 + 1
+}
+
+function overlaps(c: FillCall, [x0, x1, y0, y1]: Box): boolean {
+  return c.x <= x1 && c.x + c.w > x0 && c.y <= y1 && c.y + c.h > y0
+}
+
+/** Where each fill of `piece` first lands in `log` (-1 when it is missing). */
+function at(log: FillCall[], piece: FillCall[]): number[] {
+  return piece.map((p) => log.findIndex((c) => c.style === p.style && c.x === p.x && c.y === p.y && c.w === p.w && c.h === p.h))
+}
+
+const EQUIPMENT_REGION: Record<EquipmentId, Box[]> = {
+  coffee: [[118, 126, 37, 45]],
+  lamp: [[92, 105, 40, 62]],
+  shelf: [[43, 50, 20, 57]],
+  chair: [[68, 92, 46, 72]],
+  // x 44-111 in the desk's rows (y 62-81); above the desk top only the lightbox, 45-54 x 59-61
+  'drafting-table': [[44, 111, 62, 81], [45, 54, 59, 61]],
+  tablet: [[83, 95, 60, 62]],
+}
+const LIGHTBOX: Box = [45, 54, 59, 61]
+const DOORWAY: Box = [168, 184, 20, 75]
+const SILL_PLANT: Box = [150, 155, 38, 44]
+const FLOOR_PLANT: Box = [172, 184, 80, 106]
+const TIER_REGION: Record<StudioTierId, Box[]> = {
+  apartment: [],
+  flat: [DOORWAY],
+  loft: [DOORWAY, SILL_PLANT, FLOOR_PLANT],
+}
+const VOLUMES: Box = [10, 40, 13, 18]
+const POSTER: Box = [52, 74, 14, 42]
+const TROPHIES: Box = [130, 146, 38, 44]
+/** All the studio's art keeps to x 8-184: on a phone, object-fit: cover crops about 7 px a side. */
+const SAFE: Box = [8, 184, 0, 107]
+/** The hero seated at the desk, and standing beside it. */
+const SEATED: Box = [74, 85, 48, 62]
+const STANDING: Box = [112, 123, 62, 76]
+const LAMP_GLOW = 'rgba(255,236,170,0.18)'
+
+/** The snapshot the art is handed in these tests: everything owned and won. */
+const FULL = sceneSnapshot(EVERYTHING)
+/** Every way the art is asked to paint: still (frame 0, reduced motion) and moving, by day and by night. */
+const CALLS: [frame: number, night: boolean][] = [[0, false], [100, false], [0, true], [100, true]]
+
+function expectInside(log: FillCall[], boxes: Box[], what: string) {
+  expect(log.length, what).toBeGreaterThan(0)
+  for (const c of log) {
+    const where = `${what}: ${JSON.stringify(c)}`
+    expect(boxes.some((b) => inBox(c, b)), where).toBe(true)
+    expect(inBox(c, SAFE), where).toBe(true)
+  }
+}
+
+describe('the studio in the scene', () => {
+  it('changes the painting for every piece of equipment', () => {
+    expect([...EQUIPMENT_IDS]).toEqual(['coffee', 'lamp', 'shelf', 'chair', 'drafting-table', 'tablet'])
+    const bare = key(paint())
+    for (const id of EQUIPMENT_IDS) {
+      expect(key(paint({ owned: { ...NONE, [id]: true } })), id).not.toBe(bare)
+      expect(key(paint({ owned: { ...NONE, [id]: true } }, 0.9)), `${id} at night`).not.toBe(key(paint({}, 0.9)))
+    }
+  })
+
+  it('paints the studio flat and the loft, each its own way, and the apartment as the bare scene', () => {
+    const [apartment, flat, loft] = (['apartment', 'flat', 'loft'] as const).map((tier) => key(paint({ tier })))
+    expect(apartment).toBe(key(paint()))
+    expect(new Set([apartment, flat, loft]).size).toBe(3)
+  })
+
+  it('changes the painting for 3 volumes against none, the anime poster and a trophy', () => {
+    const bare = key(paint())
+    expect(key(paint({ volumes: 3 }))).not.toBe(bare)
+    expect(key(paint({ volumes: 3 }))).not.toBe(key(paint({ volumes: 2 })))
+    expect(key(paint({ animePoster: true }))).not.toBe(bare)
+    expect(key(paint({ trophies: 1 }))).not.toBe(bare)
+    expect(key(paint({ trophies: 2 }))).not.toBe(key(paint({ trophies: 1 })))
+  })
+
+  it('leaves the scene with no studio look as it was: the full scene\'s baseline is still 499', () => {
+    expect(paint(BARE_FULL, 0.9, 100)).toHaveLength(FULL_BASELINE)
+  })
+
+  it('keeps the full scene inside the canvas, free of magenta and under 1.5 times its own baseline', () => {
+    const budget = FULL_BASELINE * 1.5
+    expect(budget).toBe(748.5)
+    for (const [t, frame] of [[0.9, 100], [0.9, 0], [0.3, 100]]) {
+      const log = paint(EVERYTHING, t, frame)
+      expect(log.some((c) => c.style === '#f0f'), `t ${t} frame ${frame}`).toBe(false)
+      for (const c of log) {
+        const where = `t ${t} frame ${frame}: ${JSON.stringify(c)}`
+        expect(c.x >= 0 && c.y >= 0 && c.x + c.w <= 192 && c.y + c.h <= 108, where).toBe(true)
+      }
+      // the studio art is really there, and the whole scene stays within its budget
+      expect(log.length, `t ${t} frame ${frame}`).toBeGreaterThan(FULL_BASELINE)
+      expect(log.length, `t ${t} frame ${frame}`).toBeLessThan(budget)
+    }
+  })
+
+  it('replaces the stock lamp, chair, desk and poster instead of painting over them', () => {
+    const stock = paint()
+    const replaced: [Partial<Snapshot>, FillCall[]][] = [
+      [{ owned: { ...NONE, lamp: true } }, [
+        { style: '#3b3b45', x: 100, y: 50, w: 1, h: 12 },
+        { style: '#3fa66c', x: 96, y: 47, w: 9, h: 4 },
+        { style: '#fff2a8', x: 97, y: 51, w: 7, h: 2 },
+      ]],
+      [{ owned: { ...NONE, chair: true } }, [
+        { style: '#4a4a55', x: 70, y: 54, w: 20, h: 4 },
+        { style: '#4a4a55', x: 71, y: 58, w: 2, h: 14 },
+        { style: '#4a4a55', x: 87, y: 58, w: 2, h: 14 },
+      ]],
+      [{ owned: { ...NONE, 'drafting-table': true } }, [
+        { style: '#8b5a2b', x: 52, y: 62, w: 58, h: 4 },
+        { style: '#70461f', x: 52, y: 66, w: 58, h: 14 },
+        { style: '#5a3618', x: 54, y: 66, w: 2, h: 16 },
+        { style: '#5a3618', x: 106, y: 66, w: 2, h: 16 },
+        { style: '#5a3618', x: 60, y: 70, w: 20, h: 8 },
+        { style: '#8b5a2b', x: 62, y: 72, w: 16, h: 1 },
+        { style: '#8b5a2b', x: 62, y: 75, w: 16, h: 1 },
+      ]],
+      [{ animePoster: true }, [
+        { style: '#fff', x: 52, y: 14, w: 22, h: 28 },
+        { style: '#e5484d', x: 54, y: 16, w: 18, h: 24 },
+        { style: '#fff', x: 57, y: 22, w: 12, h: 12 },
+        { style: '#16161a', x: 60, y: 25, w: 6, h: 6 },
+      ]],
+    ]
+    for (const [over, piece] of replaced) {
+      const log = paint(over)
+      for (const c of piece) {
+        expect(stock, JSON.stringify(c)).toContainEqual(c)
+        expect(log, `${JSON.stringify(over)}: ${JSON.stringify(c)}`).not.toContainEqual(c)
+      }
+    }
+  })
+
+  it('moves the ink pot right, off the pen tablet (x 90 to 96)', () => {
+    const inkPot = (x: number): FillCall[] => [
+      { style: '#1b1b1b', x, y: 58, w: 4, h: 4 },
+      { style: '#1b1b1b', x: x + 1, y: 57, w: 2, h: 1 },
+    ]
+    const stock = paint()
+    const tablet = paint({ owned: { ...NONE, tablet: true } })
+    for (const c of inkPot(90)) {
+      expect(stock).toContainEqual(c)
+      expect(tablet).not.toContainEqual(c)
+    }
+    for (const c of inkPot(96)) expect(tablet).toContainEqual(c)
+  })
+})
+
+describe('the studio art', () => {
+  it('has art for every piece of equipment and every tier, and the apartment paints nothing', () => {
+    expect(Object.keys(EQUIPMENT_ART).sort()).toEqual(['chair', 'coffee', 'drafting-table', 'lamp', 'shelf', 'tablet'])
+    expect(Object.keys(TIER_ART).sort()).toEqual(['apartment', 'flat', 'loft'])
+    for (const [frame, night] of CALLS) expect(alone((ctx) => TIER_ART.apartment(ctx, FULL, frame, night))).toEqual([])
+  })
+
+  it('keeps each piece of equipment inside its region from the brief', () => {
+    for (const id of EQUIPMENT_IDS) {
+      for (const [frame, night] of CALLS) {
+        const log = alone((ctx) => EQUIPMENT_ART[id](ctx, FULL, frame, night))
+        expectInside(log, EQUIPMENT_REGION[id], `${id} frame ${frame} night ${night}`)
+      }
+    }
+    // the drafting table has its lightbox
+    const table = alone((ctx) => EQUIPMENT_ART['drafting-table'](ctx, FULL, 0, false))
+    expect(table.some((c) => inBox(c, LIGHTBOX))).toBe(true)
+  })
+
+  it('keeps the doorway and the loft\'s two plants inside their regions', () => {
+    for (const tier of ['flat', 'loft'] as const) {
+      for (const [frame, night] of CALLS) {
+        const log = alone((ctx) => TIER_ART[tier](ctx, FULL, frame, night))
+        expectInside(log, TIER_REGION[tier], `${tier} frame ${frame} night ${night}`)
+        // something in every region: the doorway, and in the loft the sill plant and the floor plant too
+        for (const box of TIER_REGION[tier]) expect(log.some((c) => inBox(c, box)), `${tier} ${box.join(' ')}`).toBe(true)
+      }
+    }
+  })
+
+  it('keeps the volumes, the anime poster, the trophies and the lights inside their regions', () => {
+    expectInside(alone((ctx) => drawVolumes(ctx, 24)), [VOLUMES], 'volumes')
+    expectInside(alone((ctx) => drawAnimePoster(ctx)), [POSTER], 'anime poster')
+    expectInside(alone((ctx) => drawTrophies(ctx, 4)), [TROPHIES], 'trophies')
+    const lights = alone((ctx) => drawStudioLights(ctx, FULL, true, true))
+    expectInside(lights, [EQUIPMENT_REGION.lamp[0], DOORWAY], 'lights')
+  })
+
+  it('keeps off the hero at the desk (but for the chair behind and the table in front) and at the standing spot', () => {
+    const pieces: [string, FillCall[]][] = [
+      ...EQUIPMENT_IDS.map((id): [string, FillCall[]] => [id, alone((ctx) => EQUIPMENT_ART[id](ctx, FULL, 100, true))]),
+      ['flat', alone((ctx) => TIER_ART.flat(ctx, FULL, 100, true))],
+      ['loft', alone((ctx) => TIER_ART.loft(ctx, FULL, 100, true))],
+      ['volumes', alone((ctx) => drawVolumes(ctx, 24))],
+      ['anime poster', alone((ctx) => drawAnimePoster(ctx))],
+      ['trophies', alone((ctx) => drawTrophies(ctx, 4))],
+      ['lights', alone((ctx) => drawStudioLights(ctx, FULL, true, true))],
+    ]
+    for (const [what, log] of pieces) {
+      for (const c of log) {
+        const where = `${what}: ${JSON.stringify(c)}`
+        expect(overlaps(c, STANDING), where).toBe(false)
+        // the hero sits in the chair, drawn over it
+        if (what === 'chair') continue
+        // the drafting table stands in the desk's place: its top (y 62) runs across the hero's lap, as the desk's does
+        expect(overlaps(c, what === 'drafting-table' ? [74, 85, 48, 61] : SEATED), where).toBe(false)
+      }
+    }
+  })
+
+  it('stands one spine per volume on the bookshelf, in sets of six, at most 24', () => {
+    const spines = (n: number) => alone((ctx) => drawVolumes(ctx, n))
+    expect(spines(0)).toEqual([])
+    expect(spines(3).map((c) => c.x)).toEqual([10, 11, 12])
+    expect(spines(7).map((c) => c.x)).toEqual([10, 11, 12, 13, 14, 15, 17])
+    const shelf = spines(24)
+    expect(shelf).toHaveLength(24)
+    expect(shelf[23].x).toBe(36)
+    expect(spines(30)).toEqual(shelf)
+    for (const c of shelf) expect([c.w, c.y, c.h]).toEqual([1, 13, 5])
+    // neighbours never share a colour
+    for (let i = 1; i < shelf.length; i++) expect(shelf[i].style, `spine ${i}`).not.toBe(shelf[i - 1].style)
+  })
+
+  it('puts one gold trophy per award on the sill, 3 px wide with 1 px gaps, at most 4', () => {
+    const cups = (n: number) => alone((ctx) => drawTrophies(ctx, n)).filter((c) => c.style === '#f5b700' && c.w === 3)
+    expect(alone((ctx) => drawTrophies(ctx, 0))).toEqual([])
+    expect(cups(1).map((c) => c.x)).toEqual([130])
+    expect(cups(4).map((c) => c.x)).toEqual([130, 134, 138, 142])
+    expect(alone((ctx) => drawTrophies(ctx, 6))).toEqual(alone((ctx) => drawTrophies(ctx, 4)))
+    // each trophy keeps to its own 3 columns, so x 133, 137 and 141 stay empty
+    for (const c of alone((ctx) => drawTrophies(ctx, 4))) {
+      const k = Math.floor((c.x - 130) / 4)
+      expect(c.x >= 130 + 4 * k && c.x + c.w <= 133 + 4 * k, JSON.stringify(c)).toBe(true)
+    }
+  })
+
+  it('lights the arm lamp at night or while working, and not on an idle day', () => {
+    const glow = (owned: Record<EquipmentId, boolean>, night: boolean, working: boolean) =>
+      alone((ctx) => drawStudioLights(ctx, sceneSnapshot({ owned }), night, working)).filter((c) => c.style === LAMP_GLOW)
+    const lamp = { ...NONE, lamp: true }
+    expect(glow(lamp, false, false)).toEqual([])
+    expect(glow(lamp, true, false).length).toBeGreaterThan(0)
+    expect(glow(lamp, false, true).length).toBeGreaterThan(0)
+    expect(glow(NONE, true, true)).toEqual([])
+  })
+
+  it('spills warm light from the doorway at night, in the flat and the loft only', () => {
+    const lights = (tier: StudioTierId, night: boolean) =>
+      alone((ctx) => drawStudioLights(ctx, sceneSnapshot({ tier }), night, false))
+    for (const tier of ['flat', 'loft'] as const) expectInside(lights(tier, true), [DOORWAY], `${tier} at night`)
+    expect(lights('flat', false)).toEqual([])
+    expect(lights('apartment', true)).toEqual([])
+  })
+
+  it('turns the owned list into one flag per piece of equipment', () => {
+    expect(ownedFlags([])).toEqual(NONE)
+    expect(ownedFlags(['tablet', 'lamp'])).toEqual({ ...NONE, lamp: true, tablet: true })
+    expect(ownedFlags([...EQUIPMENT_IDS])).toEqual(ALL)
+  })
+})
+
+describe('the studio\'s draw order', () => {
+  it('puts the sill things in front of the window bars and the sill snow', () => {
+    const log = paint(EVERYTHING, 0.9, 100)
+    const bar = log.findIndex((c) => c.x === 139 && c.y === 12 && c.w === 2 && c.h === 32)
+    const snow = log.findIndex((c) => c.style === '#f4f8ff' && c.x === 114 && c.y === 45 && c.w === 52 && c.h === 1)
+    expect(bar).toBeGreaterThan(-1)
+    expect(snow).toBeGreaterThan(bar)
+    const sill = [
+      ...alone((ctx) => EQUIPMENT_ART.coffee(ctx, FULL, 100, true)),
+      ...alone((ctx) => drawTrophies(ctx, 4)),
+      ...alone((ctx) => TIER_ART.loft(ctx, FULL, 100, true)).filter((c) => inBox(c, SILL_PLANT)),
+    ]
+    for (const i of at(log, sill)) expect(i).toBeGreaterThan(snow)
+  })
+
+  it('seats the hero in the tall chair (drawn before the hero) behind the drafting table (drawn after)', () => {
+    const log = paint(EVERYTHING, 0.3, 100)
+    // the hero's first pixel at the desk: the top of the hair, x 77, y 48 (no bob on frame 100)
+    const hero = log.findIndex((c) => c.style === '#2b2140' && c.x === 77 && c.y === 48 && c.w === 1 && c.h === 1)
+    expect(hero).toBeGreaterThan(-1)
+    for (const i of at(log, alone((ctx) => EQUIPMENT_ART.chair(ctx, FULL, 100, false)))) {
+      expect(i).toBeGreaterThan(-1)
+      expect(i).toBeLessThan(hero)
+    }
+    for (const i of at(log, alone((ctx) => EQUIPMENT_ART['drafting-table'](ctx, FULL, 100, false)))) {
+      expect(i).toBeGreaterThan(hero)
+    }
+  })
+
+  it('lights the lamp and the doorway after the night overlay, so they glow', () => {
+    const log = paint(EVERYTHING, 0.9, 100)
+    const overlay = log.findIndex((c) => c.style === 'rgba(20, 24, 60, 0.28)')
+    expect(overlay).toBeGreaterThan(-1)
+    const lights = alone((ctx) => drawStudioLights(ctx, FULL, true, true))
+    expect(lights.some((c) => c.style === LAMP_GLOW)).toBe(true)
+    expect(lights.some((c) => inBox(c, DOORWAY))).toBe(true)
+    for (const i of at(log, lights)) expect(i).toBeGreaterThan(overlay)
+  })
+
+  it('stands the loft\'s floor plant in front of the bed, and the sleeper\'s Zz in front of the doorway', () => {
+    const log = paint(EVERYTHING, 0.3, 100)
+    const bed = log.findIndex((c) => c.style === '#6d4c33' && c.x === 128 && c.y === 66 && c.w === 58 && c.h === 26)
+    expect(bed).toBeGreaterThan(-1)
+    const plant = alone((ctx) => TIER_ART.loft(ctx, FULL, 100, false)).filter((c) => inBox(c, FLOOR_PLANT))
+    for (const i of at(log, plant)) expect(i).toBeGreaterThan(bed)
+    // a rest day in the drawing phase: the mangaka sleeps, and at frame 100 three Zs rise from x 178
+    const resting = paint({ tier: 'flat', activity: 'rest' }, 0.3, 100)
+    const doorway = at(resting, alone((ctx) => TIER_ART.flat(ctx, FULL, 100, false)))
+    for (const i of doorway) expect(i).toBeGreaterThan(-1)
+    const zz = resting.flatMap((c, i) => (c.style === '#2f5ecf' && c.x >= 178 ? [i] : []))
+    expect(zz.length).toBeGreaterThan(0)
+    expect(Math.min(...zz)).toBeGreaterThan(Math.max(...doorway))
+  })
+})

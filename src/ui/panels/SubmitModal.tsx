@@ -1,14 +1,14 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
-  MAGAZINES, MAGAZINE_MISMATCH_PENALTY, SERIAL_OFFER_MIN_RANK, SERIAL_OFFER_MIN_SCORE, STALENESS_PENALTY,
-  audienceById, previewSubmission,
+  MAGAZINES, MAGAZINE_MISMATCH_PENALTY, RIVAL_SCORE_SD, SERIAL_OFFER_MIN_RANK, SERIAL_OFFER_MIN_SCORE,
+  STALENESS_PENALTY, audienceById, previewSubmission,
 } from '../../sim'
 import type { MagazineId } from '../../sim'
 import { useStore } from '../../state/store'
 import { Icon } from '../Icon'
 import { Metric, Modal, Pips, RatingText } from '../components'
 import { money } from '../format'
-import { comboLabel, oddsWord, rivalWord } from '../labels'
+import { beatLabel, comboLabel, firstName, likelyLine, offerLabel, rivalWord } from '../labels'
 
 export function SubmitModal() {
   const game = useStore((s) => s.game)!
@@ -16,8 +16,10 @@ export function SubmitModal() {
   const submit = useStore((s) => s.submitProject)
   const [choice, setChoice] = useState<MagazineId | null>(null)
   const p = game.project!
-  const preview = choice ? previewSubmission(game, choice) : null
-  const base = previewSubmission(game, MAGAZINES[0].id)!
+  // One forecast per magazine per game state; the manuscript facts (art, story, notebook) are the same in each.
+  const previews = useMemo(() => MAGAZINES.map((m) => previewSubmission(game, m.id)!), [game])
+  const base = previews[0]
+  const serialTitle = game.serial?.title ?? ''
 
   return (
     <Modal
@@ -27,14 +29,9 @@ export function SubmitModal() {
       footer={
         <>
           <button className="btn ghost" onClick={closeModal}>Not yet</button>
-          <div className="row">
-            {preview && (
-              <span className="small muted">Pays {money(preview.minMoney)} to {money(preview.maxMoney)} depending on rank</span>
-            )}
-            <button className="btn primary" disabled={!choice} onClick={() => choice && submit(choice)}>
-              Submit manuscript
-            </button>
-          </div>
+          <button className="btn primary" disabled={!choice} onClick={() => choice && submit(choice)}>
+            Submit manuscript
+          </button>
         </>
       }
     >
@@ -62,21 +59,30 @@ export function SubmitModal() {
         </section>
 
         <div className="mag-list" role="group" aria-label="Magazines">
-          {MAGAZINES.map((m) => {
+          {MAGAZINES.map((m, i) => {
             const mismatch = m.audience !== p.audience
-            const est = previewSubmission(game, m.id)!
+            const est = previews[i]
             return (
               <button key={m.id} className="mag" aria-pressed={choice === m.id} onClick={() => setChoice(m.id)}>
                 <span className="name">{m.name}</span>
-                <span className="chip">{audienceById(m.audience).name}</span>
+                <span className="mag-chips">
+                  <span className="chip">{audienceById(m.audience).name}</span>
+                  {est.beatRival !== null && <span className="chip accent">Rival: {game.rival.name}</span>}
+                </span>
                 <span className="meta">
                   <span>{money(m.pageRate)} a page</span>
                   <span>{m.circulation}k readers</span>
                   <span>{m.entrants} {rivalWord(m.rivalMean).toLowerCase()} rivals</span>
                 </span>
                 <span className="meta" style={{ gridColumn: '1 / -1' }}>
-                  <span>Likely rank #{est.expectedRank.low} to #{est.expectedRank.high} of {m.entrants + 1}.</span>
-                  <span>Serial offer: {oddsWord(est.offerChance)}.</span>
+                  <span>{likelyLine(est, m.entrants + 1)}</span>
+                  <span>Serial offer: {offerLabel(est, serialTitle)}.</span>
+                  <span>Pays about {money(est.expectedPay)} ({money(est.payRange.low)} to {money(est.payRange.high)}).</span>
+                  {est.beatRival !== null && <span>Beat {firstName(game.rival.name)}: {beatLabel(est.beatRival)}.</span>}
+                  <span>Rivals usually score {m.rivalMean - RIVAL_SCORE_SD} to {m.rivalMean + RIVAL_SCORE_SD}.</span>
+                </span>
+                <span className="taste">
+                  <span>{m.tasteLine}</span> <b>Art {m.taste.art}%, story {m.taste.story}%</b>
                 </span>
                 <span className="tiny faint">{m.blurb}</span>
                 {mismatch
@@ -86,8 +92,13 @@ export function SubmitModal() {
             )
           })}
           <p className="tiny faint">
-            A top-{SERIAL_OFFER_MIN_RANK} finish, or a score of {SERIAL_OFFER_MIN_SCORE} or more, earns a serial offer. Estimates assume untested pairings rate Good.
+            A top-{SERIAL_OFFER_MIN_RANK} finish, or a score of {SERIAL_OFFER_MIN_SCORE} or more, earns a serial offer.
           </p>
+          {base.unknownPairings > 0 && (
+            <p className="tiny faint">
+              Untested pairings could rate anywhere from Bad to Perfect, so the range is wide until your Notebook knows them.
+            </p>
+          )}
         </div>
       </div>
     </Modal>

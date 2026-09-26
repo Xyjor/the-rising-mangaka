@@ -1,7 +1,8 @@
 /**
  * Single-writer tab lock. The tab that owns the save is the only one that writes it and runs the clock;
  * other tabs mirror it read-only until they take over. The record lives in localStorage and is
- * re-stamped by a heartbeat so a tab that died without `pagehide` (crash, killed process) goes stale.
+ * re-stamped by a heartbeat so a tab that died without `pagehide` (crash, killed process) goes stale. The desktop app
+ * turns the lock off with `disableTabLock`.
  */
 
 export const OWNER_KEY = 'rising-mangaka-owner'
@@ -34,8 +35,25 @@ export function read(): OwnerRecord | null {
   }
 }
 
-/** True when nobody holds the save, we hold it, or the holder's heartbeat has gone stale. */
+/** Set by disableTabLock: this window owns the save for good. */
+let lockDisabled = false
+
+/**
+ * The desktop app has one window (the single-instance plugin sees to it), so there is nobody to share the save with:
+ * from now on this window always owns it, and any owner stamp left in storage is an earlier run's and goes.
+ */
+export function disableTabLock(): void {
+  lockDisabled = true
+  try {
+    storage()?.removeItem(OWNER_KEY)
+  } catch {
+    /* nothing to remove */
+  }
+}
+
+/** True when nobody holds the save, we hold it, or the holder's heartbeat has gone stale; always, once disabled. */
 export function isOwner(now = Date.now()): boolean {
+  if (lockDisabled) return true
   const rec = read()
   return !rec || rec.tabId === tabId || now - rec.at > STALE_MS
 }

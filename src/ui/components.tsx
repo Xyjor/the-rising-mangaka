@@ -4,17 +4,21 @@ import { PODIUM_RANK, RATING_LABEL, SERIAL_WARNINGS_TO_CANCEL, weakRankLine } fr
 import type { ChapterResult, Rating } from '../sim'
 import { Icon } from './Icon'
 
+/**
+ * A progress bar. `ariaValue` is what screen readers get as the value when it differs from the drawn width (the results
+ * reveal counts the width up but announces the final value); it defaults to `value`.
+ */
 export function Bar({
-  value, max = 100, tone = '', thick = false, striped = false, label,
+  value, max = 100, tone = '', thick = false, striped = false, label, ariaValue,
 }: {
-  value: number; max?: number; tone?: string; thick?: boolean; striped?: boolean; label?: string
+  value: number; max?: number; tone?: string; thick?: boolean; striped?: boolean; label?: string; ariaValue?: number
 }) {
   const pct = Math.max(0, Math.min(100, (value / max) * 100))
   return (
     <div
       className={`bar ${tone} ${thick ? 'thick' : ''} ${striped ? 'striped' : ''}`}
       role="progressbar"
-      aria-valuenow={Math.round(value)}
+      aria-valuenow={Math.round(ariaValue ?? value)}
       aria-valuemin={0}
       aria-valuemax={max}
       aria-label={label}
@@ -47,10 +51,15 @@ export function Metric({
   )
 }
 
-/** A single value/label tile, used inside a `.rewards` or `.terms` grid. */
-export function Reward({ value, label, className }: { value: ReactNode; label: ReactNode; className?: string }) {
+/**
+ * A single value/label tile, used inside a `.rewards` or `.terms` grid. `landed` is for the results reveal: false
+ * keeps the tile hidden, true slides it in (app.css); leave it out for a static tile.
+ */
+export function Reward({ value, label, className, landed }: {
+  value: ReactNode; label: ReactNode; className?: string; landed?: boolean
+}) {
   return (
-    <div className={`reward ${className ?? ''}`.trim()}>
+    <div className={`reward ${className ?? ''}`.trim()} data-landed={landed === undefined ? undefined : String(landed)}>
       <div className="n">{value}</div>
       <div className="l">{label}</div>
     </div>

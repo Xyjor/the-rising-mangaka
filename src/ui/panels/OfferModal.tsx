@@ -1,7 +1,10 @@
-import { CHAPTER_PAGES, SERIAL_WARNINGS_TO_CANCEL, VOLUME_EVERY_CHAPTERS, magazineById } from '../../sim'
+import {
+  CHAPTER_PAGES, PAY_FULL_RATE_SCORE, SERIAL_GRACE_CHAPTERS, SERIAL_WARNINGS_TO_CANCEL, VOLUME_EVERY_CHAPTERS,
+  chapterWorkDays, deadlineStatus, magazineById,
+} from '../../sim'
 import { useStore } from '../../state/store'
 import { Modal, Reward } from '../components'
-import { money } from '../format'
+import { money, plural } from '../format'
 import { comboLabel, rivalWord } from '../labels'
 
 export function OfferModal() {
@@ -11,7 +14,10 @@ export function OfferModal() {
   const last = useStore((s) => s.game!.history.at(-1))
   const accept = useStore((s) => s.acceptOffer)
   const decline = useStore((s) => s.declineOffer)
+  // Working days for one chapter at full stamina with the current staff; rest days come on top.
+  const workDays = useStore((s) => chapterWorkDays(s.game!, CHAPTER_PAGES))
   const mag = magazineById(offer.magazineId)
+  const pace = deadlineStatus(workDays, mag.chapterDays)
 
   return (
     <Modal
@@ -28,7 +34,7 @@ export function OfferModal() {
     >
       <div className="col" style={{ gap: 16 }}>
         <p id="offer-summary" className="sr-only">
-          {mag.name} offers to serialise {offer.title} at {money(mag.pageRate)} per page, {mag.circulation}k readers, {mag.entrants} rival series.
+          {mag.name} offers to serialise {offer.title} at {money(mag.pageRate)} a page at a score of {PAY_FULL_RATE_SCORE}, {mag.circulation}k readers, {mag.entrants} rival series.
         </p>
         <div className="offer-hero">
           <span className="small muted">{mag.name} wants to run</span>
@@ -36,14 +42,18 @@ export function OfferModal() {
           <span className="small muted">{comboLabel(offer.genre, offer.theme, offer.audience)}</span>
         </div>
         <div className="speech">
-          Readers loved it. Give me a chapter every {CHAPTER_PAGES} pages, keep the polls healthy, and we release a volume every {VOLUME_EVERY_CHAPTERS} chapters. Slip to the bottom {SERIAL_WARNINGS_TO_CANCEL} times in a row and I have to cancel. Deal?
+          Readers loved it. Give me {CHAPTER_PAGES} pages every {plural(mag.chapterDays, 'day')}, keep the polls healthy, and we release a volume every {VOLUME_EVERY_CHAPTERS} chapters. The first {SERIAL_GRACE_CHAPTERS} chapters are guaranteed; after that, {SERIAL_WARNINGS_TO_CANCEL} weak chapters or missed issues in a row and I have to cancel. Deal?
         </div>
         <div className="terms">
-          <Reward value={money(mag.pageRate)} label="per page" />
+          <Reward value={money(mag.pageRate)} label={`a page at a score of ${PAY_FULL_RATE_SCORE}`} />
           <Reward value={`${mag.circulation}k`} label="readers" />
           <Reward value={mag.entrants} label="rival series" />
           <Reward value={rivalWord(mag.rivalMean)} label="rival polls" />
+          <Reward value={`Every ${plural(mag.chapterDays, 'day')}`} label="a chapter due" />
         </div>
+        <p className="small">At your pace a chapter takes about {plural(workDays, 'working day')}.</p>
+        {pace === 'late' && <p className="small warn-text">You will miss issues at this pace: hire help first.</p>}
+        {pace === 'tight' && <p className="small">Rest days could make you miss issues.</p>}
         {last && (
           <p className="small">
             Your one-shot scored {last.score}; series here usually score around {mag.rivalMean}.

@@ -1,10 +1,11 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
-  acceptOffer, createGame, dismissResult, startProject, submitProject, tickMany,
+  acceptOffer, closeYear, createGame, dismissResult, startProject, submitProject, tickMany,
 } from '../../sim'
 import type { GameState } from '../../sim'
+import { draw } from '../../sim/rng'
 import { useStore } from '../store'
-import { DRAFT, drawUntilReady, withStats } from '../../test/fixtures'
+import { DRAFT, KIDS_OFFER, drawUntilReady, withStats } from '../../test/fixtures'
 
 /** A running serial whose author has just lost all their skill: the way engine.test.ts builds a cancellation. */
 function doomedSerial(): GameState {
@@ -56,6 +57,79 @@ describe('store auto-pause', () => {
     }
     expect(useStore.getState().game!.trip).toBeNull()
     expect(useStore.getState().speed).toBe(0)
+  })
+
+  it('stops the clock once when a random event lands, and answering it clears the desk card', () => {
+    // the first event seed whose first draw hits (under 0.35)
+    let eventSeed = 1
+    while (draw(eventSeed, 1).values[0] >= 0.35) eventSeed++
+    // day 30 with the roll due: tomorrow is day 31, a roll day, and a fresh career can only catch a cold
+    load({ ...createGame('Rin', 9), day: 30, nextEventDay: 0, eventSeed })
+    const st = useStore.getState()
+    st.tick()
+    expect(useStore.getState().game!.event).toMatchObject({ id: 'cold', day: 31 })
+    expect(useStore.getState().speed).toBe(0)
+    expect(useStore.getState().toasts.map((t) => t.text)).toContain('You caught a cold. Answer on your desk within 7 days.')
+    // the event is still waiting the next day, but it only paused the clock the day it landed
+    useStore.setState({ speed: 1 })
+    st.tick()
+    expect(useStore.getState().game!.event).not.toBeNull()
+    expect(useStore.getState().speed).toBe(1)
+    st.resolveEvent('b')
+    expect(useStore.getState().game!.event).toBeNull()
+  })
+
+  it('stops the clock once when an anime offer lands, and signing clears the desk card', () => {
+    // a Kids Comic Go! serial accepted on day 0 at the offer line: popularity 70, 37,000 copies sold
+    const g = acceptOffer({ ...createGame('Rin', 9), pendingOffer: KIDS_OFFER })
+    load({ ...g, serial: { ...g.serial!, popularity: 70, totalCopies: 37_000 } })
+    const st = useStore.getState()
+    st.tick()
+    expect(useStore.getState().game!.animeOffer).toEqual({ serialId: g.serial!.id, expiresDay: 15 })
+    expect(useStore.getState().speed).toBe(0)
+    expect(useStore.getState().toasts.map((t) => t.text))
+      .toContain('Two anime studios want to adapt "Magic Club". Answer on your desk within 14 days.')
+    // still waiting the next day, but it only paused the clock the day it landed
+    useStore.setState({ speed: 1 })
+    st.tick()
+    expect(useStore.getState().game!.animeOffer).not.toBeNull()
+    expect(useStore.getState().speed).toBe(1)
+    st.signAnime('kumo')
+    const signed = useStore.getState().game!
+    expect(signed.animeOffer).toBeNull()
+    expect(signed.anime).toMatchObject([{ studio: 'kumo', serialId: g.serial!.id, signedDay: 2, airsDay: 44 }])
+    expect(useStore.getState().toasts.map((t) => t.text))
+      .toContain('You signed with Studio Kumo: +¥2,000. The "Magic Club" anime airs in 6 weeks.')
+  })
+
+  it('passing on the anime offer clears the desk card', () => {
+    const g = acceptOffer({ ...createGame('Rin', 9), pendingOffer: KIDS_OFFER })
+    load({ ...g, animeOffer: { serialId: g.serial!.id, expiresDay: 14 }, animeOfferedFor: [g.serial!.id] })
+    useStore.getState().declineAnime()
+    expect(useStore.getState().game!.animeOffer).toBeNull()
+    expect(useStore.getState().game!.anime).toEqual([])
+  })
+
+  it('keeps the clock running through the year end: a toast and a desk card, no pause', () => {
+    load({ ...createGame('Rin', 9), day: 335, nextEventDay: 10_000 })
+    useStore.getState().tick()
+    const g = useStore.getState().game!
+    expect(g.day).toBe(336)
+    expect(g.reviewUnread).toBe(1)
+    expect(useStore.getState().speed).toBe(1)
+    expect(useStore.getState().toasts.map((t) => t.text))
+      .toContain('Year 1 is over. No awards this year. Your year in review is on the desk.')
+  })
+
+  it('reading the year review clears the desk card, and the review modal needs a review to open', () => {
+    load({ ...createGame('Rin', 9), nextEventDay: 10_000 })
+    useStore.getState().openModal('year')
+    expect(useStore.getState().modal).toBe('none')
+    load(closeYear({ ...createGame('Rin', 9), day: 336 }))
+    useStore.getState().openModal('year')
+    expect(useStore.getState().modal).toBe('year')
+    useStore.getState().markReviewRead()
+    expect(useStore.getState().game!.reviewUnread).toBeNull()
   })
 
   it('refuses to open the wizard or the pitch in the wrong phase', () => {

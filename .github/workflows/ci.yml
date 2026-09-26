@@ -21,6 +21,8 @@ jobs:
       - uses: actions/setup-node@v7
         with: { node-version: 24, cache: npm }
       - run: npm ci --no-audit --no-fund
+      - name: Version check (package.json vs src-tauri/Cargo.toml)
+        run: npm run version:check
       - name: Lint (warnings fail)
         run: npx oxlint --deny-warnings
       - name: Type check (app, vite config, scripts)
@@ -32,4 +34,4 @@ jobs:
       - name: Contrast gate (WCAG AA 4.5:1)
         run: npm run contrast
       - name: Balance smoke run
-        run: npm run balance -- 42
+        run: npm run balance -- 1 3

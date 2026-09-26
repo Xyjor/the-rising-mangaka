@@ -1,0 +1,21 @@
+/* Desk cards: game-driven moments (random events, anime offers, the year review) that wait on the desk, never a popup. */
+
+.desk-card { display: flex; flex-direction: column; gap: 8px; padding: 12px; }
+
+/* On phones the desk card follows the project card, so "Today" stays in view without scrolling (CLAUDE.md). */
+@media (max-width: 640px) {
+  .desk > .desk-card { order: 1; }
+  .desk > .quick-nav { order: 2; }
+}
+
+.card.flat.event-card { border-color: var(--gold); }
+.event-choices { display: flex; flex-direction: column; gap: 8px; }
+.event-choice { display: flex; flex-direction: column; gap: 4px; }
+/* Answers state every effect, so their labels wrap instead of overflowing the desk. */
+.event-choice .btn { white-space: normal; text-align: center; }
+
+.card.flat.anime-card { border-color: var(--purple); }
+.anime-studio { display: flex; flex-direction: column; gap: 6px; }
+.anime-terms { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 2px; }
+
+.card.flat.year-card { border-color: var(--accent); }

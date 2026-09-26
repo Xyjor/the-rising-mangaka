@@ -86,7 +86,7 @@ export const MILESTONES: Milestone[] = [
     done: (s) => s.player.money >= 50000,
   },
   {
-    id: 'three-assistants', title: 'Full studio', hint: 'Employ three assistants', xp: 80,
+    id: 'three-assistants', title: 'Full studio', hint: 'Employ three assistants (the studio loft seats three)', xp: 80,
     done: (s) => s.assistants.length >= 3,
   },
   {

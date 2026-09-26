@@ -1,0 +1,44 @@
+name: Desktop
+on:
+  push:
+    branches: ['**']
+    paths: ['src-tauri/**', 'package.json', 'package-lock.json', '.github/workflows/desktop.yml']
+  pull_request:
+    paths: ['src-tauri/**', 'package.json', 'package-lock.json', '.github/workflows/desktop.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: desktop-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  rust:
+    name: Tauri shell format and clippy
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: src-tauri
+    steps:
+      - uses: actions/checkout@v7
+      - name: WebKitGTK and friends for the Tauri crates
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - name: Placeholder frontend (generate_context! embeds ../dist, which the web build would make)
+        run: |
+          mkdir -p ../dist
+          echo '<!doctype html><title>The Rising Mangaka</title>' > ../dist/index.html
+      - name: Format
+        run: cargo fmt --check
+      - name: Clippy (warnings fail)
+        run: cargo clippy --locked --all-targets -- -D warnings
+      - name: Unit tests
+        run: cargo test --locked --lib

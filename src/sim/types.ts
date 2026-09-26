@@ -36,6 +36,12 @@ export interface Magazine {
   rivalMean: number
   /** number of competing works in a poll */
   entrants: number
+  /** a serial here owes a chapter every this many days; one not ready by then misses the issue */
+  chapterDays: number
+  /** how this magazine's readers weigh each poll component, integer percentages summing to 100 */
+  taste: ScoreWeights
+  /** one sentence on what the readers want, shown wherever the player picks a magazine or an audience */
+  tasteLine: string
   blurb: string
   editor: string
 }
@@ -86,7 +92,22 @@ export interface ScoreBreakdown {
   freshness: number
 }
 
+/** Poll weights per component, integer percentages that sum to 100. */
+export type ScoreWeights = Readonly<Record<keyof ScoreBreakdown, number>>
+
 export interface Rewards { money: number; fans: number; xp: number }
+
+/** The named rival mangaka: always one entrant in the polls of the magazine they run in. */
+export interface Rival {
+  name: string
+  /** mean poll score; the rival scores craft + Gaussian noise (sd RIVAL_SCORE_SD) like any entrant */
+  craft: number
+  magazineId: MagazineId
+  seriesTitle: string
+}
+
+/** Where the rival placed in one poll: the score rounded and clamped to 0..100, the rank among every entrant. */
+export interface RivalPlacing { name: string; score: number; rank: number }
 
 export interface PollResult {
   projectId: number
@@ -107,6 +128,8 @@ export interface PollResult {
   themeAudienceRating: Rating
   editorComment: string
   pages: number
+  /** where the named rival placed; absent when the rival was not in this magazine (or the result predates rivals) */
+  rival?: RivalPlacing
 }
 
 // ---------- serialisation ----------
@@ -119,6 +142,8 @@ export interface ChapterResult {
   entrants: number
   breakdown: ScoreBreakdown
   rewards: Rewards
+  /** where the named rival placed; absent when the rival was not in this magazine (or the result predates rivals) */
+  rival?: RivalPlacing
 }
 
 export interface PendingChapter {
@@ -147,8 +172,12 @@ export interface Serial {
   pending: PendingChapter[]
   /** 0-100, moving average of recent chapter performance */
   popularity: number
-  /** consecutive weak chapters; 3 means cancellation */
+  /** consecutive weak chapters or missed issues (after the grace period); 3 means cancellation */
   warnings: number
+  /** the day the chapter on the desk is due; each chapter sent moves it on by the magazine's chapterDays */
+  nextDueDay: number
+  /** issues that went out without a chapter from this serial */
+  missedIssues: number
   volumes: number
   totalCopies: number
   totalMoney: number
@@ -179,11 +208,15 @@ export interface Assistant {
   trait: AssistantTrait
   /** sprite palette variant */
   look: number
+  /** true once this assistant has asked for a raise, whatever the answer: each assistant asks once */
+  raised?: boolean
 }
 
 // ---------- trips ----------
 
-export type PlaceId = 'library' | 'survey' | 'art-class' | 'writing-workshop' | 'editing-seminar' | 'hot-spring'
+export type PlaceId =
+  | 'library' | 'survey' | 'art-class' | 'writing-workshop' | 'editing-seminar' | 'hot-spring'
+  | 'convention' | 'masterclass'
 
 export interface Place {
   id: PlaceId
@@ -192,11 +225,166 @@ export interface Place {
   cost: number
   blurb: string
   effect: string
+  /** reached only by answering a random event, never listed in the Trips panel */
+  eventOnly?: boolean
 }
 
 export interface Trip { placeId: PlaceId; startedDay: number; endsDay: number }
 
+// ---------- studio ----------
+
+export type StudioTierId = 'apartment' | 'flat' | 'loft'
+
+export interface StudioTier {
+  id: StudioTierId
+  name: string
+  /** desks for assistants: hiring stops when every desk is taken */
+  desks: number
+  /** added to the weekly costs */
+  rent: number
+  /** base price of moving in from the tier below (see `moveInCost`) */
+  moveIn: number
+}
+
+export type EquipmentId = 'coffee' | 'lamp' | 'shelf' | 'chair' | 'drafting-table' | 'tablet'
+
+/** What one piece of equipment adds; `equipmentEffects` sums them over everything the studio owns. */
+export interface EquipmentBonus {
+  /** added to the player's art sample on every working day */
+  art?: number
+  /** added to the player's story sample on every working day */
+  story?: number
+  /** multiplies the player's pages a day (several multiply together) */
+  pagesMult?: number
+  /** added to the stamina a working day costs (negative is cheaper) */
+  workCost?: number
+  /** added to the stamina a rest day restores */
+  restBonus?: number
+}
+
+export interface Equipment {
+  id: EquipmentId
+  name: string
+  /** base price (see `equipmentPrice`) */
+  price: number
+  /** what it does, in the words the Studio panel shows */
+  effect: string
+  bonus: EquipmentBonus
+  /** sold only from this studio tier up */
+  needsTier?: StudioTierId
+}
+
+export interface Studio {
+  tier: StudioTierId
+  /** equipment bought, in the order it was bought */
+  owned: EquipmentId[]
+}
+
 export interface EditorRel { relationship: number; tips: number }
+
+// ---------- anime adaptations ----------
+
+export type AnimeStudioId = 'kumo' | 'hoshi'
+
+/** An animation studio's terms for adapting a hit serial (see anime.ts). */
+export interface AnimeStudio {
+  id: AnimeStudioId
+  name: string
+  /** paid to the mangaka at signing */
+  fee: number
+  /** weeks from signing to the premiere */
+  airsAfterWeeks: number
+  /** weeks on air; each one pays `weeklyFans` and `weeklyMoney` when it ends */
+  runsWeeks: number
+  weeklyFans: number
+  weeklyMoney: number
+  /** the adapted serial's volumes sell this many times the copies, from the premiere to `tailWeeks` after the finale */
+  volumeMult: number
+  tailWeeks: number
+  /** added to the serial's popularity at the premiere if it is still running, capped at 100 */
+  premierePopularity: number
+}
+
+/** A signed adaptation. Every day is fixed at signing: premiere, finale, and the last day of the volume boost. */
+export interface AnimeDeal {
+  studio: AnimeStudioId
+  serialId: number
+  signedDay: number
+  airsDay: number
+  endsDay: number
+  tailEndsDay: number
+}
+
+/** The adaptation offer waiting on the desk: answerable up to and including `expiresDay`. */
+export interface AnimeOffer { serialId: number; expiresDay: number }
+
+// ---------- the year end ----------
+
+export type AwardId = 'rookie' | 'readers' | 'critics' | 'golden-pen'
+
+/** An award handed out at the year end (see year.ts). */
+export interface Award {
+  id: AwardId
+  name: string
+  /** the bar to win: a rank for the Rookie Prize and the Readers' Choice (lower is better), else a score or copies */
+  need: number
+  /** the bar for a near miss, on the same scale */
+  near: number
+  prize: Rewards
+}
+
+/** An award the player won, and the year it was won for. */
+export interface AwardWon { id: AwardId; year: number }
+
+/** An award missed by a little: what the player had against what it needed. */
+export interface NearMiss { id: AwardId; have: number; need: number }
+
+/**
+ * Where the career stood when the year began, the baseline of the year review's deltas. `copies` and `volumes` are
+ * totals across the running serial and every past one.
+ */
+export interface YearStart { day: number; money: number; fans: number; level: number; copies: number; volumes: number }
+
+/** The rival's year: this year's head to head, and the craft and magazine before and after the year end. */
+export interface YearRival {
+  name: string
+  wins: number
+  losses: number
+  fromMagazine: MagazineId
+  toMagazine: MagazineId
+  craftBefore: number
+  craftAfter: number
+  /** the series the rival draws next year: a new one after a move */
+  series: string
+}
+
+/** One closed year, as the desk card and the year review show it (see `buildYearReview`). */
+export interface YearReview {
+  /** the year that closed, from 1 */
+  year: number
+  /** one-shot poll results this year */
+  oneShots: number
+  /** this year's best one-shot, by rank and then score; null without one */
+  bestOneShot: { title: string; rank: number; entrants: number; score: number } | null
+  /** chapter poll results this year, across every serial */
+  chapters: number
+  volumes: number
+  copies: number
+  /** the best poll score this year, one-shots and chapters alike; null without a poll */
+  bestScore: number | null
+  /** money and fans gained over the year, prizes included (they are paid before the next year starts) */
+  moneyDelta: number
+  fansDelta: number
+  levelFrom: number
+  levelTo: number
+  /** awards won, in `AWARDS` order */
+  awards: AwardId[]
+  /** awards missed by a little, in `AWARDS` order; an award won is never a near miss */
+  nearMisses: NearMiss[]
+  rival: YearRival
+  /** the award the rival took: the Rookie Prize in year one when the player did not win it */
+  rivalAward: AwardId | null
+}
 
 // ---------- misc ----------
 
@@ -205,7 +393,24 @@ export interface Notebook {
   themeAudience: Partial<Record<string, Rating>>
 }
 
-export type LogKind = 'info' | 'success' | 'warn' | 'money' | 'levelup' | 'series' | 'staff' | 'trip'
+export type LogKind = 'info' | 'success' | 'warn' | 'money' | 'levelup' | 'series' | 'staff' | 'trip' | 'event'
+
+// ---------- random events ----------
+
+export type EventId = 'letter' | 'cold' | 'convention' | 'raise' | 'reprint' | 'workshop'
+
+/** A random event waiting on the desk for an answer (see events.ts). */
+export interface GameEvent {
+  id: EventId
+  /** the day it arrived */
+  day: number
+  /** the last day it can be answered; the day after, it lapses and nothing happens */
+  expiresDay: number
+  /** the assistant asking for a raise */
+  assistantId?: number
+  /** the serial whose volumes get a reprint */
+  serialId?: number
+}
 
 export interface LogEntry {
   id: number
@@ -248,6 +453,30 @@ export interface GameState {
   nextAssistantId: number
   /** ids of milestones already awarded, in the order they landed */
   milestonesDone: MilestoneId[]
+  /** the named rival mangaka and the magazine they run in */
+  rival: Rival
+  /** the random event waiting on the desk, or null */
+  event: GameEvent | null
+  /** rolling RNG seed for random events only, so they never move the main `seed` stream */
+  eventSeed: number
+  /** no event is rolled before this day */
+  nextEventDay: number
+  /** where the mangaka works and the equipment bought for it */
+  studio: Studio
+  /** anime adaptations signed, oldest first */
+  anime: AnimeDeal[]
+  /** the adaptation offer waiting on the desk, or null */
+  animeOffer: AnimeOffer | null
+  /** ids of the serials an adaptation was ever offered for: studios ask once per series */
+  animeOfferedFor: number[]
+  /** where the career stood when this year began: the year review counts from here */
+  yearStart: YearStart
+  /** every closed year, oldest first */
+  yearReviews: YearReview[]
+  /** the year whose review waits unread on the desk, or null */
+  reviewUnread: number | null
+  /** every award won, oldest first */
+  awards: AwardWon[]
 }
 
 export type Phase = 'idle' | 'drawing' | 'ready' | 'submitted'

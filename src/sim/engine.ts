@@ -1,25 +1,32 @@
 import { genreThemeKey, genreThemeRating, themeAudienceKey, themeAudienceRating } from './compat'
 import {
-  ASSISTANT_NAMES, AUDIENCES, CANDIDATE_REFRESH_DAYS, CHAPTER_PAGES, EDITOR_TIP_EVERY, GENRES,
-  HIRE_RUNWAY_WEEKS, JOB_PAY_PER_DAY, JOB_STAMINA_COST, LOW_STAMINA_THRESHOLD, MAGAZINES, MAX_ASSISTANTS,
+  ASSISTANT_NAMES, AUDIENCES, CANDIDATE_REFRESH_DAYS, CHAPTER_PAGES, DAYS_PER_YEAR, DEADLINE_REST_FACTOR, EDITOR_TIP_EVERY,
+  EVENT_FIRST_DAY, GENRES,
+  HIRE_RUNWAY_WEEKS, JOB_PAY_PER_DAY, JOB_STAMINA_COST, LOW_STAMINA_THRESHOLD, MAGAZINES, MIN_WORK_STAMINA_COST,
   ONE_SHOT_PAGES, OVERDRAFT_FEE_MIN, OVERDRAFT_FEE_RATE,
   RATING_LABEL, RESULTS_DELAY_DAYS, REST_STAMINA_GAIN, SERIAL_CLIMAX_MIN_POPULARITY, SERIAL_CLIMAX_VOLUME_MULT,
-  SERIAL_OFFER_MIN_RANK, SERIAL_OFFER_MIN_SCORE, SERIAL_WARNINGS_TO_CANCEL, THEMES, VOLUME_EVERY_CHAPTERS,
+  SERIAL_GRACE_CHAPTERS, SERIAL_MISSED_ISSUE_POPULARITY, SERIAL_OFFER_MIN_RANK, SERIAL_OFFER_MIN_SCORE,
+  SERIAL_WARNINGS_TO_CANCEL, THEMES,
+  VOLUME_EVERY_CHAPTERS,
   VOLUME_PRICE, WEEKLY_LIVING_COST, WORK_STAMINA_COST, audienceById, magazineById, placeById, themeById, genreById,
 } from './data'
-import { clamp, draw, range } from './rng'
+import { addLog, grantXp } from './core'
+import { animeTick, animeVolumeMult, withdrawAnimeOffer } from './anime'
+import { STAT_NAME, conventionFans, eventTick, lowestStat } from './events'
+import { clamp, draw, hashString, range } from './rng'
 import {
-  evaluateChapter, evaluateProject, projectArtQuality, projectStoryQuality, rankScore, stalenessCount,
+  evaluateChapter, evaluateProject, projectArtQuality, projectStoryQuality, rankScore, stalenessCount, weakRankLine,
 } from './scoring'
-// previewSubmission's estimator (kept on its own lines so the import lists above merge cleanly)
-import { RANK_MULTIPLIER, RIVAL_SCORE_SD } from './data'
-import { binomialAtMost, normalCdf } from './rng'
-import { estimateScore } from './scoring'
+import { forecastPoll } from './forecast'
+import type { Forecast } from './forecast'
 import type {
-  Activity, Assistant, AssistantTrait, AudienceId, EditorRel, Focus, GameState, GenreId, LogKind, Magazine,
-  MagazineId, PendingChapter, Phase, PlaceId, Project, ProjectDraft, Rating, Serial, StatId, ThemeId,
+  Activity, Assistant, AssistantTrait, AudienceId, EditorRel, Focus, GameState, GenreId, Magazine,
+  MagazineId, PendingChapter, Phase, Player, Project, ProjectDraft, Rating, Serial, StatId, ThemeId,
 } from './types'
 import { pendingMilestones } from './milestones'
+import { makeRival } from './rival'
+import { equipmentEffects, studioSlots, studioTier } from './studio'
+import { closeYear } from './year'
 
 const TRAIT_LIST: AssistantTrait[] = ['fast', 'careful', 'inspiring', 'steady']
 
@@ -28,22 +35,24 @@ const TRAIT_LIST: AssistantTrait[] = ['fast', 'careful', 'inspiring', 'steady']
 export function createGame(name: string, seed: number): GameState {
   const editors = {} as Record<MagazineId, EditorRel>
   for (const m of MAGAZINES) editors[m.id] = { relationship: 0, tips: 0 }
+  const worldSeed = (seed * 7919) | 0
+  const player: Player = {
+    name,
+    level: 1,
+    xp: 0,
+    skillPoints: 0,
+    stats: { story: 34, art: 40, pacing: 30 },
+    stamina: 100,
+    maxStamina: 100,
+    money: 3000,
+    fans: 0,
+  }
   let state: GameState = {
     version: 2,
     seed: seed | 0,
-    worldSeed: (seed * 7919) | 0,
+    worldSeed,
     day: 0,
-    player: {
-      name,
-      level: 1,
-      xp: 0,
-      skillPoints: 0,
-      stats: { story: 34, art: 38, pacing: 30 },
-      stamina: 100,
-      maxStamina: 100,
-      money: 3000,
-      fans: 0,
-    },
+    player,
     project: null,
     activity: 'rest',
     recovering: false,
@@ -65,6 +74,18 @@ export function createGame(name: string, seed: number): GameState {
     nextLogId: 1,
     nextAssistantId: 1,
     milestonesDone: [],
+    rival: makeRival(worldSeed, 0),
+    event: null,
+    eventSeed: hashString(`events:${worldSeed}`) | 0,
+    nextEventDay: EVENT_FIRST_DAY,
+    studio: { tier: 'apartment', owned: [] },
+    anime: [],
+    animeOffer: null,
+    animeOfferedFor: [],
+    yearStart: { day: 0, money: player.money, fans: player.fans, level: player.level, copies: 0, volumes: 0 },
+    yearReviews: [],
+    reviewUnread: null,
+    awards: [],
   }
   state = generateCandidates(state)
   return addLog(state, 'info', `Welcome, ${name}. Your studio is ready. Plan your first manga.`, false)
@@ -77,15 +98,11 @@ export function getPhase(state: GameState): Phase {
   return state.project.status
 }
 
-export function xpToNext(level: number): number {
-  return 100 + (level - 1) * 60
-}
-
 export interface DateParts { year: number; month: number; week: number; day: number }
 
 export function describeDate(day: number): DateParts {
   return {
-    year: Math.floor(day / 336) + 1,
+    year: Math.floor(day / DAYS_PER_YEAR) + 1,
     month: (Math.floor(day / 28) % 12) + 1,
     week: (Math.floor(day / 7) % 4) + 1,
     day: (day % 7) + 1,
@@ -109,10 +126,10 @@ export function staminaFactor(state: GameState): number {
   return 1
 }
 
-/** Expected pages per working day at full stamina for the player alone (no noise). */
+/** Expected pages per working day at full stamina for the player alone (no noise), with the studio's equipment. */
 export function basePagesPerDay(state: GameState): number {
   const { art, story } = state.player.stats
-  return 0.5 + ((art + story) / 2) * 0.02
+  return (0.5 + ((art + story) / 2) * 0.02) * equipmentEffects(state).pagesMult
 }
 
 /** Expected pages per day from one assistant at full stamina. */
@@ -137,8 +154,47 @@ export function expectedPagesToday(state: GameState): number {
   return player + staff
 }
 
+export type DeadlineStatus = 'on-track' | 'tight' | 'late'
+
+/** Where the chapter on the desk stands against its due day. */
+export interface ChapterDeadline {
+  dueDay: number
+  /** calendar days until the due day */
+  daysLeft: number
+  /** working days the studio needs for the pages left, at full stamina */
+  workDaysLeft: number
+  /** see `deadlineStatus` */
+  status: DeadlineStatus
+}
+
+/** Working days the studio needs for `pages` at full stamina with its current staff (rest days not included). */
+export function chapterWorkDays(state: GameState, pages: number): number {
+  return Math.ceil(pages / studioPagesPerDay(state))
+}
+
+/**
+ * `workDays` of drawing against `daysLeft` calendar days: late when they cannot fit, tight when they fit only
+ * without the rest days (`DEADLINE_REST_FACTOR` on top), on track otherwise.
+ */
+export function deadlineStatus(workDays: number, daysLeft: number): DeadlineStatus {
+  if (workDays > daysLeft) return 'late'
+  return workDays * DEADLINE_REST_FACTOR > daysLeft ? 'tight' : 'on-track'
+}
+
+/** The running serial's chapter deadline, or null when no serial chapter is being drawn. Consumes no RNG. */
+export function chapterDeadline(state: GameState): ChapterDeadline | null {
+  const ser = state.serial
+  const p = state.project
+  if (!ser || ser.status !== 'running' || !p || p.kind !== 'serial' || p.status !== 'drawing') return null
+  const dueDay = ser.nextDueDay
+  const daysLeft = dueDay - state.day
+  const workDaysLeft = chapterWorkDays(state, p.pagesTarget - p.pagesDone)
+  return { dueDay, daysLeft, workDaysLeft, status: deadlineStatus(workDaysLeft, daysLeft) }
+}
+
+/** Living cost, the studio's rent and every assistant's salary. */
 export function weeklyCosts(state: GameState): number {
-  return WEEKLY_LIVING_COST + state.assistants.reduce((sum, a) => sum + a.salary, 0)
+  return WEEKLY_LIVING_COST + studioTier(state).rent + state.assistants.reduce((sum, a) => sum + a.salary, 0)
 }
 
 export function focusMultipliers(focus: Focus): { art: number; story: number } {
@@ -166,7 +222,8 @@ export function previewCombo(
   }
 }
 
-export interface SubmissionPreview {
+/** What the pitch screen shows for one magazine: what the player knows about the manuscript, and the forecast. */
+export interface SubmissionPreview extends Forecast {
   magazineId: MagazineId
   mismatch: boolean
   art: number
@@ -175,14 +232,8 @@ export interface SubmissionPreview {
   audienceFit: Rating | null
   freshness: Rating | null
   staleness: number
-  minMoney: number
-  maxMoney: number
-  /** estimateScore: untested pairings assumed Good, no pacing noise */
-  expectedScore: number
-  /** likely finishing band (about 1.5 sd either side of the mean rank), 1..entrants+1 */
-  expectedRank: { low: number; high: number }
-  /** chance the poll ends in a serialisation offer, 0..1 */
-  offerChance: number
+  /** how many of the manuscript's two pairings the Notebook has not rated; the forecast spreads those over every rating */
+  unknownPairings: 0 | 1 | 2
 }
 
 export function previewSubmission(state: GameState, magazineId: MagazineId): SubmissionPreview | null {
@@ -190,12 +241,9 @@ export function previewSubmission(state: GameState, magazineId: MagazineId): Sub
   if (!p) return null
   const mag = magazineById(magazineId)
   const combo = previewCombo(state, p.genre, p.theme, p.audience)
-  const score = estimateScore(state, p, magazineId)
-  const pr = 1 - normalCdf((score - mag.rivalMean) / RIVAL_SCORE_SD)
-  const n = mag.entrants
-  const mean = 1 + pr * n
-  const sd = Math.sqrt(n * pr * (1 - pr))
+  const unknown = [combo.genreTheme, combo.themeAudience].filter((r) => r === null).length as 0 | 1 | 2
   return {
+    ...forecastPoll(state, p, magazineId),
     magazineId,
     mismatch: mag.audience !== p.audience,
     art: Math.round(projectArtQuality(p)),
@@ -204,38 +252,11 @@ export function previewSubmission(state: GameState, magazineId: MagazineId): Sub
     audienceFit: combo.themeAudience,
     freshness: combo.genreTheme,
     staleness: combo.staleness,
-    minMoney: Math.round(mag.pageRate * p.pagesDone * RANK_MULTIPLIER.weak),
-    maxMoney: Math.round(mag.pageRate * p.pagesDone * RANK_MULTIPLIER.first),
-    expectedScore: score,
-    expectedRank: {
-      low: clamp(Math.round(mean - 1.5 * sd), 1, n + 1),
-      high: clamp(Math.round(mean + 1.5 * sd), 1, n + 1),
-    },
-    offerChance: score >= SERIAL_OFFER_MIN_SCORE ? 1 : binomialAtMost(n, SERIAL_OFFER_MIN_RANK - 1, pr),
+    unknownPairings: unknown,
   }
 }
 
 // ---------- internals ----------
-
-function addLog(state: GameState, kind: LogKind, text: string, toast: boolean): GameState {
-  const entry = { id: state.nextLogId, day: state.day, kind, text, toast }
-  const log = state.log.length >= 300 ? [...state.log.slice(-299), entry] : [...state.log, entry]
-  return { ...state, log, nextLogId: state.nextLogId + 1 }
-}
-
-function grantXp(state: GameState, amount: number): GameState {
-  let { level, xp, skillPoints, maxStamina } = state.player
-  xp += amount
-  let s = state
-  while (xp >= xpToNext(level)) {
-    xp -= xpToNext(level)
-    level += 1
-    skillPoints += 3
-    maxStamina += 5
-    s = addLog(s, 'levelup', `Level ${level}. +3 skill points, +5 max stamina. Spend the points in Stats (S).`, true)
-  }
-  return { ...s, player: { ...s.player, level, xp, skillPoints, maxStamina } }
-}
 
 function generateCandidates(state: GameState): GameState {
   const { values, seed } = draw(state.seed, 15)
@@ -407,6 +428,7 @@ export function spendSkillPoint(state: GameState, stat: StatId): GameState {
 export function acceptOffer(state: GameState): GameState {
   const o = state.pendingOffer
   if (!o || state.project || state.serial) return state
+  const mag = magazineById(o.magazineId)
   const serial: Serial = {
     id: state.nextProjectId,
     title: o.title,
@@ -421,6 +443,8 @@ export function acceptOffer(state: GameState): GameState {
     pending: [],
     popularity: 50,
     warnings: 0,
+    nextDueDay: state.day + mag.chapterDays,
+    missedIssues: 0,
     volumes: 0,
     totalCopies: 0,
     totalMoney: 0,
@@ -432,7 +456,7 @@ export function acceptOffer(state: GameState): GameState {
     // Drawing starts once the player is back from a trip or recovered; the offer itself is never blocked.
     activity: state.recovering || state.trip ? 'rest' : 'work',
   }
-  return addLog(s, 'series', `"${o.title}" is now serialised in ${magazineById(o.magazineId).name}. Chapter 1 is due.`, true)
+  return addLog(s, 'series', `"${o.title}" is now serialised in ${mag.name}. Chapter 1 is due.`, true)
 }
 
 export function declineOffer(state: GameState): GameState {
@@ -450,7 +474,9 @@ export function endSerial(state: GameState): GameState {
   const bonusFans = Math.round(ser.popularity * 20 * earned)
   // A climax volume needs a shipped volume behind it and real popularity (starting popularity is 50).
   const climax = ser.results.length >= VOLUME_EVERY_CHAPTERS && ser.popularity >= SERIAL_CLIMAX_MIN_POPULARITY
-  const copies = climax ? Math.round(volumeCopies(state, mag, ser.popularity) * SERIAL_CLIMAX_VOLUME_MULT) : 0
+  // An anime adaptation's boost multiplies the final volume too.
+  const anime = animeVolumeMult(state, ser.id)
+  const copies = climax ? Math.round(volumeCopies(state, mag, ser.popularity) * SERIAL_CLIMAX_VOLUME_MULT * anime) : 0
   const money = copies * VOLUME_PRICE
   let s: GameState = {
     ...state,
@@ -467,17 +493,19 @@ export function endSerial(state: GameState): GameState {
     player: { ...state.player, fans: state.player.fans + bonusFans, money: state.player.money + money },
   }
   const text = climax
-    ? `You wrapped up "${ser.title}" after ${ser.chaptersSent} chapters on a high. The final volume sold ${copies} copies: +¥${money}. Loyal readers: +${bonusFans} fans.`
+    ? `You wrapped up "${ser.title}" after ${ser.chaptersSent} chapters on a high. The final volume sold ${copies} copies${animeNote(anime)}: +¥${money}. Loyal readers: +${bonusFans} fans.`
     : bonusFans > 0
       ? `You wrapped up "${ser.title}" after ${ser.chaptersSent} chapters. Loyal readers: +${bonusFans} fans.`
       : `You dropped "${ser.title}" before it found readers.`
   s = addLog(s, 'series', text, true)
-  return archiveSerialIfDone(s)
+  // An anime offer is for a running series: wrapping up withdraws one waiting on the desk.
+  return withdrawAnimeOffer(archiveSerialIfDone(s))
 }
 
 export function hireAssistant(state: GameState, candidateId: number): GameState {
   const c = state.candidates.find((a) => a.id === candidateId)
-  if (!c || state.assistants.length >= MAX_ASSISTANTS) return state
+  // One assistant per desk: a bigger studio has more (studio.ts).
+  if (!c || state.assistants.length >= studioSlots(state)) return state
   // Two weeks of that hire's salary in the bank: allows one early hire, blocks the day-one triple hire.
   if (state.player.money < c.salary * HIRE_RUNWAY_WEEKS) return state
   const s: GameState = {
@@ -493,19 +521,6 @@ export function fireAssistant(state: GameState, id: number): GameState {
   if (!a) return state
   const s: GameState = { ...state, assistants: state.assistants.filter((x) => x.id !== id) }
   return addLog(s, 'staff', `${a.name} left the studio.`, false)
-}
-
-export function startTrip(state: GameState, placeId: PlaceId): GameState {
-  if (state.trip) return state
-  const place = placeById(placeId)
-  if (state.player.money < place.cost) return state
-  const s: GameState = {
-    ...state,
-    trip: { placeId, startedDay: state.day, endsDay: state.day + place.days },
-    activity: 'rest',
-    player: { ...state.player, money: state.player.money - place.cost },
-  }
-  return addLog(s, 'trip', `Off to the ${place.name} for ${place.days} days.`, false)
 }
 
 // ---------- time ----------
@@ -548,6 +563,18 @@ function finishTrip(state: GameState): GameState {
       }
       text = 'Fully rested. Max stamina +3.'
       break
+    case 'convention': {
+      const gain = conventionFans(s.player.fans)
+      s = { ...s, player: { ...s.player, fans: s.player.fans + gain } }
+      text = `Fans +${gain}.`
+      break
+    }
+    case 'masterclass': {
+      const stat = lowestStat(s.player.stats)
+      s = { ...s, player: { ...s.player, stats: { ...s.player.stats, [stat]: Math.min(100, s.player.stats[stat] + 3) } } }
+      text = `${STAT_NAME[stat]} +3.`
+      break
+    }
   }
   return addLog(s, 'trip', `Back from the ${place.name}. ${text}`, true)
 }
@@ -558,10 +585,12 @@ function workDay(state: GameState): GameState {
   let s: GameState = { ...state, seed }
   const factor = staminaFactor(s)
   const mult = focusMultipliers(s.focus)
+  // Equipment helps the player's own pages; assistants draw with their own tools.
+  const fx = equipmentEffects(s)
 
   let pages = basePagesPerDay(s) * factor * range(values[0], 0.85, 1.15)
-  const artSample = clamp(s.player.stats.art * mult.art + range(values[1], -8, 8), 0, 100)
-  const storySample = clamp(s.player.stats.story * mult.story + range(values[2], -8, 8), 0, 100)
+  const artSample = clamp(s.player.stats.art * mult.art + range(values[1], -8, 8) + fx.art, 0, 100)
+  const storySample = clamp(s.player.stats.story * mult.story + range(values[2], -8, 8) + fx.story, 0, 100)
   let artAcc = artSample * pages
   let storyAcc = storySample * pages
 
@@ -590,7 +619,8 @@ function workDay(state: GameState): GameState {
     storySum: p.storySum + storyAcc * scale,
   }
   const inspiring = s.assistants.some((a) => a.trait === 'inspiring') ? 1 : 0
-  const stamina = clamp(s.player.stamina - (WORK_STAMINA_COST - inspiring), 0, s.player.maxStamina)
+  const cost = Math.max(MIN_WORK_STAMINA_COST, WORK_STAMINA_COST - inspiring + fx.workCost)
+  const stamina = clamp(s.player.stamina - cost, 0, s.player.maxStamina)
   s = { ...s, project, assistants, player: { ...s.player, stamina } }
 
   if (project.pagesDone >= project.pagesTarget - 1e-6) {
@@ -613,10 +643,14 @@ function workDay(state: GameState): GameState {
   return s
 }
 
-/** A finished chapter goes straight to the magazine and the next one starts. */
+/**
+ * A finished chapter goes straight to the magazine and the next one starts. The next chapter is due one
+ * `chapterDays` after this one's due day, not after today: finishing early banks the time.
+ */
 function sendChapter(state: GameState): GameState {
   const p = state.project!
   const ser = state.serial!
+  const mag = magazineById(ser.magazineId)
   const pc: PendingChapter = {
     chapter: p.chapter,
     pages: p.pagesTarget,
@@ -625,10 +659,12 @@ function sendChapter(state: GameState): GameState {
     submittedDay: state.day,
     resultsDay: state.day + RESULTS_DELAY_DAYS,
   }
-  const serial: Serial = { ...ser, pending: [...ser.pending, pc], chaptersSent: ser.chaptersSent + 1 }
+  const serial: Serial = {
+    ...ser, pending: [...ser.pending, pc], chaptersSent: ser.chaptersSent + 1, nextDueDay: ser.nextDueDay + mag.chapterDays,
+  }
   const next = makeProject(state, 'serial', p.chapter + 1, p, p.magazineId)
   const s: GameState = { ...state, serial, project: next, nextProjectId: state.nextProjectId + 1 }
-  return addLog(s, 'series', `Chapter ${p.chapter} of "${p.title}" sent to ${magazineById(ser.magazineId).name}.`, false)
+  return addLog(s, 'series', `Chapter ${p.chapter} of "${p.title}" sent to ${mag.name}.`, false)
 }
 
 function archiveSerialIfDone(state: GameState): GameState {
@@ -637,9 +673,18 @@ function archiveSerialIfDone(state: GameState): GameState {
   return { ...state, serial: null, serials: [...state.serials, ser] }
 }
 
-/** Copies a volume sells: (fans + circulation x 20) x popularity. */
+/** The volume log's note on an anime adaptation's multiplier: " (1.3x with the anime)", or nothing without one. */
+function animeNote(mult: number): string {
+  return mult === 1 ? '' : ` (${mult}x with the anime)`
+}
+
+/**
+ * Copies a volume sells: round((circulation x 20 + 40 x sqrt(fans)) x popularity / 100). Fans help less and less
+ * (the square root), so a big following no longer runs away with the economy. An anime deal multiplies it
+ * (`animeVolumeMult`), and a wrap-up volume sells 1.5 times it.
+ */
 export function volumeCopies(state: GameState, mag: Magazine, popularity: number): number {
-  return Math.round((state.player.fans + mag.circulation * 20) * (popularity / 100))
+  return Math.round(((mag.circulation * 20 + 40 * Math.sqrt(state.player.fans)) * popularity) / 100)
 }
 
 function resolveChapters(state: GameState): GameState {
@@ -650,16 +695,18 @@ function resolveChapters(state: GameState): GameState {
     const mag = magazineById(ser.magazineId)
     const { result, seed } = evaluateChapter(s, ser, pc)
     const popularity = Math.round(ser.popularity * 0.65 + rankScore(result.rank, result.entrants) * 0.35)
-    const weak = result.rank > Math.ceil(result.entrants * 0.7)
-    const warnings = weak ? ser.warnings + 1 : 0
+    const weak = result.rank > weakRankLine(result.entrants)
     let serial: Serial = {
       ...ser,
       pending: ser.pending.slice(1),
       results: [...ser.results, result],
       popularity,
-      warnings,
+      warnings: ser.warnings,
       totalMoney: ser.totalMoney + result.rewards.money,
     }
+    // A new series gets SERIAL_GRACE_CHAPTERS results before a weak one can add a warning.
+    const warnings = !weak ? 0 : serial.results.length > SERIAL_GRACE_CHAPTERS ? ser.warnings + 1 : 0
+    serial = { ...serial, warnings }
     s = {
       ...s,
       seed,
@@ -671,27 +718,66 @@ function resolveChapters(state: GameState): GameState {
     s = bumpEditor(s, ser.magazineId, result.rank <= 3 ? 2 : 1)
 
     if (serial.results.length % VOLUME_EVERY_CHAPTERS === 0) {
-      const copies = volumeCopies(s, mag, popularity)
+      const anime = animeVolumeMult(s, ser.id)
+      const copies = Math.round(volumeCopies(s, mag, popularity) * anime)
       const money = copies * VOLUME_PRICE
       serial = { ...serial, volumes: serial.volumes + 1, totalCopies: serial.totalCopies + copies, totalMoney: serial.totalMoney + money }
       s = { ...s, serial, player: { ...s.player, money: s.player.money + money } }
-      s = addLog(s, 'money', `Volume ${serial.volumes} of "${ser.title}" sold ${copies} copies: +¥${money}.`, true)
+      s = addLog(s, 'money', `Volume ${serial.volumes} of "${ser.title}" sold ${copies} copies${animeNote(anime)}: +¥${money}.`, true)
     }
 
-    if (serial.status === 'running' && warnings >= SERIAL_WARNINGS_TO_CANCEL) {
-      const lost = Math.round(s.player.fans * 0.1)
-      serial = { ...serial, status: 'cancelled', endedDay: s.day }
-      s = {
-        ...s,
-        serial,
-        project: s.project?.kind === 'serial' ? null : s.project,
-        activity: 'rest',
-        player: { ...s.player, fans: s.player.fans - lost },
-      }
-      s = addLog(s, 'warn', `${mag.name} cancelled "${ser.title}" after ${SERIAL_WARNINGS_TO_CANCEL} weak chapters. Fans -${lost}. A one-shot that places top ${SERIAL_OFFER_MIN_RANK} or scores ${SERIAL_OFFER_MIN_SCORE}+ earns a new offer.`, true)
-    }
+    if (serial.status === 'running' && warnings >= SERIAL_WARNINGS_TO_CANCEL) s = cancelSerial(s)
     s = archiveSerialIfDone(s)
   }
+  return s
+}
+
+/**
+ * The magazine drops the running serial at its third warning in a row: 10% of fans leave, the chapter on the desk is
+ * scrapped and the studio rests. Weak chapters and missed issues share the warning count, so the log names warnings.
+ */
+function cancelSerial(state: GameState): GameState {
+  const ser = state.serial!
+  const lost = Math.round(state.player.fans * 0.1)
+  const s: GameState = {
+    ...state,
+    serial: { ...ser, status: 'cancelled', endedDay: state.day },
+    project: state.project?.kind === 'serial' ? null : state.project,
+    activity: 'rest',
+    player: { ...state.player, fans: state.player.fans - lost },
+  }
+  return addLog(s, 'warn', `${magazineById(ser.magazineId).name} cancelled "${ser.title}" after ${SERIAL_WARNINGS_TO_CANCEL} warnings in a row. Fans -${lost}. A one-shot that places top ${SERIAL_OFFER_MIN_RANK} or scores ${SERIAL_OFFER_MIN_SCORE}+ earns a new offer.`, true)
+}
+
+/**
+ * Runs after `resolveChapters`: a running serial whose chapter is not in by its due day misses the issue.
+ * Popularity drops, the same chapter is due one `chapterDays` later, and once the grace period has passed (4 results
+ * in) the miss is a warning; three warnings cancel. Consumes no RNG.
+ */
+function checkDeadline(state: GameState): GameState {
+  const ser = state.serial
+  const p = state.project
+  if (!ser || ser.status !== 'running' || p?.kind !== 'serial' || p.status !== 'drawing') return state
+  if (state.day < ser.nextDueDay) return state
+  const mag = magazineById(ser.magazineId)
+  const counts = ser.results.length >= SERIAL_GRACE_CHAPTERS
+  const warnings = counts ? ser.warnings + 1 : ser.warnings
+  const serial: Serial = {
+    ...ser,
+    popularity: Math.max(0, ser.popularity - SERIAL_MISSED_ISSUE_POPULARITY),
+    missedIssues: ser.missedIssues + 1,
+    nextDueDay: ser.nextDueDay + mag.chapterDays,
+    warnings,
+  }
+  const after = counts
+    ? ` Warning ${warnings} of ${SERIAL_WARNINGS_TO_CANCEL}.`
+    : ` New series get ${SERIAL_GRACE_CHAPTERS} chapters of grace.`
+  let s = addLog(
+    { ...state, serial }, 'warn',
+    `"${ser.title}" missed its issue: chapter ${p.chapter} was not ready. Popularity -${SERIAL_MISSED_ISSUE_POPULARITY}.${after}`,
+    true,
+  )
+  if (warnings >= SERIAL_WARNINGS_TO_CANCEL) s = archiveSerialIfDone(cancelSerial(s))
   return s
 }
 
@@ -718,7 +804,7 @@ export function tick(state: GameState): GameState {
     const working = !!p && p.status === 'drawing' && s.activity === 'work' && s.player.stamina > 0
     if (working) s = workDay(s)
     else {
-      s = restPlayer(s, REST_STAMINA_GAIN)
+      s = restPlayer(s, REST_STAMINA_GAIN + equipmentEffects(s).restBonus)
       s = restAssistants(s)
       // A shift chosen at zero stamina is slept through and pays nothing.
       if (s.activity === 'job') s = addLog({ ...s, activity: 'rest' }, 'warn', 'Too exhausted for a shift. You slept instead.', false)
@@ -732,9 +818,13 @@ export function tick(state: GameState): GameState {
 
   if (s.day % 7 === 0) {
     const cost = weeklyCosts(s)
+    const rent = studioTier(s).rent
     s = { ...s, player: { ...s.player, money: s.player.money - cost } }
-    s = addLog(s, 'money', s.assistants.length
-      ? `Weekly costs: -¥${cost} (living ¥${WEEKLY_LIVING_COST}, salaries ¥${cost - WEEKLY_LIVING_COST}).`
+    const parts = [`living ¥${WEEKLY_LIVING_COST}`]
+    if (rent) parts.push(`rent ¥${rent}`)
+    if (s.assistants.length) parts.push(`salaries ¥${cost - WEEKLY_LIVING_COST - rent}`)
+    s = addLog(s, 'money', parts.length > 1
+      ? `Weekly costs: -¥${cost} (${parts.join(', ')}).`
       : `Weekly living costs: -¥${cost}.`, false)
     if (s.player.money < 0) {
       // Unpaid assistants quit before the fee is computed, so the tight-week check below uses the new roster.
@@ -789,6 +879,10 @@ export function tick(state: GameState): GameState {
   }
 
   s = resolveChapters(s)
+  s = checkDeadline(s)
+  s = closeYear(s)
+  s = animeTick(s)
+  s = eventTick(s)
   s = awardMilestones(s)
   return s
 }

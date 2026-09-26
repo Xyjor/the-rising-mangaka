@@ -1,14 +1,17 @@
 import { describe, expect, it } from 'vitest'
 import {
   CHAPTER_PAGES, JOB_PAY_PER_DAY, LOW_STAMINA_THRESHOLD, MAGAZINE_MISMATCH_PENALTY, ONE_SHOT_PAGES,
-  RATING_SCORE, REST_STAMINA_GAIN, SERIAL_CLIMAX_VOLUME_MULT, VOLUME_PRICE, WEEKLY_LIVING_COST,
-  WORK_STAMINA_COST, acceptOffer, createGame, declineOffer, describeDate, dismissResult, endSerial,
-  evaluateChapter, evaluateProject, fireAssistant, genreThemeRating, getPhase, hireAssistant, magazineById,
-  previewCombo, previewSubmission, projectArtQuality, serialFatigue, setActivity, spendSkillPoint,
-  stalenessCount, startProject, startTrip, submitProject, themeAudienceKey, tick, tickMany, volumeCopies,
+  PACING_NOISE_SD, RATING_SCORE, REST_STAMINA_GAIN, SERIAL_CLIMAX_VOLUME_MULT, SERIAL_GRACE_CHAPTERS, VOLUME_PRICE,
+  WEEKLY_LIVING_COST,
+  WORK_STAMINA_COST, acceptOffer, chapterDeadline, chapterWorkDays, clamp, createGame, deadlineStatus, declineOffer,
+  describeDate, dismissResult, endSerial, evaluateChapter, evaluateProject, fireAssistant, genreThemeRating, getPhase,
+  hireAssistant, magazineById, previewCombo, previewSubmission, projectArtQuality, serialFatigue, setActivity,
+  spendSkillPoint, stalenessCount, startProject, startTrip, submitProject, themeAudienceKey, tick, tickMany,
+  volumeCopies,
 } from '../index'
-import type { Assistant, AssistantTrait, GameState, PendingChapter } from '../index'
-import { DRAFT as draft, drawUntilReady as drawUntilReadyFrom, withStats } from '../../test/fixtures'
+import type { Assistant, AssistantTrait, ChapterResult, GameState, LogEntry, MagazineId, PendingChapter } from '../index'
+import { draw, gaussian } from '../rng'
+import { DRAFT as draft, drawUntilReady as drawUntilReadyFrom, noDeadline, withStats } from '../../test/fixtures'
 
 /** Thin wrapper keeping this file's default-argument call sites (`drawUntilReady()`) working. */
 function drawUntilReady(state = startProject(createGame('Rin', 42), draft)) {
@@ -252,7 +255,7 @@ describe('serialisation', () => {
 
   it('cancels a serial after three weak chapters', () => {
     let s = dismissResult(strongOneShot())
-    s = acceptOffer(s)
+    s = noDeadline(acceptOffer(s))
     s = withStats(s, 5)
     let guard = 0
     while (s.serial && s.serial.status === 'running' && guard++ < 900) {
@@ -264,6 +267,259 @@ describe('serialisation', () => {
     const ser = s.serial ?? s.serials[0]
     expect(ser.status).toBe('cancelled')
     expect(s.project).toBeNull()
+  })
+
+  it('grants a grace period: the first 4 results never warn, even when weak', () => {
+    let s = withStats(noDeadline(acceptOffer(dismissResult(strongOneShot()))), 5)
+    let guard = 0
+    while (s.serial && s.serial.results.length < SERIAL_GRACE_CHAPTERS && guard++ < 900) s = autoDay(s)
+    expect(s.serial!.results).toHaveLength(SERIAL_GRACE_CHAPTERS)
+    expect(s.serial!.warnings).toBe(0)
+    expect(s.serial!.status).toBe('running')
+    // Popularity still moves during grace, only warnings are held back.
+    expect(s.serial!.popularity).not.toBe(50)
+  })
+
+  it('cancels a forced-weak serial at exactly its 7th result once the grace period ends', () => {
+    let s = withStats(noDeadline(acceptOffer(dismissResult(strongOneShot()))), 5)
+    let guard = 0
+    while (s.serial && s.serial.status === 'running' && guard++ < 900) s = autoDay(s)
+    const ser = s.serial ?? s.serials[0]
+    expect(ser.status).toBe('cancelled')
+    expect(ser.results).toHaveLength(7)
+    // Weak chapters and missed issues share the warning count, so the cancellation names warnings, not weak chapters.
+    expect(s.log[s.log.length - 1].text).toMatch(
+      /^Weekly Bolt cancelled "Blade Club" after 3 warnings in a row\. Fans -\d+\. A one-shot that places top 3 or scores 65\+ earns a new offer\.$/,
+    )
+  })
+})
+
+const KIDS_OFFER = { magazineId: 'kids-comic', title: 'Magic Club', genre: 'fantasy', theme: 'magic', audience: 'kids' } as const
+
+/** Seed 4, a Kids Comic Go! serial accepted on day 0 (chapter 1 due on day 21), resting from then on. */
+function kidsSerial(): GameState {
+  return setActivity(acceptOffer({ ...createGame('Rin', 4), pendingOffer: KIDS_OFFER }), 'rest')
+}
+
+/** `kidsSerial` with `n` chapter results already in, chapter n + 1 on the desk, ¥10,000 and 1,000 fans. */
+function kidsSerialWithResults(n: number): GameState {
+  const s = kidsSerial()
+  const r: ChapterResult = {
+    chapter: 1, day: 0, score: 60, rank: 4, entrants: 11,
+    breakdown: { art: 60, story: 60, pacing: 60, audienceFit: 60, freshness: 60 },
+    rewards: { money: 1000, fans: 100, xp: 50 },
+  }
+  const results = Array.from({ length: n }, (_, i) => ({ ...r, chapter: i + 1 }))
+  return {
+    ...s,
+    serial: { ...s.serial!, results, chaptersSent: n },
+    project: { ...s.project!, chapter: n + 1 },
+    player: { ...s.player, money: 10000, fans: 1000 },
+  }
+}
+
+function missLogs(s: GameState): LogEntry[] {
+  return s.log.filter((e) => e.text.includes('missed its issue'))
+}
+
+describe('chapter deadlines', () => {
+  it('sets chapter 1 due by magazine: Kids 21 days, Weekly Bolt 14, Monthly Petal 28, Ultra Seinen 21', () => {
+    const g = createGame('Rin', 4)
+    const dueDay = (magazineId: MagazineId) => acceptOffer({ ...g, pendingOffer: { ...KIDS_OFFER, magazineId } }).serial!
+    expect(dueDay('kids-comic')).toMatchObject({ nextDueDay: 21, missedIssues: 0 })
+    expect(dueDay('weekly-bolt')).toMatchObject({ nextDueDay: 14, missedIssues: 0 })
+    expect(dueDay('monthly-petal')).toMatchObject({ nextDueDay: 28, missedIssues: 0 })
+    expect(dueDay('ultra-seinen')).toMatchObject({ nextDueDay: 21, missedIssues: 0 })
+  })
+
+  it('runs the next due day from the previous one: chapter 1 done on day 5 makes chapter 2 due on day 42', () => {
+    let s = tickMany(kidsSerial(), 4)
+    expect(s.day).toBe(4)
+    s = setActivity({ ...s, project: { ...s.project!, pagesDone: 15.5 } }, 'work')
+    s = tick(s)
+    expect(s.day).toBe(5)
+    expect(s.serial!.chaptersSent).toBe(1)
+    expect(s.project!.chapter).toBe(2)
+    // 21 + 21, not 5 + 21
+    expect(s.serial!.nextDueDay).toBe(42)
+  })
+
+  it('counts a chapter finished on its due day as on time', () => {
+    let s = tickMany(kidsSerial(), 20)
+    s = setActivity({ ...s, project: { ...s.project!, pagesDone: 15.5 } }, 'work')
+    s = tick(s)
+    expect(s.day).toBe(21)
+    expect(s.serial!.chaptersSent).toBe(1)
+    expect(s.serial!).toMatchObject({ nextDueDay: 42, missedIssues: 0, popularity: 50 })
+    expect(missLogs(s)).toHaveLength(0)
+  })
+
+  it('misses the issue the day chapter 1 is due and not ready; a new series only loses popularity', () => {
+    let s = tickMany(kidsSerial(), 20)
+    expect(s.day).toBe(20)
+    expect(s.serial!).toMatchObject({ popularity: 50, nextDueDay: 21, missedIssues: 0 })
+    expect(missLogs(s)).toHaveLength(0)
+    s = tick(s)
+    expect(s.serial!).toMatchObject({ popularity: 40, nextDueDay: 42, missedIssues: 1, warnings: 0, status: 'running' })
+    expect(s.project!.chapter).toBe(1)
+    const logs = missLogs(s)
+    expect(logs).toHaveLength(1)
+    expect(logs[0]).toMatchObject({
+      kind: 'warn',
+      toast: true,
+      text: '"Magic Club" missed its issue: chapter 1 was not ready. Popularity -10. New series get 4 chapters of grace.',
+    })
+  })
+
+  it('keeps the grace period through 3 results: a miss then still adds no warning', () => {
+    const s = tickMany(kidsSerialWithResults(3), 21)
+    expect(s.serial!).toMatchObject({ popularity: 40, missedIssues: 1, warnings: 0 })
+    expect(missLogs(s)[0].text).toBe(
+      '"Magic Club" missed its issue: chapter 4 was not ready. Popularity -10. New series get 4 chapters of grace.',
+    )
+  })
+
+  it('after 4 results, three misses warn 1, 2 and 3, and the third cancels the serial for 10% of fans', () => {
+    let s = tickMany(kidsSerialWithResults(4), 21)
+    expect(s.serial!).toMatchObject({ popularity: 40, nextDueDay: 42, missedIssues: 1, warnings: 1, status: 'running' })
+    expect(missLogs(s)[0].text).toBe(
+      '"Magic Club" missed its issue: chapter 5 was not ready. Popularity -10. Warning 1 of 3.',
+    )
+    s = tickMany(s, 21)
+    expect(s.serial!).toMatchObject({ popularity: 30, nextDueDay: 63, missedIssues: 2, warnings: 2, status: 'running' })
+    expect(missLogs(s)[1].text).toBe(
+      '"Magic Club" missed its issue: chapter 5 was not ready. Popularity -10. Warning 2 of 3.',
+    )
+    s = tickMany(s, 21)
+    expect(s.day).toBe(63)
+    // No chapter was waiting for a poll, so the cancelled serial is archived at once.
+    expect(s.serial).toBeNull()
+    expect(s.serials[0]).toMatchObject({ status: 'cancelled', endedDay: 63, popularity: 20, missedIssues: 3, warnings: 3 })
+    expect(s.project).toBeNull()
+    expect(s.activity).toBe('rest')
+    // 1,000 fans, 10% lost
+    expect(s.player.fans).toBe(900)
+    expect(missLogs(s)[2].text).toBe(
+      '"Magic Club" missed its issue: chapter 5 was not ready. Popularity -10. Warning 3 of 3.',
+    )
+    expect(s.log[s.log.length - 1]).toMatchObject({
+      kind: 'warn',
+      toast: true,
+      text: 'Kids Comic Go! cancelled "Magic Club" after 3 warnings in a row. Fans -100. A one-shot that places top 3 or scores 65+ earns a new offer.',
+    })
+  })
+
+  it('checks the deadline after the day\'s chapter polls: a 4th result landing on the due day ends grace first', () => {
+    // Chapter 4 polls on day 21, the day chapter 5 is due. resolveChapters runs first, so the miss sees 4 results
+    // and counts as a warning (the 4th result itself is still inside grace, so it adds none).
+    const s0 = kidsSerialWithResults(3)
+    const pc: PendingChapter = { chapter: 4, pages: CHAPTER_PAGES, artQ: 50, storyQ: 50, submittedDay: 14, resultsDay: 21 }
+    const s = tickMany({
+      ...s0,
+      serial: { ...s0.serial!, pending: [pc], chaptersSent: 4 },
+      project: { ...s0.project!, chapter: 5 },
+    }, 21)
+    expect(s.serial!.results).toHaveLength(4)
+    expect(s.serial!).toMatchObject({ missedIssues: 1, warnings: 1 })
+    expect(missLogs(s)[0].text).toBe('"Magic Club" missed its issue: chapter 5 was not ready. Popularity -10. Warning 1 of 3.')
+  })
+
+  it('cancels after a missed issue and two weak chapters, naming the warnings in a row', () => {
+    // Seed 4 rates Sports x Vampires and Vampires for Kids both Bad (20). Chapters drawn at quality 0 by a stats-5
+    // mangaka score about (0 x 35 + 0 x 15 + 5 x 10 + 20 x 20 + 20 x 20) / 100 = 8.5, some 5 sd under Kids Comic Go!'s
+    // rivals at 47 and the named rival at 57 (sd 8): last of 11, so weak (rank above ceil(0.7 x 11) = 8).
+    const s0 = withStats(kidsSerialWithResults(4), 5)
+    const weak = (chapter: number, resultsDay: number): PendingChapter =>
+      ({ chapter, pages: CHAPTER_PAGES, artQ: 0, storyQ: 0, submittedDay: resultsDay - 7, resultsDay })
+    let s: GameState = {
+      ...s0,
+      serial: { ...s0.serial!, genre: 'sports', theme: 'vampires', pending: [weak(5, 22), weak(6, 23)], chaptersSent: 6 },
+      project: { ...s0.project!, chapter: 7 },
+    }
+    // Day 21: chapter 7 misses its issue, the first warning (4 results are in).
+    s = tickMany(s, 21)
+    expect(s.serial!).toMatchObject({ missedIssues: 1, warnings: 1, status: 'running' })
+    // Day 22: chapter 5 polls last, the second warning.
+    s = tick(s)
+    expect(s.serial!.results[4].rank).toBe(11)
+    expect(s.serial!).toMatchObject({ warnings: 2, status: 'running' })
+    // Day 23: chapter 6 polls last, the third warning cancels.
+    s = tick(s)
+    expect(s.serial).toBeNull()
+    expect(s.serials[0].results[5].rank).toBe(11)
+    expect(s.serials[0]).toMatchObject({ status: 'cancelled', warnings: 3, missedIssues: 1 })
+    expect(s.log[s.log.length - 1].text).toMatch(
+      /^Kids Comic Go! cancelled "Magic Club" after 3 warnings in a row\. Fans -\d+\. A one-shot that places top 3 or scores 65\+ earns a new offer\.$/,
+    )
+  })
+
+  it('misses the issue while the mangaka is away: the magazine goes to print regardless', () => {
+    // Away across the due day: an art class from day 19 ends on day 23.
+    let s = startTrip(tickMany(kidsSerial(), 19), 'art-class')
+    s = tickMany(s, 2)
+    expect(s.day).toBe(21)
+    expect(s.trip).not.toBeNull()
+    expect(s.serial!).toMatchObject({ missedIssues: 1, popularity: 40, nextDueDay: 42 })
+    // Home on the due day itself: the trip ends first in the tick, then the deadline is checked, and the day home
+    // draws nothing, so the issue is missed.
+    let t = startTrip(tickMany(kidsSerial(), 18), 'library')
+    expect(t.trip!.endsDay).toBe(21)
+    t = tickMany(t, 3)
+    expect(t.trip).toBeNull()
+    expect(t.activity).toBe('work')
+    expect(t.project!.pagesDone).toBe(0)
+    expect(t.serial!).toMatchObject({ missedIssues: 1, popularity: 40, nextDueDay: 42 })
+    const home = t.log.findIndex((e) => e.text.startsWith('Back from the City Library'))
+    const missed = t.log.findIndex((e) => e.text.includes('missed its issue'))
+    expect(home).toBeGreaterThanOrEqual(0)
+    expect(missed).toBeGreaterThan(home)
+  })
+
+  it('never takes popularity below 0', () => {
+    const s0 = kidsSerial()
+    const s = tickMany({ ...s0, serial: { ...s0.serial!, popularity: 5 } }, 21)
+    expect(s.serial!).toMatchObject({ popularity: 0, missedIssues: 1 })
+  })
+
+  it('stops counting deadlines once the serial is wrapped up', () => {
+    const s = tickMany(endSerial(kidsSerial()), 30)
+    expect(s.serials[0]).toMatchObject({ status: 'ended', missedIssues: 0 })
+    expect(missLogs(s)).toHaveLength(0)
+  })
+
+  it('reports the deadline: 16 pages at 1.24 a day is 13 working days; on track, tight or late by the days left', () => {
+    // Stats 40 art, 34 story: 0.5 + 37 x 0.02 = 1.24 pages a day; 16 / 1.24 = 12.9, so 13 working days.
+    const s = kidsSerial()
+    const at = (day: number) => chapterDeadline({ ...s, day })
+    expect(at(0)).toEqual({ dueDay: 21, daysLeft: 21, workDaysLeft: 13, status: 'on-track' })
+    // 13 x 1.25 = 16.25: 17 days left is on track, 16 is tight
+    expect(at(4)!.status).toBe('on-track')
+    expect(at(5)).toEqual({ dueDay: 21, daysLeft: 16, workDaysLeft: 13, status: 'tight' })
+    // 13 working days in 13 days is still tight; 12 is late
+    expect(at(8)!.status).toBe('tight')
+    expect(at(9)).toEqual({ dueDay: 21, daysLeft: 12, workDaysLeft: 13, status: 'late' })
+    // 4 pages left: 4 / 1.24 = 3.2, so 4 working days
+    expect(chapterDeadline({ ...s, project: { ...s.project!, pagesDone: 12 } })!.workDaysLeft).toBe(4)
+  })
+
+  it('counts working days for a page count at the studio pace, and rates them against the days left', () => {
+    const s = createGame('Rin', 4)
+    // 1.24 pages a day: 16 / 1.24 = 12.9 -> 13, 20 / 1.24 = 16.1 -> 17, 4 / 1.24 = 3.2 -> 4
+    expect(chapterWorkDays(s, 16)).toBe(13)
+    expect(chapterWorkDays(s, 20)).toBe(17)
+    expect(chapterWorkDays(s, 4)).toBe(4)
+    // 13 x 1.25 = 16.25
+    expect(deadlineStatus(13, 21)).toBe('on-track')
+    expect(deadlineStatus(13, 17)).toBe('on-track')
+    expect(deadlineStatus(13, 16)).toBe('tight')
+    expect(deadlineStatus(13, 13)).toBe('tight')
+    expect(deadlineStatus(13, 12)).toBe('late')
+  })
+
+  it('reports no deadline without a running serial chapter on the desk', () => {
+    expect(chapterDeadline(createGame('Rin', 4))).toBeNull()
+    expect(chapterDeadline(startProject(createGame('Rin', 4), draft))).toBeNull()
+    expect(chapterDeadline(endSerial(kidsSerial()))).toBeNull()
   })
 })
 
@@ -442,7 +698,7 @@ describe('endings', () => {
   })
 
   it('cancellation removes exactly 10% of fans', () => {
-    let s = withStats(acceptOffer(dismissResult(strongOneShot())), 5)
+    let s = withStats(noDeadline(acceptOffer(dismissResult(strongOneShot()))), 5)
     let guard = 0
     let checked = false
     while (s.serial && s.serial.status === 'running' && guard++ < 900) {
@@ -510,6 +766,29 @@ describe('rules', () => {
     expect(miss.breakdown.audienceFit).toBe(match.breakdown.audienceFit - MAGAZINE_MISMATCH_PENALTY)
   })
 
+  it('draws exactly 2 + entrants x 2 values from the seed for a one-shot poll, and scores pacing noise at PACING_NOISE_SD', () => {
+    const s = drawUntilReady()
+    const mag = magazineById('kids-comic')
+    const { values, seed: wantSeed } = draw(s.seed, 2 + mag.entrants * 2)
+    const { result, seed } = evaluateProject(s, s.project!, 'kids-comic')
+    // RNG discipline: a poll always draws 2 + entrants x 2 values, whatever the pacing/rival scale is.
+    expect(seed).toBe(wantSeed)
+    const expectedPacing = clamp(Math.round(s.player.stats.pacing + gaussian(values[0], values[1]) * PACING_NOISE_SD), 0, 100)
+    expect(result.breakdown.pacing).toBe(expectedPacing)
+  })
+
+  it('draws exactly 2 + entrants x 2 values from the seed for a chapter poll, and scores pacing noise at PACING_NOISE_SD', () => {
+    const s = acceptOffer(dismissResult(strongOneShot()))
+    const ser = s.serial!
+    const pc: PendingChapter = { chapter: 1, pages: CHAPTER_PAGES, artQ: 50, storyQ: 50, submittedDay: s.day, resultsDay: s.day + 7 }
+    const mag = magazineById(ser.magazineId)
+    const { values, seed: wantSeed } = draw(s.seed, 2 + mag.entrants * 2)
+    const { result, seed } = evaluateChapter(s, ser, pc)
+    expect(seed).toBe(wantSeed)
+    const expectedPacing = clamp(Math.round(s.player.stats.pacing + gaussian(values[0], values[1]) * PACING_NOISE_SD), 0, 100)
+    expect(result.breakdown.pacing).toBe(expectedPacing)
+  })
+
   it('applies each assistant trait over one working day', () => {
     const mk = (trait: AssistantTrait): Assistant =>
       ({ id: 99, name: 'Test', art: 40, story: 40, salary: 200, stamina: 80, maxStamina: 80, trait, look: 0 })
@@ -521,6 +800,20 @@ describe('rules', () => {
     expect(run('inspiring').player.stamina).toBe(base.player.stamina - (WORK_STAMINA_COST - 1))
     expect(projectArtQuality(run('careful').project!)).toBeGreaterThan(projectArtQuality(run('fast').project!))
     expect(run('fast').project!.pagesDone).toBeGreaterThan(run('careful').project!.pagesDone)
+  })
+
+  it('sells round((circulation x 20 + 40 x sqrt(fans)) x popularity / 100) copies a volume', () => {
+    const s = createGame('Rin', 1)
+    const withFans = (fans: number) => ({ ...s, player: { ...s.player, fans } })
+    const kids = magazineById('kids-comic') // circulation 120
+    // no fans: (2,400 + 0) x 50 / 100 = 1,200
+    expect(volumeCopies(s, kids, 50)).toBe(1200)
+    // 2,500 fans: (2,400 + 40 x 50) x 80 / 100 = 4,400 x 0.8 = 3,520
+    expect(volumeCopies(withFans(2500), kids, 80)).toBe(3520)
+    // 1,000 fans: 40 x sqrt(1,000) = 1,264.91; (2,400 + 1,264.91) x 0.65 = 2,382.19, rounds to 2,382
+    expect(volumeCopies(withFans(1000), kids, 65)).toBe(2382)
+    // 10,000 fans at Weekly Bolt (circulation 180): (3,600 + 40 x 100) x 70 / 100 = 7,600 x 0.7 = 5,320
+    expect(volumeCopies(withFans(10_000), magazineById('weekly-bolt'), 70)).toBe(5320)
   })
 
   it('ships a volume after the fourth result with copies from fans, circulation and popularity', () => {
@@ -537,7 +830,7 @@ describe('rules', () => {
     // first weak rank = ceil(0.7 x entrants) + 1
     const firstWeak = (entrants: number) => Math.ceil(entrants * 0.7) + 1
     expect([9, 11, 13].map(firstWeak)).toEqual([8, 9, 11])
-    let s = withStats(acceptOffer(dismissResult(strongOneShot())), 5)
+    let s = withStats(noDeadline(acceptOffer(dismissResult(strongOneShot()))), 5)
     let guard = 0
     let seen = 0
     while (s.serial && s.serial.status === 'running' && guard++ < 900) {
@@ -547,7 +840,8 @@ describe('rules', () => {
       if (ser.results.length > seen) {
         seen = ser.results.length
         const r = ser.results[seen - 1]
-        expect(ser.warnings).toBe(r.rank >= firstWeak(r.entrants) ? prev + 1 : 0)
+        // The first SERIAL_GRACE_CHAPTERS results never warn, even when weak.
+        expect(ser.warnings).toBe(seen > SERIAL_GRACE_CHAPTERS && r.rank >= firstWeak(r.entrants) ? prev + 1 : 0)
       }
     }
     expect(seen).toBeGreaterThanOrEqual(3)
@@ -555,8 +849,9 @@ describe('rules', () => {
 })
 
 describe('editor comments', () => {
-  it('names the pairing that never clicked when freshness is the weakest component', () => {
-    const s = drawUntilReady(startProject(createGame('Rin', 42), { title: 'Bad Soup', genre: 'horror', theme: 'cooking', audience: 'adults' }))
+  it('names the pairing that never clicked when freshness is the biggest loss', () => {
+    // At 90 in every stat, art, story and pacing lose little; Horror x Cooking freshness loses the most at Ultra Seinen
+    const s = drawUntilReady(startProject(withStats(createGame('Rin', 42), 90), { title: 'Bad Soup', genre: 'horror', theme: 'cooking', audience: 'adults' }))
     const { result } = evaluateProject(s, s.project!, 'ultra-seinen')
     expect(result.editorComment).toContain('Horror and Cooking')
     expect(result.editorComment).not.toContain('seen this pairing')
@@ -565,7 +860,7 @@ describe('editor comments', () => {
     expect(again.editorComment).toContain('seen this pairing')
   })
 
-  it('names both audiences when the magazine mismatch is the weakest component', () => {
+  it('names both audiences when the magazine mismatch is the biggest loss', () => {
     let s = withStats(createGame('Rin', 42), 90)
     s = drawUntilReady(startProject(s, { title: 'Case Closed', genre: 'mystery', theme: 'detective', audience: 'adults' }))
     const { result } = evaluateProject(s, s.project!, 'weekly-bolt')
