@@ -147,7 +147,8 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   not CSS `order`, drives the stacking, asserted by `src/ui/__tests__/Shell.test.tsx`, and checked by eye at 375x667.
   Below 700px (`app.css`), the Results and the wizard's title-step modal columns also stack to one column; the
   Series and Studio modals need 900px to go two-column and stack below that instead — check the real breakpoint in
-  `app.css` before assuming 700px applies to a given modal.
+  `app.css` before assuming 700px applies to a given modal. The scene's status chip (`.scene-overlay`, `stage.css`)
+  is hidden at 900px and below, since it collides with the date badge and repeats the status card's phase.
 - Display type is Silkscreen (`--font-display` titles, `--font-num` numbers) at 8/16/24/32 px; it draws every letter
   as a capital, so keep DOM text sentence case and never add `text-transform` or `letter-spacing`. Body copy and
   button labels stay Nunito 15 px. HUD badges are opaque (`--panel`).
