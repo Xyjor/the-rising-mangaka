@@ -72,4 +72,14 @@
 @media (max-width: 640px) {
   .only-phone { display: inline; }
   .not-phone { display: none; }
+
+  .top-left, .top-right { left: 8px; right: 8px; top: 8px; }
+  .top-right { left: auto; }
+  .badge-hud { padding: 4px 8px; font-size: 11px; }
+  .badge-hud.stat { min-width: 0; }
+  .speed button { min-width: 36px; }
+  .rail-log { left: 8px; bottom: 8px; }
+  .rail-settings { right: 8px; bottom: 8px; }
+  .status-card { grid-template-columns: 1fr; }
+  .status-right { order: -1; }
 }
