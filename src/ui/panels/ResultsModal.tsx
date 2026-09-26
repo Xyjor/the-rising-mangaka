@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
-import { getSound } from '../../audio/instance'
+import { getSound, holdDuck } from '../../audio/instance'
 import {
   RATING_LABEL, SERIAL_OFFER_MIN_RANK, SERIAL_OFFER_MIN_SCORE, audienceById, genreById,
   magazineById, rankTier, themeById,
@@ -66,12 +66,11 @@ export function ResultsModal() {
   // The music ducks under the reveal. The drumroll, if still rolling, stops with the modal.
   const drumroll = useRef<(() => void) | null>(null)
   useEffect(() => {
-    const sound = getSound()
-    sound.duck(0.3)
+    const release = holdDuck(0.3)
     return () => {
       drumroll.current?.()
       drumroll.current = null
-      sound.duck(1)
+      release()
     }
   }, [])
 
@@ -124,6 +123,8 @@ export function ResultsModal() {
 
   return (
     <Modal
+      wide
+      quiet
       title="Reader poll results"
       sub={`${r.title}, in ${mag.name}`}
       describedBy="result-summary"

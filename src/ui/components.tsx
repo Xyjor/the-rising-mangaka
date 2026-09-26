@@ -1,7 +1,9 @@
-import type { ReactNode } from 'react'
+import type { KeyboardEvent, ReactNode } from 'react'
 import { memo, useEffect, useId, useRef, useState } from 'react'
 import { PODIUM_RANK, RATING_LABEL, SERIAL_WARNINGS_TO_CANCEL, weakRankLine } from '../sim'
 import type { ChapterResult, Rating } from '../sim'
+import { getSound, holdDuck } from '../audio/instance'
+import { useStore } from '../state/store'
 import { Icon } from './Icon'
 
 /**
@@ -102,12 +104,22 @@ export function RatingText({ rating }: { rating: Rating | null }) {
  * the player must make (poll result, offer), so Escape and backdrop clicks do nothing and a
  * forced close (Chromium's close watcher on a second Escape) re-opens it.
  */
+export interface ModalTab { id: string; label: string; badge?: number }
+
+/** How far the music ducks under an open modal. */
+export const MODAL_DUCK = 0.6
+
 export function Modal({
-  title, sub, children, footer, onClose, narrow = false, closeLabel = 'Close', describedBy,
+  title, sub, children, footer, onClose, narrow = false, wide = false, closeLabel = 'Close', describedBy,
+  tabs, tab, onTab, quiet = false,
 }: {
   title: string; sub?: string; children: ReactNode; footer?: ReactNode
-  onClose?: () => void; narrow?: boolean; closeLabel?: string; describedBy?: string
+  onClose?: () => void; narrow?: boolean; wide?: boolean; closeLabel?: string; describedBy?: string
+  tabs?: ModalTab[]; tab?: string; onTab?: (id: string) => void
+  /** No open/close cue and no duck: for content that owns the moment (the results reveal). */
+  quiet?: boolean
 }) {
+  const readOnly = useStore((s) => s.readOnly)
   const ref = useRef<HTMLDialogElement>(null)
   const id = useId()
   useEffect(() => {
@@ -128,10 +140,45 @@ export function Modal({
     }
   }, [])
 
+  // The music ducks while the modal is open, with a paper blip on the way in and out. A read-only tab still ducks
+  // (the music is already silent there) but plays no cue, as the sound bridge does. Mount-only: `quiet` and
+  // `readOnly` are read once.
+  const quietAtMount = useRef(quiet)
+  useEffect(() => {
+    if (quietAtMount.current) return
+    const release = holdDuck(MODAL_DUCK)
+    const silent = useStore.getState().readOnly
+    if (!silent) getSound().play('open')
+    return () => {
+      release()
+      if (!silent) getSound().play('close')
+    }
+  }, [])
+
+  const tabId = (t: string) => `${id}-tab-${t}`
+  const pick = (next: string) => {
+    if (next === tab) return
+    onTab?.(next)
+    if (!readOnly) getSound().play('tab')
+  }
+  const onTabKey = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (!tabs?.length) return
+    const i = Math.max(0, tabs.findIndex((t) => t.id === tab))
+    const to = e.key === 'ArrowRight' ? (i + 1) % tabs.length
+      : e.key === 'ArrowLeft' ? (i - 1 + tabs.length) % tabs.length
+      : e.key === 'Home' ? 0
+      : e.key === 'End' ? tabs.length - 1
+      : -1
+    if (to < 0) return
+    e.preventDefault()
+    pick(tabs[to].id)
+    ref.current?.querySelector<HTMLElement>(`[id="${tabId(tabs[to].id)}"]`)?.focus()
+  }
+
   return (
     <dialog
       ref={ref}
-      className={`modal ${narrow ? 'narrow' : ''}`}
+      className={`modal${narrow ? ' narrow' : ''}${wide ? ' wide' : ''}`}
       aria-labelledby={id}
       aria-describedby={describedBy}
       tabIndex={-1}
@@ -150,13 +197,27 @@ export function Modal({
           <h2 id={id}>{title}</h2>
           {sub && <div className="small muted">{sub}</div>}
         </div>
+        {tabs && (
+          <div className="modal-tabs" role="tablist" aria-label={`${title} sections`} onKeyDown={onTabKey}>
+            {tabs.map((t) => {
+              const active = t.id === tab
+              return (
+                <button key={t.id} type="button" role="tab" id={tabId(t.id)} aria-selected={active}
+                  tabIndex={active ? 0 : -1} onClick={() => pick(t.id)}>
+                  {t.label}{t.badge ? <span className="tab-badge">{t.badge}</span> : null}
+                </button>
+              )
+            })}
+          </div>
+        )}
         {onClose && (
           <button className="btn ghost icon" onClick={onClose} aria-label={closeLabel} title={`${closeLabel} (Esc)`}>
             <Icon name="close" />
           </button>
         )}
       </div>
-      <div className="modal-body">{children}</div>
+      <div className="modal-body" role={tabs ? 'tabpanel' : undefined}
+        aria-labelledby={tabs && tab ? tabId(tab) : undefined}>{children}</div>
       {footer && <div className="modal-foot">{footer}</div>}
     </dialog>
   )
