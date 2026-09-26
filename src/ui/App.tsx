@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect } from 'react'
 import { getPhase } from '../sim'
 import { SPEED_MS, useStore } from '../state/store'
 import { EventLog } from './EventLog'
+import { useClockLoop, useClockSync } from './hooks/useClockLoop'
 import { Hud } from './Hud'
 import { TabBanner } from './TabBanner'
 import { Toasts } from './Toasts'
@@ -47,6 +48,7 @@ function useGameClock() {
     const id = window.setInterval(tick, SPEED_MS[speed])
     return () => window.clearInterval(id)
   }, [running, speed, tick])
+  useClockLoop(running, speed)
   return running
 }
 
@@ -86,6 +88,7 @@ function useHotkeys() {
 
 export function App() {
   useTheme()
+  useClockSync()
   const hasGame = useStore((s) => !!s.game)
   const modal = useStore((s) => s.modal)
   const hasResult = useStore((s) => !!s.game?.pendingResult)
