@@ -54,20 +54,6 @@
   border: 8px solid transparent; border-bottom: 0; border-top: 10px solid var(--gold);
 }
 
-/* ---------- log list ---------- */
-.log-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
-.log-list li { display: flex; gap: 10px; font-size: 13px; align-items: baseline; }
-.log-list li .day { font-size: 11px; color: var(--ink-3); flex: none; white-space: nowrap; }
-.log-list li .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ink-3); flex: none; transform: translateY(-1px); }
-.log-list li[data-kind='success'] .dot { background: var(--green); }
-.log-list li[data-kind='warn'] .dot { background: var(--accent); }
-.log-list li[data-kind='money'] .dot { background: var(--gold); }
-.log-list li[data-kind='levelup'] .dot { background: var(--purple); }
-.log-list li[data-kind='series'] .dot { background: var(--blue); }
-.log-list li[data-kind='staff'] .dot { background: var(--purple); }
-.log-list li[data-kind='trip'] .dot { background: var(--green); }
-.log-list li[data-kind='event'] .dot { background: var(--gold); }
-
 .only-phone { display: none; }
 @media (max-width: 640px) {
   .only-phone { display: inline; }

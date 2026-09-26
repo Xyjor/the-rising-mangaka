@@ -329,6 +329,27 @@
 .kbd-grid .kbd { justify-self: start; }
 @media (min-width: 480px) { .kbd-grid { grid-template-columns: auto 1fr auto 1fr; } }
 
+/* ---------- log (LogModal) ---------- */
+.log-list {
+  list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column;
+  border: 2px solid var(--line-strong); border-radius: var(--radius-s); background: var(--panel);
+}
+.log-list li {
+  display: grid; grid-template-columns: 10px auto minmax(0, 1fr); gap: 10px; align-items: center;
+  padding: 6px 10px; font-size: 13px; border-bottom: 2px solid var(--line);
+}
+.log-list li:last-child { border-bottom: 0; }
+.log-list li .day { font-family: var(--font-num); font-size: 8px; letter-spacing: 0; color: var(--ink-2); white-space: nowrap; }
+.log-list li .dot { width: 8px; height: 8px; border-radius: 0; background: var(--ink-3); }
+.log-list li[data-kind='success'] .dot { background: var(--green); }
+.log-list li[data-kind='warn'] .dot { background: var(--accent); }
+.log-list li[data-kind='money'] .dot { background: var(--gold); }
+.log-list li[data-kind='levelup'] .dot { background: var(--purple); }
+.log-list li[data-kind='series'] .dot { background: var(--blue); }
+.log-list li[data-kind='staff'] .dot { background: var(--purple); }
+.log-list li[data-kind='trip'] .dot { background: var(--green); }
+.log-list li[data-kind='event'] .dot { background: var(--gold); }
+
 /* ---------- offer ---------- */
 .offer-hero {
   padding: 18px; border-radius: var(--radius-s); border: 3px solid var(--line-strong);
