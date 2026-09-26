@@ -22,7 +22,11 @@ export interface SoundEngine {
    * mixer. A no-op while the loop plays; while it fades out after stopMusic(), a fresh loop starts from its first step.
    */
   startMusic(): void
-  /** Withdraws the wish and fades the loop out over 0.4 s. A no-op when the loop is not playing. */
+  /**
+   * Withdraws the wish and fades the loop out over 0.4 s. A no-op when the loop is not playing. In a suspended context
+   * (the window hidden) the fade finishes at once at the next tick instead of over 0.4 s, since a frozen clock would
+   * never reach it.
+   */
   stopMusic(): void
   /** Lowers the music bus to `level` (0..1) of its normal level; duck(1) restores it. */
   duck(level: number): void

@@ -115,8 +115,9 @@ function floorPlant(ctx: CanvasRenderingContext2D) {
 }
 
 /**
- * Each tier's room, drawn after the bed (which hides the doorway's foot) and before the sleeping mangaka and the Zz
- * that rise over the doorway. The doorway's warm spill at night is in `drawStudioLights`.
+ * Each tier's room, drawn after the bed (the doorway stops where the bed begins, y 66, so the two never overlap) and
+ * before the sleeping mangaka and the Zz that rise over the doorway. The doorway's warm spill at night is in
+ * `drawStudioLights`.
  */
 export const TIER_ART: Record<StudioTierId, Art> = {
   apartment: () => {},

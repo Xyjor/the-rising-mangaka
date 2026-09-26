@@ -147,6 +147,9 @@ Forecast calibration is a balance band: over year one the offer chances quoted a
   `season.ts` the window's season, `studioArt.ts` the player's studio, `paint.ts` the shared pixel helpers,
   `StudioScene.tsx` runs the frame loop).
   `panels/` are the management screens.
+- `src/audio/` — Web Audio sound, synthesised, no files (see Sound).
+- `src/platform/` — where the game runs (browser or desktop) and the only place that imports the desktop APIs;
+  `src-tauri/` is the Windows desktop shell itself (see The desktop app and save files).
 - `src/styles/` — design tokens (CSS variables), light/dark, base styles.
 
 ### Seasons
@@ -180,7 +183,8 @@ changes, so a frame never walks a list.
 - **Trophies**: one gold trophy per award on the sill, the most recent 4 (x 130-144, y 38-44).
 
 Draw order: the coffee machine and the trophies after the sill and its snow; the volumes and the reference shelf after
-the bookshelf; the tier after the bed (which hides the doorway's foot) and before the sleeping mangaka's Zz; the chair
+the bookshelf; the tier after the bed (the doorway stops where the bed begins, y 66, so the two never overlap) and
+before the sleeping mangaka's Zz; the chair
 before the mangaka at the desk, the drafting table, the lamp and the tablet after; the lamp's glow and the doorway's
 spill last, over the night overlay. Everything stays inside x 8-184 (a phone's `object-fit: cover` crops about 7 px a
 side) and off the mangaka at the desk and at the standing spot. The full scene (all of it, three assistants, winter,
@@ -404,6 +408,80 @@ On screen each award's rule is worded from its bar (`awardRule` in ui/labels.ts:
 - **Saves** from before the year end start their year on its first day (`floor(day / 336) × 336`) with the current
   money, fans, level, copies and volumes, so the first review's deltas count from loading; no reviews, no awards.
 
+### Sound
+Web Audio, synthesised: no audio files, no framework dependency (`src/audio/`). `cues.ts` holds every cue's recipe
+(every voice on the C major pentatonic scale, every cue over within a second, the drumroll within 2.4 s); `engine.ts`
+builds the mixer and the one `AudioContext` and plays them. A cue plays for most changes a player would notice:
+submitting a manuscript, a chapter result (plain, weak, or top of the poll), a level-up or milestone, a warning or
+cancellation, hiring, a trip's start or end, a random event or anime offer landing, an award, and the result
+reveal's own beats (see The results reveal). `triggers.ts` decides the cues purely from two game states, never the
+log's wording, at most two per change, so a busy tick is not noisy; a cancellation plays alone, since the warnings
+that land with it would only repeat the bad news.
+
+A light music loop (`music.ts`) plays under play: two parts (lead and bass), scheduled a look-ahead's worth of
+notes at a time from the audio clock's own time, fading in over 2 s when it starts and out over 0.4 s when it
+stops. The context is created lazily and only from a real user gesture — a browser refuses to start audio before
+one. Until the first gesture the loop is only wished for and every cue is silently skipped; `bridge.ts` listens for
+that gesture (a mouse's pointerdown, touch or pen's pointerup, or any keydown, matching the platform's own
+user-activation rules) and unlocks the context, then stops listening once it is running.
+
+Settings has Sound and Music rows: a mute button, one volume slider (its gain the slider's square, so equal steps
+sound like equal loudness steps), and a Music on/off toggle independent of mute. Other systems can duck the music
+bus to a fraction of its level and back (the results reveal ducks to 30% for as long as its modal is open). Hiding
+or minimising the window suspends the `AudioContext`: nothing plays while it is frozen, and a fade already under
+way finishes at once rather than waiting for a clock that will never move again; showing the window resumes it,
+silently (a 'pause' cue would only sound on return, so none plays for the hide or the show). A read-only tab
+(mirroring another tab's save) and the update that loads a save make no sound at all, matching the store's
+`windowHidden` and `saveLoads` guards.
+
+### The results reveal
+A poll result never simply appears: `ResultsModal.tsx` plays it out in beats, timed by a pure plan (`reveal.ts`'s
+`revealPlan`) that a real-time clock (`useReveal.ts`) drives frame by frame. In order: a drumroll leads into five
+bars growing to their component scores (art, story, pacing, audience fit, freshness), each pitched by its own
+value; the overall score counts up; the rank stamp lands; its jingle plays (`TIER_JINGLE`: a fanfare for first
+place, a rising jingle for the podium, a level jingle mid-table, a falling one for a weak result); then the reward
+tiles (payment, fans, XP) slide in one by one. Everything after the stamp — the exact rank and score, the rival's
+placement, the payout breakdown, the serial-offer line — stays in the layout but hidden until the stamp lands, so
+nothing spoils the countdown early.
+
+A pointer-down anywhere in the modal's body, or any key, skips straight to the end; reduced motion collapses the
+whole plan to instant (every beat at time 0). A gap of more than 250 ms between two animation frames
+(`MAX_FRAME_GAP`), including between mount and the first frame, means the window was hidden while the reveal ran:
+it skips too, rather than firing every missed beat in a burst once the tab is visible again. A skip, reduced
+motion, and a frame gap all still play the stamp and its jingle, just with nothing before them. The music ducks to
+30% for as long as the modal is open and returns to full when it closes; a drumroll still rolling is stopped the
+moment the stamp lands or the modal closes, whichever comes first.
+
+### The desktop app and save files
+The same build also runs as a Windows desktop app (Tauri 2, `src-tauri/`): one window around the unchanged web
+build, with a native shell wired only on desktop (`src/platform/desktop.ts`). A second launch brings the running
+window forward instead of opening another (the single-instance plugin); the window remembers its size, position,
+and whether it was maximised between runs, and on a first launch with nothing saved, a window that would not fit
+its monitor shrinks to at most 90% of the work area on each axis and opens centred in the work area with its title
+bar on screen (`src-tauri/src/fit.rs`). F11 toggles full screen. Minimising the window pauses the clock and
+suspends the sound, the same as hiding a browser tab; closing writes the save at once, leaving full screen first so
+the size remembered is the windowed one. In every production build (`npm run tauri build`, its `--debug` variant
+included), the browser engine's own shortcuts (reload, print, going back) are cancelled everywhere, text fields
+included, and its right-click menu everywhere except text fields; only `npm run tauri dev` keeps both, for
+development.
+
+**Where a career lives.** In the browser it is `localStorage` under the key `rising-mangaka-save`. In the desktop
+app that same storage lives inside the app's own WebView2 profile, under the identifier
+`com.xyjor.risingmangaka` in `%LOCALAPPDATA%`; the remembered window state is a small file under the same
+identifier in `%APPDATA%`. Only one tab or window plays at a time: a tab lock (`tabLock.ts`, browser only — the
+desktop app has a single window and disables it) lets one tab own the save and run the clock while any other
+mirrors it read-only and stays silent, with a heartbeat so a tab that closed or crashed without saying so goes
+stale and another can take over.
+
+**Save files.** A career can be written out as a `.json` file (`saveFile.ts`) and read back on any computer:
+Settings' Save file section, and the title screen before a career starts, offer Export save file and Load a save
+file. The file names itself after the pen name and the in-game date (year only after the first), carries a format
+marker and the save version, and a load is strict: text that is not valid JSON, does not carry that marker, comes
+from an older or newer save version, runs over 5,000,000 characters, or holds a game the sim cannot even advance by
+a day is refused, each refusal saying what to do next rather than only that it failed. If the game ever crashes, a
+recovery screen offers to export whatever is in storage before starting over — or, in a tab that has lost the save
+to another, only a reload, since starting over is not that tab's to do.
+
 ### Auto-pause rules
 The clock stops whenever the game needs a decision: a manuscript becomes ready, poll results arrive, a
 serialisation offer lands, a serial is cancelled (the desk empties), a trip ends, a random event lands, or an anime
@@ -421,7 +499,10 @@ running.
 2. Rival mangaka. Shipped: one named rival per world with a visible career (a magazine and series, craft growing at
    every year end) and head-to-head results in every poll they share (see Named rival).
 3. Random events with choices. Shipped: six events as desk cards (see Random events).
-4. Save slots, achievements, sound, mobile polish.
+4. Sound, mobile polish and a desktop app. Shipped in 0.1.0: synthesised sound effects and a music loop (see Sound),
+   the animated poll-result reveal (see The results reveal), the responsive phone layout, and a Windows desktop app
+   with save export and import (see The desktop app and save files). Save slots and achievements beyond the existing
+   milestones ladder are not built.
 
 ### Milestones
 A visible ladder of 18 career goals. The next unreached goal sits at the top of the desk ("Next goal") and the
@@ -537,7 +618,7 @@ Package 1 raised the starting art from 38 to 40 (story 34 and pacing 30 unchange
 Package 2 re-asserts every Package 1 row and adds its own; balance.test asserts all of them, the anime row included
 (the file runs in about 2 seconds). The square-root volume curve and the listed knobs left the sensible bot's first
 Kids Comic Go! serial a runaway hit: #1 or #2 on most chapters, 5 volumes and 30,000 to 45,000 copies in year one, S1
-¥127,356. So Package 2 moved four constants instead (the owner's ruling, "Package A"): the anime offer needs 37,000
+¥127,356. So Package 2 moved four constants instead (tuned in 0.1.0, "Package A"): the anime offer needs 37,000
 copies (was 15,000), the Golden Pen 37,000 with a near miss from 22,000 (was 20,000 and 12,000), the rival starts at
 craft 57 with a field margin of 6 (was 50 and 2), and the price scale follows S1 / 9000 within 0.75-16 (was clamped at
 4). On seeds 1–20 every row then passes: events 11.1 a year (8 to 15 per seed), the rival met on 20/20 and beaten in

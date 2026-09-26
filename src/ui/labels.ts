@@ -158,7 +158,7 @@ function sentenceEnd(text: string): string {
 }
 
 /**
- * The career screen's rival summary: 'Iori Hayama draws "Robo Pals Go!" for Kids Comic Go! Usually scores 42 to 58.
+ * The career screen's rival summary: 'Iori Hayama draws "Robo Pals Go!" for Kids Comic Go! Usually scores 49 to 65.
  * Head to head: 3 wins, 2 losses.'
  */
 export function rivalCareerLine(rival: Rival, record: { wins: number; losses: number }): string {

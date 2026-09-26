@@ -127,7 +127,10 @@ interface Loop {
 export interface MusicPlayer {
   /** Starts the loop from its first step, fading in over 2 s. A no-op while it plays; while it fades out, restarts. */
   start(): void
-  /** Fades the loop out over 0.4 s from wherever its fade is. A no-op when it is not playing. */
+  /**
+   * Fades the loop out over 0.4 s from wherever its fade is. A no-op when it is not playing. In a suspended context
+   * (its clock frozen) the fade cannot progress, so it finishes at once at the next tick instead.
+   */
   stop(): void
   /** Stops the timer. The context's owner closes the context, which silences every node. */
   dispose(): void

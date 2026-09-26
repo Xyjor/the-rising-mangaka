@@ -18,6 +18,8 @@ npm run tauri dev       # Desktop window; stop any running `npm run dev` first (
 npm run tauri build     # Windows NSIS installer, in src-tauri/target/release/bundle/nsis/
 npx tauri build --debug --no-bundle   # Debug desktop exe only (src-tauri/target/debug/rising-mangaka.exe), no installer
 cargo test --locked --lib              # In src-tauri: the Rust unit tests (the first-launch window fit)
+npm version <patch|minor|major>        # Bumps package.json, syncs src-tauri/Cargo.toml (scripts/sync-version.ts) and
+                                        # stages it; never run this here (it commits and tags)
 ```
 
 Every change must pass `npx tsc -b`, `npm test`, and `npm run build` before it is called done. Run them; do not assume.
@@ -66,8 +68,9 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   id, so a new tier or piece fails `tsc` until it is drawn, plus the volumes, anime poster, trophies and lights);
   `paint.ts` the shared pixel helpers (`rect`, `paneRect` clipped to the window pane, the pane bounds);
   `StudioScene.tsx` is the component and its frame loop, reading `studioLook` through `useShallow`),
-  `components.tsx` (Bar, Pips, Modal, RankChart, money/compact formatters), `Icon.tsx` (inline SVG icon set),
-  `SaveFileSection.tsx` and `useSaveFile.ts` (export and load, in Settings and on the title screen), and
+  `components.tsx` (Bar, Pips, Modal, RankChart), `format.ts` (money/compact/plural formatters), `Icon.tsx`
+  (inline SVG icon set), `SaveFileSection.tsx` and `useSaveFile.ts` (export and load, in Settings and on the
+  title screen), and
   `ErrorBoundary.tsx` (wraps `App` in `main.tsx`; a render crash shows a recovery screen that exports the stored save
   and starts over, or in a tab that does not own the save, reloads). Tests live in `src/ui/__tests__` and
   `src/ui/scene/__tests__`; see the UI-test docblock rule under Commands above.
