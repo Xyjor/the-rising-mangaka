@@ -60,7 +60,7 @@ function SeriesDetail({ ser }: { ser: Serial }) {
     <div className="col" style={{ gap: 16 }}>
       <div className="row between wrap">
         <div>
-          <div className="display" style={{ fontSize: 28, lineHeight: 1 }}>{ser.title}</div>
+          <div className="display series-title" style={{ lineHeight: 1 }}>{ser.title}</div>
           <div className="small muted">
             {genreById(ser.genre).name}, {themeById(ser.theme).name}, for {audienceById(ser.audience).name}. In {mag.name} since year {started.year}, month {started.month}.
           </div>

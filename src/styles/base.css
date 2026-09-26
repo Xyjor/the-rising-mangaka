@@ -248,7 +248,7 @@ p { margin: 0; }
   min-height: 32px; padding: 6px 12px; margin-bottom: -2px;
   border: 2px solid var(--line-strong); border-bottom: 0; border-radius: 4px 4px 0 0;
   background: var(--paper-3); color: var(--ink-2);
-  font-family: var(--font-display); font-size: 12px; white-space: nowrap;
+  font-family: var(--font-display); font-size: 16px; white-space: nowrap;
 }
 .modal-tabs [role='tab'][aria-selected='true'], .steps button[aria-current='step'] {
   background: var(--panel); color: var(--ink); z-index: 1;

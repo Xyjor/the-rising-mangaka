@@ -16,8 +16,9 @@
   background: repeating-linear-gradient(0deg, rgba(0,0,0,0.12) 0 2px, transparent 2px 4px);
 }
 .scene-paused span {
-  font-family: var(--font-display); font-size: 32px; letter-spacing: 0; color: #fff;
-  text-shadow: 3px 3px 0 #16161a, -1px -1px 0 #16161a, 1px -1px 0 #16161a, -1px 1px 0 #16161a;
+  font-family: var(--font-display); font-size: 32px; letter-spacing: 0; color: var(--paused-ink);
+  text-shadow: 3px 3px 0 var(--paused-shadow), -1px -1px 0 var(--paused-shadow), 1px -1px 0 var(--paused-shadow),
+    -1px 1px 0 var(--paused-shadow);
   animation: blink 1.2s steps(2) infinite;
 }
 @keyframes blink { 50% { opacity: 0.35; } }

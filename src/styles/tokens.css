@@ -13,6 +13,8 @@
   --ink-3: #66666f;
   --line: #d9d3c5;
   --line-strong: #16161a;
+  --paused-ink: #ffffff;
+  --paused-shadow: #16161a;
 
   --panel: #faf7f0;
   --bevel-light: #ffffff;
@@ -86,6 +88,8 @@
     --ink-3: #a19e97;
     --line: #33364a;
     --line-strong: #f2efe6;
+    --paused-ink: #ffffff;
+    --paused-shadow: #16161a;
     --panel: #1f2129;
     --bevel-light: #3a3d4c;
     --bevel-dark: #0c0d11;
@@ -122,6 +126,8 @@
   --ink-3: #a19e97;
   --line: #33364a;
   --line-strong: #f2efe6;
+  --paused-ink: #ffffff;
+  --paused-shadow: #16161a;
   --panel: #1f2129;
   --bevel-light: #3a3d4c;
   --bevel-dark: #0c0d11;

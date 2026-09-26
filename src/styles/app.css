@@ -158,6 +158,7 @@
    height, and its line count at 375 px, when they swap at the stamp. */
 .reveal-swap { display: grid; }
 .reveal-swap > * { grid-area: 1 / 1; }
+.hero-head h3 { font-size: 32px; }
 .rank-badge { position: relative; }
 /* Before the stamp: an empty dashed ring with a "?", no tier colour to give the rank away. */
 .result-hero[data-stamped='false'] .rank-badge {
@@ -209,6 +210,7 @@
 /* ---------- series ---------- */
 .series-grid { display: grid; grid-template-columns: 1fr; gap: 16px; align-items: start; }
 .series-table { overflow-x: auto; min-width: 0; }
+.series-title { font-size: 24px; }
 @media (min-width: 900px) {
   .series-grid { grid-template-columns: minmax(0, 55fr) minmax(0, 45fr); }
 }

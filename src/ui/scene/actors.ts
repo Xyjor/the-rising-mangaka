@@ -66,6 +66,7 @@ export function newActorTable(): ActorTable {
 
 /** Sends an actor toward a spot; an actor who is not in the room comes in through the door. */
 function send(a: Actor, spot: Spot, goal: ActorState) {
+  // An 'away' actor is always already at the door, so snapping it there again is a no-op.
   if (a.state === 'away' || a.state === 'hidden') { a.x = DOOR_SPOT.x; a.y = DOOR_SPOT.y }
   a.targetX = spot.x
   a.targetY = spot.y

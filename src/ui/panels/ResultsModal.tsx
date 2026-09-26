@@ -150,10 +150,10 @@ export function ResultsModal() {
             </div>
             <div className="col" style={{ gap: 4 }}>
               <div className="hero-head reveal-swap">
-                <h3 className="display" style={{ fontSize: 30, ...(stamped ? HIDDEN : null) }} aria-hidden={stamped || undefined}>
+                <h3 className="display" style={stamped ? HIDDEN : undefined} aria-hidden={stamped || undefined}>
                   Counting the votes
                 </h3>
-                <h3 className="display" style={{ fontSize: 30, ...(stamped ? null : HIDDEN) }} aria-hidden={!stamped || undefined}>
+                <h3 className="display" style={stamped ? undefined : HIDDEN} aria-hidden={!stamped || undefined}>
                   {headline}
                 </h3>
               </div>

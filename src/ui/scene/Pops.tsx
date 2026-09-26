@@ -1,5 +1,5 @@
 // Pop numbers: money, fans and xp float up from the mangaka when a step of play changes them.
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { JSX } from 'react'
 import type { GameState } from '../../sim'
 import { useStore } from '../../state/store'
@@ -41,10 +41,14 @@ export function Pops({ rect, anchor }: {
   rect: { width: number; height: number }; anchor: () => { x: number; y: number }
 }): JSX.Element {
   const [pops, setPops] = useState<Pop[]>([])
+  // Keep the latest `anchor` in a ref so the subscription effect below can stay [] and never re-run: a re-run would
+  // tear down its timers, which would drop pops that are still animating.
+  const anchorRef = useRef(anchor)
+  useEffect(() => { anchorRef.current = anchor })
   useEffect(() => {
     const timers = new Set<ReturnType<typeof setTimeout>>()
     const unsub = useStore.subscribe((next, prev) => {
-      const fresh = popsFor(prev, next, anchor()).map((p) => ({ ...p, id: nextId++ }))
+      const fresh = popsFor(prev, next, anchorRef.current()).map((p) => ({ ...p, id: nextId++ }))
       if (!fresh.length) return
       setPops((list) => [...list, ...fresh].slice(-POP_MAX))
       for (const p of fresh) {
@@ -56,7 +60,7 @@ export function Pops({ rect, anchor }: {
       }
     })
     return () => { unsub(); timers.forEach(clearTimeout) }
-  }, [anchor])
+  }, [])
   return (
     <>
       {pops.map((p) => {

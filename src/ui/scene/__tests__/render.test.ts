@@ -9,7 +9,7 @@ import { newActorTable } from '../actors'
 import type { Actor, ActorTable } from '../actors'
 
 /**
- * fillRect calls for one frame of the reference scene (`sceneSnapshot()`: drawing phase, working, running, speed 1,
+ * fillRect calls for one frame of the reference scene (`sceneSnapshot()`: drawing phase, working, running,
  * one assistant, spring, the bare apartment) at t = 0.3 (day, the sun up) and frame 100, re-measured for the 320x180
  * canvas (Task 2.1), then again for the actor table (Task 2.3), by rendering it into the recording context and reading
  * `log.length`: 384 (Task 2.1's 364 plus the cat asleep in its bed, 20 sprite pixels). By hand: the room 58
