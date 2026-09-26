@@ -4,9 +4,19 @@ import '../../test/dom'
 import { isBrowserShortcut, isEditableTarget } from '../keys'
 import type { KeyCombo } from '../keys'
 
-/** A key press: `key` as KeyboardEvent.key names it, plus the modifiers held (none by default). */
+/** The code a US QWERTY keyboard sends with `key` (KeyR for r, Digit0 for 0). */
+function qwertyCode(key: string): string {
+  if (/^[a-z]$/i.test(key)) return `Key${key.toUpperCase()}`
+  if (/^[0-9]$/.test(key)) return `Digit${key}`
+  return ({ ' ': 'Space', '=': 'Equal', '-': 'Minus' } as Record<string, string>)[key] ?? key
+}
+
+/**
+ * A key press: `key` as KeyboardEvent.key names it, the QWERTY code for it unless `mods` gives another, plus the
+ * modifiers held (none by default).
+ */
 function press(key: string, mods: Partial<Omit<KeyCombo, 'key'>> = {}): KeyCombo {
-  return { key, ctrlKey: false, shiftKey: false, altKey: false, metaKey: false, ...mods }
+  return { key, code: qwertyCode(key), ctrlKey: false, shiftKey: false, altKey: false, metaKey: false, ...mods }
 }
 
 describe('isBrowserShortcut', () => {
@@ -53,6 +63,32 @@ describe('isBrowserShortcut', () => {
     ['Ctrl+0', press('0', { ctrlKey: true })],
   ])('is false for %s', (_name, combo) => {
     expect(isBrowserShortcut(combo)).toBe(false)
+  })
+})
+
+describe('isBrowserShortcut on other keyboard layouts', () => {
+  // The browser engine reads the Windows virtual key: on a Cyrillic or Greek layout that follows the QWERTY position
+  // (the code), on Dvorak it follows the letter typed (the key).
+  it('is true for Ctrl and the R key on a Cyrillic layout, where it types к', () => {
+    expect(isBrowserShortcut(press('к', { ctrlKey: true, code: 'KeyR' }))).toBe(true)
+  })
+
+  it('is true for Ctrl and the P key on a Greek layout, where it types π', () => {
+    expect(isBrowserShortcut(press('π', { ctrlKey: true, code: 'KeyP' }))).toBe(true)
+  })
+
+  it('is true for Ctrl+R when the key and the code agree', () => {
+    expect(isBrowserShortcut(press('r', { ctrlKey: true, code: 'KeyR' }))).toBe(true)
+  })
+
+  it('is true for Ctrl+R on Dvorak, where r sits on the O key', () => {
+    expect(isBrowserShortcut(press('r', { ctrlKey: true, code: 'KeyO' }))).toBe(true)
+  })
+
+  it('is false for Ctrl+C by code, by a Cyrillic с on the C key, and by Dvorak c on the I key', () => {
+    expect(isBrowserShortcut(press('c', { ctrlKey: true, code: 'KeyC' }))).toBe(false)
+    expect(isBrowserShortcut(press('с', { ctrlKey: true, code: 'KeyC' }))).toBe(false)
+    expect(isBrowserShortcut(press('c', { ctrlKey: true, code: 'KeyI' }))).toBe(false)
   })
 })
 

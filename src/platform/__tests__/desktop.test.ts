@@ -83,6 +83,7 @@ beforeEach(() => {
 })
 afterEach(() => {
   uninstall()
+  vi.restoreAllMocks()
   installSound(nullEngine)
   document.body.innerHTML = ''
 })
@@ -121,13 +122,36 @@ describe('installDesktopShell', () => {
     expect(win.fullscreen).toBe(false)
   })
 
-  it('still lets the window close when leaving full screen fails', async () => {
+  it('still lets the window close when leaving full screen fails, and says so in the console', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     uninstall = await installDesktopShell(win, true)
     win.isFullscreen = async () => {
       throw new Error('not allowed')
     }
     // Tauri destroys the window only when the handler settles without throwing.
     await expect(win.requestClose()).resolves.toBeUndefined()
+    expect(warn).toHaveBeenCalledTimes(1)
+  })
+
+  it('warns, and leaves the store alone, when the minimised check fails', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    uninstall = await installDesktopShell(win, true)
+    win.isMinimized = async () => {
+      throw new Error('window gone')
+    }
+    win.resize()
+    await vi.waitFor(() => expect(warn).toHaveBeenCalledTimes(1))
+    expect(st().windowHidden).toBe(false)
+  })
+
+  it('warns when F11 cannot change full screen', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    uninstall = await installDesktopShell(win, true)
+    win.setFullscreen = async () => {
+      throw new Error('not allowed')
+    }
+    keyBlocked('F11')
+    await vi.waitFor(() => expect(warn).toHaveBeenCalledTimes(1))
   })
 
   it('F11 toggles full screen, in debug builds too, and the browser never sees it', async () => {
@@ -154,7 +178,9 @@ describe('installDesktopShell', () => {
     expect(keyBlocked('r', { ctrlKey: true })).toBe(true)
     expect(keyBlocked('p', { ctrlKey: true }, input)).toBe(true)
     expect(keyBlocked('ArrowLeft', { altKey: true })).toBe(true)
-    expect(keyBlocked('c', { ctrlKey: true }, input)).toBe(false)
+    // Ctrl+R on a Cyrillic layout: the key types к, the code is still the R key's.
+    expect(keyBlocked('к', { ctrlKey: true, code: 'KeyR' })).toBe(true)
+    expect(keyBlocked('c', { ctrlKey: true, code: 'KeyC' }, input)).toBe(false)
     expect(keyBlocked('r')).toBe(false)
     expect(keyBlocked(' ')).toBe(false)
     expect(keyBlocked('Escape')).toBe(false)

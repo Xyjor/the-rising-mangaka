@@ -3,6 +3,8 @@
 /** The part of a KeyboardEvent the checks read. */
 export interface KeyCombo {
   readonly key: string
+  /** The physical key (KeyR), whatever the layout types on it. */
+  readonly code: string
   readonly ctrlKey: boolean
   readonly shiftKey: boolean
   readonly altKey: boolean
@@ -13,15 +15,23 @@ export interface KeyCombo {
 const BROWSER_KEYS = new Set(['F3', 'F5', 'F7', 'BrowserBack', 'BrowserForward', 'BrowserRefresh'])
 /** With Ctrl (Cmd on a Mac), Shift or not: reload, print, save page, view source, find and find next. */
 const BROWSER_LETTERS = new Set(['r', 'p', 's', 'u', 'f', 'g'])
+/** The same letters' physical keys. */
+const BROWSER_LETTER_CODES = new Set([...BROWSER_LETTERS].map((l) => `Key${l.toUpperCase()}`))
 
 /**
  * True for a key the browser engine would act on, reloading, printing, navigating or opening one of its own bars, which
  * a game window should not do. Editing keys (Ctrl+C, Ctrl+V, Ctrl+A), zoom (Ctrl+=, Ctrl+-, Ctrl+0), the game's own
  * letter keys and F11 are not.
+ *
+ * The engine reads the Windows virtual key, which follows the physical key on a Cyrillic or Greek layout (Ctrl and the
+ * R key reload though the key types к) and the letter typed on Dvorak (r sits on the O key), so a letter counts by its
+ * code or by its key.
  */
 export function isBrowserShortcut(e: KeyCombo): boolean {
   if (BROWSER_KEYS.has(e.key)) return true
-  if ((e.ctrlKey || e.metaKey) && !e.altKey && BROWSER_LETTERS.has(e.key.toLowerCase())) return true
+  if ((e.ctrlKey || e.metaKey) && !e.altKey) {
+    return BROWSER_LETTER_CODES.has(e.code) || BROWSER_LETTERS.has(e.key.toLowerCase())
+  }
   return e.altKey && !e.ctrlKey && !e.metaKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')
 }
 

@@ -17,6 +17,7 @@ npm run balance -- [from=1] [to=20] [--detail seed]   # Balance bots (src/sim/bo
 npm run tauri dev       # Desktop window; stop any running `npm run dev` first (it starts its own, strict port 5173)
 npm run tauri build     # Windows NSIS installer, in src-tauri/target/release/bundle/nsis/
 npx tauri build --debug --no-bundle   # Debug desktop exe only (src-tauri/target/debug/rising-mangaka.exe), no installer
+cargo test --locked --lib              # In src-tauri: the Rust unit tests (the first-launch window fit)
 ```
 
 Every change must pass `npx tsc -b`, `npm test`, and `npm run build` before it is called done. Run them; do not assume.
@@ -52,8 +53,9 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   `music.ts` is the music loop (its score and look-ahead scheduler; the engine starts it on unlock when asked for
   before, and each start plays through its own fade gain), `triggers.ts` maps a state change to cues, `instance.ts`
   holds the one shared engine (`getSound`/`installSound`), and `bridge.ts` `connectSound` (wired in `main.tsx`) makes
-  it follow the store: prefs, music, cues (never in a read-only tab or for a loaded save, via the store's `saveLoads`),
-  and the gestures that unlock it, until the context runs.
+  it follow the store: prefs, music, cues (never in a read-only tab, never for a loaded save, via the store's
+  `saveLoads`, and never while the window is hidden, via `windowHidden`), and the gestures that unlock it, until the
+  context runs.
 - `src/ui/` — React 19 components. `App.tsx` (shell, clock, hotkeys), `Hud.tsx`, `panels/*` (modals and the desk
   panel), `scene/` (pixel-art canvas, 192×108 logical pixels: `render.ts` holds the palettes, string-map sprites
   and `render`, one frame painted from a `Snapshot` with nothing allocated per frame; `season.ts` has `seasonOf(day)`
@@ -65,9 +67,10 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   live in `src/ui/__tests__` and `src/ui/scene/__tests__`; see the UI-test docblock rule under Commands above.
 - `src/platform/` — where the game runs, and the only place that imports `@tauri-apps/*`. `env.ts` `isDesktop()`
   (reads `globalThis.isTauri`, no Tauri import), `keys.ts` (`isBrowserShortcut`, `isEditableTarget`), `desktop.ts`
-  `installDesktopShell` (save on close, F11 full screen, minimise pauses, release builds cancel browser shortcuts and
-  the context menu outside text fields), loaded by `main.tsx` with a dynamic import on desktop only, so the browser's
-  main chunk carries no Tauri code. Tests in `src/platform/__tests__`.
+  `installDesktopShell` (save on close, F11 full screen, minimise pauses; in a production build, which every
+  `tauri build` is, `--debug` too, the browser engine's shortcuts are cancelled everywhere, text fields included, and
+  its context menu everywhere except text fields; only `npm run tauri dev` keeps both), loaded by `main.tsx` with a
+  dynamic import on desktop only, so the browser's main chunk carries no Tauri code. Tests in `src/platform/__tests__`.
 - `src/test/` — shared test-only helpers: `dom.ts` (happy-dom setup, imported for side effects), `fixtures.ts`
   (game-state builders such as `withPendingResult`, shared across UI test files), `fakeSound.ts` (a recording
   sound engine for `connectSound` or `installSound`) and `fakeCanvas.ts` (a recording 2D context that logs each
@@ -78,7 +81,8 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   version from `package.json`; `capabilities/default.json`: window `main`, `core:default` plus
   `core:window:allow-set-fullscreen` and `core:window:allow-destroy`; crates pinned to `"2"`). `src/lib.rs` registers
   the single-instance plugin first (a second launch focuses the window), window-state (size, position, maximised)
-  and `fit_to_work_area` (a default window too big for its screen shrinks to 90% of the work area).
+  and `fit.rs` (on a first launch, with no saved window, a window too big for its monitor shrinks to at most 90% of
+  the work area on each axis, and the window is centred in the work area with its title bar on screen).
   Never change `identifier` `com.xyjor.risingmangaka` or set `useHttpsScheme`: either one loses every save.
 
 ## Conventions
