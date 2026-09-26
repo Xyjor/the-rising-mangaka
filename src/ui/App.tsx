@@ -79,6 +79,7 @@ function useHotkeys() {
         case 'h': st.openModal('history'); break
         case 'a': st.openModal('staff'); break
         case 't': st.openModal('trips'); break
+        case 'l': st.openModal('log'); break
         case 'w': if (!trip && phase === 'drawing') st.setActivity('work'); break
         case 'r': if (canPickActivity) st.setActivity('rest'); break
         case 'j': if (canPickActivity) st.setActivity('job'); break
