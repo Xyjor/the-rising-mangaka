@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { getSound } from '../../audio/instance'
 import { useShallow } from 'zustand/react/shallow'
 import { getPhase, placeById, studioLook } from '../../sim'
@@ -10,7 +10,11 @@ import { anyWalking, newActorTable, planActors, settleActors, stepActors } from 
 import { H, W, render } from './render'
 import type { Snapshot } from './render'
 import { seasonOf } from './season'
-import { PROP_FOR, visitorReasonOf } from './visitor'
+import { GREETING, PROP_FOR, visitorReasonOf } from './visitor'
+import { BUBBLE_MS, Bubble } from './Bubble'
+import { sceneToCss, useSceneRect } from './sceneAnchor'
+import '../../styles/scene.css'
+import type { Actor } from './actors'
 import { NO_EQUIPMENT, SHOWN_TROPHIES, ownedFlags } from './studioArt'
 
 /** Frame budget in ms: 24 fps for the 320x180 sprite scene. */
@@ -26,8 +30,26 @@ const NO_LOOK: StudioLook = {
   tier: 'apartment', desks: 1, equipment: EMPTY, volumes: 0, animePoster: false, trophies: EMPTY,
 }
 
+/** A bubble sits just above an actor's head. */
+function placeBubble(el: HTMLDivElement | null, rect: { width: number; height: number }, a: Actor) {
+  if (!el) return
+  const p = sceneToCss(rect, a.x + 6, a.y - 2)
+  el.style.left = `${p.left}px`
+  el.style.top = `${p.top}px`
+}
+
+const lastLogId = (g: { log: readonly { id: number }[] } | null) => (g && g.log.length ? g.log[g.log.length - 1].id : -1)
+
 export function StudioScene({ running }: { running: boolean }) {
   const ref = useRef<HTMLCanvasElement>(null)
+  const wrapRef = useRef<HTMLDivElement>(null)
+  const rect = useSceneRect(wrapRef)
+  const rectRef = useRef(rect)
+  const mangakaBubble = useRef<HTMLDivElement>(null)
+  const editorBubble = useRef<HTMLDivElement>(null)
+  // bubble creation and removal is React state; their positions are written straight to the DOM after each frame
+  const [line, setLine] = useState<{ id: number; text: string } | null>(null)
+  const [greeting, setGreeting] = useState<string | null>(null)
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null)
   const frame = useRef(0)
   const reduceMotion = useRef(false)
@@ -46,8 +68,14 @@ export function StudioScene({ running }: { running: boolean }) {
     stepActors(actors, dtMs, reduced)
     if (before !== 'standing' && actors.editor.state === 'standing') {
       const st = useStore.getState()
+      const why = visitorReasonOf(st.game)
+      if (why !== 'none') setGreeting(GREETING[why])
       if (!st.readOnly && !st.windowHidden) getSound().play('knock')
     }
+  }, [actors])
+  const placeBubbles = useCallback(() => {
+    placeBubble(mangakaBubble.current, rectRef.current, actors.mangaka)
+    placeBubble(editorBubble.current, rectRef.current, actors.editor)
   }, [actors])
 
   const phase = useStore((s) => (s.game ? getPhase(s.game) : 'idle'))
@@ -83,11 +111,45 @@ export function StudioScene({ running }: { running: boolean }) {
       advance(0, true)
       const t = useClock.getState().t
       render(ctxRef.current, snap.current, t, 0)
+      placeBubbles()
       lastT.current = t
       lastFrame.current = 0
       lastSnap.current = snap.current
     }
-  }, [actors, advance, phase, activity, progress, stamina, running, trip, assistants, season, look, reason])
+  }, [actors, advance, placeBubbles, phase, activity, progress, stamina, running, trip, assistants, season, look, reason])
+
+  // A new daily line (info, not a toast, today, not from a loaded save) is said by the mangaka, when they are home.
+  useEffect(() => {
+    let seen = lastLogId(useStore.getState().game)
+    let loads = useStore.getState().saveLoads
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const unsub = useStore.subscribe((st) => {
+      // the editor's greeting lasts as long as the visit
+      if (visitorReasonOf(st.game) === 'none') setGreeting(null)
+      const id = lastLogId(st.game)
+      const loaded = st.saveLoads !== loads
+      if (id === seen && !loaded) return
+      seen = id
+      loads = st.saveLoads
+      const g = st.game
+      if (loaded || !g || id < 0) return
+      const e = g.log[g.log.length - 1]
+      const m = actors.mangaka
+      const absent = !!g.trip || g.activity === 'job' ||
+        m.state === 'away' || m.state === 'hidden' || m.goal === 'away' || m.goal === 'hidden'
+      if (e.kind !== 'info' || e.toast || e.day !== g.day || absent) return
+      clearTimeout(timer)
+      setLine({ id: e.id, text: e.text })
+      timer = setTimeout(() => setLine(null), BUBBLE_MS)
+    })
+    return () => { unsub(); clearTimeout(timer) }
+  }, [actors])
+
+  // placed at once when a bubble appears or the wrap resizes, then after every painted frame
+  useLayoutEffect(() => {
+    rectRef.current = rect
+    placeBubbles()
+  }, [placeBubbles, rect, line, greeting])
 
   // On mount and on a loaded save everyone is simply in place: nobody walks in. (After the plan above: effects run in
   // order.) The repaint follows on the loop's next step, which sees the changed actors through lastSnap being reset.
@@ -124,6 +186,7 @@ export function StudioScene({ running }: { running: boolean }) {
       const f = reduce ? 0 : Math.floor(frame.current)
       if (moving || t !== lastT.current || f !== lastFrame.current || s !== lastSnap.current) {
         render(ctx, s, t, f)
+        placeBubbles()
         lastT.current = t
         lastFrame.current = f
         lastSnap.current = s
@@ -146,7 +209,7 @@ export function StudioScene({ running }: { running: boolean }) {
       document.removeEventListener('visibilitychange', start)
       ctxRef.current = null
     }
-  }, [actors, advance])
+  }, [actors, advance, placeBubbles])
 
   const status =
     trip ? `Away at the ${placeById(trip.placeId).name}` :
@@ -158,11 +221,13 @@ export function StudioScene({ running }: { running: boolean }) {
   const showPaused = !running && (phase === 'drawing' || phase === 'submitted' || activity === 'job' || !!trip)
 
   return (
-    <div className="scene-wrap" role="group" aria-label="Studio">
+    <div ref={wrapRef} className="scene-wrap" role="group" aria-label="Studio">
       <canvas ref={ref} width={W} height={H} role="img" aria-label="Pixel-art studio scene" />
       <div className="scene-overlay">
         <span className="chip">{status}</span>
       </div>
+      {line && <Bubble key={line.id} ref={mangakaBubble} who="mangaka" text={line.text} />}
+      {greeting && <Bubble ref={editorBubble} who="editor" text={greeting} />}
       {showPaused && (
         <div className="scene-paused" aria-hidden="true"><span>Paused</span></div>
       )}
