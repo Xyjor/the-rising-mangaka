@@ -167,15 +167,27 @@ changes no rule.
 - **Autumn**: a rust canopy and 12 leaves swaying as they fall.
 - **Winter**: a bare branch capped with snow, 16 snowflakes and snow on the sill.
 
-Everything but the sill's snow stays inside the pane (x 118-161, y 12-43), behind the window bars; the fireflies, drawn
-over the night, keep off the bars (rows 18-25 and 29-36, never columns 139-140). The sun and the clouds are clipped to
-the pane too, so a cloud slides out behind the frame. The particles and the clouds move with the scene's frame, so they
-hold still under reduced motion (the cloud whole at the pane's left edge).
+Everything but the sill's snow stays inside the pane (room x 118-161, y 12-43; canvas x 182-225, y 48-79), behind the
+window bars; the fireflies, drawn over the night, keep off the bars (canvas rows 54-61 and 65-72, never columns
+203-204). The sun and the clouds are clipped to the pane too, so a cloud slides out behind the frame. The particles and
+the clouds move with the scene's frame, so they hold still under reduced motion (the cloud whole at the pane's left
+edge).
 
 ### The studio in the scene
-The scene draws what `studioLook` says the player has built (`studioArt.ts`). It is decoration only; the Studio panel
-states every effect. `StudioScene` reads the look through `useShallow` and turns it into flags and counts when it
-changes, so a frame never walks a list.
+The scene is a 320x180 canvas (`src/ui/scene/render.ts`), painted at 24 fps (`StudioScene.tsx`'s `STEP_MS` 41; the
+animation frame counter advances +2.5 a step while the clock runs, +1.25 while paused, so idle scenes still breathe).
+Lighting comes from the presentation clock's `t` (`useClock`), night when `t > 0.72 || t < 0.06`; the scene keeps
+animating behind modals (their backdrop is translucent) and only sleeps when the document tab itself is hidden.
+
+Two coordinate spaces meet in `paint.ts`: room space is the original 192x108 layout (every furniture, window and
+studio-art literal), offset by `OX 64, OY 36` into canvas space by `rect`; `rawRect` paints straight in canvas space
+for the wall, the floor, the kitchenette, the entrance and the door, none of which existed in the old room. The wall
+band runs canvas y 0-113 (27 stripes, a 2px skirting at y 112-113) and the floor y 114-179 (20 plank seams, 8 plank
+rows). The kitchenette sits on the left wall at canvas x 2-61, y 56-113. The front door is a fixed frame on the right
+wall, canvas x 258-274, y 56-113: a plain two-panel door in the apartment, a lit indigo-noren doorway in the flat and
+the loft, spilling warm light at night. Beside it, the entrance holds a doormat and a coat rack (the mangaka's coat
+hangs there only while they are out). The whole scene is drawn for a phone's `object-fit: cover` crop of canvas x
+24-296; the studio-art regions below stay inside it and off the actors' spots.
 - **Tiers.** The studio flat opens a lit doorway in the right wall with an indigo noren (x 168-184, from y 20 down to
   the bed), which spills warm light at night. The loft keeps the doorway and adds a potted plant on the sill (x 150-155)
   and a tall one on the floor in front of the bed (x 172-184, y 80-105).
@@ -190,11 +202,43 @@ changes, so a frame never walks a list.
 
 Draw order: the coffee machine and the trophies after the sill and its snow; the volumes and the reference shelf after
 the bookshelf; the tier after the bed (the doorway stops where the bed begins, y 66, so the two never overlap) and
-before the sleeping mangaka's Zz; the chair
-before the mangaka at the desk, the drafting table, the lamp and the tablet after; the lamp's glow and the doorway's
-spill last, over the night overlay. Everything stays inside x 8-184 (a phone's `object-fit: cover` crops about 7 px a
-side) and off the mangaka at the desk and at the standing spot. The full scene (all of it, three assistants, winter,
-night) paints 615 rects against 499 without the studio; the budget is 1.5 x 499.
+before the sleeping mangaka's Zz; the chair before the mangaka at the desk, the drafting table, the lamp and the tablet
+after; the lamp's glow and the doorway's spill last, over the night overlay. Everything stays off the mangaka at the
+desk and at the standing spot.
+
+**The cast** (`actors.ts`) is a table of actors (the mangaka, three assistant slots, the editor, the cat), each with a
+position, a target, a facing, a current and a goal pose, and which axis it walks first (`legs`, `'xy'` or the cat's
+`'yx'`, kitchen trips going vertical first). `planActors` reads the game each frame and sets targets and goals from
+seven fixed spots (the mangaka's seat, standing spot and bed; the door; the editor's spot; the cat's bed and its
+kitchen spot); `stepActors` walks everyone toward them at `WALK_PX_PER_S` 40, one axis then the other; `settleActors`
+puts everyone in place at once, used on mount and on a loaded save so nobody walks in from off-screen. The assistants
+never walk: they are placed straight into their seat, seated or asleep, and while working each draws its own page
+(3 fills) with a couple of ink lines.
+
+**The editor's visit** (`visitor.ts`, `useArrival`) picks the one reason they are at the desk, in priority order:
+a pending chapter result, a pending offer, the project ready to submit, an anime offer, a random event, then an
+unread year review; each reason has its own carried prop (envelope, letter, contract or trophy) and greeting line.
+The walk from the door to the editor's spot is `EDITOR_WALK_MS` 1400, derived from the door-to-spot distance at 40
+px/s; `StudioScene` plays the `knock` cue the moment the editor's state becomes `'standing'` after actually walking
+there (never on a settle, and never in a read-only tab or while the window is hidden), and `useArrival` gates a
+pending result's or offer's own card mount on that same delay (at once under reduced motion, or when it was already
+pending on mount).
+
+The wall clock's hands lap the visual week (8 times an hour hand, twice a minute hand) from the presentation clock;
+the plant sways every 30 frames; the cat has two spots (asleep in its bed, or sitting in the kitchen while everyone
+rests).
+
+**Bubbles and pops** are DOM overlays, not canvas drawing, placed with `sceneAnchor.ts`'s `sceneToCss` (the same
+cover-fit scale and centred overflow as the canvas). A `Bubble` (`Bubble.tsx`, styled by `scene.css`, using design
+tokens) shows the mangaka's latest daily log line for `BUBBLE_MS` 4000, or the editor's greeting while they are
+visiting. `Pops.tsx` floats money, fans and xp numbers up from the mangaka (or the desk when they are out of sight)
+for `POP_MS` 1200 each, capped at `POP_MAX` 6 on screen, guarded against a save load, a seed change or a multi-day
+jump so a pop never fires from anything but one step of play.
+
+The scene's fillRect budget is measured, not guessed: the one-assistant reference frame is a baseline of 444 calls
+(`render.test.ts`), and the full scene (three assistants, every piece of equipment, the loft, winter, night, the
+editor visiting) a baseline of 637 (`studioArt.test.ts`); every render must stay under 1.5x its own baseline (666 and
+955.5), so a new sprite or a new studio piece fails its test the moment it pushes the frame past budget.
 
 ## Systems beyond the slice (implemented)
 

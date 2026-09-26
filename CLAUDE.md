@@ -66,13 +66,22 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   `saveLoads`, and never while the window is hidden, via `windowHidden`), and the gestures that unlock it, until the
   context runs.
 - `src/ui/` — React 19 components. `App.tsx` (shell, clock, hotkeys), `hud/` (the corner overlays and rail:
-  `TopLeft`, `TopRight`, `Rail`, `StatusCard`, `statusParts`, `DeskTray`), `hooks/` (`useClockLoop`, `useRolledNumber`),
-  `panels/*` (modals, including `LogModal`, the desk panel), `scene/` (pixel-art canvas, 192×108 logical pixels: `render.ts` holds the palettes, string-map sprites
-  and `render`, one frame painted from a `Snapshot` with nothing allocated per frame; `season.ts` has `seasonOf(day)`
-  and the window's season layer; `studioArt.ts` the player's studio (`TIER_ART` and `EQUIPMENT_ART` records keyed by
-  id, so a new tier or piece fails `tsc` until it is drawn, plus the volumes, anime poster, trophies and lights);
-  `paint.ts` the shared pixel helpers (`rect`, `paneRect` clipped to the window pane, the pane bounds);
-  `StudioScene.tsx` is the component and its frame loop, reading `studioLook` through `useShallow`),
+  `TopLeft`, `TopRight`, `Rail`, `StatusCard`, `statusParts`, `DeskTray`), `hooks/` (`useClockLoop`, `useRolledNumber`,
+  `useArrival`, the editor's walk-in delay before a pending card mounts), `panels/*` (modals, including `LogModal`, the
+  desk panel), `scene/` (pixel-art canvas, 320×180: two coordinate spaces meet in `paint.ts` (room space, the old
+  192×108 layout, offset by `OX 64, OY 36` into canvas space by `rect`; `rawRect` for the wall, floor, kitchenette,
+  entrance and door, drawn straight in canvas space) and its `PANE_X/Y/W/H`/`BAR_X` and `paneRect` clipped to the
+  window pane; `render.ts` holds the palettes, string-map sprites and `render`, one frame painted from a `Snapshot`
+  with nothing allocated per frame; `season.ts` has `seasonOf(day)` and the window's season layer; `studioArt.ts` the
+  player's studio (`TIER_ART` and `EQUIPMENT_ART` records keyed by id, so a new tier or piece fails `tsc` until it is
+  drawn, plus the kitchenette, the entrance, the volumes, anime poster, trophies and lights); `actors.ts` the cast as a
+  table of actors (position, target, facing, pose, which axis it walks first) driven by `planActors`/`stepActors`/
+  `settleActors` at `WALK_PX_PER_S`; `visitor.ts` the editor's reason for visiting, its prop and its greeting, plus
+  `EDITOR_WALK_MS`; `sceneAnchor.ts` `sceneToCss` mapping scene pixels to the canvas's cover-fit CSS box; `Bubble.tsx`
+  and `Pops.tsx` the DOM speech bubbles and floating money/fans/xp numbers, styled by `scene.css`;
+  `StudioScene.tsx` is the component and its 24 fps frame loop (reading `studioLook` through `useShallow`, lighting
+  from the presentation clock, playing the `knock` and `pop` cues); every render is checked against a hand-measured
+  fillRect baseline (`render.test.ts`, `studioArt.test.ts`) and must stay under 1.5x it),
   `components.tsx` (Bar, Pips, Modal, RankChart), `format.ts` (money/compact/plural formatters), `Icon.tsx`
   (inline SVG icon set), `SaveFileSection.tsx` and `useSaveFile.ts` (export and load, in Settings and on the
   title screen), and
