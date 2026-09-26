@@ -60,15 +60,18 @@
 /* ---------- wizard ---------- */
 .wizard { display: block; }
 .wizard .choice-grid { max-width: 760px; }
+/* The steps are a tab strip across the top of the body (their tab look is shared with .modal-tabs in base.css). */
 .steps { display: flex; gap: 6px; list-style: none; padding: 0; margin: 0 0 14px; }
-.steps button {
-  flex: 1; min-height: 36px; padding: 6px; border-radius: 8px; border: 2px solid var(--line); background: var(--paper);
-  font-size: 12px; font-weight: 800; color: var(--ink-3);
+.wizard .steps {
+  display: flex; gap: 4px; margin: -18px -18px 16px; padding: 8px 12px 0;
+  background: var(--paper-2); border-bottom: 2px solid var(--line-strong); overflow-x: auto;
 }
-.steps button[aria-current='step'] { border-color: var(--ink); color: var(--ink); background: var(--paper-2); }
-.steps button[data-done='true'] { color: var(--green); border-color: var(--green); }
+.steps button[data-done='true'] { color: var(--green-text); border-color: var(--green); }
 .steps button[aria-disabled='true'] { opacity: 0.55; cursor: default; }
-.steps button .pick { display: block; font-size: 11px; font-weight: 700; color: var(--ink-2); }
+.steps button .pick { display: block; font-family: var(--font-ui); font-size: 11px; font-weight: 700; color: var(--ink-2); }
+/* The title step: the title field on the left, what you know about the pairing on the right. */
+.title-step { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 18px; align-items: start; }
+@media (max-width: 699.98px) { .title-step { grid-template-columns: 1fr; } }
 .know { display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
 .know .k { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .know .k .l { color: var(--ink-2); font-weight: 700; }
