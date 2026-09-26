@@ -450,5 +450,8 @@
   font-size: 13px; font-weight: 700;
 }
 
+/* On the title screen the banner sits inside the card, so it gets a full border rather than a bottom rule. */
+.title-card .tab-banner { flex-wrap: wrap; border: 2px solid var(--gold); border-radius: var(--radius-m); }
+
 /* The banner is a fourth grid child of .app; give it its own row so hud, main and log keep theirs. */
 .app:has(> .tab-banner) { grid-template-rows: auto auto 1fr auto; }

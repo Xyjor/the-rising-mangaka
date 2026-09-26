@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { addLog, createGame, tickMany } from '../../sim'
 import type { GameState } from '../../sim'
@@ -196,6 +198,17 @@ describe('saveFileName', () => {
     expect(saveFileName('  Rin   Hoshino  ', 56)).toBe('rising-mangaka-rin-hoshino-month-3.json')
     expect(saveFileName("O'Brien #1", 0)).toBe('rising-mangaka-obrien-1-month-1.json')
     expect(saveFileName('星野', 0)).toBe('rising-mangaka-save-month-1.json')
+  })
+
+  it('drops accents whether the name arrives composed or already decomposed', () => {
+    expect(saveFileName('Zoë Núñez', 0)).toBe('rising-mangaka-zoe-nunez-month-1.json')
+    expect(saveFileName('E\u0301lodie', 0)).toBe('rising-mangaka-elodie-month-1.json')
+  })
+
+  it('keeps its own source free of invisible marks: the accent pattern is written as an escape', () => {
+    const source = readFileSync(fileURLToPath(new URL('../saveFile.ts', import.meta.url)), 'utf8')
+    expect(source).toContain(String.raw`/\p{M}/gu`)
+    expect([...source].filter((c) => /\p{M}/u.test(c))).toEqual([])
   })
 })
 

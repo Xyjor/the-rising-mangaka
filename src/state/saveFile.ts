@@ -111,7 +111,7 @@ export function parseSave(text: string): ParsedSave {
 function slug(name: string): string {
   const s = name
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
+    .replace(/\p{M}/gu, '')
     .toLowerCase()
     .trim()
     .replace(/\s+/g, '-')

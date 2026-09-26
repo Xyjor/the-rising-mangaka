@@ -7,6 +7,7 @@ import { createGame } from '../../sim'
 import type { GameState } from '../../sim'
 import { parseSave, serializeSave } from '../../state/saveFile'
 import { useStore } from '../../state/store'
+import { OWNER_KEY } from '../../state/tabLock'
 import { SaveFileSection } from '../SaveFileSection'
 
 // The file dialogs are replaced: each test says what the player saves or picks.
@@ -34,6 +35,7 @@ beforeEach(() => {
 })
 afterEach(() => {
   delete g.isTauri
+  localStorage.removeItem(OWNER_KEY)
   vi.clearAllMocks()
 })
 
@@ -157,6 +159,36 @@ describe('Load save file', () => {
     expect((screen.getByRole('button', { name: 'Load save file…' }) as HTMLButtonElement).disabled).toBe(true)
     expect(screen.getByText('Take over this tab to load a save.')).toBeTruthy()
     expect((screen.getByRole('button', { name: 'Export save file' }) as HTMLButtonElement).disabled).toBe(false)
+  })
+
+  it('turns Load this save off, and says how to load, if the tab turns read-only while it waits', async () => {
+    vi.mocked(importSave).mockResolvedValue(fileText(other))
+    render(<SaveFileSection />)
+    await clickAndSettle('Load save file…')
+    act(() => useStore.setState({ readOnly: true, speed: 0 }))
+
+    expect((screen.getByRole('button', { name: 'Load this save' }) as HTMLButtonElement).disabled).toBe(true)
+    expect(screen.getByText('Take over this tab to load a save.')).toBeTruthy()
+
+    // Taking over again turns it back on.
+    act(() => useStore.setState({ readOnly: false }))
+    expect((screen.getByRole('button', { name: 'Load this save' }) as HTMLButtonElement).disabled).toBe(false)
+  })
+
+  it('says to take over when the store refuses the load, once, even after the tab turns read-only', async () => {
+    vi.mocked(importSave).mockResolvedValue(fileText(other))
+    render(<SaveFileSection />)
+    await clickAndSettle('Load save file…')
+    // Another tab claims the save before this tab's heartbeat has noticed: the button is on, the store says no.
+    localStorage.setItem(OWNER_KEY, JSON.stringify({ tabId: 'the-other-tab', at: Date.now() }))
+    fireEvent.click(screen.getByRole('button', { name: 'Load this save' }))
+
+    expect(st().game).toBe(playing)
+    expect(screen.getByRole('alert').textContent).toBe('Take over this tab to load a save.')
+    expect(screen.queryByRole('button', { name: 'Load this save' })).toBeNull()
+
+    act(() => useStore.setState({ readOnly: true, speed: 0 }))
+    expect(screen.getAllByText('Take over this tab to load a save.')).toHaveLength(1)
   })
 
   it('a writable tab has no take-over hint', () => {

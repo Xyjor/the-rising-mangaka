@@ -6,6 +6,16 @@ import { isDesktop } from './env'
 const REVOKE_AFTER_MS = 1000
 
 /**
+ * The most of a picked file the browser reads. UTF-8 spends at most 3 bytes on each UTF-16 unit (a malformed byte
+ * decodes to one replacement character), so these bytes hold any save parseSave accepts (at most 5,000,000
+ * characters, its MAX_SAVE_FILE_CHARS), and from any longer file they decode to more than 5,000,000 characters, which
+ * parseSave refuses as not a save. (With a leading byte-order mark, which decoding drops, the cut text can land on
+ * exactly 5,000,000; cut short, it then fails as JSON, which reads the same to the player.) A huge file is refused
+ * without being read whole.
+ */
+export const MAX_READ_BYTES = 15_000_003
+
+/**
  * Writes `text` to a file the player keeps, offered as `fileName`. Resolves 'cancelled' when the player closes the
  * dialog (the desktop app; a browser download cannot tell), and rejects when the file cannot be written.
  */
@@ -36,7 +46,7 @@ export async function importSave(): Promise<string | null> {
     input.addEventListener('change', () => {
       const file = input.files?.[0]
       if (!file) resolve(null)
-      else file.text().then(resolve, reject)
+      else file.slice(0, MAX_READ_BYTES).text().then(resolve, reject)
     })
     input.addEventListener('cancel', () => resolve(null))
     input.click()

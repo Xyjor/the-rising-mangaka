@@ -14,9 +14,20 @@ export const SAVE_FILE_ERRORS: Record<SaveFileError, string> = {
 }
 export const READ_FAILED = 'Could not read that file. Try again, or pick another file.'
 export const WRITE_FAILED = 'Could not write the file. Pick another folder and try again.'
+/** A tab that does not own the save cannot load one: the hint in a read-only tab, and the answer to a refused load. */
+export const TAKE_OVER_TO_LOAD = 'Take over this tab to load a save.'
 
 /** The line under the buttons: what an export did, or why a file was not loaded. */
 export interface SaveFileNotice { kind: 'done' | 'error'; text: string }
+
+/** Exports `text` as `fileName` and words the result: done, nothing for a cancel, or what to do when it failed. */
+export async function exportNotice(fileName: string, text: string): Promise<SaveFileNotice | null> {
+  try {
+    return (await exportSave(fileName, text)) === 'saved' ? { kind: 'done', text: `Exported ${fileName}.` } : null
+  } catch {
+    return { kind: 'error', text: WRITE_FAILED }
+  }
+}
 
 /**
  * Export and load for the Save file section and the title screen. Loading over a game in play waits in `pending` for
@@ -31,12 +42,12 @@ export function useSaveFile() {
     if (!game) return
     setNotice(null)
     const fileName = saveFileName(game.player.name, game.day)
-    try {
-      const result = await exportSave(fileName, serializeSave({ game, tutorialStep, resumeSpeed }))
-      if (result === 'saved') setNotice({ kind: 'done', text: `Exported ${fileName}.` })
-    } catch {
-      setNotice({ kind: 'error', text: WRITE_FAILED })
-    }
+    setNotice(await exportNotice(fileName, serializeSave({ game, tutorialStep, resumeSpeed })))
+  }
+
+  /** Loads a parsed save; a tab that has lost the save to another is told how to get it back. */
+  const load = (save: SaveFile) => {
+    if (!useStore.getState().loadSave(save)) setNotice({ kind: 'error', text: TAKE_OVER_TO_LOAD })
   }
 
   const pickFile = async () => {
@@ -56,11 +67,11 @@ export function useSaveFile() {
       return
     }
     if (useStore.getState().game) setPending(parsed.save)
-    else useStore.getState().loadSave(parsed.save)
+    else load(parsed.save)
   }
 
   const confirmLoad = () => {
-    if (pending) useStore.getState().loadSave(pending)
+    if (pending) load(pending)
     setPending(null)
   }
 

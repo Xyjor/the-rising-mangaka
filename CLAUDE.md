@@ -69,8 +69,8 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   `components.tsx` (Bar, Pips, Modal, RankChart, money/compact formatters), `Icon.tsx` (inline SVG icon set),
   `SaveFileSection.tsx` and `useSaveFile.ts` (export and load, in Settings and on the title screen), and
   `ErrorBoundary.tsx` (wraps `App` in `main.tsx`; a render crash shows a recovery screen that exports the stored save
-  or starts over). Tests live in `src/ui/__tests__` and `src/ui/scene/__tests__`; see the UI-test docblock rule under
-  Commands above.
+  and starts over, or in a tab that does not own the save, reloads). Tests live in `src/ui/__tests__` and
+  `src/ui/scene/__tests__`; see the UI-test docblock rule under Commands above.
 - `src/platform/` — where the game runs, and the only place that imports `@tauri-apps/*`. `env.ts` `isDesktop()`
   (reads `globalThis.isTauri`, no Tauri import), `keys.ts` (`isBrowserShortcut`, `isEditableTarget`), `desktop.ts`
   `installDesktopShell` (save on close, F11 full screen, minimise pauses; in a production build, which every

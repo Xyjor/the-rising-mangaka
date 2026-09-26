@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Mock, MockInstance } from 'vitest'
 import '../../test/dom'
 import * as desktop from '../saveTransfer.desktop'
-import { exportSave, importSave } from '../saveTransfer'
+import { MAX_READ_BYTES, exportSave, importSave } from '../saveTransfer'
 
 // The desktop transfer is replaced, so a test can tell whether the browser path or the desktop one ran.
 vi.mock('../saveTransfer.desktop', () => ({
@@ -86,6 +86,31 @@ describe('importSave in a browser', () => {
     expect(desktop.importSave).not.toHaveBeenCalled()
   })
 
+  it('reads at most 15,000,003 bytes: enough for any save, and more than 5,000,000 characters of any larger file', async () => {
+    expect(MAX_READ_BYTES).toBe(15_000_003)
+    const small = new File(['{"format":"rising-mangaka-save"}'], 'save.json')
+    const slice = vi.spyOn(small, 'slice')
+    const result = importSave()
+    pick([small])
+    await expect(result).resolves.toBe('{"format":"rising-mangaka-save"}')
+    expect(slice).toHaveBeenCalledWith(0, 15_000_003)
+  })
+
+  it('never reads a huge file whole, only its head', async () => {
+    // A two-gigabyte file stand-in: only the slice is readable, so reading the whole file would reject.
+    const head = new Blob(['the first bytes'])
+    const huge = {
+      name: 'video.json', size: 2_000_000_000,
+      slice: vi.fn(() => head),
+      text: vi.fn(async () => { throw new Error('read the whole file') }),
+    } as unknown as File
+    const result = importSave()
+    pick([huge])
+    await expect(result).resolves.toBe('the first bytes')
+    expect(huge.slice).toHaveBeenCalledWith(0, 15_000_003)
+    expect(huge.text).not.toHaveBeenCalled()
+  })
+
   it('resolves null when the player cancels the picker', async () => {
     const result = importSave()
     picker().dispatchEvent(new Event('cancel'))
@@ -100,8 +125,10 @@ describe('importSave in a browser', () => {
 
   it('rejects when the picked file cannot be read', async () => {
     const result = importSave()
+    const unreadable = new Blob(['x'])
+    vi.spyOn(unreadable, 'text').mockRejectedValue(new Error('NotReadableError'))
     const broken = new File(['x'], 'save.json')
-    vi.spyOn(broken, 'text').mockRejectedValue(new Error('NotReadableError'))
+    vi.spyOn(broken, 'slice').mockReturnValue(unreadable)
     pick([broken])
     await expect(result).rejects.toThrow('NotReadableError')
   })

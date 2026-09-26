@@ -5,7 +5,8 @@ import '../../test/dom'
 import { importSave } from '../../platform/saveTransfer'
 import { createGame } from '../../sim'
 import { serializeSave } from '../../state/saveFile'
-import { useStore } from '../../state/store'
+import { SAVE_KEY, useStore } from '../../state/store'
+import { OWNER_KEY, isOwner } from '../../state/tabLock'
 import { TitleScreen } from '../TitleScreen'
 
 // The file dialog is replaced: each test says what the player picks.
@@ -14,11 +15,18 @@ vi.mock('../../platform/saveTransfer', () => ({ exportSave: vi.fn(), importSave:
 const g = globalThis as { isTauri?: unknown }
 const st = () => useStore.getState()
 
+/** Another tab's fresh owner stamp: this tab does not own the save. */
+const stampOtherTab = () =>
+  localStorage.setItem(OWNER_KEY, JSON.stringify({ tabId: 'the-other-tab', at: Date.now() }))
+
 beforeEach(() => {
+  localStorage.removeItem(OWNER_KEY)
+  localStorage.removeItem(SAVE_KEY)
   useStore.setState({ game: null, readOnly: false, speed: 0, modal: 'none', toasts: [], tutorialStep: 0 })
 })
 afterEach(() => {
   delete g.isTauri
+  localStorage.removeItem(OWNER_KEY)
   vi.clearAllMocks()
 })
 
@@ -71,5 +79,31 @@ describe('TitleScreen: Load a save file', () => {
     render(<TitleScreen />)
     expect((screen.getByRole('button', { name: 'Load a save file' }) as HTMLButtonElement).disabled).toBe(true)
     expect(screen.getByText('Take over this tab to load a save.')).toBeTruthy()
+  })
+
+  it('a read-only tab has the take-over control, which makes it the owner and turns loading on', () => {
+    stampOtherTab()
+    useStore.setState({ readOnly: true })
+    render(<TitleScreen />)
+    expect(isOwner()).toBe(false)
+    expect(screen.getByText('This game is open in another tab. Close that tab, or take over here.')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Take over' }))
+
+    expect(isOwner()).toBe(true)
+    expect(st().readOnly).toBe(false)
+    expect((screen.getByRole('button', { name: 'Load a save file' }) as HTMLButtonElement).disabled).toBe(false)
+    expect(screen.queryByText('Take over this tab to load a save.')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Take over' })).toBeNull()
+  })
+
+  it('a tab that does not own the save yet is told to take over, not left without an answer', async () => {
+    // The heartbeat has not flagged the tab read-only yet, so the button is on, but the store refuses the load.
+    stampOtherTab()
+    vi.mocked(importSave).mockResolvedValue(serializeSave({ game: createGame('Aoi', 7), tutorialStep: -1, resumeSpeed: 1 }))
+    render(<TitleScreen />)
+    await load()
+    expect(st().game).toBeNull()
+    expect(screen.getByRole('alert').textContent).toBe('Take over this tab to load a save.')
   })
 })

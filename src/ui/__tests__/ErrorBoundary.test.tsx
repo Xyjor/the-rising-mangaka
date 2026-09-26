@@ -4,8 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Mock } from 'vitest'
 import '../../test/dom'
 import { exportSave } from '../../platform/saveTransfer'
-import { createGame } from '../../sim'
-import { parseSave } from '../../state/saveFile'
+import { createGame, tickMany } from '../../sim'
+import { parseSave, trimLog } from '../../state/saveFile'
 import { SAVE_KEY, useStore } from '../../state/store'
 import { OWNER_KEY } from '../../state/tabLock'
 import { ErrorBoundary } from '../ErrorBoundary'
@@ -63,18 +63,23 @@ describe('ErrorBoundary', () => {
     expect(screen.getByRole('button', { name: 'Start over' })).toBeTruthy()
   })
 
-  it('exports the save kept in storage, and says so', async () => {
-    const game = createGame('Rin Hoshino', 42)
-    useStore.setState({ game, tutorialStep: -1, resumeSpeed: 2 })
+  it('exports the save kept in storage, not the game in the store, and says so', async () => {
+    // The store's game is written at once (a new game); storage then holds a different career, as if the store's
+    // state were what broke. The file must be storage's.
+    useStore.setState({ game: createGame('Rin Hoshino', 42), tutorialStep: 0, resumeSpeed: 1 })
+    const stored = trimLog(tickMany(createGame('Aoi Tanaka', 7), 60))
+    localStorage.setItem(SAVE_KEY, JSON.stringify({
+      version: 2, state: { game: stored, theme: 'auto', resumeSpeed: 2, tutorialStep: -1 },
+    }))
     render(<ErrorBoundary><Crash /></ErrorBoundary>)
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Export save file' }))
     })
     expect(exportSave).toHaveBeenCalledTimes(1)
     const [fileName, text] = vi.mocked(exportSave).mock.calls[0]
-    expect(fileName).toBe('rising-mangaka-rin-hoshino-month-1.json')
-    expect(parseSave(text)).toEqual({ ok: true, save: { game, tutorialStep: -1, resumeSpeed: 2 } })
-    expect(screen.getByText('Exported rising-mangaka-rin-hoshino-month-1.json.')).toBeTruthy()
+    expect(fileName).toBe('rising-mangaka-aoi-tanaka-month-3.json')
+    expect(parseSave(text)).toEqual({ ok: true, save: { game: stored, tutorialStep: -1, resumeSpeed: 2 } })
+    expect(screen.getByText('Exported rising-mangaka-aoi-tanaka-month-3.json.')).toBeTruthy()
   })
 
   it('says what to do when the export cannot be written', async () => {
@@ -108,7 +113,7 @@ describe('ErrorBoundary', () => {
     expect(localStorage.getItem(SAVE_KEY)).toBeNull()
   })
 
-  it('Start over in a read-only tab only reloads: the save belongs to the tab that owns it', () => {
+  it('in a tab that does not own the save, offers a reload in place of Start over, and keeps the save', () => {
     useStore.setState({ game: createGame('Rin', 42) })
     const saved = localStorage.getItem(SAVE_KEY)
     expect(saved).not.toBeNull()
@@ -116,8 +121,14 @@ describe('ErrorBoundary', () => {
     localStorage.setItem(OWNER_KEY, JSON.stringify({ tabId: 'the-other-tab', at: Date.now() }))
     try {
       render(<ErrorBoundary><Crash /></ErrorBoundary>)
-      fireEvent.click(screen.getByRole('button', { name: 'Start over' }))
-      fireEvent.click(screen.getByRole('button', { name: 'Yes, delete save' }))
+      expect(screen.getByText('The game stopped on an error in this tab. Reload it to try again.')).toBeTruthy()
+      expect(screen.getByText('Another tab holds this save, so reloading here leaves it as it is.')).toBeTruthy()
+      expect(screen.queryByRole('button', { name: 'Start over' })).toBeNull()
+      expect(screen.queryByText(/Deletes this save/)).toBeNull()
+      // The stored save can still be exported from here.
+      expect(screen.getByRole('button', { name: 'Export save file' })).toBeTruthy()
+
+      fireEvent.click(screen.getByRole('button', { name: 'Reload the game' }))
       expect(reload).toHaveBeenCalledTimes(1)
       expect(localStorage.getItem(SAVE_KEY)).toBe(saved)
       expect(useStore.getState().game?.player.name).toBe('Rin')

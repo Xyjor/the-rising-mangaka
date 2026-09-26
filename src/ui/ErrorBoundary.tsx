@@ -1,12 +1,11 @@
 import { Component, useState } from 'react'
 import type { ReactNode } from 'react'
-import { exportSave } from '../platform/saveTransfer'
 import { storedSaveFile } from '../state/saveFile'
 import { SAVE_KEY, flushSave, useStore } from '../state/store'
 import { isOwner } from '../state/tabLock'
 import { ConfirmRow } from './ConfirmRow'
 import { SaveFileNoticeLine } from './SaveFileSection'
-import { WRITE_FAILED } from './useSaveFile'
+import { exportNotice } from './useSaveFile'
 import type { SaveFileNotice } from './useSaveFile'
 
 /** The save kept in storage, read raw: after a crash the store's state may be what broke. */
@@ -20,8 +19,8 @@ function storedSave(): string | null {
 
 /**
  * Deletes the save and reloads into the title screen. The store drops its game first, so neither a write still waiting
- * on the debounce (flushed as the page goes) nor any later update can bring the old save back. A read-only tab only
- * reloads: the save belongs to the tab that owns it, which is still playing.
+ * on the debounce (flushed as the page goes) nor any later update can bring the old save back. A tab that has lost the
+ * save to another since the screen appeared only reloads: the save belongs to the tab that owns it.
  */
 function startOver() {
   if (isOwner()) {
@@ -39,9 +38,13 @@ function startOver() {
   window.location.reload()
 }
 
-/** The screen a crash leaves: what happened, the save exported to keep it safe, and a fresh start. */
+/**
+ * The screen a crash leaves: what happened, the save exported to keep it safe, and a fresh start. A tab that does not
+ * own the save (another tab is playing it) gets a reload instead of a fresh start, which is not its to make.
+ */
 function RecoveryScreen({ error }: { error: unknown }) {
   const [hasSave] = useState(() => storedSaveFile(storedSave()) !== null)
+  const [owner] = useState(() => isOwner())
   const [notice, setNotice] = useState<SaveFileNotice | null>(null)
   const message = error instanceof Error ? error.message : String(error)
 
@@ -50,35 +53,37 @@ function RecoveryScreen({ error }: { error: unknown }) {
     // Write any change still waiting on the debounce, so the file has the latest day.
     flushSave()
     const file = storedSaveFile(storedSave())
-    if (!file) return
-    try {
-      if ((await exportSave(file.fileName, file.text)) === 'saved') {
-        setNotice({ kind: 'done', text: `Exported ${file.fileName}.` })
-      }
-    } catch {
-      setNotice({ kind: 'error', text: WRITE_FAILED })
-    }
+    if (file) setNotice(await exportNotice(file.fileName, file.text))
   }
+
+  const what = !owner
+    ? 'The game stopped on an error in this tab. Reload it to try again.'
+    : hasSave
+      ? 'The game stopped on an error. Your career is still saved: export it to keep a copy, then reopen the game. If the error comes back, start over.'
+      : 'The game stopped on an error. Reopen the game to try again. If the error comes back, start over.'
 
   return (
     <div className="title-screen">
       <div className="title-card card">
         <h2>Something went wrong</h2>
-        <p className="muted">
-          {hasSave
-            ? 'The game stopped on an error. Your career is still saved: export it to keep a copy, then reopen the game. If the error comes back, start over.'
-            : 'The game stopped on an error. Reopen the game to try again. If the error comes back, start over.'}
-        </p>
+        <p className="muted">{what}</p>
         <p className="tiny faint">Error: {message}</p>
         <div className="col" style={{ gap: 10, alignItems: 'center' }}>
           {hasSave && <button className="btn primary" onClick={() => void exportFile()}>Export save file</button>}
-          <ConfirmRow
-            label="Start over"
-            confirmLabel="Yes, delete save"
-            cancelLabel="Keep the save"
-            hint="Deletes this save. There is no undo."
-            onConfirm={startOver}
-          />
+          {owner ? (
+            <ConfirmRow
+              label="Start over"
+              confirmLabel="Yes, delete save"
+              cancelLabel="Keep the save"
+              hint="Deletes this save. There is no undo."
+              onConfirm={startOver}
+            />
+          ) : (
+            <>
+              <button className="btn" onClick={() => window.location.reload()}>Reload the game</button>
+              <span className="tiny muted">Another tab holds this save, so reloading here leaves it as it is.</span>
+            </>
+          )}
           <SaveFileNoticeLine notice={notice} />
         </div>
       </div>

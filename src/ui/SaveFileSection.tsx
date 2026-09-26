@@ -1,7 +1,7 @@
 import { isDesktop } from '../platform/env'
 import { shortDate } from '../sim'
 import { useStore } from '../state/store'
-import { useSaveFile } from './useSaveFile'
+import { TAKE_OVER_TO_LOAD, useSaveFile } from './useSaveFile'
 import type { SaveFileNotice } from './useSaveFile'
 
 /** The Settings section that exports the career to a file and loads one back. */
@@ -25,7 +25,7 @@ export function SaveFileSection() {
             Load {pending.game.player.name}'s save ({shortDate(pending.game.day)})? It replaces the game you are playing.
           </span>
           <button className="btn ghost sm" onClick={cancelLoad}>Keep playing</button>
-          <button className="btn primary sm" onClick={confirmLoad}>Load this save</button>
+          <button className="btn primary sm" disabled={readOnly} onClick={confirmLoad}>Load this save</button>
         </div>
       ) : (
         <div className="row wrap">
@@ -33,10 +33,16 @@ export function SaveFileSection() {
           <button className="btn sm" disabled={readOnly} onClick={() => void pickFile()}>Load save file…</button>
         </div>
       )}
-      {readOnly && <div className="tiny muted">Take over this tab to load a save.</div>}
+      <ReadOnlyHint readOnly={readOnly} notice={notice} />
       <SaveFileNoticeLine notice={notice} />
     </section>
   )
+}
+
+/** In a read-only tab, how to load a save, unless a refused load already said so. */
+export function ReadOnlyHint({ readOnly, notice }: { readOnly: boolean; notice: SaveFileNotice | null }) {
+  if (!readOnly || notice?.text === TAKE_OVER_TO_LOAD) return null
+  return <div className="tiny muted">{TAKE_OVER_TO_LOAD}</div>
 }
 
 /** An export's result as a status line, a refusal as an alert. */

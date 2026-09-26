@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { isDesktop } from '../platform/env'
 import { useStore } from '../state/store'
-import { SaveFileNoticeLine } from './SaveFileSection'
+import { ReadOnlyHint, SaveFileNoticeLine } from './SaveFileSection'
+import { TabBanner } from './TabBanner'
 import { useSaveFile } from './useSaveFile'
 
 export function TitleScreen() {
@@ -16,6 +17,8 @@ export function TitleScreen() {
   return (
     <div className="title-screen">
       <div className="title-card card">
+        {/* A read-only tab can take over from here too: the game shell, with its banner, is not open yet. */}
+        <TabBanner />
         <div>
           <div className="chip accent" style={{ marginBottom: 10 }}>A manga career sim</div>
           <h1>THE RISING <span>MANGAKA</span></h1>
@@ -43,7 +46,7 @@ export function TitleScreen() {
         </form>
         <div className="col" style={{ gap: 6 }}>
           <button className="btn ghost block" disabled={readOnly} onClick={() => void pickFile()}>Load a save file</button>
-          {readOnly && <div className="tiny muted">Take over this tab to load a save.</div>}
+          <ReadOnlyHint readOnly={readOnly} notice={notice} />
           <SaveFileNoticeLine notice={notice} />
         </div>
         <p className="tiny faint">
