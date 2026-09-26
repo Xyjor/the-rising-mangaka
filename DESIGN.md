@@ -11,11 +11,14 @@ modern, transparent, low-friction interface.
    records everything the player learns in a Notebook and surfaces it at decision time.
 3. **Never interrupt.** Events go to a log and to non-blocking toasts. The only modal moments
    are ones the player chose (starting a manga, reading poll results). The clock pauses in every
-   modal. Player controls speed at all times.
-4. **One screen, one job.** A persistent HUD, one studio view, one contextual "desk" panel.
-   No nested menus more than one level deep.
-5. **Hybrid look.** Pixel-art studio scene for warmth and flavour; clean, modern UI panels for
-   every management screen.
+   modal. Player controls speed at all times (the studio log is a window opened from the Log
+   button, which counts the lines not yet seen).
+4. **One screen: the studio.** The HUD floats over it, the desk is a status card over it, and
+   every management screen is a pixel-framed window opened from the rail. No nested menus more
+   than one level deep.
+5. **Hybrid look.** The pixel-art studio fills the window for warmth and flavour; the controls
+   over it and the panels are pixel-framed windows (a Silkscreen display face, hard shadows, a
+   bevel) that keep modern body type, plain words and transparent numbers.
 
 ## Core loop (vertical slice)
 
@@ -29,6 +32,8 @@ Plan manga  →  Draw pages (days pass)  →  Submit to a magazine  →  Reader 
 - 1 tick = 1 day. 7 days = 1 week, 4 weeks = 1 month, 12 months = 1 year (336 days, `DAYS_PER_YEAR`). Every year
   ends with awards and a year review (see Year end and awards).
 - Speeds: paused / 1x / 2x / 3x. Opening any modal pauses. Closing restores previous speed.
+- The presentation clock (`src/state/clock.ts`) runs a week-long light cycle independent of the sim day: no hour
+  clock, just day/night over the 7-day week.
 
 ### Player
 - Stats (1–100): **Story**, **Art**, **Pacing**. Max stamina grows with level.
@@ -143,10 +148,11 @@ Forecast calibration is a balance band: over year one the offer chances quoted a
 - `src/sim/` — pure TypeScript simulation. No React, no DOM. Deterministic given a seed.
   Fully unit-tested with Vitest. Every state change is a pure function `(state, input) => state`.
 - `src/state/` — Zustand store: wraps the sim, owns the real-time clock and UI state, persists to localStorage.
+  `clock.ts` is the separate, never-persisted presentation clock (the light cycle, the studio log's read marker).
 - `src/ui/` — React components. `scene/` is the pixel-art canvas studio (`render.ts` paints a frame from a snapshot,
   `season.ts` the window's season, `studioArt.ts` the player's studio, `paint.ts` the shared pixel helpers,
-  `StudioScene.tsx` runs the frame loop).
-  `panels/` are the management screens.
+  `StudioScene.tsx` runs the frame loop). `hud/` is the corner overlays and rail; `hooks/` are the presentation-clock
+  and rolled-number hooks. `panels/` are the management screens.
 - `src/audio/` — Web Audio sound, synthesised, no files (see Sound).
 - `src/platform/` — where the game runs (browser or desktop) and the only place that imports the desktop APIs;
   `src-tauri/` is the Windows desktop shell itself (see The desktop app and save files).

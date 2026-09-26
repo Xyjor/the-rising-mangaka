@@ -49,6 +49,8 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
 - `src/state/store.ts` — Zustand store. Wraps the sim, owns the real-time clock speed, modal state, toasts,
   and persists `game` to localStorage (`persist` version = `SAVE_VERSION`; new `GameState` fields default through
   `src/sim/migrate.ts` `upgradeSave`; bump `SAVE_VERSION` only for shape changes that cannot be defaulted).
+  `clock.ts` is a separate, never-persisted presentation-time store: `t` (the week-long light cycle position),
+  `isNight`, and `logSeenId` (the studio log's read marker).
   `saveFile.ts` owns `SAVE_VERSION`, the saved log length and the save file (`serializeSave`; `parseSave`, strict,
   every refusal a `SaveFileError`; `saveFileName`; `storedSaveFile` for the recovery screen); the store's `loadSave`
   installs a parsed file (refused in a tab that does not own the save), bumps `saveLoads` and writes at once.
@@ -63,8 +65,9 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   it follow the store: prefs, music, cues (never in a read-only tab, never for a loaded save, via the store's
   `saveLoads`, and never while the window is hidden, via `windowHidden`), and the gestures that unlock it, until the
   context runs.
-- `src/ui/` — React 19 components. `App.tsx` (shell, clock, hotkeys), `Hud.tsx`, `panels/*` (modals and the desk
-  panel), `scene/` (pixel-art canvas, 192×108 logical pixels: `render.ts` holds the palettes, string-map sprites
+- `src/ui/` — React 19 components. `App.tsx` (shell, clock, hotkeys), `hud/` (the corner overlays and rail:
+  `TopLeft`, `TopRight`, `Rail`, `StatusCard`, `statusParts`, `DeskTray`), `hooks/` (`useClockLoop`, `useRolledNumber`),
+  `panels/*` (modals, including `LogModal`, the desk panel), `scene/` (pixel-art canvas, 192×108 logical pixels: `render.ts` holds the palettes, string-map sprites
   and `render`, one frame painted from a `Snapshot` with nothing allocated per frame; `season.ts` has `seasonOf(day)`
   and the window's season layer; `studioArt.ts` the player's studio (`TIER_ART` and `EQUIPMENT_ART` records keyed by
   id, so a new tier or piece fails `tsc` until it is drawn, plus the volumes, anime poster, trophies and lights);
@@ -89,7 +92,8 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   sound engine for `connectSound` or `installSound`) and `fakeCanvas.ts` (a recording 2D context that logs each
   fillRect with its fillStyle, and `sceneSnapshot`, the scene's reference state, for `render` tests).
 - `src/styles/tokens.css` (design tokens, light + dark), `base.css` (primitives), `app.css` (layout and panels),
-  `cards.css` (desk cards; on phones they follow the project card).
+  `cards.css` (desk cards; on phones they follow the project card), `stage.css` (the full-bleed stage layout),
+  `hud.css` (the corner overlays, rail and status card).
 - `src-tauri/` — Tauri 2 desktop shell around the unchanged `dist` build (`tauri.conf.json`: window, CSP, NSIS bundle,
   version from `package.json`; `capabilities/default.json`: window `main`, `core:default` plus
   `core:window:allow-set-fullscreen`, `core:window:allow-destroy`, `dialog:allow-open`, `dialog:allow-save`,
@@ -113,7 +117,8 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   only, and the player restarts the clock.
 - Game-driven moments (random events, anime offers, the year review) are desk cards, never popups: a component that
   returns null when empty, imports its own stylesheet (`src/styles/cards.css`), uses `card flat desk-card`, toasts on
-  arrival and pauses once (the year review only toasts).
+  arrival and pauses once (the year review only toasts), and is placed by `DeskTray`.
+- Menus always pause (the studio log included).
 
 ## UI rules (from the design pass)
 
@@ -122,12 +127,15 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   or sentences.
 - Buttons say what they do ("Submit manuscript", "Wrap up the series"). Errors and empty states say what to do next.
 - Touch targets are at least 44px on coarse pointers (`base.css` handles `.btn`, `.seg button`, `.steps button`,
-  `.toast button` and `.hud-bar.as-button`).
+  `.toast button`, `.rail .btn` and `.badge-hud.as-button`).
 - Colours come from tokens (`var(--accent)` etc.), never raw hex in components. Both themes must work.
 - Charts: one axis, thin marks, direct label on the last point, hover tooltip, a table view alongside.
 - Every result explains itself (the "show the why" pillar). Never add a hidden modifier without a UI hint.
-- On phones (<= 640 px) the desk renders above the studio scene and the HUD is a two-row strip; the Today control
-  must be visible without scrolling in the drawing phase at 375x667 with the getting-started box dismissed.
+- On phones (<= 640 px) the studio scene collapses to a fixed 38vh band above the desk tray (`stage.css`); DOM order,
+  not CSS `order`, drives the stacking, asserted by `src/ui/__tests__/Shell.test.tsx`, and checked by eye at 375x667.
+- Display type is Silkscreen (`--font-display` titles, `--font-num` numbers) at 8/16/24/32 px; it draws every letter
+  as a capital, so keep DOM text sentence case and never add `text-transform` or `letter-spacing`. Body copy and
+  button labels stay Nunito 15 px. HUD badges are opaque (`--panel`).
 
 ## Balance touchpoints
 
