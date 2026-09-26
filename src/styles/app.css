@@ -94,7 +94,7 @@
   position: relative;
   border: 3px solid var(--line-strong); border-radius: var(--radius-l);
   box-shadow: var(--shadow-ink);
-  overflow: hidden; background: #1a1c25;
+  overflow: hidden; background: var(--stage-bg);
   aspect-ratio: 16 / 9;
 }
 .scene-wrap canvas { width: 100%; height: 100%; display: block; image-rendering: pixelated; image-rendering: crisp-edges; }
@@ -105,7 +105,7 @@
   background: repeating-linear-gradient(0deg, rgba(0,0,0,0.12) 0 2px, transparent 2px 4px);
 }
 .scene-paused span {
-  font-family: var(--font-display); font-size: 36px; letter-spacing: 0.1em; color: #fff;
+  font-family: var(--font-display); font-size: 32px; letter-spacing: 0; color: #fff;
   text-shadow: 3px 3px 0 #16161a, -1px -1px 0 #16161a, 1px -1px 0 #16161a, -1px 1px 0 #16161a;
   animation: blink 1.2s steps(2) infinite;
 }
@@ -139,9 +139,7 @@
   background: var(--gold-soft); border: 2px dashed var(--gold);
   font-size: 13px;
 }
-.coach .who { font-weight: 800; font-size: 12px; color: #8a6500; }
-:root[data-theme='dark'] .coach .who { color: var(--gold); }
-@media (prefers-color-scheme: dark) { :root:not([data-theme='light']) .coach .who { color: var(--gold); } }
+.coach .who { font-weight: 800; font-size: 12px; color: var(--gold-text); }
 
 .activity-block { display: flex; flex-direction: column; gap: 10px; }
 .activity-block .seg { flex-wrap: wrap; }
@@ -276,7 +274,7 @@
 }
 .mag:hover { border-color: var(--ink); transform: translateY(-2px); box-shadow: var(--shadow-1); }
 .mag[aria-pressed='true'] { border-color: var(--blue); background: var(--blue-soft); box-shadow: 3px 3px 0 var(--blue); }
-.mag .name { font-family: var(--font-display); font-size: 20px; letter-spacing: 0.03em; }
+.mag .name { font-family: var(--font-display); font-size: 16px; letter-spacing: 0; }
 .mag > .mag-chips { justify-self: end; align-self: start; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
 .mag .meta { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--ink-2); font-weight: 700; }
 .mag .warn { grid-column: 1 / -1; font-size: 12px; font-weight: 800; color: var(--accent-text); }
@@ -293,7 +291,7 @@
 .rank-badge {
   width: 96px; height: 96px; border-radius: 50%; display: grid; place-items: center;
   border: 4px solid var(--line-strong); background: var(--paper);
-  font-family: var(--font-display); font-size: 40px; line-height: 1;
+  font-family: var(--font-num); font-size: 32px; line-height: 1;
   box-shadow: 4px 4px 0 var(--line-strong);
   animation: pop-in 500ms var(--ease-spring);
 }
@@ -317,7 +315,7 @@
 }
 .rewards { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 10px; }
 .reward { min-width: 0; text-align: center; padding: 10px; border-radius: var(--radius-m); border: 2px solid var(--line); background: var(--paper); }
-.reward .n { font-family: var(--font-display); font-size: clamp(18px, 6vw, 24px); overflow-wrap: anywhere; }
+.reward .n { font-family: var(--font-num); font-size: 16px; overflow-wrap: anywhere; }
 .reward .l { font-size: 12px; font-weight: 700; color: var(--ink-3); }
 
 /* ---------- results reveal (ResultsModal, timeline in panels/reveal.ts) ---------- */
@@ -435,7 +433,7 @@
   padding: 18px; border-radius: var(--radius-l); border: 2px solid var(--line-strong);
   background: var(--blue-soft); display: flex; flex-direction: column; gap: 6px;
 }
-.offer-hero .t { font-family: var(--font-display); font-size: 30px; line-height: 1; }
+.offer-hero .t { font-family: var(--font-display); font-size: 24px; line-height: 1; }
 .terms { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
 
 /* ---------- title screen ---------- */
@@ -445,7 +443,7 @@
   background-image: var(--halftone); background-size: 8px 8px;
 }
 .title-card { width: min(520px, 100%); display: flex; flex-direction: column; gap: 18px; text-align: center; }
-.title-card h1 { font-family: var(--font-display); font-size: clamp(44px, 9vw, 72px); line-height: 0.95; letter-spacing: 0.03em; }
+.title-card h1 { font-family: var(--font-display); font-size: clamp(24px, 7vw, 48px); line-height: 1.1; letter-spacing: 0; }
 .title-card h1 span { display: block; color: var(--accent); }
 
 /* ---------- tab lock banner ---------- */

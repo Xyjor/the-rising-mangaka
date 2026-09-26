@@ -4,6 +4,7 @@ export type IconName =
   | 'pen' | 'moon' | 'briefcase' | 'notebook' | 'chart' | 'trophy' | 'gear' | 'people' | 'map' | 'book'
   | 'close' | 'dice' | 'check' | 'alert' | 'star' | 'yen' | 'sparkle' | 'info' | 'play' | 'pause' | 'fast' | 'faster'
   | 'plus' | 'bolt' | 'heart' | 'home' | 'tv' | 'sound' | 'mute'
+  | 'sun' | 'log' | 'history' | 'series'
 
 const PATHS: Record<IconName, string> = {
   pen: 'M4 20l4-1 11-11-3-3L5 16l-1 4zM14 6l3 3',
@@ -35,6 +36,10 @@ const PATHS: Record<IconName, string> = {
   tv: 'M3 7h18v13H3zM8 3l4 4 4-4',
   sound: 'M4 9h4l5-4v14l-5-4H4zM16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12',
   mute: 'M4 9h4l5-4v14l-5-4H4zM16 9l5 6M21 9l-5 6',
+  sun: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M5 19l1.5-1.5M17.5 6.5L19 5',
+  log: 'M5 4h14v16H5zM8 8h8M8 12h8M8 16h5',
+  history: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 2',
+  series: 'M7 3h10v14H7zM5 7v14h10M10 7h4M10 11h4',
 }
 
 export function Icon({ name, size = 18, ...rest }: { name: IconName; size?: number } & SVGProps<SVGSVGElement>) {
