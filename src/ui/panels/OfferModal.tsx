@@ -41,7 +41,7 @@ export function OfferModal() {
           <span className="t">{offer.title}</span>
           <span className="small muted">{comboLabel(offer.genre, offer.theme, offer.audience)}</span>
         </div>
-        <div className="speech">
+        <div className="speech pixel-bubble">
           Readers loved it. Give me {CHAPTER_PAGES} pages every {plural(mag.chapterDays, 'day')}, keep the polls healthy, and we release a volume every {VOLUME_EVERY_CHAPTERS} chapters. The first {SERIAL_GRACE_CHAPTERS} chapters are guaranteed; after that, {SERIAL_WARNINGS_TO_CANCEL} weak chapters or missed issues in a row and I have to cancel. Deal?
         </div>
         <div className="terms">

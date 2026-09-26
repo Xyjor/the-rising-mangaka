@@ -127,6 +127,8 @@
   background: var(--panel); border-left: 3px solid var(--line-strong); border-top: 3px solid var(--line-strong);
   transform: rotate(45deg);
 }
+/* The coach's .speech tail (hud.css) belongs to the gold card; a pixel bubble has its own. */
+.pixel-bubble::after { content: none; }
 .rewards { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 10px; }
 .reward {
   min-width: 0; text-align: center; padding: 10px; border-radius: var(--radius-s);
@@ -247,11 +249,12 @@
 
 /* ---------- offer ---------- */
 .offer-hero {
-  padding: 18px; border-radius: var(--radius-l); border: 2px solid var(--line-strong);
+  padding: 18px; border-radius: var(--radius-s); border: 3px solid var(--line-strong);
   background: var(--blue-soft); display: flex; flex-direction: column; gap: 6px;
+  box-shadow: 4px 4px 0 var(--line-strong), inset 0 0 0 2px var(--bevel-light);
 }
-.offer-hero .t { font-family: var(--font-display); font-size: 24px; line-height: 1; }
-.terms { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.offer-hero .t { font-family: var(--font-display); font-size: 24px; letter-spacing: 0; line-height: 1; }
+.terms { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
 
 /* ---------- title screen ---------- */
 .title-screen {
