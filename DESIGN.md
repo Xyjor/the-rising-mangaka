@@ -470,6 +470,16 @@ reveal's own beats (see The results reveal). `triggers.ts` decides the cues pure
 log's wording, at most two per change, so a busy tick is not noisy; a cancellation plays alone, since the warnings
 that land with it would only repeat the bad news.
 
+`Modal` (`src/ui/components.tsx`) plays its own three: `open` and `close` on mount and on the native `<dialog>`'s
+close, and `tab` when its title-bar tab strip changes tab — all through `getSound()`, and all skipped in a
+read-only tab. The scene plays two more: `knock` when the editor's walk lands them at their spot, and `pop`
+(pitched per kind) when money, fans or xp rise from the mangaka (see The studio in the scene). Every open modal
+holds the music bus at `MODAL_DUCK` (60%) for as long as it is open, through `instance.ts`'s `holdDuck`: a small
+stack of duck levels, one per hold, the deepest wins, and the bus returns to full only once the last hold releases.
+The results reveal takes its own, deeper hold at 30% for as long as it is mounted, stacked under the modal's own
+60% hold, so the Results modal ducks to 30% while the reveal runs and only back to full when the modal closes (both
+holds release together).
+
 A light music loop (`music.ts`) plays under play: two parts (lead and bass), scheduled a look-ahead's worth of
 notes at a time from the audio clock's own time, fading in over 2 s when it starts and out over 0.4 s when it
 stops. The context is created lazily and only from a real user gesture — a browser refuses to start audio before
@@ -487,6 +497,12 @@ silently (a 'pause' cue would only sound on return, so none plays for the hide o
 `windowHidden` and `saveLoads` guards.
 
 ### The results reveal
+The Results modal is wide and two columns (`.results-grid`, stacking to one column below 700px): the hero (rank
+stamp, headline, rival line) on the left, the score breakdown and reward tiles on the right. The stamp itself is a
+square badge, not a circle. The modal does not mount at all until the editor has walked in with the result
+(`EDITOR_WALK_MS` after it lands, 0 under reduced motion; see `useArrival` under The studio in the scene), so the
+reveal never starts while the editor is still mid-walk.
+
 A poll result never simply appears: `ResultsModal.tsx` plays it out in beats, timed by a pure plan (`reveal.ts`'s
 `revealPlan`) that a real-time clock (`useReveal.ts`) drives frame by frame. In order: a drumroll leads into five
 bars growing to their component scores (art, story, pacing, audience fit, freshness), each pitched by its own
@@ -678,3 +694,34 @@ craft 57 with a field margin of 6 (was 50 and 2), and the price scale follows S1
 71% of year-one meetings, an award or near miss on 20/20 and the Golden Pen on 2/20, 2 or 3 pieces of equipment at day
 336 on 18/20, and anime offers within two years on 12/20 (days 507 to 574). The cause stays a candidate for a later,
 root-level retune (the pace of year one: XP, chapter fans or chapter pay).
+
+## Rulings
+
+**2026-09-26, UI overhaul.** The 0.2.0 upgrade replaced the static desk-and-modals shell with a live pixel-art
+studio scene and restyled every panel. These decisions came out of that pass:
+
+- The scene canvas is 320x180, with two coordinate spaces meeting in `paint.ts`: room space, the original 192x108
+  layout, offset by `OX 64, OY 36` into canvas space.
+- The presentation clock (`src/state/clock.ts`) runs a week-long light cycle (`t`, `weekT`), not an hour clock: night
+  is `t > 0.72 || t < 0.06`, and the wall clock's hands lap the week rather than a day.
+- The cast is a table of actors (`actors.ts`): position, target, facing, current and goal pose, and which axis each
+  walks first, stepped by `stepActors` and settled at once on mount or a loaded save.
+- The editor visits for a reason (`visitor.ts`), walks in from the door, and the results and offer modals do not
+  mount until `EDITOR_WALK_MS` (1400 ms, the door-to-spot distance at 40 px/s) after the result or offer lands (0
+  under reduced motion), so neither modal beats the editor to the desk.
+- Money, fans and xp rises are pops (`Pops.tsx`) and the mangaka's daily log line and the editor's greeting are
+  speech bubbles (`Bubble.tsx`); both are DOM elements anchored to scene coordinates (`sceneAnchor.ts`'s
+  `sceneToCss`), not drawn on the canvas.
+- Silkscreen replaces Bangers for display type (`--font-display`, `--font-num`), used only at 8, 16, 24 and 32 px
+  (the sizes it was drawn for); body copy and buttons stay Nunito.
+- The scene keeps animating behind an open modal (the `::backdrop` is a plain translucent fill, no
+  `backdrop-filter`/blur) and only sleeps when the document tab itself is hidden.
+- Every modal carries the same pixel-frame kit: a 3px hard border, an inset bevel (light top-left, dark
+  bottom-right) and a hard drop shadow, no soft box-shadow blur.
+- The modal duck (60%, `MODAL_DUCK`) and the results reveal's own duck (30%) stack through `holdDuck`'s hold list
+  rather than one overwriting the other, so a reveal inside its modal reads as strictly quieter than a modal alone.
+- `'tab'` (the title-bar tab-switch cue) is a bandpass noise click at 1200 Hz, not a pitched tone: every *tone*
+  voice in `cues.ts` sits on the C major pentatonic scale (C D E G A) by the cue tests, but 1200 Hz is a noise
+  voice's filter frequency, not a note, so it is exempt by construction rather than by exception.
+- Balance bands are unchanged: no sim formula or constant moved in this pass, so `balance.test.ts` and
+  `npm run balance` still read the seeds 1-20 numbers already recorded above.

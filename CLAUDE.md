@@ -64,7 +64,10 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   holds the one shared engine (`getSound`/`installSound`), and `bridge.ts` `connectSound` (wired in `main.tsx`) makes
   it follow the store: prefs, music, cues (never in a read-only tab, never for a loaded save, via the store's
   `saveLoads`, and never while the window is hidden, via `windowHidden`), and the gestures that unlock it, until the
-  context runs.
+  context runs. `Modal` plays `open`/`close`/`tab` itself via `getSound()` (never in a read-only tab); the scene
+  plays `knock` (the editor arriving) and `pop` (money/fans/xp rising). `instance.ts`'s `holdDuck` is the only way
+  UI code ducks the music: a stack of duck-level holds, the deepest wins, released in full once the last one drops
+  (Modal holds 60% for as long as it is open; the results reveal stacks its own 30% under that).
 - `src/ui/` — React 19 components. `App.tsx` (shell, clock, hotkeys), `hud/` (the corner overlays and rail:
   `TopLeft`, `TopRight`, `Rail`, `StatusCard`, `statusParts`, `DeskTray`), `hooks/` (`useClockLoop`, `useRolledNumber`,
   `useArrival`, the editor's walk-in delay before a pending card mounts), `panels/*` (modals, including `LogModal`, the
@@ -142,9 +145,15 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
 - Every result explains itself (the "show the why" pillar). Never add a hidden modifier without a UI hint.
 - On phones (<= 640 px) the studio scene collapses to a fixed 38vh band above the desk tray (`stage.css`); DOM order,
   not CSS `order`, drives the stacking, asserted by `src/ui/__tests__/Shell.test.tsx`, and checked by eye at 375x667.
+  Below 700px (`app.css`), the Results and the wizard's title-step modal columns also stack to one column; the
+  Series and Studio modals need 900px to go two-column and stack below that instead — check the real breakpoint in
+  `app.css` before assuming 700px applies to a given modal.
 - Display type is Silkscreen (`--font-display` titles, `--font-num` numbers) at 8/16/24/32 px; it draws every letter
   as a capital, so keep DOM text sentence case and never add `text-transform` or `letter-spacing`. Body copy and
   button labels stay Nunito 15 px. HUD badges are opaque (`--panel`).
+- `Modal` sizing: `wide` on Results and Series, `narrow` on Offer, Stats, Career, Year, Settings, Trips and the Log,
+  `tabs` on Notebook and Series (a title-bar tab strip), and `quiet` only on the Results modal, which skips the
+  modal's own open/close cue and duck entirely since `ResultsModal` holds its own duck and plays its own beats.
 
 ## Balance touchpoints
 
