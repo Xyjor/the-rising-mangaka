@@ -35,9 +35,10 @@ const EVERYTHING: Partial<Snapshot> = {
  * reference scene's 290 before the season layer, two more assistants at 85 each 170, night 12, winter 27), the room's
  * 58 fills in place of the old wall and floor's 34 (+24), the kitchenette 17, the apartment's plain door 5 and the
  * entrance 6. The full scene must stay under 1.5 times this (controller ruling: each assistant costs 85 fills, so the
- * one-assistant baseline cannot bound a three-assistant scene).
+ * one-assistant baseline cannot bound a three-assistant scene). Task 2.5 re-measured it the same way at 637: the wall
+ * clock 47, the cat's 30 pixels in place of 20 (+10) and three assistants' pages at 3 each (9).
  */
-const FULL_BASELINE = 571
+const FULL_BASELINE = 637
 
 function paint(over: Partial<Snapshot> = {}, t = 0.3, frame = 100): FillCall[] {
   const { ctx, log } = fakeContext()
@@ -142,15 +143,15 @@ describe('the studio in the scene', () => {
     expect(key(paint({ trophies: 2 }))).not.toBe(key(paint({ trophies: 1 })))
   })
 
-  it('paints the scene with no studio look in its measured 571 fills', () => {
+  it('paints the scene with no studio look in its measured 637 fills', () => {
     expect(paint(BARE_FULL, 0.9, 100)).toHaveLength(FULL_BASELINE)
   })
 
   it('keeps the full scene inside the canvas, free of magenta and under 1.5 times its own baseline', () => {
     const budget = FULL_BASELINE * 1.5
-    expect(budget).toBe(856.5)
-    for (const [t, frame] of [[0.9, 100], [0.9, 0], [0.3, 100]]) {
-      const log = paint(EVERYTHING, t, frame)
+    expect(budget).toBe(955.5)
+    for (const [t, frame, visiting] of [[0.9, 100, 0], [0.9, 0, 0], [0.3, 100, 0], [0.9, 100, 1]]) {
+      const log = paint(visiting ? { ...EVERYTHING, visitor: 'editor', visitorProp: 'contract' } : EVERYTHING, t, frame)
       expect(log.some((c) => c.style === '#f0f'), `t ${t} frame ${frame}`).toBe(false)
       for (const c of log) {
         const where = `t ${t} frame ${frame}: ${JSON.stringify(c)}`
@@ -400,5 +401,13 @@ describe('the studio\'s draw order', () => {
     const zz = resting.flatMap((c, i) => (c.style === '#2f5ecf' && c.x >= 242 ? [i] : []))
     expect(zz.length).toBeGreaterThan(0)
     expect(Math.min(...zz)).toBeGreaterThan(Math.max(...doorway))
+  })
+
+  it('sways the top leaf of the loft floor plant every 30 frames, inside the plant', () => {
+    const leaf = (frame: number) => alone((ctx) => TIER_ART.loft(ctx, FULL, frame, false))
+      .filter((c) => c.style === '#5fbf6a' && c.y === 116 && c.w === 3 && c.h === 3)
+    expect(leaf(0)).toEqual([{ style: '#5fbf6a', x: 240, y: 116, w: 3, h: 3 }])
+    expect(leaf(30)).toEqual([{ style: '#5fbf6a', x: 241, y: 116, w: 3, h: 3 }])
+    for (const f of [0, 30]) for (const c of leaf(f)) expect(inBox(c, FLOOR_PLANT)).toBe(true)
   })
 })

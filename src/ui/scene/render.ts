@@ -100,15 +100,55 @@ const EDITOR = [
   '..SS..SS....',
 ]
 
-/** The cat, curled up (8x4); its walk cycle comes in Task 2.5. */
+/** The cat (8x6, facing left): frame 0 stands (and sits and sleeps), frames 0 and 1 are the walk, 125 ms each. */
 const CAT: readonly (readonly string[])[] = [
   [
-    '.O....O.',
+    '.O..O..O',
+    '.OOOO.O.',
+    '.OEOOOO.',
     '.OOOOOO.',
-    'OOOOOOOO',
-    '.OO..OO.',
+    '.OOOOOO.',
+    '.O.O.O.O',
+  ],
+  [
+    '.O..O.O.',
+    '.OOOO..O',
+    '.OEOOOO.',
+    '.OOOOOO.',
+    '.OOOOOO.',
+    'O.O.O.O.',
   ],
 ]
+const CAT_PAL: Record<string, string> = { O: '#e39a4a', E: '#1b1b1b' }
+/** Asleep, the eye closes into the fur. */
+const CAT_PAL_ASLEEP: Record<string, string> = { O: '#e39a4a', E: '#e39a4a' }
+
+/** The wall clock (7x7): the rim and the face, with its 12 and 6 marks. */
+const CLOCK = [
+  '.DDDDD.',
+  'DWWDWWD',
+  'DWWWWWD',
+  'DDWWWDD',
+  'DWWWWWD',
+  'DWWDWWD',
+  '.DDDDD.',
+]
+const CLOCK_PAL: Record<string, string> = { D: '#3b3b45', W: '#f6f6f6' }
+const CLOCK_X = 156
+const CLOCK_Y = 52
+/** The minute hand per direction 0-7 clockwise from 12: x, y, w, h from the clock's corner. */
+const HAND_LONG = Int8Array.from([3, 1, 1, 2, 4, 2, 1, 1, 4, 3, 2, 1, 4, 4, 1, 1, 3, 4, 1, 2, 2, 4, 1, 1, 1, 3, 2, 1, 2, 2, 1, 1])
+/** The hour hand per direction: one pixel at x, y. */
+const HAND_SHORT = Int8Array.from([3, 2, 4, 2, 4, 3, 4, 4, 3, 4, 2, 4, 2, 3, 2, 2])
+
+/** The wall clock: the minute hand laps 8 times a visual week (t), the hour hand twice. */
+function drawClock(ctx: CanvasRenderingContext2D, t: number) {
+  drawSprite(ctx, CLOCK, CLOCK_X, CLOCK_Y, 7, CLOCK_PAL)
+  const m = (Math.floor(t * 64) % 8) * 4
+  const h = (Math.floor(t * 16) % 8) * 2
+  rawRect(ctx, CLOCK_X + HAND_LONG[m], CLOCK_Y + HAND_LONG[m + 1], HAND_LONG[m + 2], HAND_LONG[m + 3], '#1b1b1b')
+  rawRect(ctx, CLOCK_X + HAND_SHORT[h], CLOCK_Y + HAND_SHORT[h + 1], 1, 1, '#1b1b1b')
+}
 
 const HEAD_SLEEP = [
   '...KKKKKK...',
@@ -359,6 +399,8 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
   drawVolumes(ctx, s.volumes)
   if (s.owned.shelf) EQUIPMENT_ART.shelf(ctx, s, frame, night)
 
+  drawClock(ctx, t)
+
   // poster, or the anime's key visual while the show is on
   if (s.animePoster) drawAnimePoster(ctx)
   else { rect(ctx, 52, 14, 22, 28, '#fff'); rect(ctx, 54, 16, 18, 24, '#e5484d'); rect(ctx, 57, 22, 12, 12, '#fff'); rect(ctx, 60, 25, 6, 6, '#16161a') }
@@ -382,11 +424,22 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
       if (actor.state === 'hidden' || actor.state === 'away') continue
       const pal = ASSISTANT_PALS[s.assistants[i].look % ASSISTANT_PALS.length]
       const x = actor.x
-      const tired = actor.state === 'sleeping'
-      const bob = working && !tired ? (Math.floor((frame + i * 3) / 8) % 2) : 0
+      if (actor.state === 'sleeping') {
+        // head down on the desk: the head a column back and a row down, the body where it sat
+        drawSprite(ctx, HERO, x - 1, actor.y + 1, 6, pal)
+        drawSprite(ctx, HERO, x, actor.y, 11, pal, false, 6)
+        glyph(ctx, 'Z', x + 12, 98, '#2f5ecf')
+        continue
+      }
+      const bob = working ? (Math.floor((frame + i * 3) / 8) % 2) : 0
       drawSprite(ctx, HERO, x, actor.y + bob, 11, pal)
-      if (working && !tired) { const armY = actor.y + 9 + (Math.floor((frame + i * 5) / 4) % 2); rawRect(ctx, x + 10, armY, 3, 2, PAL.H) }
-      if (tired) glyph(ctx, 'Z', x + 12, actor.y - 8, '#2f5ecf')
+      if (working) {
+        const armY = actor.y + 9 + (Math.floor((frame + i * 5) / 4) % 2); rawRect(ctx, x + 10, armY, 3, 2, PAL.H)
+        // the page on the desk, inked as the chapter fills
+        rawRect(ctx, x + 1, 120, 5, 4, PROP_PAPER)
+        const inked = Math.round(s.progress * 3)
+        for (let k = 0; k < inked; k++) rawRect(ctx, x + 2, 121 + k, 3, 1, PROP_LINE)
+      }
     }
     const dw = 12 + s.assistants.length * 15
     rect(ctx, ax, 84, dw, 3, '#8b5a2b'); rect(ctx, ax, 87, dw, 9, '#70461f')
@@ -394,7 +447,9 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
   }
   // the cat, in front of the assistants' desk
   const cat = s.actors.cat
-  if (cat.state !== 'hidden' && cat.state !== 'away') drawSprite(ctx, CAT[0], cat.x, cat.y, 4, PAL, cat.facing === 1)
+  if (cat.state === 'sleeping') drawSprite(ctx, CAT[0], cat.x, cat.y, 6, CAT_PAL_ASLEEP, cat.facing === 1)
+  else if (cat.state === 'walking') drawSprite(ctx, CAT[Math.floor(cat.anim / 125) % 2], cat.x, cat.y, 6, CAT_PAL, cat.facing === 1)
+  else if (cat.state !== 'hidden' && cat.state !== 'away') drawSprite(ctx, CAT[0], cat.x, cat.y, 6, CAT_PAL, cat.facing === 1)
 
   // chair (before the player: they sit in it)
   if (s.owned.chair) EQUIPMENT_ART.chair(ctx, s, frame, night)

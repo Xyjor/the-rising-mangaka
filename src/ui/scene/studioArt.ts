@@ -119,10 +119,10 @@ function sillPlant(ctx: CanvasRenderingContext2D) {
   rect(ctx, 151, 42, 4, 3, POT)
 }
 
-/** A tall potted plant on the floor in front of the bed's head, x 172-184, y 80-105. */
-function floorPlant(ctx: CanvasRenderingContext2D) {
+/** A tall potted plant on the floor in front of the bed's head, x 172-184, y 80-105; its top leaf sways every 30 frames. */
+function floorPlant(ctx: CanvasRenderingContext2D, frame: number) {
   rect(ctx, 178, 83, 1, 14, STEM)
-  rect(ctx, 176, 80, 3, 3, LEAF_LIGHT); rect(ctx, 179, 82, 4, 3, LEAF); rect(ctx, 174, 84, 4, 3, LEAF)
+  rect(ctx, 176 + (Math.floor(frame / 30) % 2), 80, 3, 3, LEAF_LIGHT); rect(ctx, 179, 82, 4, 3, LEAF); rect(ctx, 174, 84, 4, 3, LEAF)
   rect(ctx, 180, 88, 5, 3, LEAF); rect(ctx, 172, 89, 5, 3, LEAF_LIGHT)
   rect(ctx, 175, 93, 3, 2, LEAF); rect(ctx, 179, 92, 3, 2, LEAF_LIGHT)
   rect(ctx, 173, 97, 11, 2, POT_RIM)
@@ -136,10 +136,10 @@ function floorPlant(ctx: CanvasRenderingContext2D) {
 export const TIER_ART: Record<StudioTierId, Art> = {
   apartment: plainDoor,
   flat: doorway,
-  loft: (ctx) => {
+  loft: (ctx, _s, frame) => {
     doorway(ctx)
     sillPlant(ctx)
-    floorPlant(ctx)
+    floorPlant(ctx, frame)
   },
 }
 
