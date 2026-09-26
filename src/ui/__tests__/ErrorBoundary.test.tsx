@@ -47,7 +47,7 @@ describe('ErrorBoundary', () => {
     expect(screen.getByRole('heading', { name: 'Something went wrong' })).toBeTruthy()
     expect(screen.getByText('the desk fell over', { exact: false })).toBeTruthy()
     expect(screen.getByText(
-      'The game stopped on an error. Your career is still saved: export it to keep a copy, then reopen the game. '
+      'The game stopped on an error. Your career is still saved: export it to keep a copy, then reload the game. '
       + 'If the error comes back, start over.',
     )).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Export save file' })).toBeTruthy()
@@ -57,7 +57,7 @@ describe('ErrorBoundary', () => {
   it('offers no export when there is no saved game', () => {
     render(<ErrorBoundary><Crash /></ErrorBoundary>)
     expect(screen.getByText(
-      'The game stopped on an error. Reopen the game to try again. If the error comes back, start over.',
+      'The game stopped on an error. Reload the game to try again. If the error comes back, start over.',
     )).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Export save file' })).toBeNull()
     expect(screen.getByRole('button', { name: 'Start over' })).toBeTruthy()

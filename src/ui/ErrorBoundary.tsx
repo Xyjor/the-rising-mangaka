@@ -59,8 +59,8 @@ function RecoveryScreen({ error }: { error: unknown }) {
   const what = !owner
     ? 'The game stopped on an error in this tab. Reload it to try again.'
     : hasSave
-      ? 'The game stopped on an error. Your career is still saved: export it to keep a copy, then reopen the game. If the error comes back, start over.'
-      : 'The game stopped on an error. Reopen the game to try again. If the error comes back, start over.'
+      ? 'The game stopped on an error. Your career is still saved: export it to keep a copy, then reload the game. If the error comes back, start over.'
+      : 'The game stopped on an error. Reload the game to try again. If the error comes back, start over.'
 
   return (
     <div className="title-screen">
@@ -72,7 +72,7 @@ function RecoveryScreen({ error }: { error: unknown }) {
           {hasSave && <button className="btn primary" onClick={() => void exportFile()}>Export save file</button>}
           {owner ? (
             <>
-              {/* The desktop release build cancels F5 and Ctrl+R, so reopening would otherwise mean closing the window. */}
+              {/* The desktop release build cancels F5 and Ctrl+R, so without this button reloading would mean closing the window. */}
               <button className="btn" onClick={() => window.location.reload()}>Reload the game</button>
               <ConfirmRow
                 label="Start over"
