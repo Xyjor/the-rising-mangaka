@@ -48,8 +48,8 @@
 }
 .coach .who { font-weight: 800; font-size: 12px; color: var(--gold-text); }
 /* A speech tail pointing down at the card. */
-.speech { position: relative; }
-.speech::after {
+.coach.speech { position: relative; }
+.coach.speech::after {
   content: ''; position: absolute; left: 32px; bottom: -10px;
   border: 8px solid transparent; border-bottom: 0; border-top: 10px solid var(--gold);
 }
