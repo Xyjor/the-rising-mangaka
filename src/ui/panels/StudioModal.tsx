@@ -79,9 +79,8 @@ export function StudioModal() {
       title="Studio"
       sub="A bigger studio has desks for more assistants, and weekly rent. Equipment is bought once and helps every day."
       onClose={closeModal}
-      narrow
     >
-      <div className="col" style={{ gap: 18 }}>
+      <div className="studio-grid">
         <section className="col" style={{ gap: 10 }} aria-label="Where you work">
           <div className="panel-title">Where you work</div>
           <div className="place-list">
