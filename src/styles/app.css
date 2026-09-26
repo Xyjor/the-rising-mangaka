@@ -81,14 +81,27 @@
 @media (max-width: 700px) { .submit-grid { grid-template-columns: 1fr; } }
 .mag-list { display: flex; flex-direction: column; gap: 10px; }
 .mag {
-  display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; text-align: left;
-  padding: 12px 14px; border-radius: var(--radius-m); border: 2px solid var(--line); background: var(--paper);
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px 12px; text-align: left;
+  padding: 12px 14px; border-radius: var(--radius-s); border: 3px solid var(--line-strong); background: var(--panel);
   transition: transform 120ms var(--ease-out), border-color 120ms, box-shadow 120ms;
 }
-.mag:hover { border-color: var(--ink); transform: translateY(-2px); box-shadow: var(--shadow-1); }
+.mag:hover { transform: translateY(-2px); box-shadow: 3px 3px 0 var(--line-strong); }
 .mag[aria-pressed='true'] { border-color: var(--blue); background: var(--blue-soft); box-shadow: 3px 3px 0 var(--blue); }
-.mag .name { font-family: var(--font-display); font-size: 16px; letter-spacing: 0; }
-.mag > .mag-chips { justify-self: end; align-self: start; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+/* The cover strip: a colour block, the masthead and the chips, in the magazine's tone. */
+.mag-cover {
+  --mag: var(--accent); --mag-soft: var(--accent-soft);
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 6px 8px; margin: -4px -6px 2px;
+  background: var(--mag-soft); border: 2px solid var(--line-strong); border-radius: var(--radius-s);
+}
+.mag-cover::before {
+  content: ''; flex: none; width: 10px; height: 14px; background: var(--mag); border: 2px solid var(--line-strong);
+}
+.mag-cover[data-tone='blue'] { --mag: var(--blue); --mag-soft: var(--blue-soft); }
+.mag-cover[data-tone='gold'] { --mag: var(--gold); --mag-soft: var(--gold-soft); }
+.mag-cover[data-tone='green'] { --mag: var(--green); --mag-soft: var(--green-soft); }
+.mag-cover[data-tone='purple'] { --mag: var(--purple); --mag-soft: var(--purple-soft); }
+.mag .name { font-family: var(--font-display); font-size: 16px; letter-spacing: 0; color: var(--ink); }
+.mag .mag-chips { margin-left: auto; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
 .mag .meta { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--ink-2); font-weight: 700; }
 .mag .warn { grid-column: 1 / -1; font-size: 12px; font-weight: 800; color: var(--accent-text); }
 .mag .ok { grid-column: 1 / -1; font-size: 12px; font-weight: 800; color: var(--green-text); }
@@ -263,6 +276,37 @@
 .place .meta { font-size: 12px; font-weight: 700; color: var(--ink-2); }
 .place .effect { font-size: 13px; font-weight: 800; color: var(--blue-text); }
 .place .btn, .place > .chip { grid-column: 2; grid-row: 1 / span 3; }
+/* Trips: a postcard of the place leads each card. */
+.place.has-thumb { grid-template-columns: 32px minmax(0, 1fr) auto; }
+.place.has-thumb > .postcard { grid-column: 1; grid-row: 1 / span 3; align-self: start; }
+.place.has-thumb > :not(.postcard):not(.btn) { grid-column: 2; }
+.place.has-thumb .btn { grid-column: 3; }
+.postcard {
+  display: block; width: 32px; height: 24px; border: 2px solid var(--line-strong); box-sizing: content-box;
+  background-color: var(--paper-2);
+}
+.postcard[data-place='library'] {
+  background-image: linear-gradient(90deg, var(--accent) 0 25%, var(--blue) 25% 50%, var(--gold) 50% 75%, var(--green) 75% 100%);
+}
+.postcard[data-place='survey'] {
+  background-image: repeating-linear-gradient(180deg, var(--panel) 0 4px, var(--line-strong) 4px 6px);
+}
+.postcard[data-place='art-class'] {
+  background-image: radial-gradient(circle at 50% 50%, var(--accent) 0 6px, transparent 6px);
+  background-color: var(--gold-soft);
+}
+.postcard[data-place='writing-workshop'] {
+  background-image: repeating-linear-gradient(180deg, var(--panel) 0 4px, var(--blue) 4px 6px);
+}
+.postcard[data-place='editing-seminar'] {
+  background-image:
+    linear-gradient(90deg, transparent 0 14px, var(--purple) 14px 18px, transparent 18px),
+    linear-gradient(180deg, transparent 0 10px, var(--purple) 10px 14px, transparent 14px);
+  background-color: var(--purple-soft);
+}
+.postcard[data-place='hot-spring'] { background-image: linear-gradient(180deg, var(--blue-soft) 0 50%, var(--blue) 50% 100%); }
+.postcard[data-place='convention'] { background-image: linear-gradient(180deg, var(--accent-soft) 0 40%, var(--accent) 40% 100%); }
+.postcard[data-place='masterclass'] { background-image: linear-gradient(180deg, var(--green-soft) 0 60%, var(--green) 60% 100%); }
 /* An armed ConfirmRow (moving studio) takes the button's cell. */
 .place > .row { grid-column: 2; grid-row: 1 / span 3; }
 @media (max-width: 640px), (min-width: 900px) {

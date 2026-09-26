@@ -2,11 +2,12 @@
 import { render, screen, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it } from 'vitest'
 import '../../test/dom'
-import { acceptOffer, createGame } from '../../sim'
+import { MAGAZINES, acceptOffer, createGame } from '../../sim'
 import type { GameState, ProjectDraft } from '../../sim'
 import { withReadyOneShot } from '../../test/fixtures'
 import { useStore } from '../../state/store'
 import { SubmitModal } from '../panels/SubmitModal'
+import { MAG_TONE } from '../looks'
 
 const KIDS_DRAFT: ProjectDraft = { title: 'Blade Club', genre: 'action', theme: 'samurai', audience: 'kids' }
 const FOOTNOTE =
@@ -99,5 +100,22 @@ describe('SubmitModal forecast lines', () => {
     useStore.setState({ game: withReadyOneShot(running, KIDS_DRAFT, 50, 50) })
     render(<SubmitModal />)
     expect(card(/Kids Comic Go!/).getByText('Serial offer: none while "Magic Club" runs.')).toBeTruthy()
+  })
+})
+
+describe('SubmitModal magazine covers', () => {
+  it('gives every magazine a toned cover strip and keeps its forecast inside the same button', () => {
+    const { container } = render(<SubmitModal />)
+    const buttons = [...container.querySelectorAll<HTMLButtonElement>('button.mag')]
+    expect(buttons).toHaveLength(MAGAZINES.length)
+    MAGAZINES.forEach((m, i) => {
+      const b = buttons[i]
+      const cover = b.querySelector('.mag-cover')
+      expect(cover?.getAttribute('data-tone')).toBe(MAG_TONE[m.id])
+      expect(cover?.textContent).toContain(m.name)
+      for (const line of ['Likely score', 'Serial offer:', 'Pays about', 'Rivals usually score']) {
+        expect(b.textContent).toContain(line)
+      }
+    })
   })
 })
