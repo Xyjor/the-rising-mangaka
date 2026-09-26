@@ -44,7 +44,10 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
 - `src/state/store.ts` — Zustand store. Wraps the sim, owns the real-time clock speed, modal state, toasts,
   and persists `game` to localStorage (`persist` version = `SAVE_VERSION`; new `GameState` fields default through
   `src/sim/migrate.ts` `upgradeSave`; bump `SAVE_VERSION` only for shape changes that cannot be defaulted).
-  Sim commands go through the `apply()` helper so toasts and auto-resume stay consistent.
+  Sim commands go through the `apply()` helper so toasts and auto-resume stay consistent. `setWindowHidden` (from
+  the page's `visibilitychange` and the desktop shell's minimise) stops the clock and suspends the sound; the
+  non-persisted `windowHidden` flag keeps that pause silent. `flushSave` writes the debounced save at once. The tab
+  lock (`tabLock.ts`) runs in a browser only; the desktop app calls `disableTabLock()` (one window, single instance).
 - `src/audio/` — Web Audio sound, framework-free, no files. `engine.ts` synthesises the cues and owns the AudioContext,
   `music.ts` is the music loop (its score and look-ahead scheduler; the engine starts it on unlock when asked for
   before, and each start plays through its own fade gain), `triggers.ts` maps a state change to cues, `instance.ts`
@@ -60,6 +63,11 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   `StudioScene.tsx` is the component and its frame loop, reading `studioLook` through `useShallow`),
   `components.tsx` (Bar, Pips, Modal, RankChart, money/compact formatters), `Icon.tsx` (inline SVG icon set). Tests
   live in `src/ui/__tests__` and `src/ui/scene/__tests__`; see the UI-test docblock rule under Commands above.
+- `src/platform/` — where the game runs, and the only place that imports `@tauri-apps/*`. `env.ts` `isDesktop()`
+  (reads `globalThis.isTauri`, no Tauri import), `keys.ts` (`isBrowserShortcut`, `isEditableTarget`), `desktop.ts`
+  `installDesktopShell` (save on close, F11 full screen, minimise pauses, release builds cancel browser shortcuts and
+  the context menu outside text fields), loaded by `main.tsx` with a dynamic import on desktop only, so the browser's
+  main chunk carries no Tauri code. Tests in `src/platform/__tests__`.
 - `src/test/` — shared test-only helpers: `dom.ts` (happy-dom setup, imported for side effects), `fixtures.ts`
   (game-state builders such as `withPendingResult`, shared across UI test files), `fakeSound.ts` (a recording
   sound engine for `connectSound` or `installSound`) and `fakeCanvas.ts` (a recording 2D context that logs each
@@ -67,7 +75,10 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
 - `src/styles/tokens.css` (design tokens, light + dark), `base.css` (primitives), `app.css` (layout and panels),
   `cards.css` (desk cards; on phones they follow the project card).
 - `src-tauri/` — Tauri 2 desktop shell around the unchanged `dist` build (`tauri.conf.json`: window, CSP, NSIS bundle,
-  version from `package.json`; `capabilities/default.json`: window `main`, `core:default` only; crates pinned to `"2"`).
+  version from `package.json`; `capabilities/default.json`: window `main`, `core:default` plus
+  `core:window:allow-set-fullscreen` and `core:window:allow-destroy`; crates pinned to `"2"`). `src/lib.rs` registers
+  the single-instance plugin first (a second launch focuses the window), window-state (size, position, maximised)
+  and `fit_to_work_area` (a default window too big for its screen shrinks to 90% of the work area).
   Never change `identifier` `com.xyjor.risingmangaka` or set `useHttpsScheme`: either one loses every save.
 
 ## Conventions
@@ -79,6 +90,8 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
 - The clock auto-pauses whenever the game needs a decision (manuscript ready, poll result, serialisation offer,
   a serial is cancelled, a trip ends, a random event or an anime offer lands). Keep it that way for any new blocking
   decision. The year end is not a decision: it toasts and leaves its review on the desk, and the clock keeps running.
+  Hiding or minimising the window stops the clock too (silently) and suspends the sound; showing it resumes the sound
+  only, and the player restarts the clock.
 - Game-driven moments (random events, anime offers, the year review) are desk cards, never popups: a component that
   returns null when empty, imports its own stylesheet (`src/styles/cards.css`), uses `card flat desk-card`, toasts on
   arrival and pauses once (the year review only toasts).

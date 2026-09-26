@@ -7,9 +7,11 @@ import type {
   StudioTierId,
 } from '../sim'
 import { upgradeSave } from '../sim/migrate'
+import { getSound } from '../audio/instance'
 import { DEFAULT_SOUND, normalizeSound } from '../audio/types'
 import type { SoundPrefs } from '../audio/types'
-import { claim, isOwner, startTabLock } from './tabLock'
+import { isDesktop } from '../platform/env'
+import { claim, disableTabLock, isOwner, startTabLock } from './tabLock'
 
 export type Speed = 0 | 1 | 2 | 3
 export type RunSpeed = Exclude<Speed, 0>
@@ -45,6 +47,11 @@ interface Store {
    * bridge stays silent for the update that loads a save, which is not a step of play.
    */
   saveLoads: number
+  /**
+   * True while the window is hidden or minimised (the page's visibility; the desktop shell's minimise). Not saved. The
+   * clock stopped when it was set, and the sound bridge plays no cue for the update that sets or clears it.
+   */
+  windowHidden: boolean
 
   newGame: (name: string) => void
   /** Claim the save for this tab and reload the latest state from storage. */
@@ -82,6 +89,11 @@ interface Store {
   setTheme: (t: ThemeMode) => void
   setSound: (patch: Partial<SoundPrefs>) => void
   finishTutorial: () => void
+  /**
+   * The window was hidden or minimised (true) or shown again (false). Hiding stops the clock, keeping a running speed
+   * for Space, and suspends the sound; showing resumes the sound and leaves the clock stopped. A repeat is a no-op.
+   */
+  setWindowHidden: (hidden: boolean) => void
 }
 
 let toastSeq = 1
@@ -124,7 +136,8 @@ function cancelFlush() {
   flushTimer = null
 }
 
-function flush() {
+/** Writes the waiting save now instead of after the debounce: the page is going away or out of sight. */
+export function flushSave() {
   cancelFlush()
   const job = pending
   pending = null
@@ -165,11 +178,11 @@ const saveStorage: PersistStorage<Persisted> = {
     lastAccepted = s
     pending = { name, value }
     if (gameReplaced) {
-      flush()
+      flushSave()
       return
     }
     cancelFlush()
-    flushTimer = setTimeout(flush, SAVE_DEBOUNCE_MS)
+    flushTimer = setTimeout(flushSave, SAVE_DEBOUNCE_MS)
   },
   removeItem: (name) => {
     cancelFlush()
@@ -211,6 +224,7 @@ export const useStore = create<Store>()(
         readOnly: false,
         sound: DEFAULT_SOUND,
         saveLoads: 0,
+        windowHidden: false,
 
         takeOver: () => {
           claim()
@@ -296,6 +310,18 @@ export const useStore = create<Store>()(
           set({ sound: next })
         },
         finishTutorial: () => set({ tutorialStep: -1 }),
+
+        setWindowHidden: (hidden) => {
+          const { windowHidden, speed } = get()
+          if (hidden === windowHidden) return
+          if (hidden) {
+            set(speed === 0 ? { windowHidden: true } : { windowHidden: true, speed: 0, resumeSpeed: speed })
+            getSound().suspend()
+          } else {
+            set({ windowHidden: false })
+            getSound().resume()
+          }
+        },
       }
     },
     {
@@ -335,18 +361,25 @@ export const useStore = create<Store>()(
   ),
 )
 
-// ---------- browser wiring: flush on leave, one writer tab at a time ----------
+// ---------- page wiring: flush on leave, pause while hidden, one writer tab at a time ----------
 
 if (typeof window !== 'undefined') {
-  // A debounced write must not be lost when the tab closes or goes to the background.
-  window.addEventListener('pagehide', flush)
+  // A debounced write must not be lost when the tab closes or goes to the background, and a hidden page's clock stops.
+  window.addEventListener('pagehide', flushSave)
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') flush()
+    const hidden = document.visibilityState === 'hidden'
+    if (hidden) flushSave()
+    useStore.getState().setWindowHidden(hidden)
   })
 
-  // Only the owner tab writes the save and runs the clock; the others mirror it read-only.
-  startTabLock((owner) => useStore.setState(owner ? { readOnly: false } : { readOnly: true, speed: 0 }))
-  window.addEventListener('storage', (e) => {
-    if (e.key === SAVE_KEY && useStore.getState().readOnly) void useStore.persist.rehydrate()
-  })
+  if (isDesktop()) {
+    // One window only (single instance): it always owns the save.
+    disableTabLock()
+  } else {
+    // Only the owner tab writes the save and runs the clock; the others mirror it read-only.
+    startTabLock((owner) => useStore.setState(owner ? { readOnly: false } : { readOnly: true, speed: 0 }))
+    window.addEventListener('storage', (e) => {
+      if (e.key === SAVE_KEY && useStore.getState().readOnly) void useStore.persist.rehydrate()
+    })
+  }
 }

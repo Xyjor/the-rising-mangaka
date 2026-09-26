@@ -13,6 +13,8 @@ export interface SoundState {
   readOnly: boolean
   /** Rises in the update that loads a save (startup, takeover, read-only refresh). */
   saveLoads: number
+  /** True while the window is hidden or minimised; the store suspends and resumes the sound for it. */
+  windowHidden: boolean
 }
 
 export interface SoundSource {
@@ -31,10 +33,9 @@ interface Listenable {
   removeEventListener(type: string, listener: (e: GestureEvent) => void, capture?: boolean): void
 }
 
-/** Where the bridge listens: the window for the unlocking gestures, the document for visibility. */
+/** Where the bridge listens: the window, for the unlocking gestures. */
 export interface SoundEnv {
   window: Listenable
-  document: Listenable & { readonly hidden: boolean }
 }
 
 /**
@@ -44,7 +45,7 @@ export interface SoundEnv {
 const GESTURES = ['pointerdown', 'pointerup', 'keydown'] as const
 
 function pageEnv(): SoundEnv | null {
-  return typeof window !== 'undefined' && typeof document !== 'undefined' ? { window, document } : null
+  return typeof window !== 'undefined' ? { window } : null
 }
 
 /** The music loop plays while a game is open in the tab that owns it, unless the player turned it off. */
@@ -72,16 +73,9 @@ function unlockOnGesture(engine: SoundEngine, target: Listenable): () => void {
   return stop
 }
 
-/** Suspends audio while the page is hidden. Kept apart so it can move to the store later. */
-function followVisibility(engine: SoundEngine, doc: SoundEnv['document']): () => void {
-  const onChange = () => (doc.hidden ? engine.suspend() : engine.resume())
-  doc.addEventListener('visibilitychange', onChange)
-  return () => doc.removeEventListener('visibilitychange', onChange)
-}
-
 /**
- * Makes `engine` follow `source` from now on, and listens to the page (`env`, the browser's window and document when
- * there is one). Returns a function that disconnects both.
+ * Makes `engine` follow `source` from now on, and listens to the page (`env`, the browser's window when there is one).
+ * Returns a function that disconnects both. Hiding the window suspends the sound through the store's `setWindowHidden`.
  */
 export function connectSound(source: SoundSource, engine: SoundEngine, env: SoundEnv | null = pageEnv()): () => void {
   const first = source.getState()
@@ -98,8 +92,10 @@ export function connectSound(source: SoundSource, engine: SoundEngine, env: Soun
       else engine.stopMusic()
     }
     // A read-only tab mirrors another tab's play, so it makes no sound, nor does the update that turns it on or off.
-    // A loaded save is not a step of play either, even one of the same world on the same day.
+    // A loaded save is not a step of play either, even one of the same world on the same day. Hiding the window stops
+    // the clock silently (a 'pause' would sound on return), and nothing sounds while it is hidden or as it shows.
     if (prev.readOnly || next.readOnly || next.saveLoads !== prev.saveLoads) return
+    if (prev.windowHidden || next.windowHidden) return
     // A game change carries its own cues; an auto-pause in the same update never adds a 'pause'.
     if (next.game !== prev.game) {
       if (prev.game && next.game) for (const cue of cuesForTransition(prev.game, next.game)) engine.play(cue)
@@ -109,9 +105,9 @@ export function connectSound(source: SoundSource, engine: SoundEngine, env: Soun
     if (cue) engine.play(cue)
   })
 
-  const stops = env ? [unlockOnGesture(engine, env.window), followVisibility(engine, env.document)] : []
+  const stopUnlock = env ? unlockOnGesture(engine, env.window) : null
   return () => {
     unsubscribe()
-    for (const stop of stops) stop()
+    stopUnlock?.()
   }
 }

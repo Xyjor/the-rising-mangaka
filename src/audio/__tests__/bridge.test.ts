@@ -8,7 +8,7 @@ import type { FakeSound } from '../../test/fakeSound'
 import { DRAFT } from '../../test/fixtures'
 import { connectSound } from '../bridge'
 import type { SoundEngine } from '../engine'
-import { nullEngine } from '../instance'
+import { installSound, nullEngine } from '../instance'
 import { cuesForTransition } from '../triggers'
 import { DEFAULT_SOUND } from '../types'
 
@@ -24,13 +24,12 @@ interface Fired { type: string; pointerType?: string }
 type Listener = (e: Fired) => void
 interface Entry { type: string; fn: Listener; capture: boolean }
 
-/** A stand-in for window or document: records its listeners by phase and fires them by hand. */
+/** A stand-in for the window: records its listeners by phase and fires them by hand. */
 function fakeTarget() {
   const entries: Entry[] = []
   const find = (type: string, fn: Listener, capture: boolean) =>
     entries.findIndex((e) => e.type === type && e.fn === fn && e.capture === capture)
   return {
-    hidden: false,
     addEventListener(type: string, fn: Listener, capture = false) {
       if (find(type, fn, capture) < 0) entries.push({ type, fn, capture })
     },
@@ -84,9 +83,13 @@ function oneTickFromReady(s: GameState): GameState {
 beforeEach(() => {
   useStore.setState({
     game: null, speed: 0, resumeSpeed: 1, modal: 'none', toasts: [], readOnly: false, sound: DEFAULT_SOUND,
+    windowHidden: false,
   })
 })
-afterEach(() => disconnect())
+afterEach(() => {
+  disconnect()
+  installSound(nullEngine)
+})
 afterAll(() => {
   vi.useRealTimers()
 })
@@ -128,6 +131,35 @@ describe('connectSound: cues', () => {
     useStore.setState({ readOnly: false, speed: 1 })
     expect(sound.plays).toEqual([])
     expect(sound.music).toEqual(['start', 'stop', 'start'])
+  })
+
+  it('stays silent when the window hides and shows, though hiding stops the clock', () => {
+    start(createGame('Rin', 42), 2)
+    // setWindowHidden suspends and resumes the shared engine; here that is the fake the bridge follows.
+    installSound(sound)
+    st().setWindowHidden(true)
+    expect(st().speed).toBe(0)
+    expect(sound.suspends).toBe(1)
+    expect(sound.plays).toEqual([])
+    st().setWindowHidden(false)
+    expect(sound.resumes).toBe(1)
+    expect(st().speed).toBe(0)
+    expect(sound.plays).toEqual([])
+    // The player's own resume afterwards sounds as usual.
+    st().togglePause()
+    expect(sound.plays).toEqual(['resume'])
+  })
+
+  it('plays nothing for a change made while the window is hidden, nor for one in the update that shows it', () => {
+    const g = createGame('Rin', 42)
+    start(g)
+    useStore.setState({ windowHidden: true })
+    // Each of these would sound in a shown window: 'start' for the project, 'resume' for the clock.
+    useStore.setState({ game: startProject(g, DRAFT) })
+    useStore.setState({ windowHidden: false, speed: 1 })
+    expect(sound.plays).toEqual([])
+    st().togglePause()
+    expect(sound.plays).toEqual(['pause'])
   })
 
   it('stays silent when a game begins', () => {
@@ -200,13 +232,12 @@ describe('connectSound: prefs and music', () => {
 })
 
 describe('connectSound: the page', () => {
-  /** Connects `engine` (a fresh fake, `sound`, by default) with a fake window and document. */
+  /** Connects `engine` (a fresh fake, `sound`, by default) with a fake window. */
   function connectPage(engine?: SoundEngine) {
     const win = fakeTarget()
-    const doc = fakeTarget()
     sound = createFakeSound()
-    disconnect = connectSound(useStore, engine ?? sound, { window: win, document: doc })
-    return { win, doc }
+    disconnect = connectSound(useStore, engine ?? sound, { window: win })
+    return { win }
   }
 
   it('a touch unlocks on pointerup, not pointerdown, and listening goes on until the context runs', () => {
@@ -244,23 +275,12 @@ describe('connectSound: the page', () => {
     expect(gestureListeners(win)).toEqual([NONE, NONE, NONE])
   })
 
-  it('suspends while the page is hidden and resumes when it shows', () => {
-    const { doc } = connectPage()
-    doc.hidden = true
-    doc.fire('visibilitychange')
-    expect([sound.suspends, sound.resumes]).toEqual([1, 0])
-    doc.hidden = false
-    doc.fire('visibilitychange')
-    expect([sound.suspends, sound.resumes]).toEqual([1, 1])
-  })
-
   it('disconnect stops following the store and the page', () => {
     useStore.setState({ game: createGame('Rin', 42) })
-    const { win, doc } = connectPage()
+    const { win } = connectPage()
     disconnect()
     st().setSpeed(1)
     expect(sound.plays).toEqual([])
     expect(gestureListeners(win)).toEqual([NONE, NONE, NONE])
-    expect(doc.listeners('visibilitychange')).toEqual(NONE)
   })
 })

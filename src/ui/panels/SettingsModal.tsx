@@ -1,5 +1,6 @@
 import { Fragment } from 'react'
 import { getSound } from '../../audio/instance'
+import { isDesktop } from '../../platform/env'
 import { useStore } from '../../state/store'
 import { ConfirmRow } from '../ConfirmRow'
 import { Icon } from '../Icon'
@@ -10,6 +11,8 @@ const KEYS: [string, string][] = [
   ['W', 'Draw'], ['R', 'Rest'], ['J', 'Part-time job'], ['B', 'Notebook'], ['S', 'Stats'], ['A', 'Staff'],
   ['T', 'Trips'], ['H', 'History'], ['Esc', 'Close'],
 ]
+/** The desktop app's own key; a browser keeps F11 for itself. */
+const DESKTOP_KEYS: [string, string][] = [['F11', 'Full screen']]
 
 export function SettingsModal() {
   const closeModal = useStore((s) => s.closeModal)
@@ -19,6 +22,7 @@ export function SettingsModal() {
   const setSound = useStore((s) => s.setSound)
   const abandon = useStore((s) => s.abandonGame)
 
+  const keys = isDesktop() ? [...KEYS, ...DESKTOP_KEYS] : KEYS
   const volumePct = Math.round(sound.volume * 100)
   const volumeReadout = sound.muted ? 'Off' : `${volumePct}%`
 
@@ -75,7 +79,7 @@ export function SettingsModal() {
         <section>
           <div style={{ fontWeight: 800, marginBottom: 8 }}>Keyboard</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '6px 14px', fontSize: 13 }}>
-            {KEYS.map(([k, v]) => (
+            {keys.map(([k, v]) => (
               <Fragment key={k}><span className="kbd">{k}</span><span className="muted">{v}</span></Fragment>
             ))}
           </div>

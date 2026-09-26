@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { isDesktop } from '../platform/env'
 import { useStore } from '../state/store'
 
 export function TitleScreen() {
@@ -35,7 +36,9 @@ export function TitleScreen() {
           </label>
           <button className="btn primary lg block" type="submit">Open your studio</button>
         </form>
-        <p className="tiny faint">Saves automatically in this browser (one tab at a time).</p>
+        <p className="tiny faint">
+          {isDesktop() ? 'Saves automatically on this computer.' : 'Saves automatically in this browser (one tab at a time).'}
+        </p>
       </div>
     </div>
   )

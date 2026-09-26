@@ -100,3 +100,26 @@ describe('SettingsModal', () => {
     expect(off.getAttribute('aria-pressed')).toBe('true')
   })
 })
+
+describe('SettingsModal keyboard list', () => {
+  const g = globalThis as { isTauri?: unknown }
+  afterEach(() => {
+    delete g.isTauri
+  })
+
+  /** The key hints in the keyboard list, each with its description. */
+  const keyRows = () =>
+    [...document.querySelectorAll('.kbd')].map((k) => [k.textContent, k.nextElementSibling?.textContent])
+
+  it('lists F11 for full screen in the desktop app', () => {
+    g.isTauri = true
+    render(<SettingsModal />)
+    expect(keyRows()).toContainEqual(['F11', 'Full screen'])
+  })
+
+  it('has no full-screen row in a browser, which has its own F11', () => {
+    render(<SettingsModal />)
+    expect(keyRows().map(([k]) => k)).not.toContain('F11')
+    expect(screen.queryByText('Full screen')).toBeNull()
+  })
+})
