@@ -14,8 +14,8 @@ describe('midiToHz', () => {
 })
 
 describe('cue recipes', () => {
-  it('defines all thirty cues', () => {
-    expect(entries).toHaveLength(30)
+  it('defines all thirty-one cues', () => {
+    expect(entries).toHaveLength(31)
   })
 
   it('keeps every voice audible and at most 0.3 gain', () => {

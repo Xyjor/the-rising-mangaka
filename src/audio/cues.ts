@@ -7,6 +7,7 @@ export function midiToHz(m: number): number {
   return 440 * 2 ** ((m - 69) / 12)
 }
 
+const A2 = midiToHz(45), A3 = midiToHz(57)
 const C4 = midiToHz(60), E4 = midiToHz(64), G4 = midiToHz(67), A4 = midiToHz(69)
 const C5 = midiToHz(72), D5 = midiToHz(74), E5 = midiToHz(76), G5 = midiToHz(79), A5 = midiToHz(81)
 const C6 = midiToHz(84), E6 = midiToHz(88), G6 = midiToHz(91), A6 = midiToHz(93), C7 = midiToHz(96)
@@ -133,5 +134,12 @@ export const CUES: Record<CueId, CueDef> = {
   'jingle-down': {
     gapMs: 0,
     voices: [tri(G5, 0, 0.14), tri(E5, 0.14, 0.14), tri(D5, 0.28, 0.14), tri(C5, 0.42, 0.45, 0.16)],
+  },  // the editor at the door: two low wooden raps
+  knock: {
+    gapMs: 800,
+    voices: [
+      noise(0, 0.05, 0.22, { type: 'lowpass', freq: 600 }, 0.002), sine(A3, 0, 0.07, 0.2, { to: A2, attack: 0.002 }),
+      noise(0.09, 0.05, 0.22, { type: 'lowpass', freq: 600 }, 0.002), sine(A3, 0.09, 0.07, 0.2, { to: A2, attack: 0.002 }),
+    ],
   },
 }
