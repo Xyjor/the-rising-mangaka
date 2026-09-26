@@ -114,12 +114,12 @@
 .rank-badge[data-tier='gold'] { background: var(--gold); color: #16161a; }
 .rank-badge[data-tier='silver'] { background: #d9dde5; color: #16161a; }
 .rank-badge[data-tier='bronze'] { background: #d9a066; color: #16161a; }
-.rank-badge small { font-size: 14px; }
+.rank-badge small { font-size: 16px; }
 .breakdown { display: flex; flex-direction: column; gap: 10px; }
 .breakdown .item { display: grid; grid-template-columns: 120px 1fr 40px; gap: 10px; align-items: center; font-size: 13px; }
 .breakdown .item .l { font-weight: 800; }
 .breakdown .item .l small { display: block; font-weight: 700; color: var(--ink-3); font-size: 11px; }
-.breakdown .item .v { text-align: right; font-family: var(--font-num); font-size: 14px; letter-spacing: 0; font-variant-numeric: tabular-nums; }
+.breakdown .item .v { text-align: right; font-family: var(--font-num); font-size: 16px; letter-spacing: 0; font-variant-numeric: tabular-nums; }
 /* The pixel speech bubble, the modal twin of the scene's .bubble (scene.css): same panel fill, hard border and shadow. */
 .pixel-bubble {
   position: relative; padding: 12px 14px; border: 3px solid var(--line-strong); border-radius: var(--radius-s);
@@ -137,7 +137,7 @@
   min-width: 0; text-align: center; padding: 10px; border-radius: var(--radius-s);
   border: 2px solid var(--line-strong); background: var(--panel); box-shadow: 2px 2px 0 var(--line-strong);
 }
-.reward .n { font-family: var(--font-display); font-size: clamp(16px, 5vw, 22px); letter-spacing: 0; overflow-wrap: anywhere; }
+.reward .n { font-family: var(--font-display); font-size: 16px; letter-spacing: 0; overflow-wrap: anywhere; }
 .reward .l { font-size: 12px; font-weight: 700; color: var(--ink-3); }
 
 /* ---------- results reveal (ResultsModal, timeline in panels/reveal.ts) ---------- */
