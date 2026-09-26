@@ -29,14 +29,15 @@ const EVERYTHING: Partial<Snapshot> = {
 
 /**
  * fillRect calls for the full scene with no studio look (`BARE_FULL`: three assistants, looks 0-2 at stamina 80, in
- * winter, otherwise the reference scene) at night, t 0.9, frame 100: 551, re-measured for the 320x180 canvas (Task 2.1)
- * by rendering it into the recording context and reading `log.length`. By hand: the 192x108 scene's 499 (the
+ * winter, otherwise the reference scene) at night, t 0.9, frame 100: 571, re-measured for the actor table (Task 2.3) by
+ * rendering it into the recording context and reading `log.length`: Task 2.1's 551 plus the cat asleep in its bed (20
+ * sprite pixels). Task 2.1's 551, measured the same way for the 320x180 canvas, was by hand the 192x108 scene's 499 (the
  * reference scene's 290 before the season layer, two more assistants at 85 each 170, night 12, winter 27), the room's
  * 58 fills in place of the old wall and floor's 34 (+24), the kitchenette 17, the apartment's plain door 5 and the
  * entrance 6. The full scene must stay under 1.5 times this (controller ruling: each assistant costs 85 fills, so the
  * one-assistant baseline cannot bound a three-assistant scene).
  */
-const FULL_BASELINE = 551
+const FULL_BASELINE = 571
 
 function paint(over: Partial<Snapshot> = {}, t = 0.3, frame = 100): FillCall[] {
   const { ctx, log } = fakeContext()
@@ -97,6 +98,8 @@ const PHONE_CROP: Box = [24, 296, 0, 179]
 /** The hero seated at the desk, and standing beside it. */
 const SEATED: Box = [138, 149, 84, 98]
 const STANDING: Box = [176, 187, 98, 112]
+/** Where the editor stands on a visit (Task 2.3): the furniture keeps off it too. */
+const EDITOR_SPOT_BOX: Box = [204, 215, 102, 116]
 const LAMP_GLOW = 'rgba(255,236,170,0.18)'
 const DOOR_LIGHT = '#f2d49b'
 
@@ -139,13 +142,13 @@ describe('the studio in the scene', () => {
     expect(key(paint({ trophies: 2 }))).not.toBe(key(paint({ trophies: 1 })))
   })
 
-  it('paints the scene with no studio look in its measured 551 fills', () => {
+  it('paints the scene with no studio look in its measured 571 fills', () => {
     expect(paint(BARE_FULL, 0.9, 100)).toHaveLength(FULL_BASELINE)
   })
 
   it('keeps the full scene inside the canvas, free of magenta and under 1.5 times its own baseline', () => {
     const budget = FULL_BASELINE * 1.5
-    expect(budget).toBe(826.5)
+    expect(budget).toBe(856.5)
     for (const [t, frame] of [[0.9, 100], [0.9, 0], [0.3, 100]]) {
       const log = paint(EVERYTHING, t, frame)
       expect(log.some((c) => c.style === '#f0f'), `t ${t} frame ${frame}`).toBe(false)
@@ -284,6 +287,7 @@ describe('the studio art', () => {
       for (const c of log) {
         const where = `${what}: ${JSON.stringify(c)}`
         expect(overlaps(c, STANDING), where).toBe(false)
+        expect(overlaps(c, EDITOR_SPOT_BOX), where).toBe(false)
         // the hero sits in the chair, drawn over it
         if (what === 'chair') continue
         // the drafting table stands in the desk's place: its top (y 98) runs across the hero's lap, as the desk's does

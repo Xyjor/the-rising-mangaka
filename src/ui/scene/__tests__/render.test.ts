@@ -5,18 +5,21 @@ import { fakeContext, sceneSnapshot } from '../../../test/fakeCanvas'
 import type { FillCall } from '../../../test/fakeCanvas'
 import { H, SKY_LUT, W, render, skyColor } from '../render'
 import type { Season } from '../season'
+import { newActorTable } from '../actors'
+import type { Actor, ActorTable } from '../actors'
 
 /**
  * fillRect calls for one frame of the reference scene (`sceneSnapshot()`: drawing phase, working, running, speed 1,
  * one assistant, spring, the bare apartment) at t = 0.3 (day, the sun up) and frame 100, re-measured for the 320x180
- * canvas (Task 2.1) by rendering it into the recording context and reading `log.length`: 364. By hand: the room 58
+ * canvas (Task 2.1), then again for the actor table (Task 2.3), by rendering it into the recording context and reading
+ * `log.length`: 384 (Task 2.1's 364 plus the cat asleep in its bed, 20 sprite pixels). By hand: the room 58
  * (wall 1, 27 stripes, skirting 1, floor 1, 20 plank seams, 8 plank rows), the kitchenette 17, window 8 (frame, pane,
  * sun, two cloud rects, two bars, sill), spring's pane art 22, bookshelf 34, poster 4, bed 5, the apartment's plain
  * door 5, the entrance 6 (mat 2, rack 3, the coat), the assistant 89 (84 sprite pixels, arm, 4 desk rects), chair 3,
  * the player 92 (90 sprite pixels, arm, pen) and the desk 21 (7 wood, lamp 2 and its glow, the 5-page stack 4 and its
  * 2 lines, ink pot 2, mug 2 and its steam). Every scene must stay under 1.5 times this.
  */
-const BASELINE_FILLS = 364
+const BASELINE_FILLS = 384
 const BUDGET = BASELINE_FILLS * 1.5
 
 describe('render', () => {
@@ -59,7 +62,7 @@ describe('render', () => {
   })
 
   it('stays under 1.5 times the measured baseline of fillRect calls in every season, by day and by night', () => {
-    expect(BUDGET).toBe(546)
+    expect(BUDGET).toBe(576)
     for (const season of ['spring', 'summer', 'autumn', 'winter'] as Season[]) {
       for (const t of [0.3, 0.9]) {
         const { ctx, log } = fakeContext()
@@ -155,5 +158,63 @@ describe('the sky', () => {
     const { ctx, log } = fakeContext()
     render(ctx, sceneSnapshot(), 0.82, 0)
     expect(log).toContainEqual({ style: 'rgb(29,35,82)', x: 182, y: 48, w: 44, h: 32 })
+  })
+})
+
+describe('the characters, from the actor table', () => {
+  const has = (log: FillCall[], style: string, x: number, y: number) => log.some((c) => c.style === style && c.x === x && c.y === y)
+  const find = (log: FillCall[], style: string, x: number, y: number, w?: number, h?: number) =>
+    log.findIndex((c) => c.style === style && c.x === x && c.y === y && (w === undefined || (c.w === w && c.h === h)))
+  function paintWith(table: ActorTable, over = {}): FillCall[] {
+    const { ctx, log } = fakeContext()
+    render(ctx, sceneSnapshot({ ...over, actors: table }), 0.3, 0)
+    return log
+  }
+  function walking(over: Partial<Actor>): ActorTable {
+    const t = newActorTable()
+    Object.assign(t.mangaka, { x: 150, y: 98, targetX: 100, targetY: 98, state: 'walking', goal: 'standing', facing: -1, anim: 0 }, over)
+    return t
+  }
+
+  it('seats the mangaka at the desk in the reference scene, over the chair and under the desk top', () => {
+    const { ctx, log } = fakeContext()
+    render(ctx, sceneSnapshot(), 0.3, 0)
+    const hair = find(log, '#2b2140', 141, 84)
+    expect(hair).toBeGreaterThan(-1)
+    expect(find(log, '#4a4a55', 134, 90, 20, 4)).toBeLessThan(hair)
+    expect(find(log, '#8b5a2b', 116, 98, 58, 4)).toBeGreaterThan(hair)
+  })
+
+  it('stands the mangaka beside the desk between projects, after the desk top', () => {
+    const { ctx, log } = fakeContext()
+    render(ctx, sceneSnapshot({ phase: 'idle' }), 0.3, 0)
+    const hair = find(log, '#2b2140', 179, 98)
+    expect(hair).toBeGreaterThan(find(log, '#8b5a2b', 116, 98, 58, 4))
+    expect(find(log, '#8b5a2b', 116, 98, 58, 4)).toBeGreaterThan(-1)
+  })
+
+  it('walks the mangaka with the two-frame cycle, mirrored when facing right', () => {
+    expect(has(paintWith(walking({})), '#1b1b1b', 151, 111)).toBe(true)
+    // HERO_WALK[1] row 13 is '..B.....BSS.': the first shoe pixel is col 9 (the brief's 158 is col 8, a trouser B)
+    expect(has(paintWith(walking({ anim: 125 })), '#1b1b1b', 159, 111)).toBe(true)
+    expect(has(paintWith(walking({ facing: 1 })), '#1b1b1b', 160, 111)).toBe(true)
+  })
+
+  it('paints the editor at the spot, mirrored when facing right', () => {
+    const left = newActorTable()
+    Object.assign(left.editor, { x: 204, y: 102, targetX: 204, targetY: 102, state: 'standing', goal: 'standing', facing: -1 })
+    expect(has(paintWith(left, { visitor: 'editor' }), '#5b6270', 206, 112)).toBe(true)
+    const right = newActorTable()
+    Object.assign(right.editor, { x: 204, y: 102, targetX: 204, targetY: 102, state: 'standing', goal: 'standing', facing: 1 })
+    const log = paintWith(right, { visitor: 'editor' })
+    expect(has(log, '#5b6270', 213, 112)).toBe(true)
+    expect(has(log, '#5b6270', 206, 112)).toBe(false)
+  })
+
+  it('puts the mangaka to bed to rest, the Zz rising over the pillow', () => {
+    const { ctx, log } = fakeContext()
+    render(ctx, sceneSnapshot({ activity: 'rest' }), 0.3, 0)
+    expect(has(log, '#2b2140', 236, 102)).toBe(true)
+    expect(log).toContainEqual({ style: '#2f5ecf', x: 242, y: 94, w: 1, h: 1 })
   })
 })

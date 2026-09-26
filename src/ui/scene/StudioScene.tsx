@@ -1,10 +1,11 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { getPhase, placeById, studioLook } from '../../sim'
 import type { StudioLook } from '../../sim'
 import { useClock } from '../../state/clock'
 import { useStore } from '../../state/store'
 import { prefersReducedMotion } from '../motion'
+import { anyWalking, newActorTable, planActors, settleActors, stepActors } from './actors'
 import { H, W, render } from './render'
 import type { Snapshot } from './render'
 import { seasonOf } from './season'
@@ -14,6 +15,8 @@ import { NO_EQUIPMENT, SHOWN_TROPHIES, ownedFlags } from './studioArt'
 const STEP_MS = 41
 /** Under reduced motion only the sky crossfade advances, once a second. */
 const STEP_MS_REDUCED = 1000
+/** The longest step the actors take at once: a stalled tab does not teleport them. */
+const MAX_ACTOR_STEP_MS = 250
 
 const EMPTY: never[] = []
 /** No game: the bare apartment. One module-level object, so the selector below returns the same thing every call. */
@@ -29,6 +32,10 @@ export function StudioScene({ running }: { running: boolean }) {
   const lastT = useRef(-1)
   const lastFrame = useRef(-1)
   const lastSnap = useRef<Snapshot | null>(null)
+  // the characters: planned from the game below, walked every loop step, read by render
+  // (one table for the component's life, mutated in place: useState's lazy initialiser, so render may read it)
+  const [actors] = useState(newActorTable)
+  const saveLoads = useStore((s) => s.saveLoads)
 
   const phase = useStore((s) => (s.game ? getPhase(s.game) : 'idle'))
   const activity = useStore((s) => s.game?.activity ?? 'rest')
@@ -44,6 +51,7 @@ export function StudioScene({ running }: { running: boolean }) {
   const snap = useRef<Snapshot>({
     phase, activity, progress, stamina, running, away: !!trip, assistants: [], season,
     tier: 'apartment', owned: NO_EQUIPMENT, volumes: 0, animePoster: false, trophies: 0,
+    visitor: 'none', visitorProp: 'none', actors: actors,
   })
   useEffect(() => {
     snap.current = {
@@ -53,17 +61,27 @@ export function StudioScene({ running }: { running: boolean }) {
       // the studio as flags and counts, so render never walks a list per frame
       tier: look.tier, owned: ownedFlags(look.equipment), volumes: look.volumes, animePoster: look.animePoster,
       trophies: Math.min(SHOWN_TROPHIES, look.trophies.length),
+      visitor: 'none', visitorProp: 'none', actors: actors,
     }
+    planActors(actors, snap.current)
     // Under reduced motion the loop only repaints once a second, so state changes repaint at once.
     // ctxRef is still null on first mount (this effect runs before the loop effect); the loop's first frame covers it.
     if (reduceMotion.current && ctxRef.current) {
+      stepActors(actors, 0, true)
       const t = useClock.getState().t
       render(ctxRef.current, snap.current, t, 0)
       lastT.current = t
       lastFrame.current = 0
       lastSnap.current = snap.current
     }
-  }, [phase, activity, progress, stamina, running, trip, assistants, season, look])
+  }, [actors, phase, activity, progress, stamina, running, trip, assistants, season, look])
+
+  // On mount and on a loaded save everyone is simply in place: nobody walks in. (After the plan above: effects run in
+  // order.) The repaint follows on the loop's next step, which sees the changed actors through lastSnap being reset.
+  useEffect(() => {
+    settleActors(actors)
+    lastSnap.current = null
+  }, [actors, saveLoads])
 
   useEffect(() => {
     const canvas = ref.current
@@ -82,12 +100,16 @@ export function StudioScene({ running }: { running: boolean }) {
     const loop = (now: number) => {
       if (hidden()) { raf = 0; return }
       if (now - last < step) { raf = requestAnimationFrame(loop); return }
+      const dt = now - last
       last = now
       const s = snap.current
+      // the actors walk whether or not the clock runs: the editor must arrive while the game waits on them
+      const moving = anyWalking(actors)
+      stepActors(actors, Math.min(dt, MAX_ACTOR_STEP_MS), reduce)
       if (!reduce) frame.current += s.running ? 2.5 : 1.25
       const t = useClock.getState().t
       const f = reduce ? 0 : Math.floor(frame.current)
-      if (t !== lastT.current || f !== lastFrame.current || s !== lastSnap.current) {
+      if (moving || t !== lastT.current || f !== lastFrame.current || s !== lastSnap.current) {
         render(ctx, s, t, f)
         lastT.current = t
         lastFrame.current = f
@@ -111,7 +133,7 @@ export function StudioScene({ running }: { running: boolean }) {
       document.removeEventListener('visibilitychange', start)
       ctxRef.current = null
     }
-  }, [])
+  }, [actors])
 
   const status =
     trip ? `Away at the ${placeById(trip.placeId).name}` :

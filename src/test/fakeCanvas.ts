@@ -4,6 +4,7 @@
  * where and in what order. Only `fillStyle`, `fillRect` and `imageSmoothingEnabled` exist, so a render that reaches for
  * anything else throws. `sceneSnapshot` is the scene's reference state (see its doc); pass `over` to change any field.
  */
+import { newActorTable, planActors, settleActors } from '../ui/scene/actors'
 import type { Snapshot } from '../ui/scene/render'
 
 export interface FillCall {
@@ -36,10 +37,11 @@ export function fakeContext(): FakeContext {
 /**
  * The reference scene: drawing phase, the mangaka working with the clock running, half the pages done,
  * stamina 80, one assistant (look 0, stamina 80), in spring, in the bare apartment (nothing owned, no volumes, no
- * anime poster, no trophies). The call-count baseline is measured on this snapshot.
+ * anime poster, no trophies), no visitor. The call-count baseline is measured on this snapshot. Unless `over.actors`
+ * is given, a fresh actor table is planned from the snapshot and settled (everyone in place, nobody walking).
  */
 export function sceneSnapshot(over: Partial<Snapshot> = {}): Snapshot {
-  return {
+  const s: Snapshot = {
     phase: 'drawing',
     activity: 'work',
     progress: 0.5,
@@ -53,6 +55,14 @@ export function sceneSnapshot(over: Partial<Snapshot> = {}): Snapshot {
     volumes: 0,
     animePoster: false,
     trophies: 0,
+    visitor: 'none',
+    visitorProp: 'none',
+    actors: newActorTable(),
     ...over,
   }
+  if (!over.actors) {
+    planActors(s.actors, s)
+    settleActors(s.actors)
+  }
+  return s
 }
