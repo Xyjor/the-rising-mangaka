@@ -14,6 +14,9 @@ npm run lint           # oxlint
 npm run check           # Lint (deny warnings) + typecheck + tests + build + contrast gate; mirrors CI
 npm run contrast        # WCAG AA 4.5:1 contrast gate over src/styles/tokens.css
 npm run balance -- [from=1] [to=20] [--detail seed]   # Balance bots (src/sim/bot.ts): a line per seed per bot, then the balance-band rows
+npm run tauri dev       # Desktop window around the dev server (starts `npm run dev` itself; first Rust build 4-8 min)
+npm run tauri build     # Windows NSIS installer, in src-tauri/target/release/bundle/nsis/
+npx tauri build --debug --no-bundle   # Debug desktop exe only (src-tauri/target/debug/rising-mangaka.exe), no installer
 ```
 
 Every change must pass `npx tsc -b`, `npm test`, and `npm run build` before it is called done. Run them; do not assume.
@@ -63,6 +66,9 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   fillRect with its fillStyle, and `sceneSnapshot`, the scene's reference state, for `render` tests).
 - `src/styles/tokens.css` (design tokens, light + dark), `base.css` (primitives), `app.css` (layout and panels),
   `cards.css` (desk cards; on phones they follow the project card).
+- `src-tauri/` — Tauri 2 desktop shell around the unchanged `dist` build (`tauri.conf.json`: window, CSP, NSIS bundle,
+  version from `package.json`; `capabilities/default.json`: window `main`, `core:default` only; crates pinned to `"2"`).
+  Never change `identifier` `com.xyjor.risingmangaka` or set `useHttpsScheme`: either one loses every save.
 
 ## Conventions
 
