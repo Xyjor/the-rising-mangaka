@@ -1,0 +1,75 @@
+/* HUD corners, the rail, the status card and the log list, all floating over the stage. */
+.hud-corner { position: absolute; display: flex; flex-direction: column; gap: 8px; }
+.top-left { left: 16px; top: 12px; }
+.top-right { right: 16px; top: 12px; align-items: flex-end; }
+.weekday { font-size: 12px; color: var(--ink-2); }
+.sky { color: var(--gold-text); }
+.speed button { min-width: 40px; justify-content: center; }
+.deadline[data-tone='warn'] { border-color: var(--accent); color: var(--accent-text); }
+.badge-hud.stat { min-width: 150px; }
+.badge-hud.stat.neg .num { color: var(--accent-text); }
+.badge-hud .bar { height: 6px; }
+.badge-hud .head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+
+/* ---------- rail ---------- */
+.rail { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 6px; }
+.rail .btn, .rail-log { position: relative; width: 56px; min-height: 52px; flex-direction: column; gap: 3px; padding: 6px 2px; }
+.rail-lbl { font-family: var(--font-display); font-size: 8px; font-weight: 700; }
+.rail .badge, .rail-log .badge {
+  position: absolute; top: -6px; right: -6px;
+  background: var(--accent); color: #fff; font-size: 10px; font-weight: 900;
+  min-width: 18px; height: 18px; border-radius: 999px; display: grid; place-items: center;
+  border: 2px solid var(--paper);
+}
+.rail .badge.blue, .rail-log .badge.blue { background: var(--blue); }
+.rail-log { position: absolute; left: 12px; bottom: 16px; }
+.rail-settings { position: absolute; right: 16px; bottom: 16px; background: var(--panel); border: 3px solid var(--line-strong); }
+
+/* ---------- status card ---------- */
+.status-card { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px 16px; padding: 12px 14px; }
+.status-card .span { grid-column: 1 / -1; }
+.status-left, .status-right { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.status-card .title { font-family: var(--font-display); font-size: 16px; font-weight: 700; overflow-wrap: anywhere; }
+.status-card .bar { height: 6px; }
+.tag-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.empty-desk { text-align: center; padding: 12px; display: flex; flex-direction: column; gap: 12px; align-items: center; }
+.empty-desk .doodle { color: var(--ink-3); }
+.activity-block { display: flex; flex-direction: column; gap: 10px; }
+.activity-block .seg { flex-wrap: wrap; }
+.warnings { display: inline-flex; gap: 4px; }
+.warnings i { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid var(--accent); }
+.warnings i.on { background: var(--accent); }
+
+.coach {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 10px 12px; border-radius: var(--radius-m);
+  background: var(--gold-soft); border: 2px solid var(--gold);
+  font-size: 13px;
+}
+.coach .who { font-weight: 800; font-size: 12px; color: var(--gold-text); }
+/* A speech tail pointing down at the card. */
+.speech { position: relative; }
+.speech::after {
+  content: ''; position: absolute; left: 32px; bottom: -10px;
+  border: 8px solid transparent; border-bottom: 0; border-top: 10px solid var(--gold);
+}
+
+/* ---------- log list ---------- */
+.log-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+.log-list li { display: flex; gap: 10px; font-size: 13px; align-items: baseline; }
+.log-list li .day { font-size: 11px; color: var(--ink-3); flex: none; white-space: nowrap; }
+.log-list li .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ink-3); flex: none; transform: translateY(-1px); }
+.log-list li[data-kind='success'] .dot { background: var(--green); }
+.log-list li[data-kind='warn'] .dot { background: var(--accent); }
+.log-list li[data-kind='money'] .dot { background: var(--gold); }
+.log-list li[data-kind='levelup'] .dot { background: var(--purple); }
+.log-list li[data-kind='series'] .dot { background: var(--blue); }
+.log-list li[data-kind='staff'] .dot { background: var(--purple); }
+.log-list li[data-kind='trip'] .dot { background: var(--green); }
+.log-list li[data-kind='event'] .dot { background: var(--gold); }
+
+.only-phone { display: none; }
+@media (max-width: 640px) {
+  .only-phone { display: inline; }
+  .not-phone { display: none; }
+}

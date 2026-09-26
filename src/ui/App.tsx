@@ -1,15 +1,18 @@
 import { useEffect, useLayoutEffect } from 'react'
 import { getPhase } from '../sim'
 import { SPEED_MS, useStore } from '../state/store'
-import { EventLog } from './EventLog'
 import { useClockLoop, useClockSync } from './hooks/useClockLoop'
-import { Hud } from './Hud'
+import { DeskTray } from './hud/DeskTray'
+import { LogButton, Rail, SettingsButton } from './hud/Rail'
+import { StatusCard } from './hud/StatusCard'
+import { TopLeft } from './hud/TopLeft'
+import { TopRight } from './hud/TopRight'
 import { TabBanner } from './TabBanner'
 import { Toasts } from './Toasts'
 import { TitleScreen } from './TitleScreen'
 import { CareerModal } from './panels/CareerModal'
-import { DeskPanel } from './panels/DeskPanel'
 import { HistoryModal } from './panels/HistoryModal'
+import { LogModal } from './panels/LogModal'
 import { NewMangaWizard } from './panels/NewMangaWizard'
 import { NotebookModal } from './panels/NotebookModal'
 import { OfferModal } from './panels/OfferModal'
@@ -104,14 +107,20 @@ export function App() {
   return (
     <div className="app" data-running={running}>
       <TabBanner />
-      <Hud />
-      <div className="main">
-        <div className="studio">
+      <div className="stage">
+        <div className="scene-band">
           <StudioScene running={running} />
+          <TopLeft />
+          <TopRight />
+          <LogButton />
+          <SettingsButton />
         </div>
-        <DeskPanel />
+        <div className="dock">
+          <StatusCard />
+          <DeskTray />
+        </div>
+        <Rail />
       </div>
-      <EventLog />
       <Toasts />
       {hasResult && <ResultsModal />}
       {!hasResult && hasOffer && <OfferModal />}
@@ -127,6 +136,7 @@ export function App() {
       {free && modal === 'career' && <CareerModal />}
       {free && modal === 'studio' && <StudioModal />}
       {free && modal === 'year' && <YearModal />}
+      {free && modal === 'log' && <LogModal />}
     </div>
   )
 }

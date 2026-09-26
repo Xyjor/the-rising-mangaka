@@ -91,7 +91,7 @@ describe('StudioModal', () => {
     expect(button('Pen tablet', `Buy, ${money(equipmentPrice('tablet'))}`).disabled).toBe(false)
   })
 
-  it('opens from the Studio button on the desk', () => {
+  it("opens from the rail's Studio button", () => {
     useStore.setState({ modal: 'none' })
     render(<App />)
     fireEvent.click(screen.getByRole('button', { name: 'Studio' }))

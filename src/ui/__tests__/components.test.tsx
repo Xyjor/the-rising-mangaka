@@ -6,7 +6,7 @@ import { createGame, startProject, submitProject, tickMany } from '../../sim'
 import { DRAFT, drawUntilReady } from '../../test/fixtures'
 import { useStore } from '../../state/store'
 import { StatsModal } from '../panels/StatsModal'
-import { DeskPanel } from '../panels/DeskPanel'
+import { StatusCard } from '../hud/StatusCard'
 import { Metric, Reward, WarningPips } from '../components'
 
 beforeEach(() => {
@@ -35,14 +35,14 @@ describe('StatsModal (characterisation)', () => {
   })
 })
 
-describe('DeskPanel (characterisation)', () => {
+describe('StatusCard (characterisation)', () => {
   it('drawing: shows Art quality and Story quality heads with matching progressbars', () => {
     useStore.setState({
       game: tickMany(startProject(createGame('Rin', 1), DRAFT), 2),
       tutorialStep: -1,
       readOnly: false,
     })
-    render(<DeskPanel />)
+    render(<StatusCard />)
 
     expect(screen.getByText('Art quality')).toBeTruthy()
     expect(screen.getByText('Story quality')).toBeTruthy()
@@ -64,7 +64,7 @@ describe('DeskPanel (characterisation)', () => {
     // display clamps rather than trusting the sign of resultsDay - day.
     game = { ...game, project: { ...game.project!, resultsDay: game.day - 1 } }
     useStore.setState({ game, tutorialStep: -1, readOnly: false })
-    render(<DeskPanel />)
+    render(<StatusCard />)
 
     const bar = screen.getByRole('progressbar', { name: 'Waiting for results' })
     const head = bar.closest('.metric')!.querySelector('b.num')!

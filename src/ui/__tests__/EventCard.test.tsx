@@ -6,7 +6,7 @@ import { acceptOffer, createGame } from '../../sim'
 import type { EventId, GameEvent, GameState, Player } from '../../sim'
 import { useStore } from '../../state/store'
 import { EventCard } from '../EventCard'
-import { DeskPanel } from '../panels/DeskPanel'
+import { DeskTray } from '../hud/DeskTray'
 import { TripsModal } from '../panels/TripsModal'
 
 const KIDS_OFFER = { magazineId: 'kids-comic', title: 'Magic Club', genre: 'fantasy', theme: 'magic', audience: 'kids' } as const
@@ -88,9 +88,9 @@ describe('EventCard', () => {
     expect(screen.getByText('3 days away from the desk; chapter due in 9 days.')).toBeTruthy()
   })
 
-  it('sits on the desk panel', () => {
+  it('sits in the desk tray', () => {
     useStore.setState({ game: withEvent('cold') })
-    render(<DeskPanel />)
+    render(<DeskTray />)
     expect(screen.getByRole('region', { name: 'You caught a cold' })).toBeTruthy()
   })
 })
