@@ -7,6 +7,7 @@ import { exportSave } from '../../platform/saveTransfer'
 import { createGame } from '../../sim'
 import { parseSave } from '../../state/saveFile'
 import { SAVE_KEY, useStore } from '../../state/store'
+import { OWNER_KEY } from '../../state/tabLock'
 import { ErrorBoundary } from '../ErrorBoundary'
 
 // The file dialog is replaced: the test reads what the recovery screen exports.
@@ -105,5 +106,24 @@ describe('ErrorBoundary', () => {
     document.dispatchEvent(new Event('visibilitychange'))
     useStore.getState().setWindowHidden(true)
     expect(localStorage.getItem(SAVE_KEY)).toBeNull()
+  })
+
+  it('Start over in a read-only tab only reloads: the save belongs to the tab that owns it', () => {
+    useStore.setState({ game: createGame('Rin', 42) })
+    const saved = localStorage.getItem(SAVE_KEY)
+    expect(saved).not.toBeNull()
+    const ours = localStorage.getItem(OWNER_KEY)
+    localStorage.setItem(OWNER_KEY, JSON.stringify({ tabId: 'the-other-tab', at: Date.now() }))
+    try {
+      render(<ErrorBoundary><Crash /></ErrorBoundary>)
+      fireEvent.click(screen.getByRole('button', { name: 'Start over' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Yes, delete save' }))
+      expect(reload).toHaveBeenCalledTimes(1)
+      expect(localStorage.getItem(SAVE_KEY)).toBe(saved)
+      expect(useStore.getState().game?.player.name).toBe('Rin')
+    } finally {
+      if (ours) localStorage.setItem(OWNER_KEY, ours)
+      else localStorage.removeItem(OWNER_KEY)
+    }
   })
 })

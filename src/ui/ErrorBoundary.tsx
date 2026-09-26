@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { exportSave } from '../platform/saveTransfer'
 import { storedSaveFile } from '../state/saveFile'
 import { SAVE_KEY, flushSave, useStore } from '../state/store'
+import { isOwner } from '../state/tabLock'
 import { ConfirmRow } from './ConfirmRow'
 import { SaveFileNoticeLine } from './SaveFileSection'
 import { WRITE_FAILED } from './useSaveFile'
@@ -19,18 +20,21 @@ function storedSave(): string | null {
 
 /**
  * Deletes the save and reloads into the title screen. The store drops its game first, so neither a write still waiting
- * on the debounce (flushed as the page goes) nor any later update can bring the old save back.
+ * on the debounce (flushed as the page goes) nor any later update can bring the old save back. A read-only tab only
+ * reloads: the save belongs to the tab that owns it, which is still playing.
  */
 function startOver() {
-  try {
-    useStore.setState({ game: null, speed: 0 })
-  } catch {
-    /* the store is past helping: the key still goes */
-  }
-  try {
-    localStorage.removeItem(SAVE_KEY)
-  } catch {
-    /* storage unavailable: there is nothing to delete */
+  if (isOwner()) {
+    try {
+      useStore.setState({ game: null, speed: 0 })
+    } catch {
+      /* the store is past helping: the key still goes */
+    }
+    try {
+      localStorage.removeItem(SAVE_KEY)
+    } catch {
+      /* storage unavailable: there is nothing to delete */
+    }
   }
   window.location.reload()
 }
