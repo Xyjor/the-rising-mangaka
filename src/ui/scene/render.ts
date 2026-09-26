@@ -136,7 +136,6 @@ export interface Snapshot {
   progress: number
   stamina: number
   running: boolean
-  speed: number
   away: boolean
   assistants: { look: number; stamina: number }[]
   /** The game day's season, painted in the window (season.ts). */

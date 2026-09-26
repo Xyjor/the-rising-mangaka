@@ -7,6 +7,7 @@ import { fakeContext } from '../../test/fakeCanvas'
 import type { FakeContext } from '../../test/fakeCanvas'
 import { createGame } from '../../sim'
 import type { GameState } from '../../sim'
+import { useClock } from '../../state/clock'
 import { useStore } from '../../state/store'
 import { StudioScene } from '../scene/StudioScene'
 
@@ -29,6 +30,7 @@ beforeEach(() => {
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(fake.ctx as never)
   game = createGame('Rin', 1)
   useStore.setState({ game, speed: 0, modal: 'none', toasts: [], tutorialStep: 0, readOnly: false })
+  useClock.setState({ t: 0.3 })
 })
 
 afterEach(() => {
@@ -66,14 +68,24 @@ describe('StudioScene', () => {
   })
 
   it('reads the studio field by field: a new game object with the same studio does not repaint', () => {
-    // a modal covers the scene, so the frame loop sleeps and only a snapshot change can repaint
-    useStore.setState({ modal: 'studio' })
     render(<StudioScene running={false} />)
     fake.log.length = 0
 
     act(() => useStore.setState({ game: { ...game } }))
     expect(fake.log).toHaveLength(0)
 
+    act(() => useStore.setState({ game: { ...game, studio: { tier: 'loft', owned: [] } } }))
+    expect(fake.log).toContainEqual(NOREN)
+  })
+
+  it('keeps the frame loop alive while a modal covers the scene', () => {
+    const raf = vi.spyOn(window, 'requestAnimationFrame')
+    useStore.setState({ modal: 'studio' })
+    render(<StudioScene running={false} />)
+
+    expect(raf).toHaveBeenCalled()
+
+    fake.log.length = 0
     act(() => useStore.setState({ game: { ...game, studio: { tier: 'loft', owned: [] } } }))
     expect(fake.log).toContainEqual(NOREN)
   })
