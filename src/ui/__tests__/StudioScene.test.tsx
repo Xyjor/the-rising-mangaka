@@ -13,10 +13,10 @@ import { StudioScene } from '../scene/StudioScene'
 const PETAL = '#f7b6c8'
 const SNOW = '#f4f8ff'
 /** One fill from each piece of studio art (studioArt.ts): the noren, the coffee machine, a trophy, the arm lamp. */
-const NOREN = { style: '#2e3a78', x: 170, y: 22, w: 13, h: 13 }
-const COFFEE = { style: '#3b3b45', x: 119, y: 37, w: 7, h: 7 }
-const TROPHY = { style: '#f5b700', x: 130, y: 38, w: 3, h: 3 }
-const LAMP_SHADE = { style: '#e8e4d8', x: 93, y: 44, w: 6, h: 2 }
+const NOREN = { style: '#2e3a78', x: 260, y: 58, w: 13, h: 13 }
+const COFFEE = { style: '#3b3b45', x: 183, y: 73, w: 7, h: 7 }
+const TROPHY = { style: '#f5b700', x: 194, y: 74, w: 3, h: 3 }
+const LAMP_SHADE = { style: '#e8e4d8', x: 157, y: 80, w: 6, h: 2 }
 
 let fake: FakeContext
 let restoreMotion: () => void

@@ -13,11 +13,11 @@ const LEAVES = ['#e2733a', '#c9442e', '#e8a33d']
 const SNOW = '#f4f8ff'
 const FIREFLY = '#e8ff8a'
 const PARTICLE_COLOURS = [...PETALS, ...LEAVES, SNOW, FIREFLY]
-/** Winter's snow: the sill's top row (the sill is x 114-165, y 45-47) and two drifts at y 44 on the frame's bottom. */
+/** Winter's snow: the sill's top row (the sill is x 178-229, y 81-83) and two drifts at y 80 on the frame's bottom. */
 const SILL_SNOW = [
-  { style: SNOW, x: 114, y: 45, w: 52, h: 1 },
-  { style: SNOW, x: 117, y: 44, w: 7, h: 1 },
-  { style: SNOW, x: 148, y: 44, w: 10, h: 1 },
+  { style: SNOW, x: 178, y: 81, w: 52, h: 1 },
+  { style: SNOW, x: 181, y: 80, w: 7, h: 1 },
+  { style: SNOW, x: 212, y: 80, w: 10, h: 1 },
 ]
 const NIGHT_OVERLAY = 'rgba(20, 24, 60, 0.28)'
 /** A colour only each season's pane art uses: its petals, its canopy's dark green, its falling leaves, its snow. */
@@ -34,9 +34,9 @@ function paint(season: Season, t: number, frame: number): FillCall[] {
   return log
 }
 
-/** Inside the window pane: x 118-161, y 12-43. */
+/** Inside the window pane: x 182-225, y 48-79. */
 function inPane(c: FillCall): boolean {
-  return c.x >= 118 && c.x + c.w <= 162 && c.y >= 12 && c.y + c.h <= 44
+  return c.x >= 182 && c.x + c.w <= 226 && c.y >= 48 && c.y + c.h <= 80
 }
 
 function isSillSnow(c: FillCall): boolean {
@@ -100,7 +100,7 @@ describe('the season layer', () => {
   it('shows winter as 16 snowflakes and snow on the sill, drawn over the sill', () => {
     const log = paint('winter', 0.3, 100)
     expect(particles(log, [SNOW])).toHaveLength(16)
-    const sill = log.findIndex((c) => c.x === 114 && c.y === 45 && c.w === 52 && c.h === 3)
+    const sill = log.findIndex((c) => c.x === 178 && c.y === 81 && c.w === 52 && c.h === 3)
     for (const snow of SILL_SNOW) {
       const at = log.findIndex((c) => isSillSnow(c) && c.x === snow.x && c.y === snow.y)
       expect(at).toBeGreaterThan(sill)
@@ -127,8 +127,8 @@ describe('the season layer', () => {
     for (const season of SEASONS) {
       for (const t of [0.3, 0.9]) {
         const log = paint(season, t, 100)
-        const sky = log.findIndex((c) => c.x === 118 && c.y === 12 && c.w === 44 && c.h === 32)
-        const bar = log.findIndex((c) => c.x === 139 && c.y === 12 && c.w === 2 && c.h === 32)
+        const sky = log.findIndex((c) => c.x === 182 && c.y === 48 && c.w === 44 && c.h === 32)
+        const bar = log.findIndex((c) => c.x === 203 && c.y === 48 && c.w === 2 && c.h === 32)
         expect(sky, season).toBeGreaterThan(-1)
         expect(bar, season).toBeGreaterThan(sky)
         // the sun or moon and stars, the clouds and the season's art: everything between the sky and the bars
@@ -143,7 +143,7 @@ describe('the season layer', () => {
     }
   })
 
-  it('keeps the fireflies off the window bars and above the sill: rows 18-25 and 29-36, never columns 139-140', () => {
+  it('keeps the fireflies off the window bars and above the sill: rows 54-61 and 65-72, never columns 203-204', () => {
     let seen = 0
     const rows = new Set<number>()
     const cols = new Set<number>()
@@ -154,16 +154,16 @@ describe('the season layer', () => {
         rows.add(c.y)
         cols.add(c.x)
         const where = `frame ${frame}: ${JSON.stringify(c)}`
-        expect(c.y >= 18 && c.y <= 36, where).toBe(true)
-        expect(c.y !== 27 && c.y !== 28, where).toBe(true)
-        expect(c.x !== 139 && c.x !== 140, where).toBe(true)
+        expect(c.y >= 54 && c.y <= 72, where).toBe(true)
+        expect(c.y !== 63 && c.y !== 64, where).toBe(true)
+        expect(c.x !== 203 && c.x !== 204, where).toBe(true)
       }
     }
     // frames 0, 13, ..., 1989: 154 frames of 5 fireflies
     expect(seen).toBe(154 * 5)
     // the wander reaches both edges of both bands and passes the bar, so the limits above are really tested
-    for (const y of [18, 25, 29, 36]) expect(rows.has(y), `row ${y}`).toBe(true)
-    for (const x of [138, 141]) expect(cols.has(x), `column ${x}`).toBe(true)
+    for (const y of [54, 61, 65, 72]) expect(rows.has(y), `row ${y}`).toBe(true)
+    for (const x of [202, 205]) expect(cols.has(x), `column ${x}`).toBe(true)
   })
 
   it('moves the particles with the frame and holds them still when the frame holds still', () => {

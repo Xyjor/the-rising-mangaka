@@ -1,16 +1,18 @@
 // The studio scene's painter: palettes, sprites and their helpers, the snapshot it reads and `render`, one frame of the
-// 192x108 canvas. Pure drawing: no React, no store, and nothing allocated per frame (tables are built once here).
+// 320x180 canvas (room-space literals, offset by paint.ts's OX/OY; the wall and floor in canvas space). Pure drawing: no React, no store, and nothing allocated per frame (tables are built once here).
 import { LOW_STAMINA_THRESHOLD } from '../../sim'
 import type { StudioTierId } from '../../sim'
 import { LOOK_HAIRS, LOOK_SHIRTS } from '../looks'
-import { BAR_X, paneRect, rect } from './paint'
+import { BAR_X, OX, OY, paneRect, rawRect, rect } from './paint'
 import { drawSeasonNight, drawSeasonPane, drawSeasonSill } from './season'
 import type { Season } from './season'
-import { EQUIPMENT_ART, TIER_ART, drawAnimePoster, drawStudioLights, drawTrophies, drawVolumes } from './studioArt'
+import {
+  EQUIPMENT_ART, TIER_ART, drawAnimePoster, drawEntrance, drawKitchenette, drawStudioLights, drawTrophies, drawVolumes,
+} from './studioArt'
 import type { Owned } from './studioArt'
 
-export const W = 192
-export const H = 108
+export const W = 320
+export const H = 180
 
 // ---------- palette & sprites ----------
 
@@ -56,7 +58,7 @@ function drawSprite(ctx: CanvasRenderingContext2D, map: string[], x: number, y: 
       const ch = line[c]
       if (ch === '.') continue
       ctx.fillStyle = pal[ch] ?? '#f0f'
-      ctx.fillRect(x + c, y + r, 1, 1)
+      ctx.fillRect(x + OX + c, y + OY + r, 1, 1)
     }
   }
 }
@@ -71,7 +73,22 @@ function glyph(ctx: CanvasRenderingContext2D, ch: string, x: number, y: number, 
   const g = GLYPH[ch]
   if (!g) return
   ctx.fillStyle = color
-  for (let r = 0; r < 5; r++) for (let c = 0; c < 3; c++) if (g[r][c] === '#') ctx.fillRect(x + c, y + r, 1, 1)
+  for (let r = 0; r < 5; r++) for (let c = 0; c < 3; c++) if (g[r][c] === '#') ctx.fillRect(x + OX + c, y + OY + r, 1, 1)
+}
+
+// ---------- the room ----------
+
+/**
+ * The wall and the floor, in canvas space across the whole 320x180: the wall to y 113 with 27 stripes (x 4 + 12k) and
+ * the skirting at y 112-113, the floor below with 20 plank seams (x 16k) and 8 plank rows (y 122 + 8k). 58 fills.
+ */
+function drawRoom(ctx: CanvasRenderingContext2D, night: boolean) {
+  rawRect(ctx, 0, 0, W, 114, night ? '#8f8272' : '#e8dcc8')
+  for (let x = 4; x < W; x += 12) rawRect(ctx, x, 0, 1, 114, night ? '#847763' : '#ddd0ba')
+  rawRect(ctx, 0, 112, W, 2, night ? '#5a4a3a' : '#8a6a4f')
+  rawRect(ctx, 0, 114, W, 66, night ? '#6f5438' : '#b0855b')
+  for (let x = 0; x < W; x += 16) rawRect(ctx, x, 114, 1, 66, night ? '#5c4530' : '#96704a')
+  for (let y = 122; y < H; y += 8) rawRect(ctx, 0, y, W, 1, night ? '#5c4530' : '#a37b52')
 }
 
 // ---------- sky ----------
@@ -150,14 +167,8 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
   const resting = !absent && !busy && s.phase !== 'idle' && s.phase !== 'ready'
   const sky = skyColor(t)
 
-  // wall
-  rect(ctx, 0, 0, W, 78, night ? '#8f8272' : '#e8dcc8')
-  for (let x = 0; x < W; x += 12) rect(ctx, x, 0, 1, 78, night ? '#847763' : '#ddd0ba')
-  rect(ctx, 0, 76, W, 2, night ? '#5a4a3a' : '#8a6a4f')
-  // floor
-  rect(ctx, 0, 78, W, 30, night ? '#6f5438' : '#b0855b')
-  for (let x = 0; x < W; x += 16) rect(ctx, x, 78, 1, 30, night ? '#5c4530' : '#96704a')
-  for (let y = 86; y < H; y += 8) rect(ctx, 0, y, W, 1, night ? '#5c4530' : '#a37b52')
+  drawRoom(ctx, night)
+  drawKitchenette(ctx)
 
   // window
   rect(ctx, 116, 10, 48, 36, '#5a4634')
@@ -208,6 +219,7 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
   rect(ctx, 130, 74, 40, 2, '#a83c3c')
   // the tier's room: the doorway above the bed's head (before the Zz that rise over it), the loft's plants
   TIER_ART[s.tier](ctx, s, frame, night)
+  drawEntrance(ctx, absent)
   if (resting) {
     rect(ctx, 138, 72, 30, 4, '#d95d5d')
     drawSprite(ctx, HEAD_SLEEP, 169, 66)
@@ -280,7 +292,7 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
 
   if (night) {
     ctx.fillStyle = 'rgba(20, 24, 60, 0.28)'; ctx.fillRect(0, 0, W, H)
-    if (working) { ctx.fillStyle = 'rgba(255, 240, 180, 0.12)'; ctx.fillRect(60, 46, 50, 34) }
+    if (working) rect(ctx, 60, 46, 50, 34, 'rgba(255, 240, 180, 0.12)')
     // lights that glow through the dark go after the overlay
     drawSeasonNight(ctx, s.season, frame)
   }

@@ -1,12 +1,14 @@
 // The player's studio in the scene (`studioLook`): the tier's doorway and the loft's plants, the equipment, the volumes
 // on the bookshelf, the anime poster and the trophies on the sill. render.ts calls each piece at its own place in the
 // draw order; the lamp, the chair, the drafting table and the anime poster replace the stock piece in that place. Every
-// piece keeps to its region (all inside x 8-184, which a phone's object-fit: cover never crops) and off the hero at the
-// desk (x 74-85, y 48-62, but for the chair behind them and the drafting table's top on the desk's own row, y 62) and
-// at the standing spot (x 112-123, y 62-76). Nothing here allocates per frame. Raw hex is deliberate: sprite colours,
-// not UI tokens.
+// piece keeps to its region, all in canvas coordinates inside the phone crop x 24-296 (object-fit: cover at 375x667
+// crops the rest), and off the seated hero [138,149]x[84,98] (but for the chair behind them and the drafting table's
+// top on the desk's own row, y 98), the standing spot [176,187]x[98,112] and the editor's spot [204,215]x[102,116].
+// Room-space pieces draw with `rect` (the old 192x108 literals, offset by (64, 36)); the kitchenette, the entrance and
+// the door draw with `rawRect` in canvas space. Nothing here allocates per frame. Raw hex is deliberate: sprite
+// colours, not UI tokens.
 import type { EquipmentId, StudioTierId } from '../../sim'
-import { rect } from './paint'
+import { rawRect, rect } from './paint'
 import type { Snapshot } from './render'
 
 /** One flag per piece of equipment: studioLook's owned list as flags, set when it changes, never walked per frame. */
@@ -79,21 +81,34 @@ const LAMP_GLOW = 'rgba(255,236,170,0.18)'
 const DOOR_SPILL = 'rgba(255,214,150,0.35)'
 const DOOR_HALO = 'rgba(255,214,150,0.12)'
 const KV_SKY = '#2c3e8f'
+const FRIDGE = '#e4e7ec'
+const FRIDGE_LINE = '#b8bcc4'
+const DOOR_PANEL = '#7a5636'
+const MAT_DARK = '#a83c3c'
 const SPINES = [RED, BLUE, GOLD, GREEN, VIOLET, ORANGE] as const
 
 // ---------- the tiers ----------
 
+/** The apartment's plain front door in the right wall (canvas x 258-274, y 56-113): two panels and a brass knob. */
+function plainDoor(ctx: CanvasRenderingContext2D) {
+  rawRect(ctx, 258, 56, 17, 58, WOOD_DARK)
+  rawRect(ctx, 260, 58, 13, 56, SHELF_BACK)
+  rawRect(ctx, 262, 62, 9, 20, DOOR_PANEL)
+  rawRect(ctx, 262, 86, 9, 22, DOOR_PANEL)
+  rawRect(ctx, 270, 86, 2, 2, GOLD)
+}
+
 /**
- * A doorway in the right wall (x 168-184, from y 20 down to the bed at y 66), lit from the room beyond, with an indigo
- * noren across its top: a white crest and a split up the middle.
+ * An open doorway in the same frame (canvas x 258-274, y 56-113), lit from the room beyond, with an indigo noren across
+ * its top: a white crest and a split up the middle.
  */
 function doorway(ctx: CanvasRenderingContext2D) {
-  rect(ctx, 168, 20, 17, 46, WOOD_DARK)
-  rect(ctx, 170, 22, 13, 44, DOOR_LIGHT)
-  rect(ctx, 170, 56, 13, 10, DOOR_FLOOR)
-  rect(ctx, 170, 22, 13, 13, NOREN)
-  rect(ctx, 175, 24, 3, 3, NOREN_CREST)
-  rect(ctx, 176, 28, 1, 7, DOOR_LIGHT)
+  rawRect(ctx, 258, 56, 17, 58, WOOD_DARK)
+  rawRect(ctx, 260, 58, 13, 56, DOOR_LIGHT)
+  rawRect(ctx, 260, 100, 13, 14, DOOR_FLOOR)
+  rawRect(ctx, 260, 58, 13, 13, NOREN)
+  rawRect(ctx, 265, 60, 3, 3, NOREN_CREST)
+  rawRect(ctx, 266, 64, 1, 7, DOOR_LIGHT)
 }
 
 /** A small potted plant on the windowsill's right, x 150-155, y 38-44. */
@@ -115,12 +130,11 @@ function floorPlant(ctx: CanvasRenderingContext2D) {
 }
 
 /**
- * Each tier's room, drawn after the bed (the doorway stops where the bed begins, y 66, so the two never overlap) and
- * before the sleeping mangaka and the Zz that rise over the doorway. The doorway's warm spill at night is in
- * `drawStudioLights`.
+ * Each tier's room, drawn after the bed and before the sleeping mangaka and the Zz: the apartment's plain door, the
+ * flat's and the loft's lit doorway (and the loft's plants). The doorway's warm spill at night is in `drawStudioLights`.
  */
 export const TIER_ART: Record<StudioTierId, Art> = {
-  apartment: () => {},
+  apartment: plainDoor,
   flat: doorway,
   loft: (ctx) => {
     doorway(ctx)
@@ -131,6 +145,36 @@ export const TIER_ART: Record<StudioTierId, Art> = {
 
 /** Which tiers have the lit doorway, so a new tier decides whether it spills light at night. */
 const LIT_DOORWAY: Record<StudioTierId, boolean> = { apartment: false, flat: true, loft: true }
+
+// ---------- the margins: the kitchenette and the entrance ----------
+
+/** The kitchenette on the left wall (canvas x 2-61, y 56-113): a fridge, a cup shelf, a counter and a kettle. 17 fills. */
+export function drawKitchenette(ctx: CanvasRenderingContext2D) {
+  rawRect(ctx, 2, 56, 16, 58, FRIDGE)
+  rawRect(ctx, 2, 78, 16, 1, FRIDGE_LINE)
+  rawRect(ctx, 15, 70, 1, 6, FRIDGE_LINE); rawRect(ctx, 15, 82, 1, 10, FRIDGE_LINE)
+  rawRect(ctx, 24, 66, 30, 2, SHELF_BOARD)
+  rawRect(ctx, 28, 62, 4, 4, PAPER); rawRect(ctx, 36, 62, 4, 4, BLUE); rawRect(ctx, 44, 62, 4, 4, GREEN)
+  rawRect(ctx, 20, 92, 42, 3, TABLE_TOP)
+  rawRect(ctx, 20, 95, 42, 19, SHELF_BACK)
+  rawRect(ctx, 40, 95, 1, 19, SHELF_BOARD)
+  rawRect(ctx, 30, 103, 2, 1, SHELF_BOARD); rawRect(ctx, 50, 103, 2, 1, SHELF_BOARD)
+  rawRect(ctx, 45, 86, 6, 6, METAL)
+  rawRect(ctx, 46, 84, 4, 2, METAL_LIGHT); rawRect(ctx, 51, 87, 2, 2, METAL_DARK); rawRect(ctx, 43, 87, 2, 1, METAL_DARK)
+}
+
+/**
+ * The entrance by the door (canvas x 257-290, y 70-116): a doormat and a coat rack, the mangaka's coat on it only while
+ * they are in (away or at a job, it goes with them).
+ */
+export function drawEntrance(ctx: CanvasRenderingContext2D, absent: boolean) {
+  rawRect(ctx, 257, 114, 19, 3, BRICK)
+  rawRect(ctx, 259, 115, 15, 1, MAT_DARK)
+  rawRect(ctx, 286, 70, 1, 44, WOOD_DARK)
+  rawRect(ctx, 283, 72, 7, 1, WOOD_DARK)
+  rawRect(ctx, 283, 112, 7, 2, WOOD_DARK)
+  if (!absent) rawRect(ctx, 287, 73, 5, 14, NOREN)
+}
 
 // ---------- the equipment ----------
 
@@ -260,7 +304,7 @@ export function drawStudioLights(ctx: CanvasRenderingContext2D, s: Snapshot, nig
     rect(ctx, 92, 52, 8, 10, LAMP_GLOW)
   }
   if (night && LIT_DOORWAY[s.tier]) {
-    rect(ctx, 168, 30, 17, 36, DOOR_HALO)
-    rect(ctx, 170, 35, 13, 31, DOOR_SPILL)
+    rawRect(ctx, 258, 66, 17, 48, DOOR_HALO)
+    rawRect(ctx, 260, 71, 13, 43, DOOR_SPILL)
   }
 }
