@@ -9,20 +9,7 @@ import { Icon } from '../Icon'
 import { Metric, Modal } from '../components'
 import { money, plural } from '../format'
 
-import { LOOK_HAIRS, LOOK_SHIRTS } from '../looks'
-
-function Avatar({ a }: { a: Assistant }) {
-  // A tiny pixel portrait: hair, face, shirt.
-  return (
-    <svg className="avatar" viewBox="0 0 8 8" width={48} height={48} aria-hidden shapeRendering="crispEdges">
-      <rect width="8" height="8" fill="var(--paper-2)" />
-      <rect x="2" y="1" width="4" height="2" fill={LOOK_HAIRS[a.look % LOOK_HAIRS.length]} />
-      <rect x="2" y="3" width="4" height="2" fill="#f4cfa5" />
-      <rect x="3" y="3" width="1" height="1" fill="#1b1b1b" /><rect x="5" y="3" width="1" height="1" fill="#1b1b1b" />
-      <rect x="1" y="5" width="6" height="3" fill={LOOK_SHIRTS[a.look % LOOK_SHIRTS.length]} />
-    </svg>
-  )
-}
+import { SpriteAvatar } from '../scene/SpriteAvatar'
 
 function Person({ a, action, actionLabel, disabled, hired, confirm }: {
   a: Assistant; action: () => void; actionLabel: string; disabled?: boolean; hired?: boolean
@@ -31,7 +18,7 @@ function Person({ a, action, actionLabel, disabled, hired, confirm }: {
   return (
     <div className="person">
       <div className="head">
-        <Avatar a={a} />
+        <SpriteAvatar look={a.look} />
         <div className="grow">
           <div className="name">{a.name}</div>
           <div className="salary">{money(a.salary)} a week, about {assistantPagesPerDay(a).toFixed(1)} pages a day</div>

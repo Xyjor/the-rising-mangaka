@@ -22,6 +22,24 @@ export interface FakeContext {
   log: FillCall[]
 }
 
+/** Index of the LAST fill of `style` covering pixel (x, y), or -1. */
+export function covers(log: readonly FillCall[], style: string, x: number, y: number): number {
+  for (let i = log.length - 1; i >= 0; i--) {
+    const c = log[i]
+    if (c.style === style && c.x <= x && x < c.x + c.w && c.y <= y && y < c.y + c.h) return i
+  }
+  return -1
+}
+
+/** Index of the last fill of any style covering (x, y), or -1. */
+export function coversAny(log: readonly FillCall[], x: number, y: number): number {
+  for (let i = log.length - 1; i >= 0; i--) {
+    const c = log[i]
+    if (c.x <= x && x < c.x + c.w && c.y <= y && y < c.y + c.h) return i
+  }
+  return -1
+}
+
 export function fakeContext(): FakeContext {
   const log: FillCall[] = []
   const fake = {
@@ -37,7 +55,7 @@ export function fakeContext(): FakeContext {
 /**
  * The reference scene: drawing phase, the mangaka working with the clock running, half the pages done,
  * stamina 80, one assistant (look 0, stamina 80), in spring, in the bare apartment (nothing owned, no volumes, no
- * anime poster, no trophies), no visitor. The call-count baseline is measured on this snapshot. Unless `over.actors`
+ * anime poster, no trophies), no visitor, the chapter not late. The call-count baseline is measured on this snapshot. Unless `over.actors`
  * is given, a fresh actor table is planned from the snapshot and settled (everyone in place, nobody walking).
  */
 export function sceneSnapshot(over: Partial<Snapshot> = {}): Snapshot {
@@ -57,6 +75,7 @@ export function sceneSnapshot(over: Partial<Snapshot> = {}): Snapshot {
     trophies: 0,
     visitor: 'none',
     visitorProp: 'none',
+    late: false,
     actors: newActorTable(),
     ...over,
   }

@@ -3,10 +3,10 @@ import { act, render } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import '../../test/dom'
 import { stubReducedMotion } from '../../test/dom'
-import { fakeContext } from '../../test/fakeCanvas'
+import { covers, fakeContext } from '../../test/fakeCanvas'
 import type { FakeContext } from '../../test/fakeCanvas'
 import { installSound, nullEngine } from '../../audio/instance'
-import { createGame } from '../../sim'
+import { acceptOffer, chapterDeadline, createGame } from '../../sim'
 import { createFakeSound } from '../../test/fakeSound'
 import type { FakeSound } from '../../test/fakeSound'
 import { withPendingResult } from '../../test/fixtures'
@@ -94,9 +94,25 @@ describe('StudioScene', () => {
     expect(fake.log).toContainEqual(NOREN)
   })
 
+  it('panics the seated mangaka when the serial chapter is late (frame 0 under reduced motion)', () => {
+    const offer = { magazineId: 'kids-comic', title: 'Magic Club', genre: 'fantasy', theme: 'magic', audience: 'kids' } as const
+    const s = acceptOffer({ ...createGame('Rin', 1), pendingOffer: offer })
+    const late: GameState = { ...s, activity: 'work', serial: { ...s.serial!, nextDueDay: s.day - 1 } }
+    expect(chapterDeadline(late)?.status).toBe('late')
+    render(<StudioScene running />)
+    fake.log.length = 0
+    act(() => useStore.setState({ game: late }))
+    // PANIC[0] row 4 col 3, the leading hand, at the seat (132, 67)
+    expect(covers(fake.log, '#f4cfa5', 135, 71)).toBeGreaterThanOrEqual(0)
+    fake.log.length = 0
+    act(() => useStore.setState({ game: { ...late, serial: { ...late.serial!, nextDueDay: late.day + 60 } } }))
+    expect(fake.log.length).toBeGreaterThan(0)
+    expect(covers(fake.log, '#f4cfa5', 135, 71)).toBe(-1)
+  })
+
   describe('the editor visits', () => {
     let sound: FakeSound
-    const HAIR = { style: '#2b2140', x: 207, y: 102, w: 1, h: 1 }
+    const hair = () => covers(fake.log, '#2b2140', 206, 87)
     beforeEach(() => { sound = createFakeSound(); installSound(sound) })
     afterEach(() => { installSound(nullEngine) })
 
@@ -106,7 +122,7 @@ describe('StudioScene', () => {
       const pending = withPendingResult()
       act(() => useStore.setState({ game: pending }))
       expect(sound.plays).toEqual(['knock'])
-      expect(fake.log).toContainEqual(HAIR)
+      expect(hair()).toBeGreaterThan(-1)
       act(() => useStore.setState({ game: { ...pending, day: pending.day } }))
       expect(sound.plays).toEqual(['knock'])
     })
@@ -135,7 +151,7 @@ describe('StudioScene', () => {
         game: { ...pending, pendingResult: null, pendingOffer: null, event: null, animeOffer: null, reviewUnread: null },
       }))
       expect(fake.log.length).toBeGreaterThan(0)
-      expect(fake.log).not.toContainEqual(HAIR)
+      expect(hair()).toBe(-1)
     })
   })
 })

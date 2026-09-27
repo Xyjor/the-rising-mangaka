@@ -1,7 +1,7 @@
 // The scene's render is a pure function of (snapshot, time of day, frame) onto a 2D context: no DOM needed, so this
 // runs in the default node environment against the recording context from src/test/fakeCanvas.ts.
 import { describe, expect, it } from 'vitest'
-import { fakeContext, sceneSnapshot } from '../../../test/fakeCanvas'
+import { covers, coversAny, fakeContext, sceneSnapshot } from '../../../test/fakeCanvas'
 import type { FillCall } from '../../../test/fakeCanvas'
 import { H, SKY_LUT, W, render, skyColor } from '../render'
 import type { Season } from '../season'
@@ -19,9 +19,11 @@ import type { Actor, ActorTable } from '../actors'
  * the player 92 (90 sprite pixels, arm, pen) and the desk 21 (7 wood, lamp 2 and its glow, the 5-page stack 4 and its
  * 2 lines, ink pot 2, mug 2 and its steam). Task 2.5 re-measured it the same way at 444: the wall clock 47 (45 sprite
  * pixels and two hands), the cat's two 8x6 frames 30 pixels in place of the placeholder's 20 (+10) and the assistant's
- * page 3 (the sheet and round(0.5 * 3) = 2 ink lines). Every scene must stay under 1.5 times this.
+ * page 3 (the sheet and round(0.5 * 3) = 2 ink lines). Task A (0.2.1) re-measured it the same way at 281 once
+ * drawSprite merged each horizontal run of one key into one fillRect (the art unchanged, the same pixels painted): the
+ * sprites' 1x1 pixels became runs (the hero, the assistant, the clock and the cat). Task B (0.2.1) re-measured it the same way at 430: the mangaka a 24x32 sprite and the stock chair's new back. Task C (0.2.1) re-measured it the same way at 596: the assistant a 24x32 seated frame, its stool and the page's wider lines, the cat's 12x8 sleeping frame. Every scene must stay under 1.5 times this.
  */
-const BASELINE_FILLS = 444
+const BASELINE_FILLS = 596
 const BUDGET = BASELINE_FILLS * 1.5
 
 describe('render', () => {
@@ -64,7 +66,7 @@ describe('render', () => {
   })
 
   it('stays under 1.5 times the measured baseline of fillRect calls in every season, by day and by night', () => {
-    expect(BUDGET).toBe(666)
+    expect(BUDGET).toBe(894)
     for (const season of ['spring', 'summer', 'autumn', 'winter'] as Season[]) {
       for (const t of [0.3, 0.9]) {
         const { ctx, log } = fakeContext()
@@ -163,10 +165,26 @@ describe('the sky', () => {
   })
 })
 
+describe('covers, the fill-log pixel lookup', () => {
+  const log: FillCall[] = [
+    { style: '#a', x: 0, y: 0, w: 3, h: 1 },
+    { style: '#b', x: 1, y: 0, w: 1, h: 1 },
+    { style: '#a', x: 5, y: 5, w: 1, h: 1 },
+  ]
+  it('finds the last fill of a style covering a pixel, or -1', () => {
+    expect(covers(log, '#a', 2, 0)).toBe(0)
+    expect(covers(log, '#b', 1, 0)).toBe(1)
+    expect(covers(log, '#a', 1, 0)).toBe(0)
+    expect(covers(log, '#a', 3, 0)).toBe(-1)
+  })
+  it('finds the last fill of any style covering a pixel, or -1', () => {
+    expect(coversAny(log, 1, 0)).toBe(1)
+    expect(coversAny(log, 4, 0)).toBe(-1)
+  })
+})
+
 describe('the characters, from the actor table', () => {
-  const has = (log: FillCall[], style: string, x: number, y: number) => log.some((c) => c.style === style && c.x === x && c.y === y)
-  const find = (log: FillCall[], style: string, x: number, y: number, w?: number, h?: number) =>
-    log.findIndex((c) => c.style === style && c.x === x && c.y === y && (w === undefined || (c.w === w && c.h === h)))
+  const has = (log: FillCall[], style: string, x: number, y: number) => covers(log, style, x, y) >= 0
   function paintWith(table: ActorTable, over = {}): FillCall[] {
     const { ctx, log } = fakeContext()
     render(ctx, sceneSnapshot({ ...over, actors: table }), 0.3, 0)
@@ -174,50 +192,89 @@ describe('the characters, from the actor table', () => {
   }
   function walking(over: Partial<Actor>): ActorTable {
     const t = newActorTable()
-    Object.assign(t.mangaka, { x: 150, y: 98, targetX: 100, targetY: 98, state: 'walking', goal: 'standing', facing: -1, anim: 0 }, over)
+    Object.assign(t.mangaka, { x: 150, y: 81, targetX: 100, targetY: 81, state: 'walking', goal: 'standing', facing: -1, anim: 0 }, over)
     return t
   }
 
-  it('seats the mangaka at the desk in the reference scene, over the chair and under the desk top', () => {
+  it('seats the mangaka at the desk in the reference scene, over the chair back and under the desk top', () => {
     const { ctx, log } = fakeContext()
     render(ctx, sceneSnapshot(), 0.3, 0)
-    const hair = find(log, '#2b2140', 141, 84)
-    expect(hair).toBeGreaterThan(-1)
-    expect(find(log, '#4a4a55', 134, 90, 20, 4)).toBeLessThan(hair)
-    expect(find(log, '#8b5a2b', 116, 98, 58, 4)).toBeGreaterThan(hair)
+    // seat (132, 67): the anchor's row 2 col 8 is hair, row 7 col 8 skin
+    const hair = covers(log, '#2b2140', 140, 69)
+    expect(hair).toBeGreaterThanOrEqual(0)
+    expect(covers(log, '#4a4a55', 140, 80)).toBeGreaterThan(-1)
+    expect(covers(log, '#4a4a55', 140, 80)).toBeLessThan(hair)
+    expect(covers(log, '#8b5a2b', 116, 98)).toBeGreaterThan(hair)
+    expect(has(log, '#f4cfa5', 140, 74)).toBe(true)
   })
 
   it('stands the mangaka beside the desk between projects, after the desk top', () => {
     const { ctx, log } = fakeContext()
     render(ctx, sceneSnapshot({ phase: 'idle' }), 0.3, 0)
-    const hair = find(log, '#2b2140', 179, 98)
-    expect(hair).toBeGreaterThan(find(log, '#8b5a2b', 116, 98, 58, 4))
-    expect(find(log, '#8b5a2b', 116, 98, 58, 4)).toBeGreaterThan(-1)
+    const hair = covers(log, '#2b2140', 178, 83)
+    expect(hair).toBeGreaterThan(covers(log, '#8b5a2b', 116, 98))
+    expect(covers(log, '#8b5a2b', 116, 98)).toBeGreaterThan(-1)
+    // row 30 col 6, a shoe
+    expect(has(log, '#c0392b', 176, 111)).toBe(true)
   })
 
-  it('walks the mangaka with the two-frame cycle, mirrored when facing right', () => {
-    expect(has(paintWith(walking({})), '#1b1b1b', 151, 111)).toBe(true)
-    // HERO_WALK[1] row 13 is '..B.....BSS.': the first shoe pixel is col 9 (the brief's 158 is col 8, a trouser B)
-    expect(has(paintWith(walking({ anim: 125 })), '#1b1b1b', 159, 111)).toBe(true)
-    expect(has(paintWith(walking({ facing: 1 })), '#1b1b1b', 160, 111)).toBe(true)
+  it('walks the mangaka with the four-frame cycle, mirrored when facing right', () => {
+    // contact (anim 0): the leading shoe at cols 3-7; pass (anim 100): the legs together at cols 7-16
+    expect(has(paintWith(walking({})), '#c0392b', 153, 111)).toBe(true)
+    expect(has(paintWith(walking({ anim: 100 })), '#c0392b', 153, 111)).toBe(false)
+    // facing right, col 3 mirrors to col 20
+    expect(has(paintWith(walking({ facing: 1 })), '#c0392b', 170, 111)).toBe(true)
   })
+
+  it('has the seated mangaka throw up their hands for 40 frames in 240 when the chapter is late', () => {
+    const at = (late: boolean, frame: number) => {
+      const { ctx, log } = fakeContext()
+      render(ctx, sceneSnapshot({ late }), 0.3, frame)
+      return log
+    }
+    // PANIC[0] row 4 col 3 is the leading hand
+    expect(covers(at(true, 0), '#f4cfa5', 135, 71)).toBeGreaterThanOrEqual(0)
+    expect(covers(at(true, 40), '#f4cfa5', 135, 71)).toBe(-1)
+    expect(covers(at(false, 0), '#f4cfa5', 135, 71)).toBe(-1)
+  })
+
+  function editorAt(facing: -1 | 1, over: Partial<Actor> = {}): ActorTable {
+    const t = newActorTable()
+    Object.assign(t.editor, { x: 198, y: 85, targetX: 198, targetY: 85, state: 'standing', goal: 'standing', facing }, over)
+    return t
+  }
 
   it('paints the editor at the spot, mirrored when facing right', () => {
-    const left = newActorTable()
-    Object.assign(left.editor, { x: 204, y: 102, targetX: 204, targetY: 102, state: 'standing', goal: 'standing', facing: -1 })
-    expect(has(paintWith(left, { visitor: 'editor' }), '#5b6270', 206, 112)).toBe(true)
-    const right = newActorTable()
-    Object.assign(right.editor, { x: 204, y: 102, targetX: 204, targetY: 102, state: 'standing', goal: 'standing', facing: 1 })
-    const log = paintWith(right, { visitor: 'editor' })
-    expect(has(log, '#5b6270', 213, 112)).toBe(true)
-    expect(has(log, '#5b6270', 206, 112)).toBe(false)
+    // (198, 85): the suit at row 20 col 4, hair row 2 col 8, glasses row 8 col 6, the briefcase row 24 col 20
+    const left = paintWith(editorAt(-1), { visitor: 'editor' })
+    expect(has(left, '#5b6270', 202, 105)).toBe(true)
+    expect(has(left, '#2b2140', 206, 87)).toBe(true)
+    expect(has(left, '#3b3b45', 204, 93)).toBe(true)
+    // (the bed frame behind is the same brown, so the case is found by its exact run: row 24's FFF, cols 19-21)
+    expect(left).toContainEqual({ style: '#6d4c33', x: 217, y: 109, w: 3, h: 1 })
+    // facing right, col 4 mirrors to col 19 (x 217); col 19 of row 20 is the shade, so no base suit at x 202
+    const log = paintWith(editorAt(1), { visitor: 'editor' })
+    expect(has(log, '#5b6270', 217, 105)).toBe(true)
+    expect(has(log, '#5b6270', 202, 105)).toBe(false)
+  })
+
+  it('walks the editor with their own four frames, the briefcase moving with the trailing hand', () => {
+    // WALK[0] (anim 0): the case at cols 18-23, row 24's FFF at cols 19-21; WALK[2] (anim 200): cols 16-21, FFF at 17-19
+    const brown = (log: FillCall[]) => log.filter((c) => c.style === '#6d4c33' && c.y === 109 && c.h === 1 && c.w === 3)
+    const w0 = paintWith(editorAt(-1, { state: 'walking', targetX: 150, anim: 0 }), { visitor: 'editor' })
+    expect(brown(w0).map((c) => c.x)).toEqual([217])
+    const w2 = paintWith(editorAt(-1, { state: 'walking', targetX: 150, anim: 200 }), { visitor: 'editor' })
+    expect(brown(w2).map((c) => c.x)).toEqual([215])
   })
 
   it('puts the mangaka to bed to rest, the Zz rising over the pillow', () => {
     const { ctx, log } = fakeContext()
     render(ctx, sceneSnapshot({ activity: 'rest' }), 0.3, 0)
-    expect(has(log, '#2b2140', 236, 102)).toBe(true)
-    expect(log).toContainEqual({ style: '#2f5ecf', x: 242, y: 94, w: 1, h: 1 })
+    // bed (216, 106): LIE row 2 col 20 is hair; the blanket over the body after it; the first Z at (234, 100)
+    const hair = covers(log, '#2b2140', 236, 108)
+    expect(hair).toBeGreaterThanOrEqual(0)
+    expect(covers(log, '#c94b4b', 200, 116)).toBeGreaterThan(hair)
+    expect(has(log, '#2f5ecf', 235, 100)).toBe(true)
   })
 
   it('hands the editor their prop and bobs the ! above them while they stand facing left', () => {
@@ -227,20 +284,36 @@ describe('the characters, from the actor table', () => {
       return log
     }
     const env = at({ visitor: 'editor', visitorProp: 'envelope' }, 100)
-    expect(env).toContainEqual({ style: '#2b2140', x: 207, y: 102, w: 1, h: 1 })
-    expect(env).toContainEqual({ style: '#fdfcf7', x: 200, y: 110, w: 5, h: 3 })
-    // frame 100: floor(100 / 16) % 2 = 0, so the ! tops out at 102 - 10 = 92, its stroke in the glyph's middle column
-    expect(env).toContainEqual({ style: '#e5484d', x: 210, y: 92, w: 1, h: 1 })
-    expect(at({ visitor: 'editor', visitorProp: 'trophy' }, 100)).toContainEqual({ style: '#f5b700', x: 200, y: 109, w: 3, h: 3 })
-    expect(at({ visitor: 'editor', visitorProp: 'envelope' }, 16)).toContainEqual({ style: '#e5484d', x: 210, y: 91, w: 1, h: 1 })
+    expect(covers(env, '#2b2140', 206, 87)).toBeGreaterThan(-1)
+    // the envelope sprite at (198 - 2, 85 + 19): row 1 col 2 is paper
+    expect(covers(env, '#fdfcf7', 198, 105)).toBeGreaterThan(-1)
+    // frame 100: floor(100 / 16) % 2 = 0, so the ! tops out at 85 - 8 = 77 from x 209, its stroke in the glyph's middle
+    // column (x 210)
+    expect(covers(env, '#e5484d', 210, 77)).toBeGreaterThan(-1)
+    // the trophy at (196, 102): row 1 col 2 is gold
+    expect(covers(at({ visitor: 'editor', visitorProp: 'trophy' }, 100), '#f5b700', 198, 103)).toBeGreaterThan(-1)
+    expect(covers(at({ visitor: 'editor', visitorProp: 'envelope' }, 16), '#e5484d', 210, 76)).toBeGreaterThan(-1)
+  })
+
+  it('merges horizontal runs of one sprite key into a single fill', () => {
+    const { ctx, log } = fakeContext()
+    render(ctx, sceneSnapshot(), 0.3, 0)
+    // the seated mangaka's row 1 '......LLHHHHHHHhL.......' at (132, 67): one 7x1 hair fill from x 140
+    expect(log).toContainEqual({ style: '#2b2140', x: 140, y: 68, w: 7, h: 1 })
+    expect(log).not.toContainEqual({ style: '#2b2140', x: 141, y: 68, w: 1, h: 1 })
+    // the editor facing right at (198, 85), row 24 '......LgggggggggggLFFFfL' mirrored: FFF (cols 19-21) at x 200-202,
+    // the suit's shade (cols 7-17) at x 204-214
+    const ed = paintWith(editorAt(1), { visitor: 'editor' })
+    expect(ed).toContainEqual({ style: '#6d4c33', x: 200, y: 109, w: 3, h: 1 })
+    expect(ed).toContainEqual({ style: '#454a55', x: 204, y: 109, w: 11, h: 1 })
   })
 
   it('paints no prop while the editor walks', () => {
-    const table = newActorTable()
-    Object.assign(table.editor, { x: 204, y: 102, targetX: 180, targetY: 102, state: 'walking', goal: 'standing', facing: -1 })
+    const table = editorAt(-1, { state: 'walking', targetX: 180 })
     const { ctx, log } = fakeContext()
     render(ctx, sceneSnapshot({ visitor: 'editor', visitorProp: 'envelope', actors: table }), 0.3, 100)
-    expect(log.some((c) => c.style === '#fdfcf7' && c.x === 200 && c.y === 110)).toBe(false)
+    expect(covers(log, '#fdfcf7', 198, 105)).toBe(-1)
+    expect(covers(log, '#e5484d', 210, 77)).toBe(-1)
   })
 })
 
@@ -251,33 +324,52 @@ describe('the assistants, the wall clock and the cat (Task 2.5)', () => {
     return log
   }
   const px = (style: string, x: number, y: number, w = 1, h = 1) => ({ style, x, y, w, h })
-  const lines = (log: FillCall[]) => log.filter((c) => c.style === '#b8b2a5' && c.x === 76 && c.w === 3 && c.h === 1)
+  const lines = (log: FillCall[]) => log.filter((c) => c.style === '#b8b2a5' && c.x === 70 && c.w === 4 && c.h === 1)
+  const page = (log: FillCall[]) => covers(log, '#fdfcf7', 70, 121)
 
-  it('puts a page on the working assistant\'s desk with round(progress * 3) ink lines', () => {
+  it('seats the assistant on a stool at (66, 89), then the desk, then the page on it with round(progress * 3) ink lines', () => {
     const ref = at({})
-    expect(ref).toContainEqual(px('#fdfcf7', 75, 120, 5, 4))
+    // SIT row 2 col 8 is hair; the stool (seat + 7, 118) before it
+    const hair = covers(ref, '#2b2140', 74, 91)
+    expect(hair).toBeGreaterThan(-1)
+    const stool = ref.findIndex((c) => c.style === '#4a4a55' && c.x === 73 && c.y === 118 && c.w === 10 && c.h === 4)
+    expect(stool).toBeGreaterThan(-1)
+    expect(stool).toBeLessThan(hair)
+    // the desk top (x 62, width 8 + 20) after the assistant, and the page after the desk, so it shows
+    expect(ref).toContainEqual(px('#8b5a2b', 62, 120, 28, 3))
+    const desk = covers(ref, '#8b5a2b', 66, 120)
+    expect(desk).toBeGreaterThan(hair)
+    expect(page(ref)).toBeGreaterThan(desk)
     // progress 0.5: round(1.5) = 2 lines, at y 121 and 122
     expect(lines(ref).map((c) => c.y)).toEqual([121, 122])
     expect(lines(at({ progress: 1 })).map((c) => c.y)).toEqual([121, 122, 123])
     expect(lines(at({ progress: 0 }))).toHaveLength(0)
     const paused = at({ running: false })
-    expect(paused).not.toContainEqual(px('#fdfcf7', 75, 120, 5, 4))
+    expect(page(paused)).toBe(-1)
     expect(lines(paused)).toHaveLength(0)
   })
 
-  it('slumps a sleeping assistant, head down, with the Z, and seats a working one upright', () => {
+  it('widens the desk with the staff: 8 + 20 per assistant, three stools', () => {
+    const three = at({ assistants: [{ look: 0, stamina: 80 }, { look: 1, stamina: 80 }, { look: 2, stamina: 80 }] })
+    expect(three).toContainEqual(px('#8b5a2b', 62, 120, 68, 3))
+    expect(three).toContainEqual(px('#70461f', 62, 123, 68, 9))
+    for (const x of [73, 93, 113]) expect(three).toContainEqual(px('#4a4a55', x, 118, 10, 4))
+  })
+
+  it('dozes a sleeping assistant, head on the folded arms, with the Z, and seats a working one upright', () => {
     const rest = at({ activity: 'rest' }, 0.3, 0)
-    expect(rest).toContainEqual(px('#2b2140', 76, 107))
-    expect(rest).toContainEqual(px('#2f5ecf', 86, 98))
-    expect(rest).not.toContainEqual(px('#fdfcf7', 75, 120, 5, 4))
-    // the head is down a row and back a column: no hair at the upright head's top-left
-    expect(rest).not.toContainEqual(px('#2b2140', 77, 106))
-    expect(at({}, 0.3, 0)).toContainEqual(px('#2b2140', 77, 106))
+    // DOZE row 8 col 10 is hair (the head down 6 and right 2); the Z at (66 + 18, 89 - 6)
+    expect(covers(rest, '#2b2140', 76, 97)).toBeGreaterThan(-1)
+    expect(covers(rest, '#2f5ecf', 85, 83)).toBeGreaterThan(-1)
+    expect(page(rest)).toBe(-1)
+    // no hair where the upright head's row 2 col 8 would be
+    expect(covers(rest, '#2b2140', 74, 91)).toBe(-1)
+    expect(covers(at({}, 0.3, 0), '#2b2140', 74, 91)).toBeGreaterThan(-1)
   })
 
   it('hangs the wall clock at (156, 52), its hands turning with the week', () => {
     const noon = at({}, 0.3)
-    expect(noon).toContainEqual(px('#3b3b45', 157, 52))
+    expect(covers(noon, '#3b3b45', 157, 52)).toBeGreaterThan(-1)
     // t 0.3: minute floor(19.2) % 8 = 3, hour floor(4.8) % 8 = 4
     expect(noon).toContainEqual(px('#1b1b1b', 160, 56))
     expect(noon).toContainEqual(px('#1b1b1b', 159, 56))
@@ -291,32 +383,49 @@ describe('the assistants, the wall clock and the cat (Task 2.5)', () => {
     }
   })
 
-  it('curls the cat asleep in its bed, and sits it awake in the kitchen on a rest day', () => {
+  it('curls the cat asleep at the foot of the bed, and sits it awake in the kitchen on a rest day', () => {
     const ref = at({})
-    expect(ref).toContainEqual(px('#e39a4a', 195, 104))
-    expect(ref).toContainEqual(px('#e39a4a', 196, 106))
-    expect(ref).not.toContainEqual(px('#1b1b1b', 196, 106))
+    // CAT_SLEEP at (196, 118): row 3 col 1 is fur, and it has no eye
+    expect(covers(ref, '#e39a4a', 197, 121)).toBeGreaterThan(-1)
+    expect(ref.some((c) => c.style === '#1b1b1b' && c.x < 208 && c.x + c.w > 196 && c.y < 126 && c.y + c.h > 118)).toBe(false)
     const rest = at({ activity: 'rest' })
-    expect(rest).toContainEqual(px('#e39a4a', 45, 150))
-    expect(rest).toContainEqual(px('#1b1b1b', 46, 152))
+    // CAT_SIT at (44, 150): the eye row 3 col 3, fur row 1 col 1
+    expect(covers(rest, '#1b1b1b', 47, 153)).toBeGreaterThan(-1)
+    expect(covers(rest, '#e39a4a', 45, 151)).toBeGreaterThan(-1)
+  })
+
+  it('draws the cat after the mangaka in bed and before the editor', () => {
+    const table = newActorTable()
+    Object.assign(table.cat, { x: 196, y: 118, targetX: 196, targetY: 118, state: 'sleeping', goal: 'sleeping' })
+    Object.assign(table.mangaka, { x: 216, y: 106, targetX: 216, targetY: 106, state: 'sleeping', goal: 'sleeping' })
+    Object.assign(table.editor, { x: 198, y: 85, targetX: 198, targetY: 85, state: 'standing', goal: 'standing', facing: -1 })
+    const log = at({ activity: 'rest', visitor: 'editor', actors: table })
+    const cat = covers(log, '#e39a4a', 197, 121)
+    expect(cat).toBeGreaterThan(covers(log, '#c94b4b', 200, 116))
+    expect(cat).toBeLessThan(covers(log, '#2b2140', 206, 87))
   })
 
   it('walks the cat with the two-frame cycle', () => {
-    const table = newActorTable()
-    Object.assign(table.cat, { x: 120, y: 104, targetX: 100, targetY: 104, state: 'walking', goal: 'sleeping', facing: -1, anim: 125 })
-    const { ctx, log } = fakeContext()
-    render(ctx, sceneSnapshot({ actors: table }), 0.3, 100)
-    expect(log).toContainEqual(px('#e39a4a', 120, 109))
+    const walk = (anim: number) => {
+      const table = newActorTable()
+      Object.assign(table.cat, { x: 120, y: 104, targetX: 100, targetY: 104, state: 'walking', goal: 'sleeping', facing: -1, anim })
+      const { ctx, log } = fakeContext()
+      render(ctx, sceneSnapshot({ actors: table }), 0.3, 100)
+      return log
+    }
+    // WALK[1] row 6 col 1 is a paw; WALK[0] has the outline there
+    expect(covers(walk(125), '#e39a4a', 121, 110)).toBeGreaterThan(-1)
+    expect(covers(walk(0), '#e39a4a', 121, 110)).toBe(-1)
   })
 
-  it('keeps the cat clear of the mangaka\'s and the editor\'s spots', () => {
+  it('keeps the cat clear of the mangaka\'s, the editor\'s and the bed\'s spots', () => {
     type Box = readonly [number, number, number, number]
-    const boxes: Box[] = [[138, 149, 84, 98], [176, 187, 98, 112], [204, 215, 102, 116], [233, 244, 102, 108]]
+    const boxes: Box[] = [[132, 155, 67, 98], [170, 193, 81, 112], [198, 221, 85, 116], [216, 245, 106, 119]]
     for (const over of [{}, { activity: 'rest' as const }]) {
       const s = sceneSnapshot(over)
       const c = s.actors.cat
       for (const [x0, x1, y0, y1] of boxes) {
-        const clear = c.x + 7 < x0 || c.x > x1 || c.y + 5 < y0 || c.y > y1
+        const clear = c.x + 11 < x0 || c.x > x1 || c.y + 7 < y0 || c.y > y1
         expect(clear, JSON.stringify([c.x, c.y, x0, y0])).toBe(true)
       }
     }

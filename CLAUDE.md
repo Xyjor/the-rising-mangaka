@@ -75,7 +75,10 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   192×108 layout, offset by `OX 64, OY 36` into canvas space by `rect`; `rawRect` for the wall, floor, kitchenette,
   entrance and door, drawn straight in canvas space) and its `PANE_X/Y/W/H`/`BAR_X` and `paneRect` clipped to the
   window pane; `render.ts` holds the palettes, string-map sprites and `render`, one frame painted from a `Snapshot`
-  with nothing allocated per frame; `season.ts` has `seasonOf(day)` and the window's season layer; `studioArt.ts` the
+  with nothing allocated per frame (`Snapshot.late` turns the seated mangaka to the panic frames); `sprites.ts` the
+  palette (uppercase base, lowercase shade, `L` outline), the 24×32 string-map frames, the run-length `drawSprite` and
+  `frameRules` (closed outline, feet on the last row, every key in the palette); `spriteSvg.ts` `spriteRects` and
+  `SpriteAvatar.tsx`, the staff portrait drawn from the anchor frame's head; `season.ts` has `seasonOf(day)` and the window's season layer; `studioArt.ts` the
   player's studio (`TIER_ART` and `EQUIPMENT_ART` records keyed by id, so a new tier or piece fails `tsc` until it is
   drawn, plus the kitchenette, the entrance, the volumes, anime poster, trophies and lights); `actors.ts` the cast as a
   table of actors (position, target, facing, pose, which axis it walks first) driven by `planActors`/`stepActors`/
@@ -102,7 +105,7 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
 - `src/test/` — shared test-only helpers: `dom.ts` (happy-dom setup, imported for side effects), `fixtures.ts`
   (game-state builders such as `withPendingResult`, shared across UI test files), `fakeSound.ts` (a recording
   sound engine for `connectSound` or `installSound`) and `fakeCanvas.ts` (a recording 2D context that logs each
-  fillRect with its fillStyle, and `sceneSnapshot`, the scene's reference state, for `render` tests).
+  fillRect with its fillStyle, `covers`/`coversAny`, how many fills paint a pixel, and `sceneSnapshot`, the scene's reference state, for `render` tests).
 - `src/styles/tokens.css` (design tokens, light + dark), `base.css` (primitives), `app.css` (layout and panels),
   `cards.css` (desk cards; on phones they follow the project card), `stage.css` (the full-bleed stage layout),
   `hud.css` (the corner overlays, rail and status card).

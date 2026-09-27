@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { getSound } from '../../audio/instance'
 import { useShallow } from 'zustand/react/shallow'
-import { getPhase, placeById, studioLook } from '../../sim'
+import { chapterDeadline, getPhase, placeById, studioLook } from '../../sim'
 import type { StudioLook } from '../../sim'
 import { useClock } from '../../state/clock'
 import { useStore } from '../../state/store'
@@ -32,10 +32,10 @@ const NO_LOOK: StudioLook = {
   tier: 'apartment', desks: 1, equipment: EMPTY, volumes: 0, animePoster: false, trophies: EMPTY,
 }
 
-/** A bubble sits just above an actor's head. */
-function placeBubble(el: HTMLDivElement | null, rect: { width: number; height: number }, a: Actor) {
+/** A bubble sits just above an actor's head: `half` is half the sprite's width (both 24 wide). */
+function placeBubble(el: HTMLDivElement | null, rect: { width: number; height: number }, a: Actor, half: number) {
   if (!el) return
-  const p = sceneToCss(rect, a.x + 6, a.y - 2)
+  const p = sceneToCss(rect, a.x + half, a.y - 2)
   el.style.left = `${p.left}px`
   el.style.top = `${p.top}px`
 }
@@ -81,8 +81,8 @@ export function StudioScene({ running }: { running: boolean }) {
     }
   }, [actors])
   const placeBubbles = useCallback(() => {
-    placeBubble(mangakaBubble.current, rectRef.current, actors.mangaka)
-    placeBubble(editorBubble.current, rectRef.current, actors.editor)
+    placeBubble(mangakaBubble.current, rectRef.current, actors.mangaka, 12)
+    placeBubble(editorBubble.current, rectRef.current, actors.editor, 12)
   }, [actors])
 
   const phase = useStore((s) => (s.game ? getPhase(s.game) : 'idle'))
@@ -92,6 +92,8 @@ export function StudioScene({ running }: { running: boolean }) {
   const trip = useStore((s) => s.game?.trip ?? null)
   const assistants = useStore((s) => s.game?.assistants ?? EMPTY)
   const season = useStore((s) => (s.game ? seasonOf(s.game.day) : 'spring'))
+  // the running serial's chapter cannot make its deadline: the seated mangaka panics now and then
+  const late = useStore((s) => (s.game ? chapterDeadline(s.game)?.status === 'late' : false))
   // studioLook builds a new object every call; useShallow hands back the previous one while every field is the same
   // (primitives, and the owned and awards lists by reference), so the snapshot is rebuilt only when the studio changes.
   const look = useStore(useShallow((s) => (s.game ? studioLook(s.game) : NO_LOOK)))
@@ -99,7 +101,7 @@ export function StudioScene({ running }: { running: boolean }) {
   const snap = useRef<Snapshot>({
     phase, activity, progress, stamina, running, away: !!trip, assistants: [], season,
     tier: 'apartment', owned: NO_EQUIPMENT, volumes: 0, animePoster: false, trophies: 0,
-    visitor: 'none', visitorProp: 'none', actors: actors,
+    visitor: 'none', visitorProp: 'none', late, actors: actors,
   })
   useEffect(() => {
     snap.current = {
@@ -109,7 +111,7 @@ export function StudioScene({ running }: { running: boolean }) {
       // the studio as flags and counts, so render never walks a list per frame
       tier: look.tier, owned: ownedFlags(look.equipment), volumes: look.volumes, animePoster: look.animePoster,
       trophies: Math.min(SHOWN_TROPHIES, look.trophies.length),
-      visitor: reason === 'none' ? 'none' : 'editor', visitorProp: PROP_FOR[reason], actors: actors,
+      visitor: reason === 'none' ? 'none' : 'editor', visitorProp: PROP_FOR[reason], late, actors: actors,
     }
     planActors(actors, snap.current)
     // Under reduced motion the loop only repaints once a second, so state changes repaint at once.
@@ -123,7 +125,7 @@ export function StudioScene({ running }: { running: boolean }) {
       lastFrame.current = 0
       lastSnap.current = snap.current
     }
-  }, [actors, advance, placeBubbles, phase, activity, progress, stamina, running, trip, assistants, season, look, reason])
+  }, [actors, advance, placeBubbles, phase, activity, progress, stamina, running, trip, assistants, season, look, reason, late])
 
   // A new daily line (info, not a toast, today, not from a loaded save) is said by the mangaka, when they are home.
   useEffect(() => {
@@ -156,7 +158,7 @@ export function StudioScene({ running }: { running: boolean }) {
   // read-only tab or while the window is hidden.
   const popAnchor = useCallback(() => {
     const m = actors.mangaka
-    return m.state === 'away' || m.state === 'hidden' ? DESK : { x: m.x + 6, y: m.y - 4 }
+    return m.state === 'away' || m.state === 'hidden' ? DESK : { x: m.x + 12, y: m.y - 4 }
   }, [actors])
   useEffect(() => useStore.subscribe((next, prev) => {
     if (next.windowHidden) return

@@ -2,8 +2,8 @@
 // on the bookshelf, the anime poster and the trophies on the sill. render.ts calls each piece at its own place in the
 // draw order; the lamp, the chair, the drafting table and the anime poster replace the stock piece in that place. Every
 // piece keeps to its region, all in canvas coordinates inside the phone crop x 24-296 (object-fit: cover at 375x667
-// crops the rest), and off the seated hero [138,149]x[84,98] (but for the chair behind them and the drafting table's
-// top on the desk's own row, y 98), the standing spot [176,187]x[98,112] and the editor's spot [204,215]x[102,116].
+// crops the rest), and off the seated mangaka [132,155]x[67,98] (but for the chair behind them and the drafting table's
+// top on the desk's own row, y 98), the standing spot [170,193]x[81,112] and the editor's spot [204,215]x[102,116].
 // Room-space pieces draw with `rect` (the old 192x108 literals, offset by (64, 36)); the kitchenette, the entrance and
 // the door draw with `rawRect` in canvas space. Nothing here allocates per frame. Raw hex is deliberate: sprite
 // colours, not UI tokens.
@@ -212,10 +212,10 @@ function referenceShelf(ctx: CanvasRenderingContext2D) {
   rect(ctx, 44, 53, 6, 3, BLUE); rect(ctx, 45, 50, 5, 3, ORANGE); rect(ctx, 44, 48, 4, 2, PAPER)
 }
 
-/** A tall-backed mesh chair, x 68-91, y 46-71, drawn before the hero, who sits in it (the desk hides its foot). */
+/** A tall-backed mesh chair, x 68-91, y 38-71, drawn before the mangaka, who sits in it (the desk hides its foot). */
 function tallChair(ctx: CanvasRenderingContext2D) {
-  rect(ctx, 72, 46, 16, 9, METAL_DARK)
-  rect(ctx, 73, 47, 14, 7, MESH)
+  rect(ctx, 72, 38, 16, 16, METAL_DARK)
+  rect(ctx, 73, 39, 14, 14, MESH)
   rect(ctx, 79, 58, 2, 14, METAL_LIGHT)
   rect(ctx, 70, 55, 20, 3, METAL_DARK)
   rect(ctx, 68, 51, 4, 2, METAL_DARK); rect(ctx, 69, 53, 1, 2, METAL_DARK)

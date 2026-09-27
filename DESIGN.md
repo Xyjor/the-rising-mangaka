@@ -188,8 +188,8 @@ wall, canvas x 258-274, y 56-113: a plain two-panel door in the apartment, a lit
 the loft, spilling warm light at night. Beside it, the entrance holds a doormat and a coat rack (the mangaka's coat
 hangs there only while they are out). The whole scene is drawn for a phone's `object-fit: cover` crop of canvas x
 24-296; the studio-art regions below stay inside it and off the actors' spots.
-- **Tiers.** The studio flat opens a lit doorway in the right wall with an indigo noren (x 168-184, from y 20 down to
-  the bed), which spills warm light at night. The loft keeps the doorway and adds a potted plant on the sill (x 150-155)
+- **Tiers.** The studio flat opens a lit doorway in the right wall with an indigo noren (the front door's frame,
+  canvas x 258-274, y 56-113), which spills warm light at night. The loft keeps the doorway and adds a potted plant on the sill (x 150-155)
   and a tall one on the floor in front of the bed (x 172-184, y 80-105).
 - **Equipment.** Coffee machine on the sill's left (x 118-126). Arm lamp in place of the small desk lamp (x 92-105), its
   bulb and glow lit at night or while the mangaka works. Reference shelf, a slim three-shelf unit between the bookshelf
@@ -225,8 +225,8 @@ pending result's or offer's own card mount on that same delay (at once under red
 pending on mount).
 
 The wall clock's hands lap the visual week (8 times an hour hand, twice a minute hand) from the presentation clock;
-the plant sways every 30 frames; the cat has two spots (asleep in its bed, or sitting in the kitchen while everyone
-rests).
+the plant sways every 30 frames; the cat has two spots (asleep in its bed at the foot of the mangaka's, or sitting in the kitchen while
+everyone rests).
 
 **Bubbles and pops** are DOM overlays, not canvas drawing, placed with `sceneAnchor.ts`'s `sceneToCss` (the same
 cover-fit scale and centred overflow as the canvas). A `Bubble` (`Bubble.tsx`, styled by `scene.css`, using design
@@ -235,10 +235,38 @@ visiting. `Pops.tsx` floats money, fans and xp numbers up from the mangaka (or t
 for `POP_MS` 1200 each, capped at `POP_MAX` 6 on screen, guarded against a save load, a seed change or a multi-day
 jump so a pop never fires from anything but one step of play.
 
-The scene's fillRect budget is measured, not guessed: the one-assistant reference frame is a baseline of 444 calls
-(`render.test.ts`), and the full scene (three assistants, every piece of equipment, the loft, winter, night, the
-editor visiting) a baseline of 637 (`studioArt.test.ts`); every render must stay under 1.5x its own baseline (666 and
-955.5), so a new sprite or a new studio piece fails its test the moment it pushes the frame past budget.
+**The sprites** (`sprites.ts`) are string maps, one character per pixel, drawn by `drawSprite`, which merges each
+horizontal run of one key into one fillRect and mirrors a frame to face right. People are 24x32 frames facing left.
+`PAL` keys are an uppercase base and its lowercase shade (light from the top left, so the shade sits on the right and
+underneath), `L` the outline; `ASSISTANT_PALS[look]` swaps the hair and shirt. Every 24x32 frame passes `frameRules`
+(every row full width, every key in the palette, feet on the last row, a closed outline). The frame sets: idle 2 frames
+(`frame/16 % 2`), walk 4 (`anim/100 % 4`), sit 2 (`frame/8 % 2` while working, frame 0 otherwise), panic 2 (for 40 of
+every 240 frames while working on a late chapter, `Snapshot.late`), a 30x14 lying sprite for the bed (under a blanket,
+only head and shoulders show), the assistants' doze, the editor's idle and walk, and the 12x8 cat (sleep, sit, walk
+`anim/125 % 2`). Props (envelope, letter, contract, trophy) are small maps of their own. `SpriteAvatar` draws the
+anchor frame's head (rows 0-15, cols 4-19) as SVG rects (`spriteSvg.ts`) for the staff portraits.
+
+| Spot | Canvas (top left of the frame) |
+|---|---|
+| `MANGAKA_SEAT` | (132, 67) |
+| `MANGAKA_STAND` | (170, 81) |
+| `MANGAKA_BED` | (216, 106) |
+| `DOOR_SPOT` | (254, 85) |
+| `EDITOR_SPOT` | (198, 85) |
+| `CAT_BED` | (196, 118), at the foot of the bed on the blanket's lower edge |
+| `CAT_KITCHEN` | (44, 150) |
+| `ASSISTANT_SEAT_X` / `_Y` | [66, 86, 106] / 89 |
+
+Actors whose frame top is at canvas y 75 or below (standing, walking, at the door, in bed) are drawn in the front pass, after the desk; the seated mangaka (y 67) is drawn before it. The assistants sit on stools behind their own desk
+(canvas x 62, width 8 + 20n for n assistants shown, at most 3, y 120-131), drawn after them so only head and shoulders
+show; each seated assistant's page is drawn after the desk, on its top, with one ink line per third of progress.
+
+The scene's fillRect budget is measured, not guessed: the one-assistant reference frame is a baseline of 596 calls
+(`render.test.ts`), and the bare full scene (`BARE_FULL`: three assistants, looks 0-2 at stamina 80, in winter,
+otherwise the reference scene, at night, t 0.9, frame 100) a baseline of 973 (`studioArt.test.ts`; the full scene
+with every piece of equipment, the loft, the editor and a contract stays well inside that ceiling); every render must stay under 1.5x
+its own baseline (894 and 1459.5), so a new sprite or a new studio piece fails its test the moment it pushes the frame
+past budget.
 
 ## Systems beyond the slice (implemented)
 

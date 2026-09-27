@@ -4,7 +4,7 @@
 import { describe, expect, it } from 'vitest'
 import { EQUIPMENT_IDS } from '../../../sim'
 import type { EquipmentId, StudioTierId } from '../../../sim'
-import { fakeContext, sceneSnapshot } from '../../../test/fakeCanvas'
+import { covers, fakeContext, sceneSnapshot } from '../../../test/fakeCanvas'
 import type { FillCall } from '../../../test/fakeCanvas'
 import { render } from '../render'
 import type { Snapshot } from '../render'
@@ -36,9 +36,13 @@ const EVERYTHING: Partial<Snapshot> = {
  * 58 fills in place of the old wall and floor's 34 (+24), the kitchenette 17, the apartment's plain door 5 and the
  * entrance 6. The full scene must stay under 1.5 times this (controller ruling: each assistant costs 85 fills, so the
  * one-assistant baseline cannot bound a three-assistant scene). Task 2.5 re-measured it the same way at 637: the wall
- * clock 47, the cat's 30 pixels in place of 20 (+10) and three assistants' pages at 3 each (9).
+ * clock 47, the cat's 30 pixels in place of 20 (+10) and three assistants' pages at 3 each (9). Task A (0.2.1) re-measured it the same
+ * way at 356 once drawSprite merged each horizontal run of one sprite key into one fillRect (same pixels, fewer fills).
+ * Task B (0.2.1) re-measured it the same way at 505: the mangaka's 24x32 seated frame and the stock chair's back.
+ * Task C (0.2.1) re-measured it the same way at 973: three 24x32 assistants on stools and the 12x8 cat (the full scene,
+ * with the editor and a contract, measures 1083, under the 1500 ceiling).
  */
-const FULL_BASELINE = 637
+const FULL_BASELINE = 973
 
 function paint(over: Partial<Snapshot> = {}, t = 0.3, frame = 100): FillCall[] {
   const { ctx, log } = fakeContext()
@@ -77,7 +81,7 @@ const EQUIPMENT_REGION: Record<EquipmentId, Box[]> = {
   coffee: [[182, 190, 73, 81]],
   lamp: [[156, 169, 76, 98]],
   shelf: [[107, 114, 56, 93]],
-  chair: [[132, 156, 82, 108]],
+  chair: [[132, 156, 74, 108]],
   // x 108-175 in the desk's rows (y 98-117); above the desk top only the lightbox, 109-118 x 95-97
   'drafting-table': [[108, 175, 98, 117], [109, 118, 95, 97]],
   tablet: [[147, 159, 96, 98]],
@@ -96,11 +100,11 @@ const POSTER: Box = [116, 138, 50, 78]
 const TROPHIES: Box = [194, 210, 74, 80]
 /** All the studio's art keeps inside the phone crop, x 24-296: object-fit: cover crops the rest at 375x667. */
 const PHONE_CROP: Box = [24, 296, 0, 179]
-/** The hero seated at the desk, and standing beside it. */
-const SEATED: Box = [138, 149, 84, 98]
-const STANDING: Box = [176, 187, 98, 112]
+/** The mangaka (24x32) seated at the desk, and standing beside it. */
+const SEATED: Box = [132, 155, 67, 98]
+const STANDING: Box = [170, 193, 81, 112]
 /** Where the editor stands on a visit (Task 2.3): the furniture keeps off it too. */
-const EDITOR_SPOT_BOX: Box = [204, 215, 102, 116]
+const EDITOR_SPOT_BOX: Box = [198, 221, 85, 116]
 const LAMP_GLOW = 'rgba(255,236,170,0.18)'
 const DOOR_LIGHT = '#f2d49b'
 
@@ -143,13 +147,13 @@ describe('the studio in the scene', () => {
     expect(key(paint({ trophies: 2 }))).not.toBe(key(paint({ trophies: 1 })))
   })
 
-  it('paints the scene with no studio look in its measured 637 fills', () => {
+  it('paints the scene with no studio look in its measured 973 fills', () => {
     expect(paint(BARE_FULL, 0.9, 100)).toHaveLength(FULL_BASELINE)
   })
 
   it('keeps the full scene inside the canvas, free of magenta and under 1.5 times its own baseline', () => {
     const budget = FULL_BASELINE * 1.5
-    expect(budget).toBe(955.5)
+    expect(budget).toBe(1459.5)
     for (const [t, frame, visiting] of [[0.9, 100, 0], [0.9, 0, 0], [0.3, 100, 0], [0.9, 100, 1]]) {
       const log = paint(visiting ? { ...EVERYTHING, visitor: 'editor', visitorProp: 'contract' } : EVERYTHING, t, frame)
       expect(log.some((c) => c.style === '#f0f'), `t ${t} frame ${frame}`).toBe(false)
@@ -287,12 +291,15 @@ describe('the studio art', () => {
     for (const [what, log] of pieces) {
       for (const c of log) {
         const where = `${what}: ${JSON.stringify(c)}`
-        expect(overlaps(c, STANDING), where).toBe(false)
+        // the drafting table's top overhangs to x 175, under the standing mangaka's leading arm (drawn after it)
+        expect(overlaps(c, what === 'drafting-table' ? [176, 193, 81, 112] : STANDING), where).toBe(false)
         expect(overlaps(c, EDITOR_SPOT_BOX), where).toBe(false)
-        // the hero sits in the chair, drawn over it
-        if (what === 'chair') continue
-        // the drafting table stands in the desk's place: its top (y 98) runs across the hero's lap, as the desk's does
-        expect(overlaps(c, what === 'drafting-table' ? [138, 149, 84, 97] : SEATED), where).toBe(false)
+        // the mangaka sits in the chair, drawn over it, and in front of the poster on the wall (x 116-137, y 50-77)
+        if (what === 'chair' || what === 'anime poster') continue
+        // the drafting table stands in the desk's place: its top (y 98) runs across the lap, as the desk's does; the pen
+        // tablet (x 150-159, y 96-97) lies inside the seated box but under no lap pixel (the lap is x 135-148)
+        const box: Box = what === 'drafting-table' ? [132, 155, 67, 97] : what === 'tablet' ? [132, 149, 67, 98] : SEATED
+        expect(overlaps(c, box), where).toBe(false)
       }
     }
   })
@@ -366,8 +373,8 @@ describe('the studio\'s draw order', () => {
 
   it('seats the hero in the tall chair (drawn before the hero) behind the drafting table (drawn after)', () => {
     const log = paint(EVERYTHING, 0.3, 100)
-    // the hero's first pixel at the desk: the top of the hair, x 141, y 84 (no bob on frame 100)
-    const hero = log.findIndex((c) => c.style === '#2b2140' && c.x === 141 && c.y === 84 && c.w === 1 && c.h === 1)
+    // the seated mangaka's hair, row 2 col 8 of the frame at (132, 67)
+    const hero = covers(log, '#2b2140', 140, 69)
     expect(hero).toBeGreaterThan(-1)
     for (const i of at(log, alone((ctx) => EQUIPMENT_ART.chair(ctx, FULL, 100, false)))) {
       expect(i).toBeGreaterThan(-1)
@@ -394,11 +401,11 @@ describe('the studio\'s draw order', () => {
     expect(bed).toBeGreaterThan(-1)
     const plant = alone((ctx) => TIER_ART.loft(ctx, FULL, 100, false)).filter((c) => inBox(c, FLOOR_PLANT))
     for (const i of at(log, plant)) expect(i).toBeGreaterThan(bed)
-    // a rest day in the drawing phase: the mangaka sleeps, and at frame 100 three Zs rise from x 242
+    // a rest day in the drawing phase: the mangaka sleeps, and at frame 100 three Zs rise from x 234
     const resting = paint({ tier: 'flat', activity: 'rest' }, 0.3, 100)
     const doorway = at(resting, alone((ctx) => TIER_ART.flat(ctx, FULL, 100, false)))
     for (const i of doorway) expect(i).toBeGreaterThan(-1)
-    const zz = resting.flatMap((c, i) => (c.style === '#2f5ecf' && c.x >= 242 ? [i] : []))
+    const zz = resting.flatMap((c, i) => (c.style === '#2f5ecf' && c.x >= 234 ? [i] : []))
     expect(zz.length).toBeGreaterThan(0)
     expect(Math.min(...zz)).toBeGreaterThan(Math.max(...doorway))
   })
