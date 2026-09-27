@@ -268,7 +268,7 @@ export const MANGAKA_SIT: readonly [SpriteMap, SpriteMap] = [
     'LLLLLLLJJJRWRJJJjLLL....', // 22
     '......LJJJJJJJJJJjjL....', // 23
     '......LjjjjjjjjjjjjL....', // 24
-    '......LTTTTTTTTTtLLL....', // 25
+    '...LLLLTTTTTTTTTtLLL....', // 25
     '...LTTTTTTTTTTttL.......', // 26
     '...LTTTTTTTTTTttL.......', // 27
     '...LTTTTTTTTTTttL.......', // 28
@@ -302,7 +302,7 @@ export const MANGAKA_SIT: readonly [SpriteMap, SpriteMap] = [
     'LSSJJJJJJJRWRJJJjLLL....', // 22
     'LLLLLLLJJJJJJJJJJjjL....', // 23
     '......LjjjjjjjjjjjjL....', // 24
-    '......LTTTTTTTTTtLLL....', // 25
+    '...LLLLTTTTTTTTTtLLL....', // 25
     '...LTTTTTTTTTTttL.......', // 26
     '...LTTTTTTTTTTttL.......', // 27
     '...LTTTTTTTTTTttL.......', // 28
@@ -340,7 +340,7 @@ export const MANGAKA_PANIC: readonly [SpriteMap, SpriteMap] = [
     '....LLLJJJRWRJJJjLLL....', // 22
     '......LJJJJJJJJJJjjL....', // 23
     '......LjjjjjjjjjjjjL....', // 24
-    '......LTTTTTTTTTtLLL....', // 25
+    '...LLLLTTTTTTTTTtLLL....', // 25
     '...LTTTTTTTTTTttL.......', // 26
     '...LTTTTTTTTTTttL.......', // 27
     '...LTTTTTTTTTTttL.......', // 28
@@ -374,7 +374,7 @@ export const MANGAKA_PANIC: readonly [SpriteMap, SpriteMap] = [
     '....LLLJJJRWRJJJjLLL....', // 22
     '......LJJJJJJJJJJjjL....', // 23
     '......LjjjjjjjjjjjjL....', // 24
-    '......LTTTTTTTTTtLLL....', // 25
+    '...LLLLTTTTTTTTTtLLL....', // 25
     '...LTTTTTTTTTTttL.......', // 26
     '...LTTTTTTTTTTttL.......', // 27
     '...LTTTTTTTTTTttL.......', // 28
@@ -429,7 +429,7 @@ export const ASSISTANT_DOZE: SpriteMap = [
   '...LLLLLLLLLLLLLLLLLL...', // 22
   '......LJJJJJJJJJJjjL....', // 23
   '......LjjjjjjjjjjjjL....', // 24
-  '......LTTTTTTTTTtLLL....', // 25
+  '...LLLLTTTTTTTTTtLLL....', // 25
   '...LTTTTTTTTTTttL.......', // 26
   '...LTTTTTTTTTTttL.......', // 27
   '...LTTTTTTTTTTttL.......', // 28
@@ -537,7 +537,7 @@ export const EDITOR_WALK: readonly [SpriteMap, SpriteMap, SpriteMap, SpriteMap] 
     '...LGGGGGGWNWGGGGGggL...', // 18
     '..LGGLLGGGGGGGGGLLgggL..', // 19
     '..LGGLLGGGGGGGGGLLgggL..', // 20
-    '..LSSLLGGGGGGGGGLLSsgL..', // 21
+    '..LSSLLGGGGGGGGGLLSsLL..', // 21
     '...LLLLGGGGGGGGGgLLLLLLL', // 22
     '......LGGGGGGGGGGgLFFFfL', // 23
     '......LgggggggggggLFFFfL', // 24
@@ -672,7 +672,7 @@ export const CAT_SIT: SpriteMap = [
   'LCCCcL......',
   'LCCEcL......',
   '.LCCcLLLL...',
-  '.LCCCCCCcL..',
+  '.LCCCCCCcLL.',
   '.LcCCCCCcLCL',
   '..LLLLLLLLL.',
 ]
