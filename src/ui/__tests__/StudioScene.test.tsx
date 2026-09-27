@@ -3,7 +3,7 @@ import { act, render } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import '../../test/dom'
 import { stubReducedMotion } from '../../test/dom'
-import { fakeContext } from '../../test/fakeCanvas'
+import { covers, fakeContext } from '../../test/fakeCanvas'
 import type { FakeContext } from '../../test/fakeCanvas'
 import { installSound, nullEngine } from '../../audio/instance'
 import { createGame } from '../../sim'
@@ -96,7 +96,7 @@ describe('StudioScene', () => {
 
   describe('the editor visits', () => {
     let sound: FakeSound
-    const HAIR = { style: '#2b2140', x: 207, y: 102, w: 1, h: 1 }
+    const hair = () => covers(fake.log, '#2b2140', 207, 102)
     beforeEach(() => { sound = createFakeSound(); installSound(sound) })
     afterEach(() => { installSound(nullEngine) })
 
@@ -106,7 +106,7 @@ describe('StudioScene', () => {
       const pending = withPendingResult()
       act(() => useStore.setState({ game: pending }))
       expect(sound.plays).toEqual(['knock'])
-      expect(fake.log).toContainEqual(HAIR)
+      expect(hair()).toBeGreaterThan(-1)
       act(() => useStore.setState({ game: { ...pending, day: pending.day } }))
       expect(sound.plays).toEqual(['knock'])
     })
@@ -135,7 +135,7 @@ describe('StudioScene', () => {
         game: { ...pending, pendingResult: null, pendingOffer: null, event: null, animeOffer: null, reviewUnread: null },
       }))
       expect(fake.log.length).toBeGreaterThan(0)
-      expect(fake.log).not.toContainEqual(HAIR)
+      expect(hair()).toBe(-1)
     })
   })
 })

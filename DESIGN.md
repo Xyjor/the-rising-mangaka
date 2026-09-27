@@ -235,10 +235,10 @@ visiting. `Pops.tsx` floats money, fans and xp numbers up from the mangaka (or t
 for `POP_MS` 1200 each, capped at `POP_MAX` 6 on screen, guarded against a save load, a seed change or a multi-day
 jump so a pop never fires from anything but one step of play.
 
-The scene's fillRect budget is measured, not guessed: the one-assistant reference frame is a baseline of 444 calls
+The scene's fillRect budget is measured, not guessed: the one-assistant reference frame is a baseline of 281 calls
 (`render.test.ts`), and the full scene (three assistants, every piece of equipment, the loft, winter, night, the
-editor visiting) a baseline of 637 (`studioArt.test.ts`); every render must stay under 1.5x its own baseline (666 and
-955.5), so a new sprite or a new studio piece fails its test the moment it pushes the frame past budget.
+editor visiting) a baseline of 356 (`studioArt.test.ts`); every render must stay under 1.5x its own baseline (421.5 and
+534), so a new sprite or a new studio piece fails its test the moment it pushes the frame past budget.
 
 ## Systems beyond the slice (implemented)
 

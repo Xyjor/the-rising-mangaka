@@ -4,7 +4,7 @@
 import { describe, expect, it } from 'vitest'
 import { EQUIPMENT_IDS } from '../../../sim'
 import type { EquipmentId, StudioTierId } from '../../../sim'
-import { fakeContext, sceneSnapshot } from '../../../test/fakeCanvas'
+import { covers, fakeContext, sceneSnapshot } from '../../../test/fakeCanvas'
 import type { FillCall } from '../../../test/fakeCanvas'
 import { render } from '../render'
 import type { Snapshot } from '../render'
@@ -36,9 +36,10 @@ const EVERYTHING: Partial<Snapshot> = {
  * 58 fills in place of the old wall and floor's 34 (+24), the kitchenette 17, the apartment's plain door 5 and the
  * entrance 6. The full scene must stay under 1.5 times this (controller ruling: each assistant costs 85 fills, so the
  * one-assistant baseline cannot bound a three-assistant scene). Task 2.5 re-measured it the same way at 637: the wall
- * clock 47, the cat's 30 pixels in place of 20 (+10) and three assistants' pages at 3 each (9).
+ * clock 47, the cat's 30 pixels in place of 20 (+10) and three assistants' pages at 3 each (9). Task A (0.2.1) re-measured it the same
+ * way at 356 once drawSprite merged each horizontal run of one sprite key into one fillRect (same pixels, fewer fills).
  */
-const FULL_BASELINE = 637
+const FULL_BASELINE = 356
 
 function paint(over: Partial<Snapshot> = {}, t = 0.3, frame = 100): FillCall[] {
   const { ctx, log } = fakeContext()
@@ -143,13 +144,13 @@ describe('the studio in the scene', () => {
     expect(key(paint({ trophies: 2 }))).not.toBe(key(paint({ trophies: 1 })))
   })
 
-  it('paints the scene with no studio look in its measured 637 fills', () => {
+  it('paints the scene with no studio look in its measured 356 fills', () => {
     expect(paint(BARE_FULL, 0.9, 100)).toHaveLength(FULL_BASELINE)
   })
 
   it('keeps the full scene inside the canvas, free of magenta and under 1.5 times its own baseline', () => {
     const budget = FULL_BASELINE * 1.5
-    expect(budget).toBe(955.5)
+    expect(budget).toBe(534)
     for (const [t, frame, visiting] of [[0.9, 100, 0], [0.9, 0, 0], [0.3, 100, 0], [0.9, 100, 1]]) {
       const log = paint(visiting ? { ...EVERYTHING, visitor: 'editor', visitorProp: 'contract' } : EVERYTHING, t, frame)
       expect(log.some((c) => c.style === '#f0f'), `t ${t} frame ${frame}`).toBe(false)
@@ -367,7 +368,7 @@ describe('the studio\'s draw order', () => {
   it('seats the hero in the tall chair (drawn before the hero) behind the drafting table (drawn after)', () => {
     const log = paint(EVERYTHING, 0.3, 100)
     // the hero's first pixel at the desk: the top of the hair, x 141, y 84 (no bob on frame 100)
-    const hero = log.findIndex((c) => c.style === '#2b2140' && c.x === 141 && c.y === 84 && c.w === 1 && c.h === 1)
+    const hero = covers(log, '#2b2140', 141, 84)
     expect(hero).toBeGreaterThan(-1)
     for (const i of at(log, alone((ctx) => EQUIPMENT_ART.chair(ctx, FULL, 100, false)))) {
       expect(i).toBeGreaterThan(-1)

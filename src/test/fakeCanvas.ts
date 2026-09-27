@@ -22,6 +22,24 @@ export interface FakeContext {
   log: FillCall[]
 }
 
+/** Index of the LAST fill of `style` covering pixel (x, y), or -1. */
+export function covers(log: readonly FillCall[], style: string, x: number, y: number): number {
+  for (let i = log.length - 1; i >= 0; i--) {
+    const c = log[i]
+    if (c.style === style && c.x <= x && x < c.x + c.w && c.y <= y && y < c.y + c.h) return i
+  }
+  return -1
+}
+
+/** Index of the last fill of any style covering (x, y), or -1. */
+export function coversAny(log: readonly FillCall[], x: number, y: number): number {
+  for (let i = log.length - 1; i >= 0; i--) {
+    const c = log[i]
+    if (c.x <= x && x < c.x + c.w && c.y <= y && y < c.y + c.h) return i
+  }
+  return -1
+}
+
 export function fakeContext(): FakeContext {
   const log: FillCall[] = []
   const fake = {

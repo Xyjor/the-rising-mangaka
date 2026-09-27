@@ -162,7 +162,7 @@ const HEAD_SLEEP = [
 
 /**
  * A string-map sprite in canvas space, its top-left at (x, y) rounded: rows `fromRow` to `rows - 1`, mirrored left to
- * right when `flip`.
+ * right when `flip`. Each horizontal run of one key is a single fillRect (indices only, nothing allocated).
  */
 function drawSprite(
   ctx: CanvasRenderingContext2D, map: readonly string[], x: number, y: number, rows = map.length,
@@ -173,11 +173,16 @@ function drawSprite(
   for (let r = fromRow; r < rows; r++) {
     const line = map[r]
     const n = line.length
-    for (let c = 0; c < n; c++) {
+    let c = 0
+    while (c < n) {
       const ch = line[c]
-      if (ch === '.') continue
-      ctx.fillStyle = pal[ch] ?? '#f0f'
-      ctx.fillRect(x0 + (flip ? n - 1 - c : c), y0 + r, 1, 1)
+      let len = 1
+      while (c + len < n && line[c + len] === ch) len++
+      if (ch !== '.') {
+        ctx.fillStyle = pal[ch] ?? '#f0f'
+        ctx.fillRect(flip ? x0 + n - c - len : x0 + c, y0 + r, len, 1)
+      }
+      c += len
     }
   }
 }
