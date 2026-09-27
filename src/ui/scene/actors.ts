@@ -33,12 +33,12 @@ export interface Spot { readonly x: number; readonly y: number }
 export const MANGAKA_SEAT: Spot = { x: 132, y: 67 }
 export const MANGAKA_STAND: Spot = { x: 170, y: 81 }
 export const MANGAKA_BED: Spot = { x: 216, y: 106 }
-export const DOOR_SPOT: Spot = { x: 260, y: 102 }
-export const EDITOR_SPOT: Spot = { x: 204, y: 102 }
-export const CAT_BED: Spot = { x: 194, y: 104 }
+export const DOOR_SPOT: Spot = { x: 254, y: 85 }
+export const EDITOR_SPOT: Spot = { x: 198, y: 85 }
+export const CAT_BED: Spot = { x: 196, y: 118 }
 export const CAT_KITCHEN: Spot = { x: 44, y: 150 }
-export const ASSISTANT_SEAT_Y = 106
-export const ASSISTANT_SEAT_X: readonly number[] = [74, 89, 104]
+export const ASSISTANT_SEAT_Y = 89
+export const ASSISTANT_SEAT_X: readonly number[] = [66, 86, 106]
 /** The editor's walk from the door to their spot: 56 + 0 px at 40 px/s, 1400 ms. */
 export const EDITOR_WALK_MS = ((DOOR_SPOT.x - EDITOR_SPOT.x) + (DOOR_SPOT.y - EDITOR_SPOT.y)) / WALK_PX_PER_S * 1000
 

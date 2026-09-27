@@ -21,7 +21,7 @@ function planned(over: Partial<Snapshot> = {}): ActorTable {
 describe('the actor table', () => {
   it('starts everyone hidden at the door; the editor walks in in 1400 ms', () => {
     const m = newActorTable().mangaka
-    expect([m.x, m.y, m.state, m.goal, m.facing, m.legs, m.anim]).toEqual([260, 102, 'hidden', 'hidden', -1, 'xy', 0])
+    expect([m.x, m.y, m.state, m.goal, m.facing, m.legs, m.anim]).toEqual([254, 85, 'hidden', 'hidden', -1, 'xy', 0])
     expect(EDITOR_WALK_MS).toBe(1400)
   })
 
@@ -56,10 +56,10 @@ describe('planActors', () => {
     const t = planned()
     expect([t.mangaka.targetX, t.mangaka.targetY, t.mangaka.goal]).toEqual([132, 67, 'seated'])
     const a = t.assistants
-    expect([a[0].x, a[0].y, a[0].state]).toEqual([74, 106, 'seated'])
+    expect([a[0].x, a[0].y, a[0].state]).toEqual([66, 89, 'seated'])
     expect([a[1].state, a[2].state]).toEqual(['hidden', 'hidden'])
     expect(t.editor.goal).toBe('hidden')
-    expect([t.cat.targetX, t.cat.targetY, t.cat.goal, t.cat.legs]).toEqual([194, 104, 'sleeping', 'xy'])
+    expect([t.cat.targetX, t.cat.targetY, t.cat.goal, t.cat.legs]).toEqual([196, 118, 'sleeping', 'xy'])
   })
 
   it('sends everyone to rest, stands the mangaka between projects, away on a trip, to bed when spent', () => {
@@ -70,7 +70,7 @@ describe('planActors', () => {
     const idle = planned({ phase: 'idle' }).mangaka
     expect([idle.targetX, idle.targetY, idle.goal]).toEqual([170, 81, 'standing'])
     const away = planned({ away: true }).mangaka
-    expect([away.targetX, away.targetY, away.goal]).toEqual([260, 102, 'away'])
+    expect([away.targetX, away.targetY, away.goal]).toEqual([254, 85, 'away'])
     const spent = planned({ stamina: 0 }).mangaka
     expect([spent.targetX, spent.targetY, spent.goal]).toEqual([216, 106, 'sleeping'])
   })
@@ -79,9 +79,9 @@ describe('planActors', () => {
     const t = newActorTable()
     planActors(t, sceneSnapshot({ visitor: 'editor', actors: t }))
     const e = t.editor
-    expect([e.x, e.y, e.targetX, e.targetY, e.goal]).toEqual([260, 102, 204, 102, 'standing'])
+    expect([e.x, e.y, e.targetX, e.targetY, e.goal]).toEqual([254, 85, 198, 85, 'standing'])
     planActors(t, sceneSnapshot({ visitor: 'none', actors: t }))
-    expect([e.targetX, e.targetY, e.goal]).toEqual([260, 102, 'away'])
+    expect([e.targetX, e.targetY, e.goal]).toEqual([254, 85, 'away'])
     settleActors(t)
     expect(e.state).toBe('away')
   })
@@ -91,15 +91,15 @@ describe('planActors', () => {
     planActors(t, sceneSnapshot({ visitor: 'editor', actors: t }))
     stepActors(t, 700, false)
     stepActors(t, 700, false)
-    expect([t.editor.x, t.editor.y, t.editor.state]).toEqual([204, 102, 'standing'])
+    expect([t.editor.x, t.editor.y, t.editor.state]).toEqual([198, 85, 'standing'])
 
     const u = newActorTable()
     planActors(u, sceneSnapshot({ visitor: 'editor', actors: u }))
     stepActors(u, 1000, false)
     stepActors(u, 399, false)
     expect(u.editor.state).toBe('walking')
-    expect(u.editor.x).toBeCloseTo(204.04, 6)
+    expect(u.editor.x).toBeCloseTo(198.04, 6)
     stepActors(u, 1, false)
-    expect([u.editor.x, u.editor.state]).toEqual([204, 'standing'])
+    expect([u.editor.x, u.editor.state]).toEqual([198, 'standing'])
   })
 })

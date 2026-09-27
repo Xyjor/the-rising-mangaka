@@ -112,7 +112,7 @@ describe('StudioScene', () => {
 
   describe('the editor visits', () => {
     let sound: FakeSound
-    const hair = () => covers(fake.log, '#2b2140', 207, 102)
+    const hair = () => covers(fake.log, '#2b2140', 206, 87)
     beforeEach(() => { sound = createFakeSound(); installSound(sound) })
     afterEach(() => { installSound(nullEngine) })
 

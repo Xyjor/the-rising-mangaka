@@ -32,7 +32,7 @@ const NO_LOOK: StudioLook = {
   tier: 'apartment', desks: 1, equipment: EMPTY, volumes: 0, animePoster: false, trophies: EMPTY,
 }
 
-/** A bubble sits just above an actor's head: `half` is half the sprite's width (the mangaka 24 wide, the editor 12). */
+/** A bubble sits just above an actor's head: `half` is half the sprite's width (both 24 wide). */
 function placeBubble(el: HTMLDivElement | null, rect: { width: number; height: number }, a: Actor, half: number) {
   if (!el) return
   const p = sceneToCss(rect, a.x + half, a.y - 2)
@@ -82,7 +82,7 @@ export function StudioScene({ running }: { running: boolean }) {
   }, [actors])
   const placeBubbles = useCallback(() => {
     placeBubble(mangakaBubble.current, rectRef.current, actors.mangaka, 12)
-    placeBubble(editorBubble.current, rectRef.current, actors.editor, 6)
+    placeBubble(editorBubble.current, rectRef.current, actors.editor, 12)
   }, [actors])
 
   const phase = useStore((s) => (s.game ? getPhase(s.game) : 'idle'))

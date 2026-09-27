@@ -2,9 +2,12 @@
 // 320x180 canvas (room-space literals, offset by paint.ts's OX/OY; the wall and floor in canvas space). Pure drawing: no React, no store, and nothing allocated per frame (tables are built once here).
 import { LOW_STAMINA_THRESHOLD } from '../../sim'
 import type { StudioTierId } from '../../sim'
+import { ASSISTANT_SEAT_X } from './actors'
 import type { Actor, ActorTable } from './actors'
-import { LOOK_HAIRS, LOOK_SHIRTS } from '../looks'
-import { MANGAKA_IDLE, MANGAKA_LIE, MANGAKA_PANIC, MANGAKA_SIT, MANGAKA_WALK, drawSprite } from './sprites'
+import {
+  ASSISTANT_DOZE, ASSISTANT_PALS, CAT_SIT, CAT_SLEEP, CAT_WALK, EDITOR_IDLE, EDITOR_WALK, MANGAKA_IDLE, MANGAKA_LIE, MANGAKA_PANIC,
+  MANGAKA_SIT, MANGAKA_WALK, PROP_CONTRACT, PROP_ENVELOPE, PROP_LETTER, PROP_PAL, PROP_TROPHY, drawSprite,
+} from './sprites'
 import { BAR_X, paneRect, rawRect, rect } from './paint'
 import { drawSeasonNight, drawSeasonPane, drawSeasonSill } from './season'
 import type { Season } from './season'
@@ -18,74 +21,7 @@ export const H = 180
 
 // ---------- palette & sprites ----------
 
-/** The old 12x15 sprites' palette (the assistants and the editor, until they get their own 24x32 frames). */
-const LEGACY_PAL: Record<string, string> = {
-  K: '#2b2140', H: '#f4cfa5', E: '#1b1b1b', R: '#3b6fd6', B: '#2c2c3a', S: '#1b1b1b', M: '#c0392b',
-  G: '#5b6270', W: '#f6f6f6', F: '#6d4c33', O: '#e39a4a',
-}
-/** One palette per assistant look, built once so render() allocates nothing per frame. */
-const LEGACY_ASSISTANT_PALS: Record<string, string>[] = LOOK_SHIRTS.map((_, i) => ({ ...LEGACY_PAL, R: LOOK_SHIRTS[i], K: LOOK_HAIRS[i] }))
 const BOOK_COLS = ['#c94b4b', '#3b6fd6', '#3fa66c', '#f5b700', '#7c4dff', '#e07b39']
-
-const HERO = [
-  '...KKKKKK...',
-  '..KKKKKKKK..',
-  '..KKHHHHKK..',
-  '..KHHHHHHK..',
-  '..KHEHHEHK..',
-  '...HHHHHH...',
-  '....HMMH....',
-  '..RRRRRRRR..',
-  '.RRRRRRRRRR.',
-  '.HRRRRRRRRH.',
-  '..RRRRRRRR..',
-  '...BBBBBB...',
-  '...BB..BB...',
-  '...BB..BB...',
-  '..SS....SS..',
-]
-
-/** The editor: glasses, grey suit, white collar, red tie, the briefcase in the left hand (12x15, facing left). */
-const EDITOR = [
-  '...KKKKKK...',
-  '..KKKKKKKK..',
-  '..KHHHHHHK..',
-  '..KEEHHEEK..',
-  '..KHHHHHHK..',
-  '...HHHHHH...',
-  '....HWWH....',
-  '..GGGWWGGG..',
-  '.GGGGMMGGGG.',
-  '.HGGGGGGGGH.',
-  '..GGGGGGG.FF',
-  '...GGGGGG.FF',
-  '...GG..GG.FF',
-  '...GG..GG.FF',
-  '..SS..SS....',
-]
-
-/** The cat (8x6, facing left): frame 0 stands (and sits and sleeps), frames 0 and 1 are the walk, 125 ms each. */
-const CAT: readonly (readonly string[])[] = [
-  [
-    '.O..O..O',
-    '.OOOO.O.',
-    '.OEOOOO.',
-    '.OOOOOO.',
-    '.OOOOOO.',
-    '.O.O.O.O',
-  ],
-  [
-    '.O..O.O.',
-    '.OOOO..O',
-    '.OEOOOO.',
-    '.OOOOOO.',
-    '.OOOOOO.',
-    'O.O.O.O.',
-  ],
-]
-const CAT_PAL: Record<string, string> = { O: '#e39a4a', E: '#1b1b1b' }
-/** Asleep, the eye closes into the fur. */
-const CAT_PAL_ASLEEP: Record<string, string> = { O: '#e39a4a', E: '#e39a4a' }
 
 /** The wall clock (7x7): the rim and the face, with its 12 and 6 marks. */
 const CLOCK = [
@@ -134,25 +70,17 @@ function glyph(ctx: CanvasRenderingContext2D, ch: string, x: number, y: number, 
 
 const PROP_PAPER = '#fdfcf7'
 const PROP_LINE = '#b8b2a5'
-const PROP_BLUE = '#3b6fd6'
-const PROP_RED = '#e5484d'
-const PROP_GOLD = '#f5b700'
-const PROP_BASE = '#8b5a2b'
 
-/** What the standing editor holds in the leading hand, and the ! bobbing above them. */
+/** What the standing editor holds in the leading hand (sprites in PROP_PAL), and the ! bobbing above them. */
 function drawVisitorProp(ctx: CanvasRenderingContext2D, prop: Snapshot['visitorProp'], x: number, y: number, frame: number) {
   switch (prop) {
-    case 'envelope':
-      rawRect(ctx, x - 4, y + 8, 5, 3, PROP_PAPER); rawRect(ctx, x - 4, y + 9, 5, 1, PROP_LINE); break
-    case 'letter':
-      rawRect(ctx, x - 4, y + 7, 4, 5, PROP_PAPER); rawRect(ctx, x - 4, y + 8, 4, 1, PROP_LINE); rawRect(ctx, x - 4, y + 10, 4, 1, PROP_LINE); break
-    case 'contract':
-      rawRect(ctx, x - 4, y + 7, 4, 6, PROP_PAPER); rawRect(ctx, x - 4, y + 9, 4, 1, PROP_BLUE); rawRect(ctx, x - 4, y + 11, 4, 1, PROP_RED); break
-    case 'trophy':
-      rawRect(ctx, x - 4, y + 7, 3, 3, PROP_GOLD); rawRect(ctx, x - 3, y + 10, 1, 2, PROP_GOLD); rawRect(ctx, x - 4, y + 12, 3, 1, PROP_BASE); break
+    case 'envelope': drawSprite(ctx, PROP_ENVELOPE, x - 2, y + 19, 4, PROP_PAL); break
+    case 'letter': drawSprite(ctx, PROP_LETTER, x - 2, y + 17, 6, PROP_PAL); break
+    case 'contract': drawSprite(ctx, PROP_CONTRACT, x - 2, y + 17, 7, PROP_PAL); break
+    case 'trophy': drawSprite(ctx, PROP_TROPHY, x - 2, y + 17, 6, PROP_PAL); break
     case 'none': return
   }
-  glyph(ctx, '!', x + 5, y - 10 - (Math.floor(frame / 16) % 2), '#e5484d')
+  glyph(ctx, '!', x + 11, y - 8 - (Math.floor(frame / 16) % 2), '#e5484d')
 }
 
 /**
@@ -353,42 +281,32 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
   TIER_ART[s.tier](ctx, s, frame, night)
   drawEntrance(ctx, absent)
 
-  // assistants' desk (front left), only when staff exists
+  // the assistants (front left, only when staff exists): their stools, each one seated or dozing, then the desk, then
+  // each working assistant's page on it (after the desk, so it shows)
   if (s.assistants.length) {
-    const ax = 6
     const shown = Math.min(3, s.assistants.length)
+    for (let i = 0; i < shown; i++) rawRect(ctx, ASSISTANT_SEAT_X[i] + 7, 118, 10, 4, '#4a4a55')
     for (let i = 0; i < shown; i++) {
       const actor = s.actors.assistants[i]
       if (actor.state === 'hidden' || actor.state === 'away') continue
-      const pal = LEGACY_ASSISTANT_PALS[s.assistants[i].look % LEGACY_ASSISTANT_PALS.length]
-      const x = actor.x
+      const pal = ASSISTANT_PALS[s.assistants[i].look % ASSISTANT_PALS.length]
       if (actor.state === 'sleeping') {
-        // head down on the desk: the head a column back and a row down, the body where it sat
-        drawSprite(ctx, HERO, x - 1, actor.y + 1, 6, pal)
-        drawSprite(ctx, HERO, x, actor.y, 11, pal, false, 6)
-        glyph(ctx, 'Z', x + 12, 98, '#2f5ecf')
-        continue
-      }
-      const bob = working ? (Math.floor((frame + i * 3) / 8) % 2) : 0
-      drawSprite(ctx, HERO, x, actor.y + bob, 11, pal)
-      if (working) {
-        const armY = actor.y + 9 + (Math.floor((frame + i * 5) / 4) % 2); rawRect(ctx, x + 10, armY, 3, 2, LEGACY_PAL.H)
-        // the page on the desk, inked as the chapter fills
-        rawRect(ctx, x + 1, 120, 5, 4, PROP_PAPER)
-        const inked = Math.round(s.progress * 3)
-        for (let k = 0; k < inked; k++) rawRect(ctx, x + 2, 121 + k, 3, 1, PROP_LINE)
+        drawSprite(ctx, ASSISTANT_DOZE, actor.x, actor.y, 32, pal)
+        glyph(ctx, 'Z', actor.x + 18, actor.y - 6, '#2f5ecf')
+      } else drawSprite(ctx, MANGAKA_SIT[working ? Math.floor((frame + i * 3) / 8) % 2 : 0], actor.x, actor.y, 32, pal)
+    }
+    const dw = 8 + 20 * shown
+    rawRect(ctx, 62, 120, dw, 3, '#8b5a2b'); rawRect(ctx, 62, 123, dw, 9, '#70461f')
+    if (working) {
+      const inked = Math.round(s.progress * 3)
+      for (let i = 0; i < shown; i++) {
+        const actor = s.actors.assistants[i]
+        if (actor.state !== 'seated') continue
+        rawRect(ctx, actor.x + 3, 120, 6, 4, PROP_PAPER)
+        for (let k = 0; k < inked; k++) rawRect(ctx, actor.x + 4, 121 + k, 4, 1, PROP_LINE)
       }
     }
-    const dw = 12 + s.assistants.length * 15
-    rect(ctx, ax, 84, dw, 3, '#8b5a2b'); rect(ctx, ax, 87, dw, 9, '#70461f')
-    rect(ctx, ax + 2, 84, 8, 1, '#fdfcf7'); rect(ctx, ax + 2, 83, 8, 1, '#fdfcf7')
   }
-  // the cat, in front of the assistants' desk
-  const cat = s.actors.cat
-  if (cat.state === 'sleeping') drawSprite(ctx, CAT[0], cat.x, cat.y, 6, CAT_PAL_ASLEEP, cat.facing === 1)
-  else if (cat.state === 'walking') drawSprite(ctx, CAT[Math.floor(cat.anim / 125) % 2], cat.x, cat.y, 6, CAT_PAL, cat.facing === 1)
-  else if (cat.state !== 'hidden' && cat.state !== 'away') drawSprite(ctx, CAT[0], cat.x, cat.y, 6, CAT_PAL, cat.facing === 1)
-
   // chair (before the player: they sit in it)
   if (s.owned.chair) EQUIPMENT_ART.chair(ctx, s, frame, night)
   else { rect(ctx, 72, 42, 16, 12, '#4a4a55'); rect(ctx, 70, 54, 20, 4, '#4a4a55'); rect(ctx, 71, 58, 2, 14, '#4a4a55'); rect(ctx, 87, 58, 2, 14, '#4a4a55') }
@@ -421,8 +339,16 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
     const d = Math.floor((s.running ? frame : 0) / 12) % 4
     for (let i = 0; i < d; i++) glyph(ctx, '.', 214 + i * 3, 92, '#16161a')
   }
+  // the cat (after the mangaka's front pass, so it curls on the blanket), then the editor
+  const cat = s.actors.cat
+  const catFlip = cat.facing === 1
+  if (cat.state === 'sleeping') drawSprite(ctx, CAT_SLEEP, cat.x, cat.y, 8, undefined, catFlip)
+  else if (cat.state === 'walking') drawSprite(ctx, CAT_WALK[Math.floor(cat.anim / 125) % 2], cat.x, cat.y, 8, undefined, catFlip)
+  else if (cat.state !== 'hidden' && cat.state !== 'away') drawSprite(ctx, CAT_SIT, cat.x, cat.y, 8, undefined, catFlip)
   const editor = s.actors.editor
-  if (editor.state !== 'hidden' && editor.state !== 'away') drawSprite(ctx, EDITOR, editor.x, editor.y, 15, LEGACY_PAL, editor.facing === 1)
+  const editorFlip = editor.facing === 1
+  if (editor.state === 'walking') drawSprite(ctx, EDITOR_WALK[Math.floor(editor.anim / 100) % 4], editor.x, editor.y, 32, undefined, editorFlip)
+  else if (editor.state !== 'hidden' && editor.state !== 'away') drawSprite(ctx, EDITOR_IDLE[Math.floor(frame / 16) % 2], editor.x, editor.y, 32, undefined, editorFlip)
   if (s.visitor === 'editor' && editor.state === 'standing' && editor.facing === -1) drawVisitorProp(ctx, s.visitorProp, editor.x, editor.y, frame)
 
   if (night) {
