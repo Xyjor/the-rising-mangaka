@@ -1,0 +1,33 @@
+/* Speech bubbles over the studio scene. .pixel-bubble is the shared pixel look (Phase 3 reuses it for the modals). */
+.bubble {
+  position: absolute; transform: translate(-50%, calc(-100% - 6px)); max-width: 200px; width: max-content;
+  padding: 4px 8px; font: 700 13px/1.2 var(--font-ui); color: var(--ink); background: var(--panel);
+  border: 2px solid var(--line-strong); border-radius: var(--radius-s); box-shadow: 2px 2px 0 var(--line-strong);
+  pointer-events: none; overflow-wrap: break-word; animation: bubble-in 160ms var(--ease-out);
+}
+.bubble::after {
+  content: ''; position: absolute; left: 50%; bottom: -6px; width: 8px; height: 8px;
+  background: var(--panel); border-right: 2px solid var(--line-strong); border-bottom: 2px solid var(--line-strong);
+  transform: translateX(-50%) rotate(45deg);
+}
+@keyframes bubble-in {
+  from { opacity: 0; transform: translate(-50%, calc(-100% - 2px)) scale(0.9); }
+  to { opacity: 1; transform: translate(-50%, calc(-100% - 6px)); }
+}
+
+/* Pop numbers: money, fans and xp rising from the mangaka. */
+.pop {
+  position: absolute; transform: translate(-50%, -100%); padding: 1px 6px; border-radius: 999px;
+  font: 800 13px var(--font-ui); background: var(--panel); border: 2px solid var(--line-strong);
+  pointer-events: none; animation: pop-rise 1200ms var(--ease-out) forwards;
+}
+.pop[data-kind='money'] { color: var(--green-text); }
+.pop[data-kind='fans'] { color: var(--blue-text); }
+.pop[data-kind='xp'] { color: var(--purple-text); }
+@keyframes pop-rise {
+  to { transform: translate(-50%, calc(-100% - 24px)); opacity: 0; }
+}
+/* base.css's 0.01 ms animation rule with forwards would hide a pop at once */
+@media (prefers-reduced-motion: reduce) {
+  .pop { animation: none; }
+}

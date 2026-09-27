@@ -29,17 +29,17 @@ export function SettingsModal() {
 
   return (
     <Modal title="Settings" onClose={closeModal} narrow>
-      <div className="col" style={{ gap: 18 }}>
-        <div className="row between">
+      <div className="col settings">
+        <section className="settings-section row between">
           <span style={{ fontWeight: 800 }}>Appearance</span>
           <div className="seg sm" role="group" aria-label="Appearance">
             <button aria-pressed={theme === 'auto'} onClick={() => setTheme('auto')}>Auto</button>
             <button aria-pressed={theme === 'light'} onClick={() => setTheme('light')}>Light</button>
             <button aria-pressed={theme === 'dark'} onClick={() => setTheme('dark')}>Dark</button>
           </div>
-        </div>
+        </section>
 
-        <div className="row between">
+        <section className="settings-section row between">
           <span style={{ fontWeight: 800 }}>Sound</span>
           <div className="row">
             <button
@@ -67,36 +67,36 @@ export function SettingsModal() {
             />
             <span className="tiny num" style={{ minWidth: 32, textAlign: 'right' }}>{volumeReadout}</span>
           </div>
-        </div>
+        </section>
 
-        <div className="row between">
+        <section className="settings-section row between">
           <span style={{ fontWeight: 800 }}>Music</span>
           <div className="seg sm" role="group" aria-label="Music">
             <button aria-pressed={sound.music} onClick={() => setSound({ music: true })}>On</button>
             <button aria-pressed={!sound.music} onClick={() => setSound({ music: false })}>Off</button>
           </div>
-        </div>
+        </section>
 
-        <section>
+        <section className="settings-section">
           <div style={{ fontWeight: 800, marginBottom: 8 }}>Keyboard</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '6px 14px', fontSize: 13 }}>
+          <div className="kbd-grid">
             {keys.map(([k, v]) => (
               <Fragment key={k}><span className="kbd">{k}</span><span className="muted">{v}</span></Fragment>
             ))}
           </div>
         </section>
 
-        <SaveFileSection />
+        <section className="settings-section">
+          <SaveFileSection />
+        </section>
 
-        <div className="divider" />
-
-        <div className="row between wrap">
+        <section className="settings-section row between wrap">
           <div>
             <div style={{ fontWeight: 800 }}>Start over</div>
             <div className="tiny faint">Deletes this save. There is no undo.</div>
           </div>
           <ConfirmRow label="New game…" confirmLabel="Yes, delete save" cancelLabel="Keep playing" onConfirm={abandon} />
-        </div>
+        </section>
       </div>
     </Modal>
   )

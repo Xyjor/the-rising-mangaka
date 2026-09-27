@@ -152,22 +152,24 @@ export function NewMangaWizard() {
         )}
 
         {step === 3 && (
-          <div className="col" style={{ gap: 14 }}>
-            <label className="col" style={{ gap: 6 }}>
-              <span className="small" style={{ fontWeight: 800 }}>Title</span>
-              <input
-                className="input"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Leave blank for a surprise"
-                maxLength={40}
-                autoFocus
-                onKeyDown={(e) => { if (e.key === 'Enter') start() }}
-              />
-            </label>
-            <p className="small muted">
-              The title is flavour. What matters is the combination below, and how well you draw it.
-            </p>
+          <div className="title-step">
+            <div className="col" style={{ gap: 14 }}>
+              <label className="col" style={{ gap: 6 }}>
+                <span className="small" style={{ fontWeight: 800 }}>Title</span>
+                <input
+                  className="input"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Leave blank for a surprise"
+                  maxLength={40}
+                  autoFocus
+                  onKeyDown={(e) => { if (e.key === 'Enter') start() }}
+                />
+              </label>
+              <p className="small muted">
+                The title is flavour. What matters is the combination, and how well you draw it.
+              </p>
+            </div>
             <div className="know card flat" style={{ padding: 12 }}>
               <div className="lbl">What you know</div>
               <div className="k">

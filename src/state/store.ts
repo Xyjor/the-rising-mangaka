@@ -19,7 +19,7 @@ export type Speed = 0 | 1 | 2 | 3
 export type RunSpeed = Exclude<Speed, 0>
 export type Modal =
   | 'none' | 'wizard' | 'submit' | 'stats' | 'notebook' | 'history' | 'settings' | 'staff' | 'trips' | 'series'
-  | 'career' | 'studio' | 'year'
+  | 'career' | 'studio' | 'year' | 'log'
 export type ThemeMode = 'auto' | 'light' | 'dark'
 
 export interface Toast { id: number; kind: LogKind; text: string }
@@ -129,7 +129,7 @@ interface Persisted {
  * Debounced, de-duplicated, single-writer save storage. Zustand's persist calls setItem on every set();
  * this only accepts a value when one of the persisted fields changed by reference, writes it after a short
  * quiet period (at once when a game starts, ends or is replaced), and never writes while another tab owns
- * the save. The saved log is trimmed to what the EventLog shows.
+ * the save. The saved log is trimmed to what the studio log shows.
  */
 let lastAccepted: Persisted | null = null
 let pending: { name: string; value: StorageValue<Persisted> } | null = null

@@ -14,8 +14,46 @@ describe('midiToHz', () => {
 })
 
 describe('cue recipes', () => {
-  it('defines all thirty cues', () => {
-    expect(entries).toHaveLength(30)
+  it('defines all thirty-five cues', () => {
+    expect(entries).toHaveLength(35)
+    for (const id of ['knock', 'pop', 'tab', 'open', 'close'] as const) expect(CUES[id], id).toBeDefined()
+  })
+
+  it('spaces the scene and panel cues 800/80/60/150/150 ms', () => {
+    expect([CUES.knock.gapMs, CUES.pop.gapMs, CUES.tab.gapMs, CUES.open.gapMs, CUES.close.gapMs])
+      .toEqual([800, 80, 60, 150, 150])
+  })
+
+  it('pops one 880 Hz sine blip of 0.04 s, varied by 0, 4 and 7 semitones', () => {
+    expect(CUES.pop.vary).toEqual([0, 4, 7])
+    expect(CUES.pop.voices).toHaveLength(1)
+    const v = CUES.pop.voices[0]
+    expect(v.wave).toBe('sine')
+    expect(v.wave !== 'noise' && v.freq).toBe(880)
+    expect(v.dur).toBe(0.04)
+  })
+
+  it('knocks twice: noise at 0 and 0.09 s, each with a sine falling 220 to 110 Hz', () => {
+    const vs = CUES.knock.voices
+    expect(vs).toHaveLength(4)
+    expect(vs.filter((v) => v.wave === 'noise').map((v) => v.at)).toEqual([0, 0.09])
+    const sines = vs.flatMap((v) => (v.wave === 'sine' ? [v] : []))
+    expect(sines.map((v) => [v.at, v.freq, v.to])).toEqual([[0, 220, 110], [0.09, 220, 110]])
+  })
+
+  it('clicks a tab with one 0.02 s band-passed noise voice at 1200 Hz', () => {
+    expect(CUES.tab.voices).toHaveLength(1)
+    const v = CUES.tab.voices[0]
+    expect(v.wave).toBe('noise')
+    expect(v.dur).toBe(0.02)
+    expect(v.filter).toMatchObject({ type: 'bandpass', freq: 1200 })
+  })
+
+  it('opens rising and closes falling', () => {
+    const freqs = (id: CueId) => CUES[id].voices.map((v) => (v.wave === 'noise' ? 0 : v.freq))
+    const [o1, o2] = freqs('open'), [c1, c2] = freqs('close')
+    expect(o2).toBeGreaterThan(o1)
+    expect(c2).toBeLessThan(c1)
   })
 
   it('keeps every voice audible and at most 0.3 gain', () => {

@@ -6,7 +6,7 @@ import { upgradeSave } from '../sim/migrate'
 
 /** The shape of the saved game, in the browser and in a file. A save of another version is not loaded. */
 export const SAVE_VERSION = 2
-/** The log is trimmed to what the EventLog shows; the live state keeps the full log. */
+/** The log is trimmed to what the studio log shows; the live state keeps the full log. */
 export const SAVED_LOG_ENTRIES = 80
 /** Marks a file as a Rising Mangaka save. */
 export const SAVE_FILE_FORMAT = 'rising-mangaka-save'

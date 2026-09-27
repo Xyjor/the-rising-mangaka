@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import '../../test/dom'
 import {
@@ -103,5 +103,30 @@ describe('SeriesModal anime line', () => {
     useStore.setState({ game: acceptOffer({ ...createGame('Rin', 1), pendingOffer: KIDS_OFFER }), readOnly: false })
     render(<SeriesModal />)
     expect(screen.queryByText(/anime|On air/)).toBeNull()
+  })
+})
+
+describe('SeriesModal series tabs', () => {
+  function withArchive(): GameState {
+    const g = acceptOffer({ ...createGame('Rin', 1), pendingOffer: KIDS_OFFER })
+    return { ...g, serials: [{ ...g.serial!, id: 99, title: 'Old Tide', status: 'ended' }] }
+  }
+
+  it('puts one title-bar tab per series and shows the picked one', () => {
+    useStore.setState({ game: withArchive(), readOnly: false })
+    render(<SeriesModal />)
+    const list = screen.getByRole('tablist', { name: 'Series sections' })
+    expect(within(list).getAllByRole('tab').map((t) => t.textContent)).toEqual(['Magic Club', 'Old Tide'])
+    expect(screen.getByText('Running')).toBeTruthy()
+    fireEvent.click(within(list).getByRole('tab', { name: 'Old Tide' }))
+    expect(within(list).getByRole('tab', { name: 'Old Tide' }).getAttribute('aria-selected')).toBe('true')
+    expect(screen.getByText('Completed')).toBeTruthy()
+    expect(screen.queryByText('Running')).toBeNull()
+  })
+
+  it('has no tab strip for a single series', () => {
+    useStore.setState({ game: acceptOffer({ ...createGame('Rin', 1), pendingOffer: KIDS_OFFER }), readOnly: false })
+    render(<SeriesModal />)
+    expect(screen.queryByRole('tablist')).toBeNull()
   })
 })

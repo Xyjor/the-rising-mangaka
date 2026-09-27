@@ -1,0 +1,78 @@
+/* HUD corners, the rail, the status card and the log list, all floating over the stage. */
+.hud-corner { position: absolute; display: flex; flex-direction: column; gap: 8px; }
+.top-left { left: 16px; top: 12px; }
+.top-right { right: 16px; top: 12px; align-items: flex-end; }
+.weekday { font-size: 12px; color: var(--ink-2); }
+.sky { color: var(--gold-text); }
+.speed button { min-width: 40px; justify-content: center; }
+.deadline[data-tone='warn'] { border-color: var(--accent); color: var(--accent-text); }
+.badge-hud.stat { min-width: 150px; }
+.badge-hud.stat.neg .num { color: var(--accent-text); }
+.badge-hud .bar { height: 6px; }
+.badge-hud .head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+
+/* ---------- rail ---------- */
+.rail { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 6px; }
+.rail .btn, .rail-log { position: relative; width: 56px; min-height: 52px; flex-direction: column; gap: 3px; padding: 6px 2px; }
+.rail-lbl { font-family: var(--font-display); font-size: 8px; font-weight: 700; }
+.rail .badge, .rail-log .badge {
+  position: absolute; top: -6px; right: -6px;
+  background: var(--accent); color: #fff; font-size: 10px; font-weight: 900;
+  min-width: 18px; height: 18px; border-radius: 999px; display: grid; place-items: center;
+  border: 2px solid var(--paper);
+}
+.rail .badge.blue, .rail-log .badge.blue { background: var(--blue); }
+.rail-log { position: absolute; left: 12px; bottom: 16px; }
+.rail-settings { position: absolute; right: 16px; bottom: 16px; background: var(--panel); border: 3px solid var(--line-strong); }
+
+/* ---------- status card ---------- */
+.status-card { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px 16px; padding: 12px 14px; }
+.status-card .span { grid-column: 1 / -1; }
+.status-left, .status-right { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.status-card .title { font-family: var(--font-display); font-size: 16px; font-weight: 700; overflow-wrap: anywhere; }
+.status-card .bar { height: 6px; }
+.tag-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.empty-desk { text-align: center; padding: 12px; display: flex; flex-direction: column; gap: 12px; align-items: center; }
+.empty-desk .doodle { color: var(--ink-3); }
+.activity-block { display: flex; flex-direction: column; gap: 10px; }
+.activity-block .seg { flex-wrap: wrap; }
+.warnings { display: inline-flex; gap: 4px; }
+.warnings i { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid var(--accent); }
+.warnings i.on { background: var(--accent); }
+
+.coach {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 10px 12px; border-radius: var(--radius-m);
+  background: var(--gold-soft); border: 2px solid var(--gold);
+  font-size: 13px;
+}
+.coach .who { font-weight: 800; font-size: 12px; color: var(--gold-text); }
+/* A speech tail pointing down at the card. */
+.coach.speech { position: relative; }
+.coach.speech::after {
+  content: ''; position: absolute; left: 32px; bottom: -10px;
+  border: 8px solid transparent; border-bottom: 0; border-top: 10px solid var(--gold);
+}
+
+.only-phone { display: none; }
+@media (max-width: 640px) {
+  .only-phone { display: inline; }
+  .not-phone { display: none; }
+
+  .top-left, .top-right { left: 8px; right: 8px; top: 8px; max-width: 50%; overflow: hidden; }
+  .top-right { left: auto; }
+  .badge-hud { padding: 4px 8px; font-size: 11px; max-width: 100%; }
+  .badge-hud .num { font-size: 8px; }
+  .badge-hud.stat { min-width: 0; }
+  .speed button { min-width: 36px; }
+  .rail-log { left: 8px; bottom: 8px; }
+  .rail-settings { right: 8px; bottom: 8px; }
+  .status-card { grid-template-columns: 1fr; }
+  .status-right { order: -1; }
+
+  /* Rail: this must win over hud.css's own desktop rule above, and over stage.css's phone rule (hud.css
+     loads after stage.css in main.tsx, so a same-file, later media block is what actually wins the
+     cascade at 375px; stage.css's copy of this rule is dead weight there and has been removed). */
+  .rail { position: static; transform: none; flex-direction: row; overflow-x: auto; padding: 8px 12px 16px; gap: 8px; }
+  .rail .btn { flex: none; }
+}

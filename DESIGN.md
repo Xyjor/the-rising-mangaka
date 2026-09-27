@@ -11,11 +11,14 @@ modern, transparent, low-friction interface.
    records everything the player learns in a Notebook and surfaces it at decision time.
 3. **Never interrupt.** Events go to a log and to non-blocking toasts. The only modal moments
    are ones the player chose (starting a manga, reading poll results). The clock pauses in every
-   modal. Player controls speed at all times.
-4. **One screen, one job.** A persistent HUD, one studio view, one contextual "desk" panel.
-   No nested menus more than one level deep.
-5. **Hybrid look.** Pixel-art studio scene for warmth and flavour; clean, modern UI panels for
-   every management screen.
+   modal. Player controls speed at all times (the studio log is a window opened from the Log
+   button, which counts the lines not yet seen).
+4. **One screen: the studio.** The HUD floats over it, the desk is a status card over it, and
+   every management screen is a pixel-framed window opened from the rail. No nested menus more
+   than one level deep.
+5. **Hybrid look.** The pixel-art studio fills the window for warmth and flavour; the controls
+   over it and the panels are pixel-framed windows (a Silkscreen display face, hard shadows, a
+   bevel) that keep modern body type, plain words and transparent numbers.
 
 ## Core loop (vertical slice)
 
@@ -29,6 +32,8 @@ Plan manga  →  Draw pages (days pass)  →  Submit to a magazine  →  Reader 
 - 1 tick = 1 day. 7 days = 1 week, 4 weeks = 1 month, 12 months = 1 year (336 days, `DAYS_PER_YEAR`). Every year
   ends with awards and a year review (see Year end and awards).
 - Speeds: paused / 1x / 2x / 3x. Opening any modal pauses. Closing restores previous speed.
+- The presentation clock (`src/state/clock.ts`) runs a week-long light cycle independent of the sim day: no hour
+  clock, just day/night over the 7-day week.
 
 ### Player
 - Stats (1–100): **Story**, **Art**, **Pacing**. Max stamina grows with level.
@@ -143,10 +148,11 @@ Forecast calibration is a balance band: over year one the offer chances quoted a
 - `src/sim/` — pure TypeScript simulation. No React, no DOM. Deterministic given a seed.
   Fully unit-tested with Vitest. Every state change is a pure function `(state, input) => state`.
 - `src/state/` — Zustand store: wraps the sim, owns the real-time clock and UI state, persists to localStorage.
+  `clock.ts` is the separate, never-persisted presentation clock (the light cycle, the studio log's read marker).
 - `src/ui/` — React components. `scene/` is the pixel-art canvas studio (`render.ts` paints a frame from a snapshot,
   `season.ts` the window's season, `studioArt.ts` the player's studio, `paint.ts` the shared pixel helpers,
-  `StudioScene.tsx` runs the frame loop).
-  `panels/` are the management screens.
+  `StudioScene.tsx` runs the frame loop). `hud/` is the corner overlays and rail; `hooks/` are the presentation-clock
+  and rolled-number hooks. `panels/` are the management screens.
 - `src/audio/` — Web Audio sound, synthesised, no files (see Sound).
 - `src/platform/` — where the game runs (browser or desktop) and the only place that imports the desktop APIs;
   `src-tauri/` is the Windows desktop shell itself (see The desktop app and save files).
@@ -161,15 +167,27 @@ changes no rule.
 - **Autumn**: a rust canopy and 12 leaves swaying as they fall.
 - **Winter**: a bare branch capped with snow, 16 snowflakes and snow on the sill.
 
-Everything but the sill's snow stays inside the pane (x 118-161, y 12-43), behind the window bars; the fireflies, drawn
-over the night, keep off the bars (rows 18-25 and 29-36, never columns 139-140). The sun and the clouds are clipped to
-the pane too, so a cloud slides out behind the frame. The particles and the clouds move with the scene's frame, so they
-hold still under reduced motion (the cloud whole at the pane's left edge).
+Everything but the sill's snow stays inside the pane (room x 118-161, y 12-43; canvas x 182-225, y 48-79), behind the
+window bars; the fireflies, drawn over the night, keep off the bars (canvas rows 54-61 and 65-72, never columns
+203-204). The sun and the clouds are clipped to the pane too, so a cloud slides out behind the frame. The particles and
+the clouds move with the scene's frame, so they hold still under reduced motion (the cloud whole at the pane's left
+edge).
 
 ### The studio in the scene
-The scene draws what `studioLook` says the player has built (`studioArt.ts`). It is decoration only; the Studio panel
-states every effect. `StudioScene` reads the look through `useShallow` and turns it into flags and counts when it
-changes, so a frame never walks a list.
+The scene is a 320x180 canvas (`src/ui/scene/render.ts`), painted at 24 fps (`StudioScene.tsx`'s `STEP_MS` 41; the
+animation frame counter advances +2.5 a step while the clock runs, +1.25 while paused, so idle scenes still breathe).
+Lighting comes from the presentation clock's `t` (`useClock`), night when `t > 0.72 || t < 0.06`; the scene keeps
+animating behind modals (their backdrop is translucent) and only sleeps when the document tab itself is hidden.
+
+Two coordinate spaces meet in `paint.ts`: room space is the original 192x108 layout (every furniture, window and
+studio-art literal), offset by `OX 64, OY 36` into canvas space by `rect`; `rawRect` paints straight in canvas space
+for the wall, the floor, the kitchenette, the entrance and the door, none of which existed in the old room. The wall
+band runs canvas y 0-113 (27 stripes, a 2px skirting at y 112-113) and the floor y 114-179 (20 plank seams, 8 plank
+rows). The kitchenette sits on the left wall at canvas x 2-61, y 56-113. The front door is a fixed frame on the right
+wall, canvas x 258-274, y 56-113: a plain two-panel door in the apartment, a lit indigo-noren doorway in the flat and
+the loft, spilling warm light at night. Beside it, the entrance holds a doormat and a coat rack (the mangaka's coat
+hangs there only while they are out). The whole scene is drawn for a phone's `object-fit: cover` crop of canvas x
+24-296; the studio-art regions below stay inside it and off the actors' spots.
 - **Tiers.** The studio flat opens a lit doorway in the right wall with an indigo noren (x 168-184, from y 20 down to
   the bed), which spills warm light at night. The loft keeps the doorway and adds a potted plant on the sill (x 150-155)
   and a tall one on the floor in front of the bed (x 172-184, y 80-105).
@@ -184,11 +202,43 @@ changes, so a frame never walks a list.
 
 Draw order: the coffee machine and the trophies after the sill and its snow; the volumes and the reference shelf after
 the bookshelf; the tier after the bed (the doorway stops where the bed begins, y 66, so the two never overlap) and
-before the sleeping mangaka's Zz; the chair
-before the mangaka at the desk, the drafting table, the lamp and the tablet after; the lamp's glow and the doorway's
-spill last, over the night overlay. Everything stays inside x 8-184 (a phone's `object-fit: cover` crops about 7 px a
-side) and off the mangaka at the desk and at the standing spot. The full scene (all of it, three assistants, winter,
-night) paints 615 rects against 499 without the studio; the budget is 1.5 x 499.
+before the sleeping mangaka's Zz; the chair before the mangaka at the desk, the drafting table, the lamp and the tablet
+after; the lamp's glow and the doorway's spill last, over the night overlay. Everything stays off the mangaka at the
+desk and at the standing spot.
+
+**The cast** (`actors.ts`) is a table of actors (the mangaka, three assistant slots, the editor, the cat), each with a
+position, a target, a facing, a current and a goal pose, and which axis it walks first (`legs`, `'xy'` or the cat's
+`'yx'`, kitchen trips going vertical first). `planActors` reads the game each frame and sets targets and goals from
+seven fixed spots (the mangaka's seat, standing spot and bed; the door; the editor's spot; the cat's bed and its
+kitchen spot); `stepActors` walks everyone toward them at `WALK_PX_PER_S` 40, one axis then the other; `settleActors`
+puts everyone in place at once, used on mount and on a loaded save so nobody walks in from off-screen. The assistants
+never walk: they are placed straight into their seat, seated or asleep, and while working each draws its own page
+(3 fills) with a couple of ink lines.
+
+**The editor's visit** (`visitor.ts`, `useArrival`) picks the one reason they are at the desk, in priority order:
+a pending chapter result, a pending offer, the project ready to submit, an anime offer, a random event, then an
+unread year review; each reason has its own carried prop (envelope, letter, contract or trophy) and greeting line.
+The walk from the door to the editor's spot is `EDITOR_WALK_MS` 1400, derived from the door-to-spot distance at 40
+px/s; `StudioScene` plays the `knock` cue the moment the editor's state becomes `'standing'` after actually walking
+there (never on a settle, and never in a read-only tab or while the window is hidden), and `useArrival` gates a
+pending result's or offer's own card mount on that same delay (at once under reduced motion, or when it was already
+pending on mount).
+
+The wall clock's hands lap the visual week (8 times an hour hand, twice a minute hand) from the presentation clock;
+the plant sways every 30 frames; the cat has two spots (asleep in its bed, or sitting in the kitchen while everyone
+rests).
+
+**Bubbles and pops** are DOM overlays, not canvas drawing, placed with `sceneAnchor.ts`'s `sceneToCss` (the same
+cover-fit scale and centred overflow as the canvas). A `Bubble` (`Bubble.tsx`, styled by `scene.css`, using design
+tokens) shows the mangaka's latest daily log line for `BUBBLE_MS` 4000, or the editor's greeting while they are
+visiting. `Pops.tsx` floats money, fans and xp numbers up from the mangaka (or the desk when they are out of sight)
+for `POP_MS` 1200 each, capped at `POP_MAX` 6 on screen, guarded against a save load, a seed change or a multi-day
+jump so a pop never fires from anything but one step of play.
+
+The scene's fillRect budget is measured, not guessed: the one-assistant reference frame is a baseline of 444 calls
+(`render.test.ts`), and the full scene (three assistants, every piece of equipment, the loft, winter, night, the
+editor visiting) a baseline of 637 (`studioArt.test.ts`); every render must stay under 1.5x its own baseline (666 and
+955.5), so a new sprite or a new studio piece fails its test the moment it pushes the frame past budget.
 
 ## Systems beyond the slice (implemented)
 
@@ -420,6 +470,16 @@ reveal's own beats (see The results reveal). `triggers.ts` decides the cues pure
 log's wording, at most two per change, so a busy tick is not noisy; a cancellation plays alone, since the warnings
 that land with it would only repeat the bad news.
 
+`Modal` (`src/ui/components.tsx`) plays its own three: `open` and `close` on mount and on the native `<dialog>`'s
+close, and `tab` when its title-bar tab strip changes tab — all through `getSound()`, and all skipped in a
+read-only tab. The scene plays two more: `knock` when the editor's walk lands them at their spot, and `pop`
+(pitched per kind) when money, fans or xp rise from the mangaka (see The studio in the scene). Every open modal
+holds the music bus at `MODAL_DUCK` (60%) for as long as it is open, through `instance.ts`'s `holdDuck`: a small
+stack of duck levels, one per hold, the deepest wins, and the bus returns to full only once the last hold releases.
+The results reveal takes its own, deeper hold at 30% for as long as it is mounted, stacked under the modal's own
+60% hold, so the Results modal ducks to 30% while the reveal runs and only back to full when the modal closes (both
+holds release together).
+
 A light music loop (`music.ts`) plays under play: two parts (lead and bass), scheduled a look-ahead's worth of
 notes at a time from the audio clock's own time, fading in over 2 s when it starts and out over 0.4 s when it
 stops. The context is created lazily and only from a real user gesture — a browser refuses to start audio before
@@ -437,6 +497,12 @@ silently (a 'pause' cue would only sound on return, so none plays for the hide o
 `windowHidden` and `saveLoads` guards.
 
 ### The results reveal
+The Results modal is wide and two columns (`.results-grid`, stacking to one column below 700px): the hero (rank
+stamp, headline, rival line) on the left, the score breakdown and reward tiles on the right. The stamp itself is a
+square badge, not a circle. The modal does not mount at all until the editor has walked in with the result
+(`EDITOR_WALK_MS` after it lands, 0 under reduced motion; see `useArrival` under The studio in the scene), so the
+reveal never starts while the editor is still mid-walk.
+
 A poll result never simply appears: `ResultsModal.tsx` plays it out in beats, timed by a pure plan (`reveal.ts`'s
 `revealPlan`) that a real-time clock (`useReveal.ts`) drives frame by frame. In order: a drumroll leads into five
 bars growing to their component scores (art, story, pacing, audience fit, freshness), each pitched by its own
@@ -628,3 +694,34 @@ craft 57 with a field margin of 6 (was 50 and 2), and the price scale follows S1
 71% of year-one meetings, an award or near miss on 20/20 and the Golden Pen on 2/20, 2 or 3 pieces of equipment at day
 336 on 18/20, and anime offers within two years on 12/20 (days 507 to 574). The cause stays a candidate for a later,
 root-level retune (the pace of year one: XP, chapter fans or chapter pay).
+
+## Rulings
+
+**2026-09-26, UI overhaul.** The 0.2.0 upgrade replaced the static desk-and-modals shell with a live pixel-art
+studio scene and restyled every panel. These decisions came out of that pass:
+
+- The scene canvas is 320x180, with two coordinate spaces meeting in `paint.ts`: room space, the original 192x108
+  layout, offset by `OX 64, OY 36` into canvas space.
+- The presentation clock (`src/state/clock.ts`) runs a week-long light cycle (`t`, `weekT`), not an hour clock: night
+  is `t > 0.72 || t < 0.06`, and the wall clock's hands lap the week rather than a day.
+- The cast is a table of actors (`actors.ts`): position, target, facing, current and goal pose, and which axis each
+  walks first, stepped by `stepActors` and settled at once on mount or a loaded save.
+- The editor visits for a reason (`visitor.ts`), walks in from the door, and the results and offer modals do not
+  mount until `EDITOR_WALK_MS` (1400 ms, the door-to-spot distance at 40 px/s) after the result or offer lands (0
+  under reduced motion), so neither modal beats the editor to the desk.
+- Money, fans and xp rises are pops (`Pops.tsx`) and the mangaka's daily log line and the editor's greeting are
+  speech bubbles (`Bubble.tsx`); both are DOM elements anchored to scene coordinates (`sceneAnchor.ts`'s
+  `sceneToCss`), not drawn on the canvas.
+- Silkscreen replaces Bangers for display type (`--font-display`, `--font-num`), used only at 8, 16, 24 and 32 px
+  (the sizes it was drawn for); body copy and buttons stay Nunito.
+- The scene keeps animating behind an open modal (the `::backdrop` is a plain translucent fill, no
+  `backdrop-filter`/blur) and only sleeps when the document tab itself is hidden.
+- Every modal carries the same pixel-frame kit: a 3px hard border, an inset bevel (light top-left, dark
+  bottom-right) and a hard drop shadow, no soft box-shadow blur.
+- The modal duck (60%, `MODAL_DUCK`) and the results reveal's own duck (30%) stack through `holdDuck`'s hold list
+  rather than one overwriting the other, so a reveal inside its modal reads as strictly quieter than a modal alone.
+- `'tab'` (the title-bar tab-switch cue) is a bandpass noise click at 1200 Hz, not a pitched tone: every *tone*
+  voice in `cues.ts` sits on the C major pentatonic scale (C D E G A) by the cue tests, but 1200 Hz is a noise
+  voice's filter frequency, not a note, so it is exempt by construction rather than by exception.
+- Balance bands are unchanged: no sim formula or constant moved in this pass, so `balance.test.ts` and
+  `npm run balance` still read the seeds 1-20 numbers already recorded above.

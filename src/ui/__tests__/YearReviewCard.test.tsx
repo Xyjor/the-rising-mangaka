@@ -8,7 +8,7 @@ import { useStore } from '../../state/store'
 import { App } from '../App'
 import { YearReviewCard } from '../YearReviewCard'
 import { CareerModal } from '../panels/CareerModal'
-import { DeskPanel } from '../panels/DeskPanel'
+import { DeskTray } from '../hud/DeskTray'
 import { YearModal } from '../panels/YearModal'
 
 const CARD = 'Year 1 in review: 2 awards, 1 near miss.'
@@ -46,9 +46,9 @@ describe('YearReviewCard', () => {
     expect(again.container.firstChild).toBeNull()
   })
 
-  it('counts the awards and near misses, and sits on the desk panel', () => {
+  it('counts the awards and near misses, and sits in the desk tray', () => {
     useStore.setState({ game: reviewed() })
-    render(<DeskPanel />)
+    render(<DeskTray />)
     const card = screen.getByRole('region', { name: CARD })
     expect(within(card).getByRole('button', { name: 'Read the year review' })).toBeTruthy()
   })

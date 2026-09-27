@@ -1,0 +1,44 @@
+/* The stage: the studio scene fills the window and every control floats over it. */
+.app { height: 100%; display: grid; grid-template-rows: auto minmax(0, 1fr); background: var(--stage-bg); }
+.stage { grid-row: 2; position: relative; min-height: 0; overflow: hidden; }
+.scene-band { position: absolute; inset: 0; background: var(--stage-bg); }
+.scene-wrap { position: absolute; inset: 0; border: 0; border-radius: 0; box-shadow: none; aspect-ratio: auto; overflow: hidden; }
+.scene-wrap canvas { width: 100%; height: 100%; display: block; object-fit: cover; image-rendering: pixelated; }
+.scene-overlay { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); }
+.scene-overlay .chip { background: var(--panel); color: var(--ink); border-color: var(--line-strong); }
+@media (max-width: 900px) {
+  /* The status card already shows the same phase as a chip; the overlay chip collides with the
+     top-left date badge (hud.css) below 900px, so it is dropped rather than repositioned. */
+  .scene-overlay { display: none; }
+}
+.scene-paused {
+  position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none;
+  background: repeating-linear-gradient(0deg, rgba(0,0,0,0.12) 0 2px, transparent 2px 4px);
+}
+.scene-paused span {
+  font-family: var(--font-display); font-size: 32px; letter-spacing: 0; color: var(--paused-ink);
+  text-shadow: 3px 3px 0 var(--paused-shadow), -1px -1px 0 var(--paused-shadow), 1px -1px 0 var(--paused-shadow),
+    -1px 1px 0 var(--paused-shadow);
+  animation: blink 1.2s steps(2) infinite;
+}
+@keyframes blink { 50% { opacity: 0.35; } }
+
+/* The dock: the status card bottom centre, the desk tray beside it when the row fits (about 1090 px), above it otherwise. */
+.dock { position: absolute; left: 80px; right: 80px; bottom: 16px; display: flex; flex-wrap: wrap-reverse; align-items: flex-end; justify-content: center; gap: 12px; pointer-events: none; }
+.dock > * { pointer-events: auto; }
+.status-stack { width: min(640px, 100%); display: flex; flex-direction: column; gap: 8px; }
+.desk-tray { width: 280px; max-height: 60vh; overflow: auto; display: flex; flex-direction: column; gap: 8px; }
+.desk-tray:empty { display: none; }
+
+/* Phone: the scene shrinks to a band up top; everything else stacks in flow below it and scrolls. */
+@media (max-width: 640px) {
+  .stage { display: flex; flex-direction: column; overflow-y: auto; overflow-x: hidden; }
+  .scene-band { position: relative; inset: auto; height: 38vh; flex: none; }
+  .dock {
+    position: static; flex-direction: column; flex-wrap: nowrap; align-items: stretch;
+    padding: 8px 12px 0; gap: 8px; pointer-events: auto;
+  }
+  .status-stack, .desk-tray { width: 100%; max-height: none; overflow: visible; }
+  /* .rail's phone override lives in hud.css, which loads after this file (see main.tsx) — a copy here
+     would lose the cascade to hud.css's desktop .rail rule at the same specificity. */
+}

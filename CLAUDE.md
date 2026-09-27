@@ -49,6 +49,8 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
 - `src/state/store.ts` — Zustand store. Wraps the sim, owns the real-time clock speed, modal state, toasts,
   and persists `game` to localStorage (`persist` version = `SAVE_VERSION`; new `GameState` fields default through
   `src/sim/migrate.ts` `upgradeSave`; bump `SAVE_VERSION` only for shape changes that cannot be defaulted).
+  `clock.ts` is a separate, never-persisted presentation-time store: `t` (the week-long light cycle position),
+  `isNight`, and `logSeenId` (the studio log's read marker).
   `saveFile.ts` owns `SAVE_VERSION`, the saved log length and the save file (`serializeSave`; `parseSave`, strict,
   every refusal a `SaveFileError`; `saveFileName`; `storedSaveFile` for the recovery screen); the store's `loadSave`
   installs a parsed file (refused in a tab that does not own the save), bumps `saveLoads` and writes at once.
@@ -62,14 +64,27 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   holds the one shared engine (`getSound`/`installSound`), and `bridge.ts` `connectSound` (wired in `main.tsx`) makes
   it follow the store: prefs, music, cues (never in a read-only tab, never for a loaded save, via the store's
   `saveLoads`, and never while the window is hidden, via `windowHidden`), and the gestures that unlock it, until the
-  context runs.
-- `src/ui/` — React 19 components. `App.tsx` (shell, clock, hotkeys), `Hud.tsx`, `panels/*` (modals and the desk
-  panel), `scene/` (pixel-art canvas, 192×108 logical pixels: `render.ts` holds the palettes, string-map sprites
-  and `render`, one frame painted from a `Snapshot` with nothing allocated per frame; `season.ts` has `seasonOf(day)`
-  and the window's season layer; `studioArt.ts` the player's studio (`TIER_ART` and `EQUIPMENT_ART` records keyed by
-  id, so a new tier or piece fails `tsc` until it is drawn, plus the volumes, anime poster, trophies and lights);
-  `paint.ts` the shared pixel helpers (`rect`, `paneRect` clipped to the window pane, the pane bounds);
-  `StudioScene.tsx` is the component and its frame loop, reading `studioLook` through `useShallow`),
+  context runs. `Modal` plays `open`/`close`/`tab` itself via `getSound()` (never in a read-only tab); the scene
+  plays `knock` (the editor arriving) and `pop` (money/fans/xp rising). `instance.ts`'s `holdDuck` is the only way
+  UI code ducks the music: a stack of duck-level holds, the deepest wins, released in full once the last one drops
+  (Modal holds 60% for as long as it is open; the results reveal stacks its own 30% under that).
+- `src/ui/` — React 19 components. `App.tsx` (shell, clock, hotkeys), `hud/` (the corner overlays and rail:
+  `TopLeft`, `TopRight`, `Rail`, `StatusCard`, `statusParts`, `DeskTray`), `hooks/` (`useClockLoop`, `useRolledNumber`,
+  `useArrival`, the editor's walk-in delay before a pending card mounts), `panels/*` (modals, including `LogModal`, the
+  desk panel), `scene/` (pixel-art canvas, 320×180: two coordinate spaces meet in `paint.ts` (room space, the old
+  192×108 layout, offset by `OX 64, OY 36` into canvas space by `rect`; `rawRect` for the wall, floor, kitchenette,
+  entrance and door, drawn straight in canvas space) and its `PANE_X/Y/W/H`/`BAR_X` and `paneRect` clipped to the
+  window pane; `render.ts` holds the palettes, string-map sprites and `render`, one frame painted from a `Snapshot`
+  with nothing allocated per frame; `season.ts` has `seasonOf(day)` and the window's season layer; `studioArt.ts` the
+  player's studio (`TIER_ART` and `EQUIPMENT_ART` records keyed by id, so a new tier or piece fails `tsc` until it is
+  drawn, plus the kitchenette, the entrance, the volumes, anime poster, trophies and lights); `actors.ts` the cast as a
+  table of actors (position, target, facing, pose, which axis it walks first) driven by `planActors`/`stepActors`/
+  `settleActors` at `WALK_PX_PER_S`, and `EDITOR_WALK_MS`; `visitor.ts` the editor's reason for visiting, its prop and
+  its greeting; `sceneAnchor.ts` `sceneToCss` mapping scene pixels to the canvas's cover-fit CSS box; `Bubble.tsx`
+  and `Pops.tsx` the DOM speech bubbles and floating money/fans/xp numbers, styled by `scene.css`;
+  `StudioScene.tsx` is the component and its 24 fps frame loop (reading `studioLook` through `useShallow`, lighting
+  from the presentation clock, playing the `knock` and `pop` cues); every render is checked against a hand-measured
+  fillRect baseline (`render.test.ts`, `studioArt.test.ts`) and must stay under 1.5x it),
   `components.tsx` (Bar, Pips, Modal, RankChart), `format.ts` (money/compact/plural formatters), `Icon.tsx`
   (inline SVG icon set), `SaveFileSection.tsx` and `useSaveFile.ts` (export and load, in Settings and on the
   title screen), and
@@ -89,7 +104,8 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   sound engine for `connectSound` or `installSound`) and `fakeCanvas.ts` (a recording 2D context that logs each
   fillRect with its fillStyle, and `sceneSnapshot`, the scene's reference state, for `render` tests).
 - `src/styles/tokens.css` (design tokens, light + dark), `base.css` (primitives), `app.css` (layout and panels),
-  `cards.css` (desk cards; on phones they follow the project card).
+  `cards.css` (desk cards; on phones they follow the project card), `stage.css` (the full-bleed stage layout),
+  `hud.css` (the corner overlays, rail and status card).
 - `src-tauri/` — Tauri 2 desktop shell around the unchanged `dist` build (`tauri.conf.json`: window, CSP, NSIS bundle,
   version from `package.json`; `capabilities/default.json`: window `main`, `core:default` plus
   `core:window:allow-set-fullscreen`, `core:window:allow-destroy`, `dialog:allow-open`, `dialog:allow-save`,
@@ -113,7 +129,8 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   only, and the player restarts the clock.
 - Game-driven moments (random events, anime offers, the year review) are desk cards, never popups: a component that
   returns null when empty, imports its own stylesheet (`src/styles/cards.css`), uses `card flat desk-card`, toasts on
-  arrival and pauses once (the year review only toasts).
+  arrival and pauses once (the year review only toasts), and is placed by `DeskTray`.
+- Menus always pause (the studio log included).
 
 ## UI rules (from the design pass)
 
@@ -122,12 +139,22 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   or sentences.
 - Buttons say what they do ("Submit manuscript", "Wrap up the series"). Errors and empty states say what to do next.
 - Touch targets are at least 44px on coarse pointers (`base.css` handles `.btn`, `.seg button`, `.steps button`,
-  `.toast button` and `.hud-bar.as-button`).
+  `.toast button`, `.rail .btn` and `.badge-hud.as-button`).
 - Colours come from tokens (`var(--accent)` etc.), never raw hex in components. Both themes must work.
 - Charts: one axis, thin marks, direct label on the last point, hover tooltip, a table view alongside.
 - Every result explains itself (the "show the why" pillar). Never add a hidden modifier without a UI hint.
-- On phones (<= 640 px) the desk renders above the studio scene and the HUD is a two-row strip; the Today control
-  must be visible without scrolling in the drawing phase at 375x667 with the getting-started box dismissed.
+- On phones (<= 640 px) the studio scene collapses to a fixed 38vh band above the desk tray (`stage.css`); DOM order,
+  not CSS `order`, drives the stacking, asserted by `src/ui/__tests__/Shell.test.tsx`, and checked by eye at 375x667.
+  Below 700px (`app.css`), the Results and the wizard's title-step modal columns also stack to one column; the
+  Series and Studio modals need 900px to go two-column and stack below that instead — check the real breakpoint in
+  `app.css` before assuming 700px applies to a given modal. The scene's status chip (`.scene-overlay`, `stage.css`)
+  is hidden at 900px and below, since it collides with the date badge and repeats the status card's phase.
+- Display type is Silkscreen (`--font-display` titles, `--font-num` numbers) at 8/16/24/32 px; it draws every letter
+  as a capital, so keep DOM text sentence case and never add `text-transform` or `letter-spacing`. Body copy and
+  button labels stay Nunito 15 px. HUD badges are opaque (`--panel`).
+- `Modal` sizing: `wide` on Results and Series, `narrow` on Offer, Stats, Career, Year, Settings, Trips and the Log,
+  `tabs` on Notebook and Series (a title-bar tab strip), and `quiet` only on the Results modal, which skips the
+  modal's own open/close cue and duck entirely since `ResultsModal` holds its own duck and plays its own beats.
 
 ## Balance touchpoints
 

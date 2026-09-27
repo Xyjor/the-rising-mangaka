@@ -1,13 +1,16 @@
 // @vitest-environment happy-dom
-import { render, screen } from '@testing-library/react'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { fireEvent, render, screen } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { installSound, nullEngine } from '../../audio/instance'
+import { createFakeSound } from '../../test/fakeSound'
+import type { FakeSound } from '../../test/fakeSound'
 import '../../test/dom'
 import { createGame, startProject, submitProject, tickMany } from '../../sim'
 import { DRAFT, drawUntilReady } from '../../test/fixtures'
 import { useStore } from '../../state/store'
 import { StatsModal } from '../panels/StatsModal'
-import { DeskPanel } from '../panels/DeskPanel'
-import { Metric, Reward, WarningPips } from '../components'
+import { StatusCard } from '../hud/StatusCard'
+import { Metric, Modal, Reward, WarningPips } from '../components'
 
 beforeEach(() => {
   useStore.setState({ game: createGame('Rin', 1), readOnly: false })
@@ -35,14 +38,14 @@ describe('StatsModal (characterisation)', () => {
   })
 })
 
-describe('DeskPanel (characterisation)', () => {
+describe('StatusCard (characterisation)', () => {
   it('drawing: shows Art quality and Story quality heads with matching progressbars', () => {
     useStore.setState({
       game: tickMany(startProject(createGame('Rin', 1), DRAFT), 2),
       tutorialStep: -1,
       readOnly: false,
     })
-    render(<DeskPanel />)
+    render(<StatusCard />)
 
     expect(screen.getByText('Art quality')).toBeTruthy()
     expect(screen.getByText('Story quality')).toBeTruthy()
@@ -64,7 +67,7 @@ describe('DeskPanel (characterisation)', () => {
     // display clamps rather than trusting the sign of resultsDay - day.
     game = { ...game, project: { ...game.project!, resultsDay: game.day - 1 } }
     useStore.setState({ game, tutorialStep: -1, readOnly: false })
-    render(<DeskPanel />)
+    render(<StatusCard />)
 
     const bar = screen.getByRole('progressbar', { name: 'Waiting for results' })
     const head = bar.closest('.metric')!.querySelector('b.num')!
@@ -114,5 +117,90 @@ describe('WarningPips', () => {
     expect(pips).toHaveLength(3)
     expect([...pips].filter((i) => i.classList.contains('on'))).toHaveLength(2)
     expect(container.querySelector('.warnings')?.getAttribute('aria-label')).toBe('2 of 3 warnings')
+  })
+})
+
+describe('Modal', () => {
+  let sound: FakeSound
+  beforeEach(() => {
+    sound = createFakeSound()
+    installSound(sound)
+  })
+  afterEach(() => installSound(nullEngine))
+
+  const TABS = [{ id: 'a', label: 'A' }, { id: 'b', label: 'B', badge: 3 }]
+  const tabbed = (onTab: (id: string) => void) => (
+    <Modal title="T" onClose={() => {}} tabs={TABS} tab="a" onTab={onTab}><p>body</p></Modal>
+  )
+
+  it('renders a named tablist with the selected tab and a tabpanel body', () => {
+    const { container } = render(tabbed(() => {}))
+    const list = screen.getByRole('tablist', { name: 'T sections' })
+    const a = screen.getByRole('tab', { name: 'A' })
+    const b = screen.getByRole('tab', { name: /^B/ })
+    expect(list.contains(a) && list.contains(b)).toBe(true)
+    expect(b.querySelector('.tab-badge')?.textContent).toBe('3')
+    expect(a.getAttribute('aria-selected')).toBe('true')
+    expect(b.getAttribute('aria-selected')).toBe('false')
+    expect([a.tabIndex, b.tabIndex]).toEqual([0, -1])
+    const body = container.querySelector('.modal-body')!
+    expect(body.getAttribute('role')).toBe('tabpanel')
+    expect(body.getAttribute('aria-labelledby')).toBe(a.id)
+  })
+
+  it('clicking another tab calls onTab once and plays the tab cue', () => {
+    const onTab = vi.fn()
+    render(tabbed(onTab))
+    fireEvent.click(screen.getByRole('tab', { name: /^B/ }))
+    expect(onTab.mock.calls).toEqual([['b']])
+    expect(sound.plays.at(-1)).toBe('tab')
+  })
+
+  it('clicking the active tab does nothing', () => {
+    const onTab = vi.fn()
+    render(tabbed(onTab))
+    fireEvent.click(screen.getByRole('tab', { name: 'A' }))
+    expect(onTab).not.toHaveBeenCalled()
+    expect(sound.plays).toEqual(['open'])
+  })
+
+  it('ArrowRight moves to the next tab and focuses it', () => {
+    const onTab = vi.fn()
+    render(tabbed(onTab))
+    const b = screen.getByRole('tab', { name: /^B/ })
+    fireEvent.keyDown(screen.getByRole('tab', { name: 'A' }), { key: 'ArrowRight' })
+    expect(onTab.mock.calls).toEqual([['b']])
+    expect(document.activeElement).toBe(b)
+  })
+
+  it('a read-only tab switches silently', () => {
+    useStore.setState({ readOnly: true })
+    const onTab = vi.fn()
+    render(tabbed(onTab))
+    fireEvent.click(screen.getByRole('tab', { name: /^B/ }))
+    expect(onTab.mock.calls).toEqual([['b']])
+    expect(sound.plays).not.toContain('tab')
+    expect(sound.plays).not.toContain('open')
+  })
+
+  it('a plain modal plays open and ducks to 0.6, then close and restores on unmount', () => {
+    const { unmount } = render(<Modal title="P"><p>x</p></Modal>)
+    expect(sound.plays).toEqual(['open'])
+    expect(sound.ducks).toEqual([0.6])
+    unmount()
+    expect(sound.plays).toEqual(['open', 'close'])
+    expect(sound.ducks).toEqual([0.6, 1])
+  })
+
+  it('a quiet modal neither plays nor ducks', () => {
+    const { unmount } = render(<Modal title="Q" quiet><p>x</p></Modal>)
+    unmount()
+    expect(sound.plays).toEqual([])
+    expect(sound.ducks).toEqual([])
+  })
+
+  it('wide adds the wide class', () => {
+    const { container } = render(<Modal title="W" wide><p>x</p></Modal>)
+    expect(container.ownerDocument.querySelector('dialog.modal')!.classList.contains('wide')).toBe(true)
   })
 })

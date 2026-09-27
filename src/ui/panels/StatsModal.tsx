@@ -40,7 +40,7 @@ export function StatsModal() {
           ))}
         </section>
 
-        <div className="rewards">
+        <div className="rewards stats-tiles">
           <Reward value={money(p.money)} label="Money" />
           <Reward value={compact(p.fans)} label="Fans" />
           <Reward value={p.maxStamina} label="Max stamina" />

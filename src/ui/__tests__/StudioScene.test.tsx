@@ -5,18 +5,23 @@ import '../../test/dom'
 import { stubReducedMotion } from '../../test/dom'
 import { fakeContext } from '../../test/fakeCanvas'
 import type { FakeContext } from '../../test/fakeCanvas'
+import { installSound, nullEngine } from '../../audio/instance'
 import { createGame } from '../../sim'
+import { createFakeSound } from '../../test/fakeSound'
+import type { FakeSound } from '../../test/fakeSound'
+import { withPendingResult } from '../../test/fixtures'
 import type { GameState } from '../../sim'
+import { useClock } from '../../state/clock'
 import { useStore } from '../../state/store'
 import { StudioScene } from '../scene/StudioScene'
 
 const PETAL = '#f7b6c8'
 const SNOW = '#f4f8ff'
 /** One fill from each piece of studio art (studioArt.ts): the noren, the coffee machine, a trophy, the arm lamp. */
-const NOREN = { style: '#2e3a78', x: 170, y: 22, w: 13, h: 13 }
-const COFFEE = { style: '#3b3b45', x: 119, y: 37, w: 7, h: 7 }
-const TROPHY = { style: '#f5b700', x: 130, y: 38, w: 3, h: 3 }
-const LAMP_SHADE = { style: '#e8e4d8', x: 93, y: 44, w: 6, h: 2 }
+const NOREN = { style: '#2e3a78', x: 260, y: 58, w: 13, h: 13 }
+const COFFEE = { style: '#3b3b45', x: 183, y: 73, w: 7, h: 7 }
+const TROPHY = { style: '#f5b700', x: 194, y: 74, w: 3, h: 3 }
+const LAMP_SHADE = { style: '#e8e4d8', x: 157, y: 80, w: 6, h: 2 }
 
 let fake: FakeContext
 let restoreMotion: () => void
@@ -29,6 +34,7 @@ beforeEach(() => {
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(fake.ctx as never)
   game = createGame('Rin', 1)
   useStore.setState({ game, speed: 0, modal: 'none', toasts: [], tutorialStep: 0, readOnly: false })
+  useClock.setState({ t: 0.3 })
 })
 
 afterEach(() => {
@@ -66,8 +72,6 @@ describe('StudioScene', () => {
   })
 
   it('reads the studio field by field: a new game object with the same studio does not repaint', () => {
-    // a modal covers the scene, so the frame loop sleeps and only a snapshot change can repaint
-    useStore.setState({ modal: 'studio' })
     render(<StudioScene running={false} />)
     fake.log.length = 0
 
@@ -76,5 +80,62 @@ describe('StudioScene', () => {
 
     act(() => useStore.setState({ game: { ...game, studio: { tier: 'loft', owned: [] } } }))
     expect(fake.log).toContainEqual(NOREN)
+  })
+
+  it('keeps the frame loop alive while a modal covers the scene', () => {
+    const raf = vi.spyOn(window, 'requestAnimationFrame')
+    useStore.setState({ modal: 'studio' })
+    render(<StudioScene running={false} />)
+
+    expect(raf).toHaveBeenCalled()
+
+    fake.log.length = 0
+    act(() => useStore.setState({ game: { ...game, studio: { tier: 'loft', owned: [] } } }))
+    expect(fake.log).toContainEqual(NOREN)
+  })
+
+  describe('the editor visits', () => {
+    let sound: FakeSound
+    const HAIR = { style: '#2b2140', x: 207, y: 102, w: 1, h: 1 }
+    beforeEach(() => { sound = createFakeSound(); installSound(sound) })
+    afterEach(() => { installSound(nullEngine) })
+
+    it('knocks once when the editor arrives with the results, and paints them at the spot', () => {
+      render(<StudioScene running={false} />)
+      fake.log.length = 0
+      const pending = withPendingResult()
+      act(() => useStore.setState({ game: pending }))
+      expect(sound.plays).toEqual(['knock'])
+      expect(fake.log).toContainEqual(HAIR)
+      act(() => useStore.setState({ game: { ...pending, day: pending.day } }))
+      expect(sound.plays).toEqual(['knock'])
+    })
+
+    it('never knocks in a read-only tab', () => {
+      useStore.setState({ readOnly: true })
+      render(<StudioScene running={false} />)
+      act(() => useStore.setState({ game: withPendingResult() }))
+      expect(sound.plays).toEqual([])
+    })
+
+    it('never knocks while the window is hidden', () => {
+      useStore.setState({ windowHidden: true })
+      render(<StudioScene running={false} />)
+      act(() => useStore.setState({ game: withPendingResult() }))
+      expect(sound.plays).toEqual([])
+      useStore.setState({ windowHidden: false })
+    })
+
+    it('the editor leaves once the result is dismissed', () => {
+      render(<StudioScene running={false} />)
+      const pending = withPendingResult()
+      act(() => useStore.setState({ game: pending }))
+      fake.log.length = 0
+      act(() => useStore.setState({
+        game: { ...pending, pendingResult: null, pendingOffer: null, event: null, animeOffer: null, reviewUnread: null },
+      }))
+      expect(fake.log.length).toBeGreaterThan(0)
+      expect(fake.log).not.toContainEqual(HAIR)
+    })
   })
 })

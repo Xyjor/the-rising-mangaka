@@ -78,6 +78,14 @@ const PAIRS: Pair[] = [
   ...FAMILIES.map((f) => ({ fg: `--${f}-text`, bg: `--${f}-soft`, label: `${f}-text on ${f}-soft (chip)` })),
   ...[0, 1, 2, 3, 4].map((r) => ({ fg: `--rating-${r}-text`, bg: '--paper', label: `rating-${r}-text on paper` })),
   ...[1, 2, 3].map((r) => ({ fg: '#16161a', bg: `--rating-${r}`, label: `#16161a on rating-${r} (notebook cell)` })),
+  { fg: '--ink', bg: '--panel', label: 'ink on panel' },
+  { fg: '--ink-2', bg: '--panel', label: 'ink-2 on panel' },
+  { fg: '--ink-3', bg: '--panel', label: 'ink-3 on panel' },
+  ...FAMILIES.map((f) => ({ fg: `--${f}-text`, bg: '--panel', label: `${f}-text on panel` })),
+  { fg: '--gold-text', bg: '--paper', label: 'gold-text on paper' },
+  { fg: '--gold-text', bg: '--gold-soft', label: 'gold-text on gold-soft' },
+  { fg: '--gold-text', bg: '--panel', label: 'gold-text on panel' },
+  { fg: '--paper', bg: '--ink', label: 'paper on ink' },
 ]
 
 let failures = 0

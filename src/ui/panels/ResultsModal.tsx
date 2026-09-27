@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
-import { getSound } from '../../audio/instance'
+import { getSound, holdDuck } from '../../audio/instance'
 import {
   RATING_LABEL, SERIAL_OFFER_MIN_RANK, SERIAL_OFFER_MIN_SCORE, audienceById, genreById,
   magazineById, rankTier, themeById,
@@ -66,12 +66,11 @@ export function ResultsModal() {
   // The music ducks under the reveal. The drumroll, if still rolling, stops with the modal.
   const drumroll = useRef<(() => void) | null>(null)
   useEffect(() => {
-    const sound = getSound()
-    sound.duck(0.3)
+    const release = holdDuck(0.3)
     return () => {
       drumroll.current?.()
       drumroll.current = null
-      sound.duck(1)
+      release()
     }
   }, [])
 
@@ -124,6 +123,8 @@ export function ResultsModal() {
 
   return (
     <Modal
+      wide
+      quiet
       title="Reader poll results"
       sub={`${r.title}, in ${mag.name}`}
       describedBy="result-summary"
@@ -137,99 +138,103 @@ export function ResultsModal() {
         </>
       }
     >
-      <div className="col" style={{ gap: 16 }} ref={root}>
+      <div className="results-grid" ref={root}>
         <p id="result-summary" className="sr-only">
           {headline} {r.title} ranked number {r.rank} of {r.entrants} in {mag.name}, score {r.score} out of 100.
           {' '}Paid {money(r.rewards.money)}, {compact(r.rewards.fans)} new fans, {r.rewards.xp} XP.
         </p>
-        <div className="result-hero" data-stamped={String(stamped)}>
-          <div className="rank-badge" data-tier={stamped ? medal : undefined} aria-hidden="true">
-            {stamped ? <span><small>#</small>{r.rank}</span> : <span>?</span>}
+        <div className="results-side">
+          <div className="result-hero" data-stamped={String(stamped)}>
+            <div className="rank-badge" data-tier={stamped ? medal : undefined} aria-hidden="true">
+              {stamped ? <span><small>#</small>{r.rank}</span> : <span>?</span>}
+            </div>
+            <div className="col" style={{ gap: 4 }}>
+              <div className="hero-head reveal-swap">
+                <h3 className="display" style={stamped ? HIDDEN : undefined} aria-hidden={stamped || undefined}>
+                  Counting the votes
+                </h3>
+                <h3 className="display" style={stamped ? undefined : HIDDEN} aria-hidden={!stamped || undefined}>
+                  {headline}
+                </h3>
+              </div>
+              <div className="hero-line reveal-swap muted">
+                <div aria-hidden="true" style={stamped ? HIDDEN : undefined}>
+                  Readers scored it <b className="num">{countUp(r.score, elapsed, plan.scoreStart, plan.scoreDur)}</b> out of 100.
+                </div>
+                <div style={spoiler} aria-hidden={!stamped || undefined}>
+                  Ranked <b>#{r.rank}</b> of {r.entrants} works, with an overall score of <b className="num">{r.score}</b> out of 100.
+                </div>
+              </div>
+              <div className="tag-row" style={{ marginTop: 4 }}>
+                <span className="chip">{genreById(r.genre).name}</span>
+                <span className="chip">{themeById(r.theme).name}</span>
+                <span className="chip">{audienceById(r.audience).name}</span>
+              </div>
+            </div>
           </div>
-          <div className="col" style={{ gap: 4 }}>
-            <div className="hero-head reveal-swap">
-              <h3 className="display" style={{ fontSize: 30, ...(stamped ? HIDDEN : null) }} aria-hidden={stamped || undefined}>
-                Counting the votes
-              </h3>
-              <h3 className="display" style={{ fontSize: 30, ...(stamped ? null : HIDDEN) }} aria-hidden={!stamped || undefined}>
-                {headline}
-              </h3>
-            </div>
-            <div className="hero-line reveal-swap muted">
-              <div aria-hidden="true" style={stamped ? HIDDEN : undefined}>
-                Readers scored it <b className="num">{countUp(r.score, elapsed, plan.scoreStart, plan.scoreDur)}</b> out of 100.
-              </div>
-              <div style={spoiler} aria-hidden={!stamped || undefined}>
-                Ranked <b>#{r.rank}</b> of {r.entrants} works, with an overall score of <b className="num">{r.score}</b> out of 100.
-              </div>
-            </div>
-            <div className="tag-row" style={{ marginTop: 4 }}>
-              <span className="chip">{genreById(r.genre).name}</span>
-              <span className="chip">{themeById(r.theme).name}</span>
-              <span className="chip">{audienceById(r.audience).name}</span>
-            </div>
+          {rival && <p className="small" style={spoiler}>{rival}</p>}
+
+          <div className="speech pixel-bubble">
+            {r.editorComment}
+            <div className="tiny muted" style={{ marginTop: 6 }}>{mag.editor}, editor at {mag.name}</div>
           </div>
         </div>
-        {rival && <p className="small" style={spoiler}>{rival}</p>}
 
-        <div className="speech">
-          {r.editorComment}
-          <div className="tiny muted" style={{ marginTop: 6 }}>{mag.editor}, editor at {mag.name}</div>
-        </div>
-
-        <section aria-label="Score breakdown" className="breakdown">
-          <div className="lbl">Why this score</div>
-          {ITEMS.map((it, i) => {
-            const value = countUp(r.breakdown[it.key], elapsed, plan.barStart[i], plan.barDur)
-            return (
-              <div className="item" key={it.key}>
-                <span className="l">{it.label}<small>weight {mag.taste[it.key]}%</small></span>
-                <Bar value={value} ariaValue={r.breakdown[it.key]} tone={it.tone} thick label={it.label} />
-                <span className="v num" aria-hidden="true">{value}</span>
+        <div className="results-main">
+          <section aria-label="Score breakdown" className="breakdown">
+            <div className="lbl">Why this score</div>
+            {ITEMS.map((it, i) => {
+              const value = countUp(r.breakdown[it.key], elapsed, plan.barStart[i], plan.barDur)
+              return (
+                <div className="item" key={it.key}>
+                  <span className="l">{it.label}<small>weight {mag.taste[it.key]}%</small></span>
+                  <Bar value={value} ariaValue={r.breakdown[it.key]} tone={it.tone} thick label={it.label} />
+                  <span className="v num" aria-hidden="true">{value}</span>
+                </div>
+              )
+            })}
+            {(r.penalties.magazineMismatch > 0 || r.penalties.staleness > 0) && (
+              <div className="tiny col" style={{ color: 'var(--accent)', fontWeight: 800, gap: 4 }}>
+                {r.penalties.magazineMismatch > 0 && (
+                  <p>
+                    Audience fit −{r.penalties.magazineMismatch}: {mag.name} is read by {audienceById(mag.audience).name}, this manga is for {audienceById(r.audience).name}.
+                  </p>
+                )}
+                {r.penalties.staleness > 0 && (
+                  <p>
+                    Freshness −{r.penalties.staleness}: repeated pairing, you used {genreById(r.genre).name} and {themeById(r.theme).name} recently.
+                  </p>
+                )}
               </div>
-            )
-          })}
-          {(r.penalties.magazineMismatch > 0 || r.penalties.staleness > 0) && (
-            <div className="tiny col" style={{ color: 'var(--accent)', fontWeight: 800, gap: 4 }}>
-              {r.penalties.magazineMismatch > 0 && (
-                <p>
-                  Audience fit −{r.penalties.magazineMismatch}: {mag.name} is read by {audienceById(mag.audience).name}, this manga is for {audienceById(r.audience).name}.
-                </p>
-              )}
-              {r.penalties.staleness > 0 && (
-                <p>
-                  Freshness −{r.penalties.staleness}: repeated pairing, you used {genreById(r.genre).name} and {themeById(r.theme).name} recently.
-                </p>
-              )}
+            )}
+            <div className="row wrap small muted" style={{ gap: 16 }}>
+              <span className="row">Freshness pairing <Pips rating={r.genreThemeRating} /> {RATING_LABEL[r.genreThemeRating]}</span>
+              <span className="row">Audience pairing <Pips rating={r.themeAudienceRating} /> {RATING_LABEL[r.themeAudienceRating]}</span>
             </div>
+          </section>
+
+          <section className="rewards" aria-label="Rewards">
+            {TILES.map((t, i) => (
+              <Reward
+                key={t.label}
+                label={t.label}
+                landed={elapsed >= plan.rewardStart[i]}
+                value={<span aria-hidden="true">{t.text(countUp(t.value(r), elapsed, plan.rewardStart[i], tileDur))}</span>}
+              />
+            ))}
+          </section>
+          <p className="tiny muted" style={spoiler}>{payWhy(r)}</p>
+
+          {pendingOffer ? (
+            <p className="small ok-text" style={spoiler}>{mag.name} wants to serialise this. The offer is next.</p>
+          ) : serial ? (
+            <p className="tiny muted" style={spoiler}>No new offer while "{serial.title}" is running.</p>
+          ) : (
+            <p className="tiny muted" style={spoiler}>
+              Rank {r.rank} of {r.entrants}, score {r.score}: no serial offer this time. A top-{SERIAL_OFFER_MIN_RANK} finish, or a score of {SERIAL_OFFER_MIN_SCORE} or more, earns one.
+            </p>
           )}
-          <div className="row wrap small muted" style={{ gap: 16 }}>
-            <span className="row">Freshness pairing <Pips rating={r.genreThemeRating} /> {RATING_LABEL[r.genreThemeRating]}</span>
-            <span className="row">Audience pairing <Pips rating={r.themeAudienceRating} /> {RATING_LABEL[r.themeAudienceRating]}</span>
-          </div>
-        </section>
-
-        <section className="rewards" aria-label="Rewards">
-          {TILES.map((t, i) => (
-            <Reward
-              key={t.label}
-              label={t.label}
-              landed={elapsed >= plan.rewardStart[i]}
-              value={<span aria-hidden="true">{t.text(countUp(t.value(r), elapsed, plan.rewardStart[i], tileDur))}</span>}
-            />
-          ))}
-        </section>
-        <p className="tiny muted" style={spoiler}>{payWhy(r)}</p>
-
-        {pendingOffer ? (
-          <p className="small ok-text" style={spoiler}>{mag.name} wants to serialise this. The offer is next.</p>
-        ) : serial ? (
-          <p className="tiny muted" style={spoiler}>No new offer while "{serial.title}" is running.</p>
-        ) : (
-          <p className="tiny muted" style={spoiler}>
-            Rank {r.rank} of {r.entrants}, score {r.score}: no serial offer this time. A top-{SERIAL_OFFER_MIN_RANK} finish, or a score of {SERIAL_OFFER_MIN_SCORE} or more, earns one.
-          </p>
-        )}
+        </div>
       </div>
     </Modal>
   )

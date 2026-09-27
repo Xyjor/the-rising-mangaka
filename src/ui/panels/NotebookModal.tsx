@@ -8,19 +8,20 @@ const LETTER = ['B', 'M', 'G', 'G+', 'P']
 export function NotebookModal() {
   const nb = useStore((s) => s.game!.notebook)
   const closeModal = useStore((s) => s.closeModal)
-  const [tab, setTab] = useState<'gt' | 'ta'>('gt')
+  const [tab, setTab] = useState('genre-theme')
 
   const gtCount = Object.keys(nb.genreTheme).length
   const taCount = Object.keys(nb.themeAudience).length
 
   return (
-    <Modal title="Notebook" sub="Everything you have learned about what readers like." onClose={closeModal}>
+    <Modal title="Notebook" sub="Everything you have learned about what readers like." onClose={closeModal}
+      tabs={[
+        { id: 'genre-theme', label: `Genre × Theme (${gtCount}/${GENRES.length * THEMES.length})` },
+        { id: 'theme-audience', label: `Theme × Audience (${taCount}/${THEMES.length * AUDIENCES.length})` },
+      ]}
+      tab={tab} onTab={setTab}>
       <div className="col" style={{ gap: 14 }}>
         <div className="row between wrap">
-          <div className="seg">
-            <button aria-pressed={tab === 'gt'} onClick={() => setTab('gt')}>Genre × Theme <span className="faint">({gtCount}/{GENRES.length * THEMES.length})</span></button>
-            <button aria-pressed={tab === 'ta'} onClick={() => setTab('ta')}>Theme × Audience <span className="faint">({taCount}/{THEMES.length * AUDIENCES.length})</span></button>
-          </div>
           <div className="legend">
             {[0, 1, 2, 3, 4].map((r) => (
               <span key={r}><i style={{ background: `var(--rating-${r})` }} />{LETTER[r]} {RATING_LABEL[r]}</span>
@@ -29,18 +30,18 @@ export function NotebookModal() {
           </div>
         </div>
 
-        {tab === 'gt' ? (
-          <div className="nb-grid" style={{ gridTemplateColumns: `110px repeat(${THEMES.length}, minmax(34px, 1fr))` }}>
+        {tab === 'genre-theme' ? (
+          <div className="nb-grid" style={{ gridTemplateColumns: `96px repeat(${THEMES.length}, 24px)` }}>
             <div />
-            {THEMES.map((t) => <div key={t.id} className="hdr" style={{ textAlign: 'center' }}>{t.name}</div>)}
+            {THEMES.map((t) => <div key={t.id} className="hdr col">{t.name}</div>)}
             {GENRES.map((g) => (
               <Row key={g.id} label={g.name} cells={THEMES.map((t) => ({ key: t.id, r: nb.genreTheme[genreThemeKey(g.id, t.id)], title: `${g.name} × ${t.name}` }))} />
             ))}
           </div>
         ) : (
-          <div className="nb-grid" style={{ gridTemplateColumns: `110px repeat(${AUDIENCES.length}, minmax(60px, 1fr))` }}>
+          <div className="nb-grid" style={{ gridTemplateColumns: `96px repeat(${AUDIENCES.length}, 24px)` }}>
             <div />
-            {AUDIENCES.map((a) => <div key={a.id} className="hdr" style={{ textAlign: 'center' }}>{a.name}</div>)}
+            {AUDIENCES.map((a) => <div key={a.id} className="hdr col">{a.name}</div>)}
             {THEMES.map((t) => (
               <Row key={t.id} label={t.name} cells={AUDIENCES.map((a) => ({ key: a.id, r: nb.themeAudience[themeAudienceKey(t.id, a.id)], title: `${t.name} × ${a.name}` }))} />
             ))}

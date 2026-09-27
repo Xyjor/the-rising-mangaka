@@ -1,14 +1,19 @@
 import { useEffect, useLayoutEffect } from 'react'
 import { getPhase } from '../sim'
 import { SPEED_MS, useStore } from '../state/store'
-import { EventLog } from './EventLog'
-import { Hud } from './Hud'
+import { useArrival } from './hooks/useArrival'
+import { useClockLoop, useClockSync } from './hooks/useClockLoop'
+import { DeskTray } from './hud/DeskTray'
+import { LogButton, Rail, SettingsButton } from './hud/Rail'
+import { StatusCard } from './hud/StatusCard'
+import { TopLeft } from './hud/TopLeft'
+import { TopRight } from './hud/TopRight'
 import { TabBanner } from './TabBanner'
 import { Toasts } from './Toasts'
 import { TitleScreen } from './TitleScreen'
 import { CareerModal } from './panels/CareerModal'
-import { DeskPanel } from './panels/DeskPanel'
 import { HistoryModal } from './panels/HistoryModal'
+import { LogModal } from './panels/LogModal'
 import { NewMangaWizard } from './panels/NewMangaWizard'
 import { NotebookModal } from './panels/NotebookModal'
 import { OfferModal } from './panels/OfferModal'
@@ -47,6 +52,7 @@ function useGameClock() {
     const id = window.setInterval(tick, SPEED_MS[speed])
     return () => window.clearInterval(id)
   }, [running, speed, tick])
+  useClockLoop(running, speed)
   return running
 }
 
@@ -74,6 +80,7 @@ function useHotkeys() {
         case 'h': st.openModal('history'); break
         case 'a': st.openModal('staff'); break
         case 't': st.openModal('trips'); break
+        case 'l': st.openModal('log'); break
         case 'w': if (!trip && phase === 'drawing') st.setActivity('work'); break
         case 'r': if (canPickActivity) st.setActivity('rest'); break
         case 'j': if (canPickActivity) st.setActivity('job'); break
@@ -86,6 +93,7 @@ function useHotkeys() {
 
 export function App() {
   useTheme()
+  useClockSync()
   const hasGame = useStore((s) => !!s.game)
   const modal = useStore((s) => s.modal)
   const hasResult = useStore((s) => !!s.game?.pendingResult)
@@ -93,6 +101,8 @@ export function App() {
   const phase = useStore((s) => (s.game ? getPhase(s.game) : 'idle'))
   const trip = useStore((s) => !!s.game?.trip)
   const running = useGameClock()
+  // the results and the offer open once the editor has walked in with them (the clock is already paused)
+  const arrived = useArrival(hasResult || hasOffer)
   useHotkeys()
 
   if (!hasGame) return <TitleScreen />
@@ -101,17 +111,23 @@ export function App() {
   return (
     <div className="app" data-running={running}>
       <TabBanner />
-      <Hud />
-      <div className="main">
-        <div className="studio">
+      <div className="stage">
+        <div className="scene-band">
           <StudioScene running={running} />
+          <TopLeft />
+          <TopRight />
+          <LogButton />
+          <SettingsButton />
         </div>
-        <DeskPanel />
+        <div className="dock">
+          <StatusCard />
+          <DeskTray />
+        </div>
+        <Rail />
       </div>
-      <EventLog />
       <Toasts />
-      {hasResult && <ResultsModal />}
-      {!hasResult && hasOffer && <OfferModal />}
+      {arrived && hasResult && <ResultsModal />}
+      {arrived && !hasResult && hasOffer && <OfferModal />}
       {free && modal === 'wizard' && phase === 'idle' && !trip && <NewMangaWizard />}
       {free && modal === 'submit' && phase === 'ready' && <SubmitModal />}
       {free && modal === 'notebook' && <NotebookModal />}
@@ -124,6 +140,7 @@ export function App() {
       {free && modal === 'career' && <CareerModal />}
       {free && modal === 'studio' && <StudioModal />}
       {free && modal === 'year' && <YearModal />}
+      {free && modal === 'log' && <LogModal />}
     </div>
   )
 }

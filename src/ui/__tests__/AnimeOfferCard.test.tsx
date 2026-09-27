@@ -7,7 +7,7 @@ import type { GameState } from '../../sim'
 import { useStore } from '../../state/store'
 import { KIDS_OFFER } from '../../test/fixtures'
 import { AnimeOfferCard } from '../AnimeOfferCard'
-import { DeskPanel } from '../panels/DeskPanel'
+import { DeskTray } from '../hud/DeskTray'
 
 const TITLE = 'Two studios want to animate "Magic Club"'
 
@@ -88,9 +88,9 @@ describe('AnimeOfferCard', () => {
     expect(screen.getByText('Answer today. Studios ask once per series.')).toBeTruthy()
   })
 
-  it('sits on the desk panel', () => {
+  it('sits in the desk tray', () => {
     useStore.setState({ game: offered() })
-    render(<DeskPanel />)
+    render(<DeskTray />)
     expect(screen.getByRole('region', { name: TITLE })).toBeTruthy()
   })
 })

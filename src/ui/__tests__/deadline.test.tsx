@@ -6,7 +6,7 @@ import { acceptOffer, createGame } from '../../sim'
 import type { GameState, MagazineId } from '../../sim'
 import { withStats } from '../../test/fixtures'
 import { useStore } from '../../state/store'
-import { DeskPanel } from '../panels/DeskPanel'
+import { StatusCard } from '../hud/StatusCard'
 import { OfferModal } from '../panels/OfferModal'
 import { SeriesModal } from '../panels/SeriesModal'
 
@@ -40,27 +40,27 @@ describe('desk: the serial chapter deadline', () => {
   it('says when the chapter is due and whether the studio is on track', () => {
     // 4 pages left / 1.24 = 3.2, so 4 working days; 4 x 1.25 = 5 is not more than 5 days left
     useStore.setState({ game: chapterDue(5) })
-    render(<DeskPanel />)
+    render(<StatusCard />)
     expect(screen.getByText('Chapter 3 due in 5 days. About 4 working days left: on track.')).toBeTruthy()
   })
 
   it('calls it tight when rest days could make the chapter miss', () => {
     // 4 x 1.25 = 5 is more than 4 days left
     useStore.setState({ game: chapterDue(4) })
-    render(<DeskPanel />)
+    render(<StatusCard />)
     expect(screen.getByText('Chapter 3 due in 4 days. About 4 working days left: tight, rest days could make you miss it.'))
       .toBeTruthy()
   })
 
   it('warns when the chapter will miss its issue at this pace, and counts one day in the singular', () => {
     useStore.setState({ game: chapterDue(3) })
-    const { unmount } = render(<DeskPanel />)
+    const { unmount } = render(<StatusCard />)
     expect(screen.getByText('Chapter 3 due in 3 days. About 4 working days left: at this pace you will miss the issue.'))
       .toBeTruthy()
     unmount()
     // 1 page left / 1.24 = 0.8, so 1 working day; 1 x 1.25 = 1.25 is more than 1 day left, so tight
     useStore.setState({ game: chapterDue(1, 15) })
-    render(<DeskPanel />)
+    render(<StatusCard />)
     expect(screen.getByText('Chapter 3 due in 1 day. About 1 working day left: tight, rest days could make you miss it.'))
       .toBeTruthy()
   })

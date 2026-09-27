@@ -8,6 +8,7 @@ import { useStore } from '../../state/store'
 import { Icon } from '../Icon'
 import { Metric, Modal, Pips, RatingText } from '../components'
 import { money } from '../format'
+import { MAG_TONE } from '../looks'
 import { beatLabel, comboLabel, firstName, likelyLine, offerLabel, rivalWord } from '../labels'
 
 export function SubmitModal() {
@@ -64,10 +65,12 @@ export function SubmitModal() {
             const est = previews[i]
             return (
               <button key={m.id} className="mag" aria-pressed={choice === m.id} onClick={() => setChoice(m.id)}>
-                <span className="name">{m.name}</span>
-                <span className="mag-chips">
-                  <span className="chip">{audienceById(m.audience).name}</span>
-                  {est.beatRival !== null && <span className="chip accent">Rival: {game.rival.name}</span>}
+                <span className="mag-cover" data-tone={MAG_TONE[m.id]}>
+                  <span className="name">{m.name}</span>
+                  <span className="mag-chips">
+                    <span className="chip">{audienceById(m.audience).name}</span>
+                    {est.beatRival !== null && <span className="chip accent">Rival: {game.rival.name}</span>}
+                  </span>
                 </span>
                 <span className="meta">
                   <span>{money(m.pageRate)} a page</span>

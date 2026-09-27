@@ -6,7 +6,7 @@ import { acceptOffer, createGame, startProject } from '../../sim'
 import { DRAFT, drawUntilReady, withPendingResult } from '../../test/fixtures'
 import { useStore } from '../../state/store'
 import { focusHint, weightSpan } from '../labels'
-import { DeskPanel } from '../panels/DeskPanel'
+import { StatusCard } from '../hud/StatusCard'
 import { NewMangaWizard } from '../panels/NewMangaWizard'
 import { ResultsModal } from '../panels/ResultsModal'
 import { StatsModal } from '../panels/StatsModal'
@@ -58,13 +58,13 @@ describe('taste copy in the panels', () => {
 
   it('desk: the focus hint names the magazines, or the serial\'s magazine while one runs', () => {
     useStore.setState({ game: startProject(createGame('Rin', 1), DRAFT) })
-    const { unmount } = render(<DeskPanel />)
+    const { unmount } = render(<StatusCard />)
     expect(screen.getByText(focusHint(null))).toBeTruthy()
     unmount()
 
     const offer = { ...DRAFT, magazineId: 'monthly-petal', audience: 'young-adults' } as const
     useStore.setState({ game: acceptOffer({ ...createGame('Rin', 1), pendingOffer: offer }) })
-    render(<DeskPanel />)
+    render(<StatusCard />)
     expect(screen.getByText('Story focus suits Monthly Petal (art 15%, story 35%), where your serial runs.')).toBeTruthy()
   })
 

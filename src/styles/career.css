@@ -2,20 +2,35 @@
 
 .next-goal { display: flex; gap: 10px; align-items: center; padding: 10px 12px; }
 
-.career-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.career-list { list-style: none; margin: 0; padding: 0 0 0 16px; display: flex; flex-direction: column; gap: 8px; }
 
 .career-row {
   display: grid;
   grid-template-columns: 28px 1fr auto;
   gap: 10px;
   align-items: center;
+  position: relative;
   padding: 8px 10px;
-  border-radius: var(--radius-m);
-  border: 2px solid var(--line);
+  border-radius: var(--radius-s);
+  border: 2px solid var(--line-strong);
+  background: var(--panel);
 }
 .career-row.next { border-color: var(--gold); background: var(--gold-soft); }
+/* The goal arrow: a gold pixel triangle that blinks beside the next milestone. */
+.career-row.next::before {
+  content: ''; position: absolute; left: -14px; top: 50%; width: 8px; height: 12px; margin-top: -6px;
+  background: var(--gold); clip-path: polygon(0 0, 100% 50%, 0 100%);
+  animation: pixel-blink 1s steps(1, end) infinite;
+}
+@keyframes pixel-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .career-row.next::before { animation: none; }
+}
 .career-row.done { color: var(--ink-2); }
-.career-row .idx { display: grid; place-items: center; font-weight: 800; font-size: 13px; }
+.career-row .idx { display: grid; place-items: center; font-family: var(--font-num); font-size: 16px; letter-spacing: 0; }
 .career-row .chips { display: flex; gap: 6px; align-items: center; }
 
 .career-rival { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; margin-bottom: 12px; }
@@ -26,5 +41,8 @@
 .year-best { margin: 10px 0 0; }
 .year-list { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
 .year-list.plain { list-style: none; padding-left: 0; }
-.year-award { display: flex; gap: 8px; align-items: flex-start; }
+.year-award {
+  display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px;
+  border: 2px solid var(--line-strong); border-radius: var(--radius-s); background: var(--panel);
+}
 .year-award svg { flex: none; margin-top: 2px; color: var(--gold); }

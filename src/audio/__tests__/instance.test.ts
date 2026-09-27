@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { createSoundEngine } from '../engine'
-import { getSound, installSound, nullEngine } from '../instance'
+import { createFakeSound } from '../../test/fakeSound'
+import { getSound, holdDuck, installSound, nullEngine } from '../instance'
 
 describe('shared sound engine', () => {
   afterEach(() => installSound(nullEngine))
@@ -27,5 +28,50 @@ describe('shared sound engine', () => {
     const engine = createSoundEngine({ createContext: () => null, now: () => 0 })
     installSound(engine)
     expect(getSound()).toBe(engine)
+  })
+})
+
+describe('holdDuck', () => {
+  afterEach(() => installSound(nullEngine))
+
+  it('ducks while held and restores on release', () => {
+    const fake = createFakeSound()
+    installSound(fake)
+    const release = holdDuck(0.6)
+    expect(fake.ducks).toEqual([0.6])
+    release()
+    expect(fake.ducks).toEqual([0.6, 1])
+  })
+
+  it('lets the deepest nested hold win', () => {
+    const fake = createFakeSound()
+    installSound(fake)
+    const a = holdDuck(0.6)
+    const b = holdDuck(0.3)
+    expect(fake.ducks).toEqual([0.6, 0.3])
+    b()
+    expect(fake.ducks).toEqual([0.6, 0.3, 0.6])
+    a()
+    expect(fake.ducks).toEqual([0.6, 0.3, 0.6, 1])
+  })
+
+  it('keeps the deeper hold when the outer one is released first', () => {
+    const fake = createFakeSound()
+    installSound(fake)
+    const a = holdDuck(0.6)
+    const b = holdDuck(0.3)
+    a()
+    expect(fake.ducks).toEqual([0.6, 0.3, 0.3])
+    b()
+    expect(fake.ducks).toEqual([0.6, 0.3, 0.3, 1])
+  })
+
+  it('ignores a second release', () => {
+    const fake = createFakeSound()
+    installSound(fake)
+    const release = holdDuck(0.6)
+    release()
+    release()
+    expect(fake.ducks).toEqual([0.6, 1])
   })
 })
