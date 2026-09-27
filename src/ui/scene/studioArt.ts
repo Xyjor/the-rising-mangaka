@@ -3,7 +3,7 @@
 // draw order; the lamp, the chair, the drafting table and the anime poster replace the stock piece in that place. Every
 // piece keeps to its region, all in canvas coordinates inside the phone crop x 24-296 (object-fit: cover at 375x667
 // crops the rest), and off the seated mangaka [132,155]x[67,98] (but for the chair behind them and the drafting table's
-// top on the desk's own row, y 98), the standing spot [176,187]x[98,112] and the editor's spot [204,215]x[102,116].
+// top on the desk's own row, y 98), the standing spot [170,193]x[81,112] and the editor's spot [204,215]x[102,116].
 // Room-space pieces draw with `rect` (the old 192x108 literals, offset by (64, 36)); the kitchenette, the entrance and
 // the door draw with `rawRect` in canvas space. Nothing here allocates per frame. Raw hex is deliberate: sprite
 // colours, not UI tokens.
