@@ -6,6 +6,9 @@ import type { GenreId, MagazineId } from '../sim'
  */
 export const LOOK_SHIRTS = ['#3b6fd6', '#c94b4b', '#3fa66c', '#7c4dff', '#e07b39', '#2b8a9e'] as const
 export const LOOK_HAIRS = ['#2b2140', '#5a3a1e', '#1b1b1b', '#7a2e2e', '#3b3b45', '#8c6a3f'] as const
+/** Each look's shade (the sprites' lowercase keys, h and r): darker than its base, the light from the top left. */
+export const LOOK_HAIRS_SHADE = ['#1d1630', '#3e2712', '#0e0e0e', '#551f1f', '#27272f', '#634a2b'] as const
+export const LOOK_SHIRTS_SHADE = ['#2a52a6', '#983636', '#2d7d50', '#5a35c4', '#b05a24', '#1f6674'] as const
 
 if (import.meta.env.DEV && LOOK_SHIRTS.length !== LOOK_HAIRS.length) {
   console.warn('looks.ts: shirt and hair palettes differ in length')
