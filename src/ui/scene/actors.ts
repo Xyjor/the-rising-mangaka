@@ -30,9 +30,9 @@ export interface ActorTable { mangaka: Actor; assistants: readonly [Actor, Actor
 
 export interface Spot { readonly x: number; readonly y: number }
 
-export const MANGAKA_SEAT: Spot = { x: 138, y: 84 }
-export const MANGAKA_STAND: Spot = { x: 176, y: 98 }
-export const MANGAKA_BED: Spot = { x: 233, y: 102 }
+export const MANGAKA_SEAT: Spot = { x: 132, y: 67 }
+export const MANGAKA_STAND: Spot = { x: 170, y: 81 }
+export const MANGAKA_BED: Spot = { x: 216, y: 106 }
 export const DOOR_SPOT: Spot = { x: 260, y: 102 }
 export const EDITOR_SPOT: Spot = { x: 204, y: 102 }
 export const CAT_BED: Spot = { x: 194, y: 104 }

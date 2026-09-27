@@ -4,6 +4,7 @@ import { LOW_STAMINA_THRESHOLD } from '../../sim'
 import type { StudioTierId } from '../../sim'
 import type { Actor, ActorTable } from './actors'
 import { LOOK_HAIRS, LOOK_SHIRTS } from '../looks'
+import { MANGAKA_IDLE, MANGAKA_LIE, MANGAKA_PANIC, MANGAKA_SIT, MANGAKA_WALK, drawSprite } from './sprites'
 import { BAR_X, paneRect, rawRect, rect } from './paint'
 import { drawSeasonNight, drawSeasonPane, drawSeasonSill } from './season'
 import type { Season } from './season'
@@ -17,12 +18,13 @@ export const H = 180
 
 // ---------- palette & sprites ----------
 
-const PAL: Record<string, string> = {
+/** The old 12x15 sprites' palette (the assistants and the editor, until they get their own 24x32 frames). */
+const LEGACY_PAL: Record<string, string> = {
   K: '#2b2140', H: '#f4cfa5', E: '#1b1b1b', R: '#3b6fd6', B: '#2c2c3a', S: '#1b1b1b', M: '#c0392b',
   G: '#5b6270', W: '#f6f6f6', F: '#6d4c33', O: '#e39a4a',
 }
 /** One palette per assistant look, built once so render() allocates nothing per frame. */
-const ASSISTANT_PALS: Record<string, string>[] = LOOK_SHIRTS.map((_, i) => ({ ...PAL, R: LOOK_SHIRTS[i], K: LOOK_HAIRS[i] }))
+const LEGACY_ASSISTANT_PALS: Record<string, string>[] = LOOK_SHIRTS.map((_, i) => ({ ...LEGACY_PAL, R: LOOK_SHIRTS[i], K: LOOK_HAIRS[i] }))
 const BOOK_COLS = ['#c94b4b', '#3b6fd6', '#3fa66c', '#f5b700', '#7c4dff', '#e07b39']
 
 const HERO = [
@@ -41,44 +43,6 @@ const HERO = [
   '...BB..BB...',
   '...BB..BB...',
   '..SS....SS..',
-]
-
-/** The walk cycle's two frames, facing left (flipped to face right), 125 ms each. */
-const HERO_WALK: readonly (readonly string[])[] = [
-  [
-    '...KKKKKK...',
-    '..KKKKKKKK..',
-    '..KKHHHHKK..',
-    '..KHHHHHHK..',
-    '..KHEHHEHK..',
-    '...HHHHHH...',
-    '....HMMH....',
-    '..RRRRRRRR..',
-    '.RRRRRRRRRR.',
-    '.HRRRRRRRRH.',
-    '..RRRRRRRR..',
-    '...BBBBBB...',
-    '..BBB...BB..',
-    '.SSB.....B..',
-    '.........SS.',
-  ],
-  [
-    '...KKKKKK...',
-    '..KKKKKKKK..',
-    '..KKHHHHKK..',
-    '..KHHHHHHK..',
-    '..KHEHHEHK..',
-    '...HHHHHH...',
-    '....HMMH....',
-    '..RRRRRRRR..',
-    '.RRRRRRRRRR.',
-    '.HRRRRRRRRH.',
-    '..RRRRRRRR..',
-    '...BBBBBB...',
-    '..BB...BBB..',
-    '..B.....BSS.',
-    '.SS.........',
-  ],
 ]
 
 /** The editor: glasses, grey suit, white collar, red tie, the briefcase in the left hand (12x15, facing left). */
@@ -150,43 +114,6 @@ function drawClock(ctx: CanvasRenderingContext2D, t: number) {
   rawRect(ctx, CLOCK_X + HAND_SHORT[h], CLOCK_Y + HAND_SHORT[h + 1], 1, 1, '#1b1b1b')
 }
 
-const HEAD_SLEEP = [
-  '...KKKKKK...',
-  '..KKKKKKKK..',
-  '..KKHHHHKK..',
-  '..KHHHHHHK..',
-  '..KHEEHEEK..',
-  '...HHHHHH...',
-  '....HHHH....',
-]
-
-/**
- * A string-map sprite in canvas space, its top-left at (x, y) rounded: rows `fromRow` to `rows - 1`, mirrored left to
- * right when `flip`. Each horizontal run of one key is a single fillRect (indices only, nothing allocated).
- */
-function drawSprite(
-  ctx: CanvasRenderingContext2D, map: readonly string[], x: number, y: number, rows = map.length,
-  pal: Record<string, string> = PAL, flip = false, fromRow = 0,
-) {
-  const x0 = Math.round(x)
-  const y0 = Math.round(y)
-  for (let r = fromRow; r < rows; r++) {
-    const line = map[r]
-    const n = line.length
-    let c = 0
-    while (c < n) {
-      const ch = line[c]
-      let len = 1
-      while (c + len < n && line[c + len] === ch) len++
-      if (ch !== '.') {
-        ctx.fillStyle = pal[ch] ?? '#f0f'
-        ctx.fillRect(flip ? x0 + n - c - len : x0 + c, y0 + r, len, 1)
-      }
-      c += len
-    }
-  }
-}
-
 const GLYPH: Record<string, string[]> = {
   Z: ['###', '..#', '.#.', '#..', '###'],
   '!': ['.#.', '.#.', '.#.', '...', '.#.'],
@@ -229,39 +156,43 @@ function drawVisitorProp(ctx: CanvasRenderingContext2D, prop: Snapshot['visitorP
 }
 
 /**
- * The mangaka, in whatever pose the table holds. Called twice: before the desk (paints only when y < 92: seated,
- * behind the desk top) and after it (only when y >= 92: standing, walking or in bed, in front of it).
+ * The mangaka, in whatever pose the table holds (24x32 frames, 30x14 in bed). Called twice: before the desk (paints only
+ * when y < 75: seated at 67, behind the desk top) and after it (only when y >= 75: standing, walking, at the door or in
+ * bed, in front of it).
  */
 function drawMangaka(ctx: CanvasRenderingContext2D, s: Snapshot, a: Actor, frame: number, working: boolean, front: boolean) {
-  if ((a.y >= 92) !== front) return
+  if ((a.y >= 75) !== front) return
   const x = a.x
   const y = a.y
   switch (a.state) {
     case 'seated': {
-      const bob = working ? (Math.floor(frame / 8) % 2) : 0
-      drawSprite(ctx, HERO, x, y + bob, 12)
-      const armY = working ? y + 9 + (Math.floor(frame / 4) % 2) : y + 10
-      rawRect(ctx, x + 10, armY, 3, 2, PAL.H); rawRect(ctx, x + 13, armY - 1, 1, 3, '#1b1b1b')
-      if (working && s.stamina < LOW_STAMINA_THRESHOLD) glyph(ctx, '!', x + 12, y - 8, '#e5484d')
+      // late on a chapter, the mangaka throws up their hands for 40 frames in every 240
+      const map = working && s.late && frame % 240 < 40
+        ? MANGAKA_PANIC[Math.floor(frame / 8) % 2]
+        : MANGAKA_SIT[working ? Math.floor(frame / 8) % 2 : 0]
+      drawSprite(ctx, map, x, y)
+      if (working && s.stamina < LOW_STAMINA_THRESHOLD) glyph(ctx, '!', x + 11, y - 8, '#e5484d')
       return
     }
     case 'standing': {
-      const bob = Math.floor(frame / 16) % 2
-      drawSprite(ctx, HERO, x, y + bob)
+      drawSprite(ctx, MANGAKA_IDLE[Math.floor(frame / 16) % 2], x, y)
       if (s.phase === 'ready') {
-        rawRect(ctx, x - 8, y + 8, 8, 10, '#fdfcf7'); rawRect(ctx, x - 7, y + 10, 6, 1, '#b8b2a5'); rawRect(ctx, x - 7, y + 12, 6, 1, '#b8b2a5')
-        glyph(ctx, '!', x + 5, y - 10, '#e5484d')
-      } else if (frame % 120 < 40) glyph(ctx, '?', x + 5, y - 10, '#2f5ecf')
+        // the manuscript in the leading hand (row 21)
+        rawRect(ctx, x - 8, y + 16, 8, 10, '#fdfcf7'); rawRect(ctx, x - 7, y + 18, 6, 1, '#b8b2a5'); rawRect(ctx, x - 7, y + 20, 6, 1, '#b8b2a5')
+        glyph(ctx, '!', x + 11, y - 8, '#e5484d')
+      } else if (frame % 120 < 40) glyph(ctx, '?', x + 11, y - 8, '#2f5ecf')
       return
     }
     case 'walking':
-      drawSprite(ctx, HERO_WALK[Math.floor(a.anim / 125) % 2], x, y, 15, PAL, a.facing === 1)
+      drawSprite(ctx, MANGAKA_WALK[Math.floor(a.anim / 100) % 4], x, y, 32, undefined, a.facing === 1)
       return
     case 'sleeping': {
-      rect(ctx, 138, 72, 30, 4, '#d95d5d')
-      drawSprite(ctx, HEAD_SLEEP, x, y)
+      // the head on the pillow, the body under the blanket (canvas 196-229 x 114-121) and its fold
+      drawSprite(ctx, MANGAKA_LIE, x, y)
+      rawRect(ctx, 196, 114, 34, 8, '#c94b4b')
+      rawRect(ctx, 196, 114, 34, 2, '#a83c3c')
       const zz = Math.floor(frame / 20) % 3
-      for (let i = 0; i <= zz; i++) glyph(ctx, 'Z', x + 9 + i * 3, y - 8 - i * 4, '#2f5ecf')
+      for (let i = 0; i <= zz; i++) glyph(ctx, 'Z', x + 18 + i * 3, y - 6 - i * 4, '#2f5ecf')
       return
     }
     default:
@@ -347,6 +278,8 @@ export interface Snapshot {
   visitor: 'none' | 'editor'
   /** What the visitor carries (painted from Task 2.4). */
   visitorProp: 'none' | 'envelope' | 'letter' | 'contract' | 'trophy'
+  /** The running serial's chapter cannot make its deadline (the seated mangaka panics now and then). */
+  late: boolean
   /** Every character's place and pose, planned and walked by actors.ts; render only reads it. */
   actors: ActorTable
 }
@@ -427,7 +360,7 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
     for (let i = 0; i < shown; i++) {
       const actor = s.actors.assistants[i]
       if (actor.state === 'hidden' || actor.state === 'away') continue
-      const pal = ASSISTANT_PALS[s.assistants[i].look % ASSISTANT_PALS.length]
+      const pal = LEGACY_ASSISTANT_PALS[s.assistants[i].look % LEGACY_ASSISTANT_PALS.length]
       const x = actor.x
       if (actor.state === 'sleeping') {
         // head down on the desk: the head a column back and a row down, the body where it sat
@@ -439,7 +372,7 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
       const bob = working ? (Math.floor((frame + i * 3) / 8) % 2) : 0
       drawSprite(ctx, HERO, x, actor.y + bob, 11, pal)
       if (working) {
-        const armY = actor.y + 9 + (Math.floor((frame + i * 5) / 4) % 2); rawRect(ctx, x + 10, armY, 3, 2, PAL.H)
+        const armY = actor.y + 9 + (Math.floor((frame + i * 5) / 4) % 2); rawRect(ctx, x + 10, armY, 3, 2, LEGACY_PAL.H)
         // the page on the desk, inked as the chapter fills
         rawRect(ctx, x + 1, 120, 5, 4, PROP_PAPER)
         const inked = Math.round(s.progress * 3)
@@ -458,7 +391,7 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
 
   // chair (before the player: they sit in it)
   if (s.owned.chair) EQUIPMENT_ART.chair(ctx, s, frame, night)
-  else { rect(ctx, 70, 54, 20, 4, '#4a4a55'); rect(ctx, 71, 58, 2, 14, '#4a4a55'); rect(ctx, 87, 58, 2, 14, '#4a4a55') }
+  else { rect(ctx, 72, 42, 16, 12, '#4a4a55'); rect(ctx, 70, 54, 20, 4, '#4a4a55'); rect(ctx, 71, 58, 2, 14, '#4a4a55'); rect(ctx, 87, 58, 2, 14, '#4a4a55') }
 
   // the mangaka seated at the desk (behind its top)
   drawMangaka(ctx, s, s.actors.mangaka, frame, working, false)
@@ -489,7 +422,7 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
     for (let i = 0; i < d; i++) glyph(ctx, '.', 214 + i * 3, 92, '#16161a')
   }
   const editor = s.actors.editor
-  if (editor.state !== 'hidden' && editor.state !== 'away') drawSprite(ctx, EDITOR, editor.x, editor.y, 15, PAL, editor.facing === 1)
+  if (editor.state !== 'hidden' && editor.state !== 'away') drawSprite(ctx, EDITOR, editor.x, editor.y, 15, LEGACY_PAL, editor.facing === 1)
   if (s.visitor === 'editor' && editor.state === 'standing' && editor.facing === -1) drawVisitorProp(ctx, s.visitorProp, editor.x, editor.y, frame)
 
   if (night) {

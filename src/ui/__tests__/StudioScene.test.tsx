@@ -6,7 +6,7 @@ import { stubReducedMotion } from '../../test/dom'
 import { covers, fakeContext } from '../../test/fakeCanvas'
 import type { FakeContext } from '../../test/fakeCanvas'
 import { installSound, nullEngine } from '../../audio/instance'
-import { createGame } from '../../sim'
+import { acceptOffer, chapterDeadline, createGame } from '../../sim'
 import { createFakeSound } from '../../test/fakeSound'
 import type { FakeSound } from '../../test/fakeSound'
 import { withPendingResult } from '../../test/fixtures'
@@ -92,6 +92,22 @@ describe('StudioScene', () => {
     fake.log.length = 0
     act(() => useStore.setState({ game: { ...game, studio: { tier: 'loft', owned: [] } } }))
     expect(fake.log).toContainEqual(NOREN)
+  })
+
+  it('panics the seated mangaka when the serial chapter is late (frame 0 under reduced motion)', () => {
+    const offer = { magazineId: 'kids-comic', title: 'Magic Club', genre: 'fantasy', theme: 'magic', audience: 'kids' } as const
+    const s = acceptOffer({ ...createGame('Rin', 1), pendingOffer: offer })
+    const late: GameState = { ...s, activity: 'work', serial: { ...s.serial!, nextDueDay: s.day - 1 } }
+    expect(chapterDeadline(late)?.status).toBe('late')
+    render(<StudioScene running />)
+    fake.log.length = 0
+    act(() => useStore.setState({ game: late }))
+    // PANIC[0] row 4 col 3, the leading hand, at the seat (132, 67)
+    expect(covers(fake.log, '#f4cfa5', 135, 71)).toBeGreaterThanOrEqual(0)
+    fake.log.length = 0
+    act(() => useStore.setState({ game: { ...late, serial: { ...late.serial!, nextDueDay: late.day + 60 } } }))
+    expect(fake.log.length).toBeGreaterThan(0)
+    expect(covers(fake.log, '#f4cfa5', 135, 71)).toBe(-1)
   })
 
   describe('the editor visits', () => {

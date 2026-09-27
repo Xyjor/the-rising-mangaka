@@ -54,7 +54,7 @@ describe('the actor table', () => {
 describe('planActors', () => {
   it('seats the mangaka and one assistant in the reference scene, the cat asleep in its bed', () => {
     const t = planned()
-    expect([t.mangaka.targetX, t.mangaka.targetY, t.mangaka.goal]).toEqual([138, 84, 'seated'])
+    expect([t.mangaka.targetX, t.mangaka.targetY, t.mangaka.goal]).toEqual([132, 67, 'seated'])
     const a = t.assistants
     expect([a[0].x, a[0].y, a[0].state]).toEqual([74, 106, 'seated'])
     expect([a[1].state, a[2].state]).toEqual(['hidden', 'hidden'])
@@ -64,15 +64,15 @@ describe('planActors', () => {
 
   it('sends everyone to rest, stands the mangaka between projects, away on a trip, to bed when spent', () => {
     const rest = planned({ activity: 'rest' })
-    expect([rest.mangaka.targetX, rest.mangaka.targetY, rest.mangaka.goal]).toEqual([233, 102, 'sleeping'])
+    expect([rest.mangaka.targetX, rest.mangaka.targetY, rest.mangaka.goal]).toEqual([216, 106, 'sleeping'])
     expect(rest.assistants[0].state).toBe('sleeping')
     expect([rest.cat.targetX, rest.cat.targetY, rest.cat.goal, rest.cat.legs]).toEqual([44, 150, 'sitting', 'yx'])
     const idle = planned({ phase: 'idle' }).mangaka
-    expect([idle.targetX, idle.targetY, idle.goal]).toEqual([176, 98, 'standing'])
+    expect([idle.targetX, idle.targetY, idle.goal]).toEqual([170, 81, 'standing'])
     const away = planned({ away: true }).mangaka
     expect([away.targetX, away.targetY, away.goal]).toEqual([260, 102, 'away'])
     const spent = planned({ stamina: 0 }).mangaka
-    expect([spent.targetX, spent.targetY, spent.goal]).toEqual([233, 102, 'sleeping'])
+    expect([spent.targetX, spent.targetY, spent.goal]).toEqual([216, 106, 'sleeping'])
   })
 
   it('brings the editor in through the door and sends them back out', () => {
