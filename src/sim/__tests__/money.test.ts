@@ -10,7 +10,8 @@ function withMoney(s: GameState, money: number): GameState {
 }
 
 function toasts(s: GameState): LogEntry[] {
-  return s.log.filter((e) => e.toast)
+  // badge lines (the last step of every tick) are left out: these tests read the tick's own toasts
+  return s.log.filter((e) => e.toast && !e.text.startsWith('Badge:'))
 }
 
 describe('money floor', () => {
