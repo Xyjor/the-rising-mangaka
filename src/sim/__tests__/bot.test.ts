@@ -5,7 +5,7 @@ import type {
 } from '../index'
 import { CARELESS, SENSIBLE, STRESS_BOLT, botStep, firstSixMean, hypotheticalPreview, runBot } from '../bot'
 import type { BotRun } from '../bot'
-import { DRAFT, drawUntilReady, withPendingResult, withReadyOneShot } from '../../test/fixtures'
+import { DRAFT, drawUntilReady, withMerchSerial, withPendingResult, withReadyOneShot } from '../../test/fixtures'
 
 const OFFER = { magazineId: 'kids-comic', title: 'Magic Club', genre: 'fantasy', theme: 'magic', audience: 'kids' } as const
 
@@ -483,5 +483,13 @@ describe('balance bot bookkeeping', () => {
     const run = runBot(42, SENSIBLE, { days: 1008, until: (s) => s.serial !== null })
     expect(run.serials).toHaveLength(1)
     expect(run.final.day).toBe(run.serials[0].startedDay + 1)
+  })
+})
+
+describe('the sensible bot and goods (Task C ruling)', () => {
+  it('orders the cheapest run when it pays back, and skips it when the forecast net is zero or less', () => {
+    // popularity 80: keychains return more than their cost; popularity 50: every run is a net loss (merch.test)
+    expect(botStep(withMerchSerial(80), SENSIBLE).merch.runs.map((r) => r.item)).toEqual(['keychain'])
+    expect(botStep(withMerchSerial(50), SENSIBLE).merch.runs).toEqual([])
   })
 })

@@ -42,10 +42,12 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   - `compat.ts` hidden compatibility ratings. `scoring.ts` poll scoring. `engine.ts` commands + `tick()`.
   - `core.ts` state helpers shared by the engine and its tick hooks (`addLog`, `grantXp`, `xpToNext`, `startTrip`,
     and `num`/`yen`, locale-free thousands commas for log lines).
-    `events.ts` random events (the weekly roll on its own `eventSeed`, the answers). `studio.ts` studio tiers (desks,
+    `events.ts` random events (the weekly roll on its own `eventSeed`, the answers). `editors.ts` the editor
+    relationship and tips (`bumpEditor`, each magazine's `tipEvery`) and the Notebook reveals trips share. `studio.ts` studio tiers (desks,
     rent) and equipment (effects, buying, moving, `studioLook`). `anime.ts` anime adaptation offers and deals
     (`animeTick`, signing, `animeVolumeMult`). `rival.ts` the named rival (`makeRival`, `growRival`, the head to
-    head). `year.ts` the year end (`closeYear`: awards, prizes, the year review, the rival's growth). `badges.ts` the
+    head). `merch.ts` merchandise from year two (the licence, `orderMerch`/`merchRefusal`, `merchForecast`,
+    `merchTick`). `year.ts` the year end (`closeYear`: awards, prizes, the year review, the rival's growth). `badges.ts` the
     badge gallery's rules (`awardBadges(prev, s)`, the last step of `tick()`: no XP, no money, no RNG). Hook files never
     import engine.ts.
   - Add a unit test in `src/sim/__tests__/engine.test.ts` for every new rule.
@@ -201,9 +203,9 @@ magazine up a year), a year is 336 days (`DAYS_PER_YEAR`), weekly living
 cost 400 plus studio rent (flat 150, loft 350), one-shot 20 pages (~17 days solo), chapter 16 pages. A volume sells
 round((circulation x 20 + 40 x sqrt(fans)) x popularity / 100) copies at ¥2 (`volumeCopies`, the one place the curve
 lives). Anime offers need 37,000 copies sold; the Golden Pen 37,000 in a year (near miss from 22,000). Equipment prices
-and move-in costs go through `equipmentPrice` and `moveInCost`: base x `EQUIPMENT_PRICE_SCALE` (11.25: S1 / 9000 =
-11.31 rounded to 0.25, held within 0.75-16 by `priceScale`, where S1 is the sensible bot's median money at day 336
-buying nothing, ¥101,816.5). balance.test fails when the scale no longer matches S1: re-derive it and the price
+and move-in costs go through `equipmentPrice` and `moveInCost`: base x `EQUIPMENT_PRICE_SCALE` (11: S1 / 9000 =
+11.12 rounded to 0.25, held within 0.75-16 by `priceScale`, where S1 is the sensible bot's median money at day 336
+buying nothing, ¥100,099). balance.test fails when the scale no longer matches S1: re-derive it and the price
 literals together.
 
 `src/sim/__tests__/balance.test.ts` asserts the balance bands (DESIGN.md "Balance bots and bands") over seeds 1–20

@@ -46,14 +46,14 @@ describe('studio data', () => {
     ])
   })
 
-  it('sells at 11.25 times the base prices: EQUIPMENT_PRICE_SCALE is S1 / 9000 = 11.31 rounded to 0.25', () => {
-    // S1 = ¥101,816.5 (Task 19, Package A): 101,816.5 / 9000 = 11.31, and 11.31 x 4 = 45.25 rounds to 45 quarters
-    expect(EQUIPMENT_PRICE_SCALE).toBe(11.25)
-    // x 11.25, to the nearest ¥100 (halves round up): 2,000 -> 22,500; 2,500 -> 28,125 -> 28,100;
-    // 3,000 -> 33,750 -> 33,800; 4,000 -> 45,000; 7,000 -> 78,750 -> 78,800; 12,000 -> 135,000
-    expect(EQUIPMENT_IDS.map((id) => equipmentPrice(id))).toEqual([22_500, 28_100, 33_800, 45_000, 78_800, 135_000])
-    // the apartment is free; 5,000 -> 56,250 -> 56,300 for the flat, 15,000 -> 168,750 -> 168,800 for the loft
-    expect(STUDIO_TIERS.map((t) => moveInCost(t.id))).toEqual([0, 56_300, 168_800])
+  it('sells at 11 times the base prices: EQUIPMENT_PRICE_SCALE is S1 / 9000 = 11.12 rounded to 0.25', () => {
+    // S1 = ¥100,099 (Task C fix, 0.7.0): 100,099 / 9000 = 11.12, and 11.12 x 4 = 44.49 rounds to 44 quarters
+    expect(EQUIPMENT_PRICE_SCALE).toBe(11)
+    // x 11, to the nearest ¥100: 2,000 -> 22,000; 2,500 -> 27,500; 3,000 -> 33,000; 4,000 -> 44,000;
+    // 7,000 -> 77,000; 12,000 -> 132,000
+    expect(EQUIPMENT_IDS.map((id) => equipmentPrice(id))).toEqual([22_000, 27_500, 33_000, 44_000, 77_000, 132_000])
+    // the apartment is free; 5,000 -> 55,000 for the flat, 15,000 -> 165,000 for the loft
+    expect(STUDIO_TIERS.map((t) => moveInCost(t.id))).toEqual([0, 55_000, 165_000])
   })
 
   it('prices are the base price times the price scale, rounded to the nearest ¥100', () => {
@@ -140,7 +140,7 @@ describe('studio tiers', () => {
     const loft = moveStudio(withMoney(s, moveInCost('loft')), 'loft')
     expect(loft.studio.tier).toBe('loft')
     expect(loft.player.money).toBe(0)
-    // at today's price scale (11.25) the log reads "-¥168,800"
+    // at today's price scale (11) the log reads "-¥165,000"
     expect(loft.log.at(-1)!.text).toBe(`You moved into the studio loft: -${yen(moveInCost('loft'))}. Rent is ¥350 a week, and it has 3 desks for assistants.`)
   })
 
@@ -181,7 +181,7 @@ describe('equipment', () => {
   })
 
   it('refuses the pen tablet in the apartment, sells it from the flat on', () => {
-    // ¥200,000 covers the tablet's ¥135,000 at the price scale 11.25
+    // ¥200,000 covers the tablet's ¥132,000 at the price scale 11
     const rich = withMoney(createGame('Rin', 42), 200_000)
     expect(buyEquipment(rich, 'tablet')).toBe(rich)
     expect(buyEquipment(withStudio(rich, 'flat'), 'tablet').studio.owned).toEqual(['tablet'])

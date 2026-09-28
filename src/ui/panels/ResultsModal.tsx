@@ -45,6 +45,7 @@ export function ResultsModal() {
   const r = useStore((s) => s.game!.pendingResult!)
   const pendingOffer = useStore((s) => s.game!.pendingOffer)
   const serial = useStore((s) => s.game!.serial)
+  const temper = useStore((s) => s.game!.rival.temper)
   const dismiss = useStore((s) => s.dismissResult)
   const finishTutorial = useStore((s) => s.finishTutorial)
   const readOnly = useStore((s) => s.readOnly)
@@ -60,7 +61,7 @@ export function ResultsModal() {
   const medal = r.rank === 1 ? 'gold' : r.rank === 2 ? 'silver' : r.rank === 3 ? 'bronze' : undefined
   const tier = rankTier(r.rank, r.entrants)
   const headline = HEADLINE[tier]
-  const rival = rivalLine(r)
+  const rival = rivalLine(r, temper)
   const spoiler = stamped ? undefined : HIDDEN
 
   // The music ducks under the reveal. The drumroll, if still rolling, stops with the modal.
@@ -176,7 +177,7 @@ export function ResultsModal() {
 
           <div className="speech pixel-bubble">
             {r.editorComment}
-            <div className="tiny muted" style={{ marginTop: 6 }}>{mag.editor}, editor at {mag.name}</div>
+            <div className="tiny muted" style={{ marginTop: 6 }}>{mag.editor} ({mag.persona}), editor at {mag.name}</div>
           </div>
         </div>
 

@@ -1,4 +1,5 @@
 import type {
+  MerchItem, MerchItemId,
   AnimeStudio, AnimeStudioId, AssistantTrait, Award, AwardId, Audience, AudienceId, Equipment, EquipmentId, Genre, GenreId, Magazine, MagazineId, Place, PlaceId,
   ScoreWeights, StudioTier, StudioTierId, Theme, ThemeId,
 } from './types'
@@ -45,6 +46,8 @@ export const MAGAZINES: Magazine[] = [
     taste: { art: 35, story: 15, pacing: 20, audienceFit: 10, freshness: 20 },
     tasteLine: 'Readers love big art and fast pacing.',
     blurb: 'The big weekly. Twelve rivals in every poll and the biggest readership in town.', editor: 'Tanaka',
+    persona: 'deadline hawk', tipEvery: 3,
+    personaLine: 'Tanaka watches the calendar: the log notes the day a chapter deadline turns tight. A tip every 3 points.',
   },
   {
     id: 'monthly-petal', name: 'Monthly Petal', audience: 'young-adults',
@@ -52,6 +55,8 @@ export const MAGAZINES: Magazine[] = [
     taste: { art: 15, story: 35, pacing: 10, audienceFit: 20, freshness: 20 },
     tasteLine: 'Readers want a story, and a manga made for them.',
     blurb: 'A quieter book for young adults. Fewer rivals, a little more per page.', editor: 'Sato',
+    persona: 'mentor', tipEvery: 2,
+    personaLine: 'Sato mentors new artists: a Notebook tip every 2 relationship points instead of 3.',
   },
   {
     id: 'ultra-seinen', name: 'Ultra Seinen', audience: 'adults',
@@ -59,6 +64,8 @@ export const MAGAZINES: Magazine[] = [
     taste: { art: 15, story: 35, pacing: 20, audienceFit: 10, freshness: 20 },
     tasteLine: 'Readers prize story and pacing.',
     blurb: 'Prestige anthology for grown-ups. Best page rate going, and the toughest rivals.', editor: 'Kuroda',
+    persona: 'critic', tipEvery: 4,
+    personaLine: 'Kuroda is a critic: a Notebook tip only every 4 points, and his comment says how many points you lost.',
   },
   {
     id: 'kids-comic', name: 'Kids Comic Go!', audience: 'kids',
@@ -66,6 +73,8 @@ export const MAGAZINES: Magazine[] = [
     taste: { art: 35, story: 15, pacing: 10, audienceFit: 20, freshness: 20 },
     tasteLine: 'Readers love bright art, and a manga made for them.',
     blurb: 'Bright, loud, and forgiving. The easiest polls to win, the lowest page rate.', editor: 'Mori',
+    persona: 'cheerleader', tipEvery: 3,
+    personaLine: 'Mori cheers every new artist on. No special rules: a tip every 3 relationship points.',
   },
 ]
 
@@ -75,7 +84,15 @@ export const PLACES: Place[] = [
   { id: 'art-class', name: 'Life Drawing Class', days: 4, cost: 600, blurb: 'Anatomy, perspective, inking.', effect: 'Art +2' },
   { id: 'writing-workshop', name: 'Writing Workshop', days: 4, cost: 600, blurb: 'Structure, dialogue, endings.', effect: 'Story +2' },
   { id: 'editing-seminar', name: 'Editing Seminar', days: 4, cost: 600, blurb: 'Panel flow and page turns.', effect: 'Pacing +2' },
-  { id: 'hot-spring', name: 'Hot Spring', days: 3, cost: 400, blurb: 'Steam, silence, and no deadlines.', effect: 'Full stamina, max stamina +3' },
+  { id: 'hot-spring', name: 'Hot Spring', days: 3, cost: 400, blurb: 'Steam, silence, and no deadlines.', effect: 'Full stamina, max stamina +3 (never above 150)' },
+  {
+    id: 'manga-museum', name: 'Manga Museum', days: 3, cost: 700, blurb: 'Original pages from every genre under glass.',
+    effect: 'Reveals one genre × theme pairing for a genre you have never drawn',
+  },
+  {
+    id: 'mountain-retreat', name: 'Mountain Retreat', days: 5, cost: 1500, blurb: 'Thin air, long walks, early nights.',
+    effect: 'Full stamina, max stamina +5 (never above 150)',
+  },
   // Reached only by answering a random event (events.ts); the Trips panel leaves them out.
   {
     id: 'convention', name: 'Comic Convention', days: 2, cost: 500, blurb: 'A table in the artist alley and a queue of readers.',
@@ -84,6 +101,10 @@ export const PLACES: Place[] = [
   {
     id: 'masterclass', name: 'Manga Masterclass', days: 3, cost: 400, blurb: 'A veteran mangaka works on your weakest skill.',
     effect: '+3 to your lowest stat', eventOnly: true,
+  },
+  {
+    id: 'signing', name: 'Book Signing', days: 1, cost: 0, blurb: 'A bookshop queue for your volumes, pen in hand.',
+    effect: 'On return + round(average copies a volume x 0.2) x ¥2, from signed copies', eventOnly: true,
   },
 ]
 
@@ -188,10 +209,10 @@ export const EQUIPMENT: Equipment[] = [
 /**
  * Scales every equipment price and move-in cost (see `equipmentPrice`, `moveInCost`): S1 / 9000 rounded to 0.25 and
  * clamped to 0.75-16 (`priceScale` in balance.ts), where S1 is the sensible balance bot's median money at day 336
- * buying nothing over seeds 1-20 (`npm run balance` prints it and the scale it gives). S1 = ¥101,816.5 gives 11.31,
- * so 11.25.
+ * buying nothing over seeds 1-20 (`npm run balance` prints it and the scale it gives). S1 = ¥100,099 (after Task C's
+ * events) gives 11.12, so 11.
  */
-export const EQUIPMENT_PRICE_SCALE = 11.25
+export const EQUIPMENT_PRICE_SCALE = 11
 
 /** What a piece of equipment costs: its base price times `EQUIPMENT_PRICE_SCALE`, rounded to the nearest ¥100. */
 export function equipmentPrice(id: EquipmentId): number {
@@ -224,7 +245,10 @@ export const SERIAL_MISSED_ISSUE_POPULARITY = 10
 export const DEADLINE_REST_FACTOR = 1.25
 export const SERIAL_OFFER_MIN_RANK = 3
 export const SERIAL_OFFER_MIN_SCORE = 65
+/** The default tip cadence; each magazine's `tipEvery` is the one in play (Sato 2, Kuroda 4, the others 3). */
 export const EDITOR_TIP_EVERY = 3
+/** The cap every trip's max-stamina gain respects (the Hot Spring +3, the Mountain Retreat +5). */
+export const MAX_STAMINA_CAP = 150
 /** Spread of rival poll scores around a magazine's rivalMean. */
 export const RIVAL_SCORE_SD = 8
 /** Spread of the pacing component's random noise around the player's pacing stat. */
@@ -296,3 +320,20 @@ export function studioTierById(id: StudioTierId): StudioTier { return STUDIO_TIE
 export function equipmentById(id: EquipmentId): Equipment { return EQUIPMENT.find((e) => e.id === id)! }
 export function awardById(id: AwardId): Award { return AWARDS.find((a) => a.id === id)! }
 export function animeStudioById(id: AnimeStudioId): AnimeStudio { return ANIME_STUDIOS.find((a) => a.id === id)! }
+
+/**
+ * Merchandise (merch.ts), licensed from year two once a volume has shipped. A run sells
+ * round(average copies per volume x share x demand / 100) units a week at `margin` yen each, for `weeks` weeks. Tuned
+ * on a year-one-median serial (6,700 copies a volume): at popularity 80 each run returns 1.34x-1.38x its cost, at 50
+ * every run loses money (merch.test.ts shows the arithmetic).
+ */
+export const MERCH_ITEMS: readonly MerchItem[] = [
+  { id: 'keychain', name: 'Keychains', cost: 6_300, weeks: 4, share: 0.02, margin: 20 },
+  { id: 'poster', name: 'Posters', cost: 14_000, weeks: 6, share: 0.015, margin: 40 },
+  { id: 'plush', name: 'Plushies', cost: 25_000, weeks: 8, share: 0.01, margin: 80 },
+  { id: 'artbook', name: 'Art book', cost: 24_000, weeks: 6, share: 0.02, margin: 50, needsVolumes: 4 },
+  { id: 'figure', name: 'Figures', cost: 64_000, weeks: 8, share: 0.008, margin: 250, needsAnime: true },
+]
+/** At most this many merch runs sell at once. */
+export const MERCH_MAX_RUNS = 2
+export function merchItemById(id: MerchItemId): MerchItem { return MERCH_ITEMS.find((m) => m.id === id)! }

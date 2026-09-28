@@ -45,6 +45,12 @@ export interface Magazine {
   tasteLine: string
   blurb: string
   editor: string
+  /** the editor's persona, one word shown with their name (cheerleader, deadline hawk, mentor, critic) */
+  persona: string
+  /** what the persona means in play, shown on the Submit and Offer magazine cards */
+  personaLine: string
+  /** the editor passes on a Notebook tip every this many relationship points */
+  tipEvery: number
 }
 
 export interface PlayerStats { story: number; art: number; pacing: number }
@@ -105,7 +111,11 @@ export interface Rival {
   craft: number
   magazineId: MagazineId
   seriesTitle: string
+  /** how the rival talks about the head to head (results and year review lines only), from a hash of the world seed */
+  temper: RivalTemper
 }
+
+export type RivalTemper = 'gracious' | 'cocky' | 'stoic'
 
 /** Where the rival placed in one poll: the score rounded and clamped to 0..100, the rank among every entrant. */
 export interface RivalPlacing { name: string; score: number; rank: number }
@@ -217,7 +227,7 @@ export interface Assistant {
 
 export type PlaceId =
   | 'library' | 'survey' | 'art-class' | 'writing-workshop' | 'editing-seminar' | 'hot-spring'
-  | 'convention' | 'masterclass'
+  | 'convention' | 'masterclass' | 'manga-museum' | 'mountain-retreat' | 'signing'
 
 export interface Place {
   id: PlaceId
@@ -286,6 +296,47 @@ export interface EditorRel { relationship: number; tips: number }
 // ---------- anime adaptations ----------
 
 export type AnimeStudioId = 'kumo' | 'hoshi'
+
+// ---------- merchandise ----------
+
+export type MerchItemId = 'keychain' | 'poster' | 'plush' | 'artbook' | 'figure'
+
+export interface MerchItem {
+  id: MerchItemId
+  name: string
+  /** plain yen paid when the run is ordered (not scaled by EQUIPMENT_PRICE_SCALE) */
+  cost: number
+  /** how long the run sells */
+  weeks: number
+  /** fraction of the serial's average copies per volume the run sells a week at popularity 100 */
+  share: number
+  /** yen per unit sold */
+  margin: number
+  /** the serial needs this many volumes out */
+  needsVolumes?: number
+  /** the serial needs a signed anime deal */
+  needsAnime?: boolean
+}
+
+export interface MerchRun {
+  id: number
+  item: MerchItemId
+  serialId: number
+  orderedDay: number
+  /** the last pay day; the run is active while day < endsDay */
+  endsDay: number
+  sold: number
+  money: number
+}
+
+export interface MerchState {
+  /** the day the goods maker's licence arrived, null before */
+  licensedDay: number | null
+  runs: MerchRun[]
+  nextRunId: number
+  /** yen every run has earned so far */
+  earned: number
+}
 
 /** An animation studio's terms for adapting a hit serial (see anime.ts). */
 export interface AnimeStudio {
@@ -398,7 +449,9 @@ export type LogKind = 'info' | 'success' | 'warn' | 'money' | 'levelup' | 'serie
 
 // ---------- random events ----------
 
-export type EventId = 'letter' | 'cold' | 'convention' | 'raise' | 'reprint' | 'workshop'
+export type EventId =
+  | 'letter' | 'cold' | 'convention' | 'raise' | 'reprint' | 'workshop'
+  | 'interview' | 'signing' | 'editor-dinner' | 'cover' | 'assistant-sick' | 'rival-challenge'
 
 /** A random event waiting on the desk for an answer (see events.ts). */
 export interface GameEvent {
@@ -409,8 +462,17 @@ export interface GameEvent {
   expiresDay: number
   /** the assistant asking for a raise */
   assistantId?: number
-  /** the serial whose volumes get a reprint */
+  /** the serial whose volumes get a reprint, the signing's, the cover's or the challenge's serial */
   serialId?: number
+  /** the magazine whose editor the interview reply or the dinner is with */
+  magazineId?: MagazineId
+}
+
+/** A rival challenge accepted: settled by the serial's next chapter result (`settleChallenge` in rival.ts). */
+export interface RivalChallenge {
+  serialId: number
+  /** the serial's result count when accepted: the result at this index settles it */
+  fromResult: number
 }
 
 export interface LogEntry {
@@ -480,6 +542,10 @@ export interface GameState {
   awards: AwardWon[]
   /** badges earned in this career, in the order they landed (see badges.ts); no XP, no money */
   badges: BadgeEarned[]
+  /** merchandise (merch.ts): the goods maker's licence, every run ordered (active while day < endsDay) and the total */
+  merch: MerchState
+  /** the rival challenge waiting on the serial's next chapter result, or null */
+  rivalChallenge: RivalChallenge | null
 }
 
 export type Phase = 'idle' | 'drawing' | 'ready' | 'submitted'

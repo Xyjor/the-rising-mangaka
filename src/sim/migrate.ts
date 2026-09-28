@@ -1,7 +1,7 @@
 import { quietBadges } from './badges'
 import { DAYS_PER_YEAR, EVENT_GAP_DAYS, magazineById } from './data'
 import { createGame, describeDate } from './engine'
-import { makeRival } from './rival'
+import { makeRival, rivalTemperFor } from './rival'
 import { hashString } from './rng'
 import type { GameState, Serial, StudioTierId } from './types'
 import { yearSnapshot } from './year'
@@ -25,7 +25,10 @@ export function upgradeSave(g: GameState): GameState {
     serial: up.serial && fix(up.serial),
     serials: up.serials.map(fix),
     // The rival comes from the save's own world seed (never createGame('', 0)'s), grown by the whole years played.
-    rival: g.rival ?? makeRival(g.worldSeed, describeDate(g.day).year - 1),
+    // A rival saved before tempers gets the one their world's seed hash gives.
+    rival: g.rival
+      ? { ...g.rival, temper: g.rival.temper ?? rivalTemperFor(g.worldSeed) }
+      : makeRival(g.worldSeed, describeDate(g.day).year - 1),
     // Random events: the save's own world's event seed (the one a new career there starts with), the first roll two
     // weeks from the day of loading. `event` defaults to null through the createGame base.
     eventSeed: g.eventSeed ?? (hashString(`events:${g.worldSeed}`) | 0),

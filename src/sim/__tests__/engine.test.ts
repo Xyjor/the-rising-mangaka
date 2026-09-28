@@ -7,9 +7,13 @@ import {
   describeDate, dismissResult, endSerial, evaluateChapter, evaluateProject, fireAssistant, genreThemeRating, getPhase,
   hireAssistant, magazineById, previewCombo, previewSubmission, projectArtQuality, serialFatigue, setActivity,
   spendSkillPoint, stalenessCount, startProject, startTrip, submitProject, themeAudienceKey, tick, tickMany,
-  volumeCopies,
+  volumeCopies, PLACES, GENRES, THEMES, MAGAZINES, MAX_STAMINA_CAP, placeById, genreThemeKey, biggestLoss,
+  pointsLost,
 } from '../index'
-import type { Assistant, AssistantTrait, ChapterResult, GameState, LogEntry, MagazineId, PendingChapter } from '../index'
+import type {
+  Assistant, AssistantTrait, ChapterResult, GameState, LogEntry, MagazineId, PendingChapter, Rating,
+} from '../index'
+import { bumpEditor } from '../editors'
 import { draw, gaussian } from '../rng'
 import { DRAFT as draft, drawUntilReady as drawUntilReadyFrom, noDeadline, withStats } from '../../test/fixtures'
 
@@ -892,3 +896,111 @@ describe('candidates', () => {
 function lastLine(s: GameState) {
   return s.log.filter((e) => !e.text.startsWith('Badge:')).at(-1)!
 }
+
+describe('Task C places: the Manga Museum and the Mountain Retreat', () => {
+  it('both are listed on the Trips panel (not event-only); the signing is event-only', () => {
+    const listed = PLACES.filter((p) => !p.eventOnly).map((p) => p.id)
+    expect(listed).toContain('manga-museum')
+    expect(listed).toContain('mountain-retreat')
+    expect(placeById('signing').eventOnly).toBe(true)
+    expect(placeById('manga-museum')).toMatchObject({ days: 3, cost: 700 })
+    expect(placeById('mountain-retreat')).toMatchObject({ days: 5, cost: 1500 })
+  })
+
+  it('the museum reveals the first unknown pairing of the first genre never drawn, drawing no RNG', () => {
+    // one action one-shot in the history: action is drawn, so the museum skips to romance x school
+    let s: GameState = { ...createGame('Rin', 1), day: 10 }
+    s = { ...s, history: [{ ...strongOneShot().history[0], genre: 'action' }] }
+    const back = tickMany(startTrip(s, 'manga-museum'), 3)
+    expect(back.trip).toBeNull()
+    expect(back.notebook.genreTheme[genreThemeKey('romance', 'school')]).toBe(genreThemeRating(s.worldSeed, 'romance', 'school'))
+    expect(Object.keys(back.notebook.genreTheme)).toHaveLength(1)
+    expect(back.player.money).toBe(s.player.money - 700)
+    expect(back.seed).toBe(s.seed)
+  })
+
+  it('the museum falls back to any unknown pairing once every undrawn genre is known', () => {
+    const s = createGame('Rin', 1)
+    const genreTheme: Record<string, Rating> = {}
+    for (const g of GENRES) for (const t of THEMES) if (g.id !== 'action') genreTheme[genreThemeKey(g.id, t.id)] = 2
+    const known = { ...s, history: [{ ...strongOneShot().history[0], genre: 'action' as const }], notebook: { ...s.notebook, genreTheme } }
+    const back = tickMany(startTrip(known, 'manga-museum'), 3)
+    expect(back.notebook.genreTheme[genreThemeKey('action', 'school')]).toBeDefined()
+  })
+
+  it('the retreat restores stamina and adds 5 max stamina, never above 150', () => {
+    const s = { ...createGame('Rin', 1), day: 10 }
+    const tired = { ...s, player: { ...s.player, stamina: 30 } }
+    const back = tickMany(startTrip(tired, 'mountain-retreat'), 5)
+    expect(back.player).toMatchObject({ maxStamina: 105, stamina: 105 })
+    const near = { ...s, player: { ...s.player, maxStamina: 148, stamina: 10 } }
+    expect(tickMany(startTrip(near, 'mountain-retreat'), 5).player).toMatchObject({ maxStamina: MAX_STAMINA_CAP, stamina: 150 })
+    const over = { ...s, player: { ...s.player, maxStamina: 160, stamina: 10 } }
+    expect(tickMany(startTrip(over, 'mountain-retreat'), 5).player).toMatchObject({ maxStamina: 160, stamina: 160 })
+  })
+
+  it('the hot spring restores stamina and adds 3 max stamina, capped the same way as the retreat', () => {
+    const s = { ...createGame('Rin', 1), day: 10 }
+    const tired = { ...s, player: { ...s.player, stamina: 30 } }
+    const back = tickMany(startTrip(tired, 'hot-spring'), 3)
+    expect(back.player).toMatchObject({ maxStamina: 103, stamina: 103 })
+    const near = { ...s, player: { ...s.player, maxStamina: 149, stamina: 10 } }
+    expect(tickMany(startTrip(near, 'hot-spring'), 3).player).toMatchObject({ maxStamina: MAX_STAMINA_CAP, stamina: 150 })
+    const over = { ...s, player: { ...s.player, maxStamina: 160, stamina: 10 } }
+    expect(tickMany(startTrip(over, 'hot-spring'), 3).player).toMatchObject({ maxStamina: 160, stamina: 160 })
+  })
+})
+
+describe('Task C editor personas', () => {
+  it('every magazine has a persona, a line saying what it does, and a tip cadence (Sato 2, Kuroda 4, others 3)', () => {
+    expect(MAGAZINES.map((m) => [m.editor, m.persona, m.tipEvery])).toEqual([
+      ['Tanaka', 'deadline hawk', 3], ['Sato', 'mentor', 2], ['Kuroda', 'critic', 4], ['Mori', 'cheerleader', 3],
+    ])
+    for (const m of MAGAZINES) expect(m.personaLine).toContain(m.editor)
+  })
+
+  it('tips land every tipEvery relationship points', () => {
+    const s = createGame('Rin', 1)
+    const tipsAt = (id: MagazineId, points: number) => {
+      let x = s
+      for (let i = 0; i < points; i++) x = bumpEditor(x, id, 1)
+      return x.editors[id].tips
+    }
+    expect(tipsAt('monthly-petal', 4)).toBe(2)
+    expect(tipsAt('ultra-seinen', 4)).toBe(1)
+    expect(tipsAt('ultra-seinen', 3)).toBe(0)
+    expect(tipsAt('kids-comic', 6)).toBe(2)
+  })
+
+  it("Kuroda's results comment quotes the points the costliest component lost; the others' do not", () => {
+    const ready = drawUntilReady(startProject(createGame('Rin', 42), draft))
+    const kuroda = evaluateProject(ready, ready.project!, 'ultra-seinen').result
+    const worst = biggestLoss(kuroda.breakdown, magazineById('ultra-seinen').taste)
+    const lost = pointsLost(kuroda.breakdown, magazineById('ultra-seinen').taste, worst)
+    expect(kuroda.editorComment.endsWith(` That cost you ${lost} points.`)).toBe(true)
+    expect(evaluateProject(ready, ready.project!, 'weekly-bolt').result.editorComment).not.toContain('That cost you')
+  })
+
+  it('Tanaka logs (no toast) the day a Weekly Bolt chapter deadline turns tight', () => {
+    // a Weekly Bolt serial whose chapter is due in 14 days with nothing drawn and the mangaka resting: each idle day
+    // brings the due day closer until the pages no longer fit with rest days
+    const offer = { magazineId: 'weekly-bolt', title: 'Bolt Club', genre: 'action', theme: 'samurai', audience: 'teens' } as const
+    const accepted = setActivity(acceptOffer({ ...createGame('Rin', 1), pendingOffer: offer }), 'rest')
+    // half the pages already drawn, so the deadline starts on track
+    let s: GameState = { ...accepted, project: { ...accepted.project!, pagesDone: 8 } }
+    expect(chapterDeadline(s)!.status).toBe('on-track')
+    const turned: LogEntry[] = []
+    for (let i = 0; i < 14; i++) {
+      const before = chapterDeadline(s)!.status
+      const next = tick(s)
+      const after = chapterDeadline(next)?.status
+      const hawk = next.log.filter((e) => e.id >= s.nextLogId && e.text.startsWith('Tanaka calls'))
+      if (before === 'on-track' && after && after !== 'on-track') expect(hawk).toHaveLength(1)
+      else expect(hawk).toHaveLength(0)
+      turned.push(...hawk)
+      s = next
+    }
+    expect(turned).toHaveLength(1)
+    expect(turned[0]).toMatchObject({ kind: 'warn', toast: false })
+  })
+})

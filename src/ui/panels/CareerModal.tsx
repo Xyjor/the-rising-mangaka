@@ -2,6 +2,7 @@ import { MILESTONES, awardById, describeDate, doneIds, rivalRecord } from '../..
 import { useStore } from '../../state/store'
 import { Icon } from '../Icon'
 import { Modal } from '../components'
+import { money, plural } from '../format'
 import { rivalCareerLine, yearCareerLine } from '../labels'
 import '../../styles/career.css'
 
@@ -31,6 +32,13 @@ export function CareerModal() {
         ) : (
           <p className="small">No awards yet. Awards are handed out when year {describeDate(game.day).year} ends.</p>
         )}
+      </section>
+      <section className="card flat career-section" aria-labelledby="career-goods">
+        <div className="lbl" id="career-goods">Goods sold</div>
+        <p className="small">
+          {game.merch.earned > 0 ? `${money(game.merch.earned)} from ${plural(game.merch.runs.length, 'run')} of goods.`
+            : 'No goods sold yet. A goods maker licenses series from year two, once a volume has shipped.'}
+        </p>
       </section>
       {game.yearReviews.length > 0 && (
         <section className="card flat career-section" aria-labelledby="career-years">

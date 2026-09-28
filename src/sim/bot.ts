@@ -5,7 +5,7 @@
 import { signAnime } from './anime'
 import { genreThemeKey, themeAudienceKey } from './compat'
 import {
-  AUDIENCES, EQUIPMENT, GENRES, LOW_STAMINA_THRESHOLD, MAGAZINES, ONE_SHOT_PAGES, RATING_SCORE, STALENESS_PENALTY,
+  AUDIENCES, EQUIPMENT, GENRES, LOW_STAMINA_THRESHOLD, MAGAZINES, MERCH_ITEMS, ONE_SHOT_PAGES, RATING_SCORE, STALENESS_PENALTY,
   THEMES, equipmentPrice, magazineById,
 } from './data'
 import {
@@ -15,12 +15,13 @@ import {
 } from './engine'
 import type { SubmissionPreview } from './engine'
 import { resolveEvent } from './events'
+import { merchForecast, merchRefusal, orderMerch } from './merch'
 import { clamp, hashString } from './rng'
 import { stalenessCount, suitedFocus } from './scoring'
 import { buyEquipment, equipmentEffects, moveStudio, studioAtLeast, studioSlots } from './studio'
 import type {
   Assistant, AudienceId, EquipmentId, Focus, GameState, GenreId, MagazineId, Project, ProjectDraft, SerialOffer,
-  SerialStatus, StatId, ThemeId,
+  MerchItem, SerialStatus, StatId, ThemeId,
 } from './types'
 import { markReviewRead } from './year'
 
@@ -354,6 +355,24 @@ function shop(s: GameState, p: BotPolicy): GameState {
   return buyEquipment(s, id)
 }
 
+/**
+ * A policy that shops, once licensed, orders the cheapest goods run it may order for its running serial when the bank
+ * holds its cost and four weeks of costs, unless `merchForecast` says it would lose money: one run a day.
+ */
+function orderGoods(s: GameState, p: BotPolicy): GameState {
+  const ser = s.serial
+  if (!p.shops || s.merch.licensedDay === null || !ser || ser.status !== 'running') return s
+  let best: MerchItem | undefined
+  for (const m of MERCH_ITEMS) {
+    if (merchRefusal(s, m.id, ser.id) !== null) continue
+    if (!best || m.cost < best.cost) best = m
+  }
+  if (!best || s.player.money < best.cost + BUY_COST_WEEKS * weeklyCosts(s)) return s
+  // A run the forecast says loses money (net at or below zero at today's demand) is skipped.
+  if (merchForecast(s, best.id, ser.id).net <= 0) return s
+  return orderMerch(s, best.id, ser.id)
+}
+
 /** Answer the event on the desk the policy's way (`BotPolicy.events`). */
 function answerEvent(s: GameState, p: BotPolicy): GameState {
   if (!s.event || !p.events) return s
@@ -386,7 +405,7 @@ function overdrawnToday(decided: GameState, next: GameState): boolean {
  * One day's decisions, before the tick, in this order: dismiss the result; accept (or decline) the offer; read the
  * year review; answer the event; sign the anime offer; spend points; force the stress serial; wrap a serial; plan a
  * one-shot and set its focus; pitch a finished one; hire help (moving to the flat if need be) for a chapter that will
- * miss its issue; buy equipment; pick the activity.
+ * miss its issue; buy equipment; order goods; pick the activity.
  */
 function decide(state: GameState, p: BotPolicy): GameState {
   let s = state
@@ -416,13 +435,14 @@ function decide(state: GameState, p: BotPolicy): GameState {
   if (s.project?.status === 'ready') s = submitProject(s, p.pickMagazine(s))
   s = hireIfLate(s, p)
   s = shop(s, p)
+  s = orderGoods(s, p)
   return chooseActivity(s)
 }
 
 /**
  * One bot day: dismiss the result, accept (or decline) the offer, read the year review, answer the event, sign the
  * anime offer, spend points, force the stress serial, wrap a serial, plan a one-shot and set its focus, pitch a
- * finished one, hire (or move and hire) for a late chapter, buy equipment, pick the activity, then tick.
+ * finished one, hire (or move and hire) for a late chapter, buy equipment, order goods, pick the activity, then tick.
  */
 export function botStep(s: GameState, p: BotPolicy): GameState {
   return tick(decide(s, p))

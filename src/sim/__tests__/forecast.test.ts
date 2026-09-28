@@ -20,7 +20,7 @@ function pitch(
 ): GameState {
   const s = createGame('Rin', 1)
   expect(s.player.stats.pacing).toBe(30)
-  const rival = { name: 'Iori Hayama', craft: 50, magazineId: rivalAt, seriesTitle: 'Robo Pals Go!' }
+  const rival = { name: 'Iori Hayama', craft: 50, magazineId: rivalAt, seriesTitle: 'Robo Pals Go!', temper: 'stoic' as const }
   return withReadyOneShot({ ...s, notebook, rival }, draft, art, story)
 }
 

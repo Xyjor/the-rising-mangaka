@@ -7,6 +7,7 @@ import {
 } from '../sim'
 import type {
   AnimeDeal, AnimeStudio, Award, AudienceId, Forecast, GenreId, MagazineId, NearMiss, PollResult, RankTier, Rival, RivalPlacing,
+  RivalTemper,
   ScoreBreakdown, ThemeId, YearReview,
 } from '../sim'
 import { money, plural } from './format'
@@ -141,15 +142,30 @@ export function beatLabel(chance: number): string {
  * rounded scores match, the line says so and the finish is "just" ahead or behind; equal ranks are a tie. Null when
  * the rival was not in the poll.
  */
-export function rivalLine(r: { score: number; rank: number; rival?: RivalPlacing }): string | null {
+export function rivalLine(r: { score: number; rank: number; rival?: RivalPlacing }, temper?: RivalTemper): string | null {
   const rv = r.rival
   if (!rv) return null
   const placed = `${rv.name} placed #${rv.rank} with ${rv.score}`
-  if (r.rank === rv.rank) return `${placed}. You tied.`
+  const quote = temper ? ` ${firstName(rv.name)}: "${RIVAL_RESULT_QUOTES[temper][r.rank === rv.rank ? 'tied' : r.rank < rv.rank ? 'ahead' : 'behind']}"` : ''
+  if (r.rank === rv.rank) return `${placed}. You tied.${quote}`
   const side = r.rank < rv.rank ? 'ahead' : 'behind'
   return rv.score === r.score
-    ? `${placed}, the same score as yours. You finished just ${side}.`
-    : `${placed}. You finished ${side}.`
+    ? `${placed}, the same score as yours. You finished just ${side}.${quote}`
+    : `${placed}. You finished ${side}.${quote}`
+}
+
+/** What the rival says after a poll, by temper and by where you finished against them (text only, no effect). */
+export const RIVAL_RESULT_QUOTES: Record<RivalTemper, Record<'ahead' | 'behind' | 'tied', string>> = {
+  gracious: { ahead: 'Well drawn. You earned that one.', behind: 'Good try. Next issue is yours to take.', tied: 'Neck and neck. I like it.' },
+  cocky: { ahead: 'Enjoy it. It will not happen twice.', behind: 'Was that your best? Try harder.', tied: 'A tie? I must be having an off week.' },
+  stoic: { ahead: 'Noted.', behind: 'The poll speaks for itself.', tied: 'Even. Back to work.' },
+}
+
+/** What the rival says in the year review, by temper and by who led the year's head to head (text only). */
+export const RIVAL_YEAR_QUOTES: Record<RivalTemper, Record<'led' | 'trailed' | 'even', string>> = {
+  gracious: { led: 'You pushed me all year. Thank you for that.', trailed: 'A good year for me. Yours is coming.', even: 'An even year. Let us do it again.' },
+  cocky: { led: 'A lucky year. Enjoy it while it lasts.', trailed: 'Same time next year? Bring more.', even: 'Even? Next year I pull ahead.' },
+  stoic: { led: 'Next year.', trailed: 'The work continues.', even: 'Even. Fine.' },
 }
 
 /** Ends a sentence after `text`, unless it already ends in its own mark (Kids Comic Go!). */
@@ -272,7 +288,7 @@ export function nearMissText(n: NearMiss): string {
  * The rival's year: the award they took, this year's head to head, and their craft and magazine for next year with
  * the scores that craft usually brings (craft ± RIVAL_SCORE_SD).
  */
-export function rivalYearLine(r: YearReview): string {
+export function rivalYearLine(r: YearReview, temper?: RivalTemper): string {
   const x = r.rival
   const mag = magazineById(x.toMagazine).name
   const parts: string[] = []
@@ -290,5 +306,9 @@ export function rivalYearLine(r: YearReview): string {
     parts.push(`${x.name}'s craft grew from ${x.craftBefore} to ${x.craftAfter}. They stay in ${mag} with "${x.series}".`)
   }
   parts.push(`They usually score ${x.craftAfter - RIVAL_SCORE_SD} to ${x.craftAfter + RIVAL_SCORE_SD} now.`)
+  if (temper) {
+    const who = x.wins > x.losses ? 'led' : x.wins < x.losses ? 'trailed' : 'even'
+    parts.push(`${firstName(x.name)} says: "${RIVAL_YEAR_QUOTES[temper][who]}"`)
+  }
   return parts.join(' ')
 }

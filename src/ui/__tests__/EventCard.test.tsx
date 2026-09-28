@@ -102,5 +102,34 @@ describe('event-only trips', () => {
     expect(screen.getByText('Hot Spring')).toBeTruthy()
     expect(screen.queryByText('Comic Convention')).toBeNull()
     expect(screen.queryByText('Manga Masterclass')).toBeNull()
+    expect(screen.getByText('Manga Museum')).toBeTruthy()
+    expect(screen.getByText('Mountain Retreat')).toBeTruthy()
+    expect(screen.getByText('Full stamina, max stamina +5 (never above 150)')).toBeTruthy()
+    expect(screen.queryByText('Book Signing')).toBeNull()
+  })
+
+  it('shows the new events with their numbers on the buttons, the icon standing in for missing art', () => {
+    const base = acceptOffer({ ...createGame('Rin', 1), pendingOffer: KIDS_OFFER })
+    const sold = { ...base, serial: { ...base.serial!, totalCopies: 12_000, volumes: 3 } }
+    const game: GameState = { ...sold, event: { id: 'signing', day: 0, expiresDay: 7, serialId: sold.serial!.id } }
+    useStore.setState({ game })
+    render(<EventCard />)
+    const card = screen.getByRole('region', { name: 'A bookshop wants a signing' })
+    expect(card.textContent).toContain('It pays round(average copies a volume × 0.2) × ¥2.')
+    expect(screen.getByRole('button', { name: 'Sign for a day: 1-day trip, +¥1,600 on return' })).toBeTruthy()
+    expect(card.querySelector('svg')).not.toBeNull()
+  })
+
+  it('names the challenge stakes before the choice', () => {
+    const base = acceptOffer({ ...createGame('Rin', 1), pendingOffer: KIDS_OFFER })
+    const game: GameState = {
+      ...base, player: { ...base.player, fans: 10_000 },
+      event: { id: 'rival-challenge', day: 0, expiresDay: 7, serialId: base.serial!.id },
+    }
+    useStore.setState({ game })
+    render(<EventCard />)
+    expect(screen.getByRole('button', {
+      name: 'Accept: place above them for fans +300 (3% of fans, at most 1,500); below them, popularity -3',
+    })).toBeTruthy()
   })
 })

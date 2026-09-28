@@ -309,6 +309,15 @@
 .postcard[data-place='hot-spring'] { background-image: linear-gradient(180deg, var(--blue-soft) 0 50%, var(--blue) 50% 100%); }
 .postcard[data-place='convention'] { background-image: linear-gradient(180deg, var(--accent-soft) 0 40%, var(--accent) 40% 100%); }
 .postcard[data-place='masterclass'] { background-image: linear-gradient(180deg, var(--green-soft) 0 60%, var(--green) 60% 100%); }
+.postcard[data-place='manga-museum'] {
+  background-image: repeating-linear-gradient(90deg, var(--panel) 0 6px, var(--line-strong) 6px 8px);
+  background-color: var(--gold-soft);
+}
+.postcard[data-place='mountain-retreat'] {
+  background-image: linear-gradient(135deg, transparent 0 50%, var(--green) 50% 100%), linear-gradient(225deg, transparent 0 50%, var(--green) 50% 100%);
+  background-color: var(--blue-soft);
+}
+.postcard[data-place='signing'] { background-image: linear-gradient(180deg, var(--purple-soft) 0 50%, var(--purple) 50% 100%); }
 /* An armed ConfirmRow (moving studio) takes the button's cell. */
 .place > .row { grid-column: 2; grid-row: 1 / span 3; }
 @media (max-width: 640px), (min-width: 900px) {
@@ -414,3 +423,11 @@
 .slot-list .slot { display: flex; flex-direction: column; gap: 8px; padding: 12px; }
 .slot-list .slot-name { font-family: var(--font-display); font-size: 16px; overflow-wrap: anywhere; }
 .title-screen.has-hero .title-card { max-height: calc(100% - 16px); overflow-y: auto; }
+
+/* The Series panel's Goods section (MerchSection.tsx). */
+.merch .merch-list, .merch .merch-runs { list-style: none; padding-left: 0; display: flex; flex-direction: column; gap: 10px; margin: 8px 0; }
+.merch-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.merch-art { width: 32px; height: 32px; display: grid; place-items: center; flex: none; }
+.merch-net { color: var(--green-text); }
+.merch-net.neg { color: var(--accent-text); }
+.merch-run { display: flex; flex-direction: column; gap: 4px; }

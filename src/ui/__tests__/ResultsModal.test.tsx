@@ -108,13 +108,13 @@ describe('ResultsModal rival line', () => {
   it('says where the rival placed and that the player finished ahead', () => {
     useStore.setState({ game: withRival(2, { name: 'Natsume Kujo', score: 51, rank: 4 }) })
     render(<Harness />)
-    expect(screen.getByText('Natsume Kujo placed #4 with 51. You finished ahead.')).toBeTruthy()
+    expect(screen.getByText('Natsume Kujo placed #4 with 51. You finished ahead. Natsume: "Enjoy it. It will not happen twice."')).toBeTruthy()
   })
 
   it('or behind', () => {
     useStore.setState({ game: withRival(9, { name: 'Natsume Kujo', score: 51, rank: 4 }) })
     render(<Harness />)
-    expect(screen.getByText('Natsume Kujo placed #4 with 51. You finished behind.')).toBeTruthy()
+    expect(screen.getByText('Natsume Kujo placed #4 with 51. You finished behind. Natsume: "Was that your best? Try harder."')).toBeTruthy()
   })
 
   it('says nothing about a rival who was not in the poll', () => {
@@ -134,7 +134,8 @@ describe('ResultsModal rival line', () => {
     // seed 42's rival is Natsume Kujo; the line names the rival's own rank and score from the result
     const line = screen.getByText((text) => text.startsWith('Natsume Kujo placed #'))
     expect(line.textContent).toContain(`placed #${r.rival!.rank} with ${r.rival!.score}`)
-    expect(line.textContent).toMatch(r.rank < r.rival!.rank ? /You finished (just )?ahead\.$/ : /You finished (just )?behind\.$/)
+    // seed 42 (world 332598) hashes "temper:332598" to 1, cocky: the line ends with the rival's quote
+    expect(line.textContent).toMatch(r.rank < r.rival!.rank ? /You finished (just )?ahead\. Natsume: "/ : /You finished (just )?behind\. Natsume: "/)
   })
 })
 
@@ -323,7 +324,7 @@ describe('ResultsModal reveal', () => {
   it('keeps the rival line, the pay line and the offer line hidden until the stamp', () => {
     useStore.setState({ game: withRival(12, { name: 'Natsume Kujo', score: 51, rank: 4 }) })
     const { container } = render(<Harness />)
-    const rival = screen.getByText('Natsume Kujo placed #4 with 51. You finished behind.')
+    const rival = screen.getByText('Natsume Kujo placed #4 with 51. You finished behind. Natsume: "Was that your best? Try harder."')
     const pay = screen.getByText((text) => text.includes('scaled by your score'))
     const offer = screen.getByText((text) => text.startsWith('Rank 12 of 13, score 45: no serial offer this time.'))
     expect([rival, pay, offer].map((el) => el.style.visibility)).toEqual(['hidden', 'hidden', 'hidden'])

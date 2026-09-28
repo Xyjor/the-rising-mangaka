@@ -57,8 +57,19 @@ describe('upgradeSave', () => {
   })
 
   it('keeps the rival a newer save already has', () => {
-    const rival = { name: 'Mikoto Sakuraba', craft: 71, magazineId: 'weekly-bolt', seriesTitle: 'Thunder Relay' } as const
+    const rival = { name: 'Mikoto Sakuraba', craft: 71, magazineId: 'weekly-bolt', seriesTitle: 'Thunder Relay', temper: 'gracious' } as const
     expect(upgradeSave({ ...createGame('Rin', 4), day: 700, rival }).rival).toEqual(rival)
+  })
+
+  it("gives a rival saved before tempers their world's temper, from the seed hash", () => {
+    // seed 1 (world 7919): FNV-1a of "temper:7919" is 3402393088, mod 3 = 1: cocky; seed 5 (world 39595): 0, gracious
+    for (const [seed, temper] of [[1, 'cocky'], [5, 'gracious'], [3, 'stoic']] as const) {
+      const g = createGame('Rin', seed)
+      const { temper: _drop, ...old } = g.rival
+      void _drop
+      const up = upgradeSave({ ...g, rival: old as GameState['rival'] })
+      expect(up.rival).toEqual({ ...old, temper })
+    }
   })
 
   it("gives a save from before random events its own world's event seed, a first roll two weeks out and no event", () => {

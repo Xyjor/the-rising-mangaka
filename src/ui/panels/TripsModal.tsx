@@ -2,6 +2,8 @@ import { PLACES, getPhase } from '../../sim'
 import { useStore } from '../../state/store'
 import { Modal } from '../components'
 import { money } from '../format'
+import { PLACE_ART } from '../art/registry'
+import { PixelArt } from '../art/PixelArt'
 
 export function TripsModal() {
   const game = useStore((s) => s.game)!
@@ -17,9 +19,12 @@ export function TripsModal() {
         <div className="place-list">
           {PLACES.filter((pl) => !pl.eventOnly).map((pl) => {
             const canAfford = game.player.money >= pl.cost
+            const art = PLACE_ART[pl.id]
             return (
               <div className="place has-thumb" key={pl.id}>
-                <span className="postcard" data-place={pl.id} aria-hidden="true" />
+                {art
+                  ? <span className="postcard" aria-hidden="true"><PixelArt art={art} /></span>
+                  : <span className="postcard" data-place={pl.id} aria-hidden="true" />}
                 <div className="name">{pl.name}</div>
                 <button className="btn sm primary" disabled={busy || !canAfford} onClick={() => startTrip(pl.id)}>
                   {busy ? 'Away' : canAfford ? `Go, ${money(pl.cost)}` : `Need ${money(pl.cost - game.player.money)} more`}

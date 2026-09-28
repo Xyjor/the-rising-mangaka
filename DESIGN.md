@@ -112,6 +112,10 @@ from before the rival get the one their world would have by the save's day (`upg
 whole years played).
 The editor writes a one-line comment on the component that cost the most points at that magazine
 (`biggestLoss`: the largest weight × (100 − component), ties in the order art, story, pacing, fit, freshness).
+The rival has a temper (`temper`: gracious, cocky or stoic), from `hashString('temper:' + worldSeed) % 3`, so it
+consumes no RNG; `makeRival` stores it and `upgradeSave` gives an older save's rival its world's temper. It is text
+only: the results rival line ends with the rival's quote for ahead, behind or tied, and the year review's rival line
+with a quote for a year led, trailed or even (`RIVAL_RESULT_QUOTES`, `RIVAL_YEAR_QUOTES` in `ui/labels.ts`).
 
 ### Pay
 Every poll, one-shot or chapter, pays `round(pageRate × pages × score × tier% / (PAY_FULL_RATE_SCORE × 100))`
@@ -466,38 +470,38 @@ URL satisfies.
 A money sink whose every effect is stated where it is sold (the Studio panel, from the desk's Studio button) and listed
 again under the reward tiles in Stats. `src/sim/studio.ts`; no RNG.
 - **Tiers.** A new career starts in the apartment. Moving goes one tier up at a time, never down, and costs the next
-  tier's move-in; the panel asks to confirm a move ("Yes, move in for ¥56,300" or "Stay here"), and the next tier's line
+  tier's move-in; the panel asks to confirm a move ("Yes, move in for ¥55,000" or "Stay here"), and the next tier's line
   says "You cannot move back down." Equipment is a single click. The tier's rent is part of the weekly costs (living + rent + salaries), and the weekly log line names
   it when it is not zero ("Weekly costs: -¥550 (living ¥400, rent ¥150)."). `hireAssistant` refuses once every desk is
   taken, on top of the rule that the bank must hold two weeks of that salary.
 
-| Tier | Desks | Rent/week | Move-in (base) | Move-in at scale 11.25 |
+| Tier | Desks | Rent/week | Move-in (base) | Move-in at scale 11 |
 |---|---|---|---|---|
 | Apartment | 1 | ¥0 | ¥0 | ¥0 |
-| Studio flat | 2 | ¥150 | ¥5,000 | ¥56,300 |
-| Studio loft | 3 | ¥350 | ¥15,000 (from the flat) | ¥168,800 (from the flat) |
+| Studio flat | 2 | ¥150 | ¥5,000 | ¥55,000 |
+| Studio loft | 3 | ¥350 | ¥15,000 (from the flat) | ¥165,000 (from the flat) |
 
 - **Equipment** is bought once and kept. A piece cannot be bought twice, without the money, or (the pen tablet) below
   the studio flat. Effects sum over everything owned; page multipliers multiply (drafting table and tablet: x1.265).
   Art and story bonuses go on the player's own samples of every working day (clamped to 100), never the assistants'.
   The page multiplier is part of `basePagesPerDay`, so the desk's pace, the ETA and the chapter deadline all include it.
 
-| Equipment | Base price | Price at scale 11.25 | Effect |
+| Equipment | Base price | Price at scale 11 | Effect |
 |---|---|---|---|
-| Coffee machine | ¥2,000 | ¥22,500 | Resting restores 3 more stamina a day (the rest branch, not trips) |
-| Daylight lamp | ¥2,500 | ¥28,100 | Art +3 on your pages |
-| Reference shelf | ¥3,000 | ¥33,800 | Story +3 on your pages |
-| Ergonomic chair | ¥4,000 | ¥45,000 | Drawing costs 1 less stamina a day (min 2); adds to an Inspiring assistant's 1 |
-| Drafting table | ¥7,000 | ¥78,800 | 10% more pages a day |
-| Pen tablet | ¥12,000, needs the flat | ¥135,000 | 15% more pages a day, art +2 |
+| Coffee machine | ¥2,000 | ¥22,000 | Resting restores 3 more stamina a day (the rest branch, not trips) |
+| Daylight lamp | ¥2,500 | ¥27,500 | Art +3 on your pages |
+| Reference shelf | ¥3,000 | ¥33,000 | Story +3 on your pages |
+| Ergonomic chair | ¥4,000 | ¥44,000 | Drawing costs 1 less stamina a day (min 2); adds to an Inspiring assistant's 1 |
+| Drafting table | ¥7,000 | ¥77,000 | 10% more pages a day |
+| Pen tablet | ¥12,000, needs the flat | ¥132,000 | 15% more pages a day, art +2 |
 
 - **Prices** go through `equipmentPrice(id)` and `moveInCost(tier)`: the base price times `EQUIPMENT_PRICE_SCALE`,
   rounded to the nearest ¥100. The panel and the tests read the helpers, never the base prices. The scale is
   S1 / 9000 rounded to 0.25 and held within 0.75-16 (`priceScale` in balance.ts), where S1 is the sensible balance
   bot's median money at day 336 with its shopping switched off (seeds 1-20; `npm run balance` prints it). S1 is
-  ¥101,816.5, so S1 / 9000 = 11.31 and the scale is 11.25; balance.test checks the constant is the scale S1 gives, so
+  ¥100,099, so S1 / 9000 = 11.12 and the scale is 11; balance.test checks the constant is the scale S1 gives, so
   a change that moves the economy says when the prices need re-deriving. The Full studio milestone (three assistants)
-  needs the loft: ¥225,100 in move-ins at this scale (¥56,300 for the flat, ¥168,800 for the loft), then ¥350 a week
+  needs the loft: ¥220,000 in move-ins at this scale (¥55,000 for the flat, ¥165,000 for the loft), then ¥350 a week
   in rent and three salaries.
 - **Saves** from before studios start in a studio with a desk for every assistant they have (3: loft, 2: flat,
   otherwise the apartment) and no equipment.
@@ -512,12 +516,33 @@ again under the reward tiles in Stats. `src/sim/studio.ts`; no RNG.
 ### Trips and training
 - Library / Reader survey reveal Notebook cells. Classes add +2 to a stat. Hot spring restores and raises max stamina.
 - The player is away for the trip's length; nothing is drawn.
-- Two trips are reached only by answering a random event, and the Trips panel does not list them: the Comic
-  Convention (2 days, ¥500, fans on return) and the Manga Masterclass (3 days, ¥400, +3 to the lowest stat).
+- The Manga Museum (3 days, ¥700) reveals one genre x theme pairing for a genre you have never drawn (one-shots,
+  serials and the desk's project), with no RNG: the first such genre in `GENRES` order that still has an unknown
+  theme, with its first unknown theme in `THEMES` order; once every undrawn genre is known, the first unknown pairing
+  of any genre (`revealUndrawnGenre` in `editors.ts`).
+- Every trip's max-stamina gain is capped at 150 (`MAX_STAMINA_CAP`; the Trips panel says so for each trip that
+  raises it). The Hot Spring (3 days, ¥400) restores stamina and adds 3 max stamina, never above 150. The Mountain
+  Retreat (5 days, ¥1,500) restores stamina and adds 5 max stamina, never above 150. A max stamina already at or
+  above 150 stays where it is.
+- Three trips are reached only by answering a random event, and the Trips panel does not list them: the Comic
+  Convention (2 days, ¥500, fans on return), the Manga Masterclass (3 days, ¥400, +3 to the lowest stat) and the
+  Book Signing (1 day, free, + round(average copies a volume x 0.2) x ¥2 on return, for the serial a reprint would be
+  for).
+- The balance bots never take a listed trip; they go on event trips only by answering an event 'a'.
 
 ### Editors
-- Each magazine has an editor. Every result raises the relationship; every 3 points the editor shares a tip that
-  reveals a theme x audience pairing for that magazine's readers.
+- Each magazine has an editor. Every result raises the relationship; every `tipEvery` points the editor shares a tip
+  that reveals a theme x audience pairing for that magazine's readers (`bumpEditor` in `editors.ts`; a random pick,
+  one draw from the main seed; a tip earned by answering a random event takes the first unknown pairing instead and
+  draws nothing, so events never move the main seed).
+- Each editor has a visible persona (`persona`, `personaLine` in `MAGAZINES`), printed on the Submit and Offer
+  magazine cards and under the Results editor comment:
+  - Mori (Kids Comic Go!), cheerleader: no mechanical change, a tip every 3 points.
+  - Tanaka (Weekly Bolt), deadline hawk: a tip every 3 points, and a log line (no toast) on the day a Weekly Bolt
+    chapter's deadline turns from on track to tight or late for the same chapter (`deadlineHawk` in `tick()`).
+  - Sato (Monthly Petal), mentor: a tip every 2 points.
+  - Kuroda (Ultra Seinen), critic: a tip every 4 points, and his one-shot results comment ends "That cost you N
+    points.", N = round(weight x (100 - component) / 100) for the component that cost the most (`pointsLost`).
 
 ### Random events
 One decision at a time, shown as a card on the desk and never as a popup (pillar 3). The card names both answers with
@@ -542,9 +567,19 @@ every effect they have, and says how many days are left to answer. `src/sim/even
 | Raise | the first assistant who has not asked yet | Give the raise: salary becomes round(salary × 1.2 / 10) × 10, their art and story +3 | Not this year: their max stamina −10 |
 | Reprint | a serial, running or archived, with a volume | Approve: + round(average copies a volume × 0.25) × VOLUME_PRICE | Colour page: stamina −12, + round(average copies a volume × 0.4) × VOLUME_PRICE |
 | Workshop | level ≥ 3, money ≥ ¥400 | Attend: 3-day trip, ¥400; on return +3 to the lowest stat (ties: art, story, pacing) | Decline |
+| Interview | fans ≥ 2,000 and a magazine (the running serial's, else the latest one-shot's) | On camera: stamina −6, fans + clamp(round(fans × 0.01), 30, 800) | Written reply: that magazine's editor relationship +1 |
+| Signing | a serial, running or archived, with a volume | Sign: 1-day trip, free; on return + round(average copies a volume × 0.2) × VOLUME_PRICE | Skip it |
+| Editor dinner | an editor at relationship ≥ 3 (the highest; ties in magazine order) | Go: −¥300, that editor +1 | Decline |
+| Cover | the running serial has ≥ 4 results | Draw the cover: stamina −15, popularity +3 (at most 100) | Decline |
+| Assistant sick | an assistant (picked by a hash of the roll's day and event seed) | Paid rest: − round(salary / 2), their stamina full | Keep them working: their max stamina −5, never below 40 |
+| Rival challenge | the running serial is in the rival's magazine, no challenge on | Accept: the next chapter result settles it (`settleChallenge`): above the rival, fans + min(1,500, round(fans × 0.03)); below, popularity −3; a tie or a poll without the rival, nothing | Decline |
 
 Stamina changes clamp to 0..max stamina. Each assistant asks for a raise once, whatever the answer. A reprint is for
-the running serial when it has shipped a volume, else the latest archived one that has.
+the running serial when it has shipped a volume, else the latest archived one that has. No event changes story, art or
+pacing. The six events from Interview down were appended to `EVENT_IDS` (0.7.0), so the first six keep their pool
+order. `GameState.rivalChallenge` (`{ serialId, fromResult }` or null) holds an accepted challenge; a series that ends
+before its next result calls it off. Each card states its numbers before the choice; `EVENT_ART` (a Partial record)
+holds card art once generated, and the card falls back to its icon.
 
 ### Anime adaptations
 A hit serial is offered one adaptation, shown as a card on the desk and never as a popup (pillar 3). The card lists
@@ -586,6 +621,34 @@ Signed on day 100, Kumo airs on day 142, ends on day 226 and boosts volumes from
 to day 548 (24 payouts: +21,600 fans and +¥24,000). The sensible balance bot signs every offer the day it lands:
 Hoshi Animation while the serial has fewer than 12 results, Studio Kumo after that. The careless bot and the stress
 case let it lapse.
+
+### Merchandise
+
+A year-two money stream (`merch.ts`, no RNG, money only: never fans, popularity or copies).
+
+- **The licence.** On the first day with `day > 336` on which any serial (running or archived) has shipped a volume,
+  a goods maker's licence arrives: a toast ("A goods maker wants to license your series."), no pause, nothing to
+  answer. Year one never sees merch, so S1 and `EQUIPMENT_PRICE_SCALE` cannot move.
+- **Items** (`MERCH_ITEMS`, plain yen, not scaled by `EQUIPMENT_PRICE_SCALE`): keychains ¥6,300 for 4 weeks (share
+  0.02, ¥20 a unit), posters ¥14,000 for 6 (0.015, ¥40), plushies ¥25,000 for 8 (0.01, ¥80), the art book ¥24,000
+  for 6 (0.02, ¥50; needs 4 volumes on the serial), figures ¥64,000 for 8 (0.008, ¥250; needs a signed anime deal).
+- **Ordering** (`orderMerch`, from the Series panel's Goods section): the cost is paid at once (a money toast). Refused,
+  with the reason shown under the row (`merchRefusal`), without the licence, for a serial with no volume out, with an
+  item gate unmet, with the same item already selling for that serial, with 2 runs selling (`MERCH_MAX_RUNS`), or
+  without the money.
+- **Weekly pay** (`merchTick`, at the end of each week from the order day): round(average copies per volume x share x
+  demand / 100) units x margin x `animeVolumeMult`, where demand is the serial's popularity while it runs and half its
+  final popularity once it has ended. A daily-chatter log line each week; on the last week the run sells out with a
+  toast ("Keychains sold out: +¥8,560 over 4 weeks.") and stays in `merch.runs` as history; `merch.earned` is the
+  Career panel's "Goods sold" total.
+- **Forecast** (`merchForecast`): a week at today's demand times the run's weeks, and the net after the cost, shown
+  as "About ¥X back over N weeks if popularity holds (net +¥Y)". Tuned on a year-one-median serial (6,700 copies a
+  volume, the sensible bot's median over seeds 1-20): at popularity 80 every item returns 1.34x-1.38x its cost; at 50
+  every item is a net loss (`merch.test.ts` shows the table).
+- **Bots.** The sensible bot, once licensed, orders the cheapest item it may order for its running serial when the bank
+  holds its cost plus four weeks of costs, and skips it when `merchForecast(...).net` is zero or less (the shops path
+  only, so S1's no-buying run is untouched). The careless bot
+  and the stress case never order.
 
 ### Year end and awards
 Every `DAYS_PER_YEAR` (336) days the year closes: `closeYear` (`src/sim/year.ts`) runs when `day % 336 === 0` and
@@ -758,7 +821,8 @@ running.
    prices scaled to what a career earns (see Studio and equipment); volume sales flatten with fans (the square-root
    curve, see Serialisation); the smaller HUD on phones shipped separately.
 1. Awards and success. Shipped: year-end awards with a year review (see Year end and awards), anime adaptation offers
-   (see Anime adaptations) and conventions (an event-only trip, see Random events). Merchandise is not built.
+   (see Anime adaptations), conventions (an event-only trip, see Random events) and merchandise from year two (see
+   Merchandise).
 2. Rival mangaka. Shipped: one named rival per world with a visible career (a magazine and series, craft growing at
    every year end) and head-to-head results in every poll they share (see Named rival).
 3. Random events with choices. Shipped: six events as desk cards (see Random events).
@@ -837,15 +901,18 @@ The final hook order inside `tick()`:
 5. One-shot poll result and serialisation offer.
 6. `resolveChapters` (chapter polls, volumes, warnings, cancellation, archiving).
 7. `checkDeadline` (a serial chapter not in by its due day misses the issue; warnings and cancellation).
+7a. `settleChallenge` (an accepted rival challenge settles on its serial's next result, or is called off).
+7b. `deadlineHawk` (Tanaka's log line the day a Weekly Bolt deadline turns tight).
 8. `closeYear` (on day % 336 == 0, day > 0: awards and prizes, the year review, the rival's growth, the new year's
    baseline).
 9. `animeTick` (a waiting anime offer whose series stopped running is withdrawn, one past its last day lapses; each
    deal's premiere, weekly pay, finale and end of boost; a new offer to a running hit).
-10. `eventTick` (an unanswered event past its last day, or one whose subject is gone, lapses; the weekly random-event
+10. `merchTick` (the goods maker's licence; each run's weekly pay and its sell-out).
+11. `eventTick` (an unanswered event past its last day, or one whose subject is gone, lapses; the weekly random-event
     roll).
-11. `awardMilestones`.
-12. `awardBadges(prev, s)` (no XP, no money, no RNG).
-13. Return.
+12. `awardMilestones`.
+13. `awardBadges(prev, s)` (no XP, no money, no RNG).
+14. Return.
 
 `closeYear` runs before `animeTick`, `eventTick` and `awardMilestones`, so they see the prizes and the grown rival
 the same day; a milestone that lands on the closing day counts toward the new year.
@@ -864,7 +931,8 @@ export them.
   serial up at 16 results with popularity 50 or more. It answers a random event 'a' when that answer can be given and
   leaves two weeks of costs in the bank (costs after answering, so a raise counts the new salary), else 'b'; signs an
   anime offer the day it lands (Hoshi Animation under 12 results, else Studio Kumo); buys the cheapest equipment its
-  studio may have once the bank holds the price plus four weeks of costs, one piece a day; and reads the year review.
+  studio may have once the bank holds the price plus four weeks of costs, one piece a day; from year two orders the
+  cheapest goods run for its running serial on the same terms (see Merchandise); and reads the year review.
 - **Careless** ignores the Notebook, the odds and the stats screen: every choice is a hash of the world seed and the
   project id, the focus is balanced, and it never spends points. It answers every event 'b' (the answer that costs no
   money), lets anime offers lapse, never buys or moves, and reads the year review.
@@ -972,3 +1040,16 @@ alongside the untouched code-drawn scene and sprites) and a handful of visual po
 - The scene redraw (Task 6) moved the fillRect baselines from 659/1065 to 673/1079 (`render.test.ts`,
   `studioArt.test.ts`; see "The studio in the scene" above for the item-by-item accounting), and `roomArt.test.ts`
   caps every tier's room-and-front-row fill count at 84.
+- Task C content pass (0.7.0): six events appended to the pool, the Manga Museum, the Mountain Retreat and the
+  event-only Book Signing, editor personas and the rival temper. Editor relationships already existed, so the
+  interview's written reply and the dinner raise the real relationship (no stand-in stat). A tip earned from an event
+  reveals the first unknown pairing and draws no RNG, keeping events off the main seed. No max-stamina cap existed, so
+  the retreat introduces its own (150), shown on the Trips panel; the hot spring stays uncapped. The signing pays 0.2
+  of the average copies a volume, its intended worth; it is not an S1 knob.
+- Content moved S1; scale re-derived to 11.0. With Task C's events S1 is ¥100,099 (S1 / 9000 = 11.12), so
+  `EQUIPMENT_PRICE_SCALE` went from 11.25 to 11 and every price and move-in with it (coffee ¥22,000, lamp ¥27,500,
+  shelf ¥33,000, chair ¥44,000, drafting table ¥77,000, tablet ¥132,000; flat ¥55,000, loft ¥165,000), re-derived by
+  hand in studio.test. No band threshold changed; every row passes.
+- A sick assistant kept working loses 5 max stamina, never below 40 (the card says so), and which assistant falls ill
+  is a hash of the roll's day and event seed, drawing no extra RNG.
+- The sensible bot skips a goods run whose `merchForecast` net is zero or less (carried from Task M).

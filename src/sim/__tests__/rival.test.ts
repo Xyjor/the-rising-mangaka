@@ -1,18 +1,18 @@
 import { describe, expect, it } from 'vitest'
 import {
-  RIVAL_MAX_CRAFT, RIVAL_NAMES, RIVAL_SERIES, acceptOffer, createGame, evaluateChapter, evaluateProject, makeRival,
-  pollField, rivalMagazineFor, rivalRecord,
+  RIVAL_MAX_CRAFT, RIVAL_NAMES, RIVAL_SERIES, acceptOffer, challengeFans, createGame, evaluateChapter, evaluateProject,
+  growRival, makeRival, pollField, rivalMagazineFor, rivalRecord, rivalTemperFor, settleChallenge,
 } from '../index'
 import type { ChapterResult, GameState, MagazineId, PendingChapter, PollResult, Rival } from '../index'
 import { draw } from '../rng'
-import { withReadyOneShot } from '../../test/fixtures'
+import { KIDS_OFFER, withReadyOneShot } from '../../test/fixtures'
 
 const KIDS_DRAFT = { title: 'Blade Club', genre: 'action', theme: 'samurai', audience: 'kids' } as const
 const TEENS_DRAFT = { ...KIDS_DRAFT, audience: 'teens' } as const
 
 /** A rival of `craft` running in `magazineId`. */
 function rivalAt(magazineId: MagazineId, craft = 50): Rival {
-  return { name: 'Touya Kagami', craft, magazineId, seriesTitle: 'Robo Pals Go!' }
+  return { name: 'Touya Kagami', craft, magazineId, seriesTitle: 'Robo Pals Go!', temper: 'stoic' }
 }
 
 // gaussian(u1, u2) = sqrt(-2 ln u1) x cos(2 pi u2): (e^-0.5, 0) gives +1, (e^-0.5, 0.5) gives -1, (0.5, 0.25) gives 0
@@ -33,6 +33,8 @@ describe('makeRival', () => {
     // Craft 57 (RIVAL_START_CRAFT): 57 - 6 = 51 is under Petal's 52, so Kids Comic Go! (47).
     expect(makeRival(7919, 0)).toEqual({
       name: 'Iori Hayama', craft: 57, magazineId: 'kids-comic', seriesTitle: RIVAL_SERIES['kids-comic'][0],
+      // FNV-1a of "temper:7919" is 3402393088, mod 3 = 1: cocky
+      temper: 'cocky',
     })
     // seed 4 (world 31676) hashes to 0 (Touya Kagami), seed 42 (world 332598) to 5 (Natsume Kujo)
     expect(makeRival(31676, 0).name).toBe('Touya Kagami')
@@ -181,5 +183,66 @@ describe('rivalRecord', () => {
     // wins: 2 < 5, 1 < 2; losses: 6 > 1, 9 > 3; 4 = 4 is neither; results without the rival do not count
     expect(rivalRecord(s)).toEqual({ wins: 2, losses: 2 })
     expect(rivalRecord(g)).toEqual({ wins: 0, losses: 0 })
+  })
+})
+
+describe('rival temper', () => {
+  it('comes from a hash of the world seed, no RNG: gracious, cocky or stoic', () => {
+    // FNV-1a of "temper:" + world seed, mod 3: seed 1 (7919) 1, seed 5 (39595) 0, seed 3 (23757) 2
+    expect(rivalTemperFor(7919)).toBe('cocky')
+    expect(rivalTemperFor(39595)).toBe('gracious')
+    expect(rivalTemperFor(23757)).toBe('stoic')
+    expect(createGame('Rin', 1).rival.temper).toBe('cocky')
+    // growing keeps the temper
+    expect(growRival(makeRival(39595, 0), 39595).temper).toBe('gracious')
+  })
+})
+
+describe('settleChallenge', () => {
+  const chResult = (rank: number, rivalRank?: number): ChapterResult => ({
+    chapter: 3, day: 40, score: 60, rank, entrants: 11,
+    breakdown: { art: 60, story: 60, pacing: 60, audienceFit: 60, freshness: 60 },
+    rewards: { money: 0, fans: 0, xp: 0 },
+    ...(rivalRank ? { rival: { name: 'Iori Hayama', score: 60, rank: rivalRank } } : {}),
+  })
+  /** A Kids serial with two results and a challenge accepted at 2, fans 10,000, popularity 60. */
+  function challenged(): GameState {
+    const s = acceptOffer({ ...createGame('Rin', 1), pendingOffer: KIDS_OFFER })
+    const serial = { ...s.serial!, results: [chResult(5, 4), chResult(5, 4)], popularity: 60 }
+    return { ...s, serial, player: { ...s.player, fans: 10_000 }, rivalChallenge: { serialId: serial.id, fromResult: 2 } }
+  }
+  const withNext = (s: GameState, r: ChapterResult): GameState => ({ ...s, serial: { ...s.serial!, results: [...s.serial!.results, r] } })
+
+  it('waits while the serial has no new result', () => {
+    const s = challenged()
+    expect(settleChallenge(s)).toBe(s)
+  })
+
+  it('a win above the rival pays 3% of fans, at most 1,500', () => {
+    const won = settleChallenge(withNext(challenged(), chResult(2, 5)))
+    expect(won.rivalChallenge).toBeNull()
+    expect(won.player.fans).toBe(10_300)
+    expect(won.log.at(-1)).toMatchObject({ kind: 'event', toast: true, text: 'You beat Iori Hayama in the challenge: #2 to #5. Fans +300.' })
+    expect(challengeFans(100_000)).toBe(1500)
+  })
+
+  it('a loss costs 3 popularity; a tie or a poll without the rival changes nothing', () => {
+    const lost = settleChallenge(withNext(challenged(), chResult(6, 1)))
+    expect(lost.serial!.popularity).toBe(57)
+    expect(lost.player.fans).toBe(10_000)
+    expect(lost.rivalChallenge).toBeNull()
+    const tie = settleChallenge(withNext(challenged(), chResult(3, 3)))
+    expect(tie.serial!.popularity).toBe(60)
+    expect(tie.rivalChallenge).toBeNull()
+    const absent = settleChallenge(withNext(challenged(), chResult(3)))
+    expect(absent.player.fans).toBe(10_000)
+    expect(absent.rivalChallenge).toBeNull()
+  })
+
+  it('is called off when the serial ends before a result', () => {
+    const s = challenged()
+    const ended = settleChallenge({ ...s, serial: null, serials: [{ ...s.serial!, status: 'ended' }] })
+    expect(ended.rivalChallenge).toBeNull()
+    expect(ended.log.at(-1)!.text).toBe('The challenge with Iori Hayama is off: the series ended first.')
   })
 })

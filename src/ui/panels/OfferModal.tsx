@@ -36,6 +36,7 @@ export function OfferModal() {
         <p id="offer-summary" className="sr-only">
           {mag.name} offers to serialise {offer.title} at {money(mag.pageRate)} a page at a score of {PAY_FULL_RATE_SCORE}, {mag.circulation}k readers, {mag.entrants} rival series.
         </p>
+        <p className="small muted">Editor: {mag.editor}, {mag.persona}. {mag.personaLine}</p>
         <div className="offer-hero">
           <span className="small muted">{mag.name} wants to run</span>
           <span className="t">{offer.title}</span>

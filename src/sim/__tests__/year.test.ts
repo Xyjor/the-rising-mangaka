@@ -94,7 +94,7 @@ describe('closeYear', () => {
     expect(s.yearStart).toEqual({ day: 336, money: 30_800, fans: 0, level: 2, copies: 0, volumes: 0 })
     // craft 57 + 4 = 61: the highest rival mean at most 61 - 6 = 55 is Monthly Petal's 52; FNV-1a of
     // "rival:7919:monthly-petal" mod 3 is 2
-    expect(s.rival).toEqual({ name: 'Iori Hayama', craft: 61, magazineId: 'monthly-petal', seriesTitle: 'Glasshouse Summer' })
+    expect(s.rival).toEqual({ name: 'Iori Hayama', craft: 61, magazineId: 'monthly-petal', seriesTitle: 'Glasshouse Summer', temper: 'cocky' })
     expect(s.awards).toEqual([])
     expect(s.reviewUnread).toBe(1)
     expect(toasts(s, start.nextLogId - 1)).toContain('Year 1 is over. No awards this year. Your year in review is on the desk.')
