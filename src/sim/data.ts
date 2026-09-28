@@ -1,4 +1,5 @@
 import type {
+  MerchItem, MerchItemId,
   AnimeStudio, AnimeStudioId, AssistantTrait, Award, AwardId, Audience, AudienceId, Equipment, EquipmentId, Genre, GenreId, Magazine, MagazineId, Place, PlaceId,
   ScoreWeights, StudioTier, StudioTierId, Theme, ThemeId,
 } from './types'
@@ -296,3 +297,20 @@ export function studioTierById(id: StudioTierId): StudioTier { return STUDIO_TIE
 export function equipmentById(id: EquipmentId): Equipment { return EQUIPMENT.find((e) => e.id === id)! }
 export function awardById(id: AwardId): Award { return AWARDS.find((a) => a.id === id)! }
 export function animeStudioById(id: AnimeStudioId): AnimeStudio { return ANIME_STUDIOS.find((a) => a.id === id)! }
+
+/**
+ * Merchandise (merch.ts), licensed from year two once a volume has shipped. A run sells
+ * round(average copies per volume x share x demand / 100) units a week at `margin` yen each, for `weeks` weeks. Tuned
+ * on a year-one-median serial (6,700 copies a volume): at popularity 80 each run returns 1.34x-1.38x its cost, at 50
+ * every run loses money (merch.test.ts shows the arithmetic).
+ */
+export const MERCH_ITEMS: readonly MerchItem[] = [
+  { id: 'keychain', name: 'Keychains', cost: 6_300, weeks: 4, share: 0.02, margin: 20 },
+  { id: 'poster', name: 'Posters', cost: 14_000, weeks: 6, share: 0.015, margin: 40 },
+  { id: 'plush', name: 'Plushies', cost: 25_000, weeks: 8, share: 0.01, margin: 80 },
+  { id: 'artbook', name: 'Art book', cost: 24_000, weeks: 6, share: 0.02, margin: 50, needsVolumes: 4 },
+  { id: 'figure', name: 'Figures', cost: 64_000, weeks: 8, share: 0.008, margin: 250, needsAnime: true },
+]
+/** At most this many merch runs sell at once. */
+export const MERCH_MAX_RUNS = 2
+export function merchItemById(id: MerchItemId): MerchItem { return MERCH_ITEMS.find((m) => m.id === id)! }

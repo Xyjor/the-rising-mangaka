@@ -12,6 +12,7 @@ import {
 } from './data'
 import { addLog, grantXp } from './core'
 import { animeTick, animeVolumeMult, withdrawAnimeOffer } from './anime'
+import { merchTick } from './merch'
 import { STAT_NAME, conventionFans, eventTick, lowestStat } from './events'
 import { clamp, draw, hashString, range } from './rng'
 import {
@@ -84,6 +85,7 @@ export function createGame(name: string, seed: number): GameState {
     anime: [],
     animeOffer: null,
     animeOfferedFor: [],
+    merch: { licensedDay: null, runs: [], nextRunId: 1, earned: 0 },
     yearStart: { day: 0, money: player.money, fans: player.fans, level: player.level, copies: 0, volumes: 0 },
     yearReviews: [],
     reviewUnread: null,
@@ -884,6 +886,7 @@ export function tick(state: GameState): GameState {
   s = checkDeadline(s)
   s = closeYear(s)
   s = animeTick(s)
+  s = merchTick(s)
   s = eventTick(s)
   s = awardMilestones(s)
   s = awardBadges(state, s)

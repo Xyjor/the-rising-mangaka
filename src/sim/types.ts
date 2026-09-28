@@ -287,6 +287,47 @@ export interface EditorRel { relationship: number; tips: number }
 
 export type AnimeStudioId = 'kumo' | 'hoshi'
 
+// ---------- merchandise ----------
+
+export type MerchItemId = 'keychain' | 'poster' | 'plush' | 'artbook' | 'figure'
+
+export interface MerchItem {
+  id: MerchItemId
+  name: string
+  /** plain yen paid when the run is ordered (not scaled by EQUIPMENT_PRICE_SCALE) */
+  cost: number
+  /** how long the run sells */
+  weeks: number
+  /** fraction of the serial's average copies per volume the run sells a week at popularity 100 */
+  share: number
+  /** yen per unit sold */
+  margin: number
+  /** the serial needs this many volumes out */
+  needsVolumes?: number
+  /** the serial needs a signed anime deal */
+  needsAnime?: boolean
+}
+
+export interface MerchRun {
+  id: number
+  item: MerchItemId
+  serialId: number
+  orderedDay: number
+  /** the last pay day; the run is active while day < endsDay */
+  endsDay: number
+  sold: number
+  money: number
+}
+
+export interface MerchState {
+  /** the day the goods maker's licence arrived, null before */
+  licensedDay: number | null
+  runs: MerchRun[]
+  nextRunId: number
+  /** yen every run has earned so far */
+  earned: number
+}
+
 /** An animation studio's terms for adapting a hit serial (see anime.ts). */
 export interface AnimeStudio {
   id: AnimeStudioId
@@ -480,6 +521,8 @@ export interface GameState {
   awards: AwardWon[]
   /** badges earned in this career, in the order they landed (see badges.ts); no XP, no money */
   badges: BadgeEarned[]
+  /** merchandise (merch.ts): the goods maker's licence, every run ordered (active while day < endsDay) and the total */
+  merch: MerchState
 }
 
 export type Phase = 'idle' | 'drawing' | 'ready' | 'submitted'
