@@ -44,6 +44,13 @@
 .status-card .btn.ghost { color: var(--hud-dark-ink); }
 .status-card .btn.ghost:hover:not(:disabled) { background: rgba(255, 255, 255, 0.12); }
 .status-card .empty-desk .doodle { color: var(--hud-dark-muted); }
+/* Metric() (components.tsx) sets its own head/label/number colours assuming a paper panel;
+   the "Exhausted"/"Low stamina"/deadline warnings (.warn-text) use --accent-text, tuned for a
+   light background. Both need the dark-surface tokens instead. Chips, kbd, seg and buttons with
+   their own opaque fill are unaffected and untouched. */
+.status-card .metric .head { color: var(--hud-dark-muted); }
+.status-card .metric .head b { color: var(--hud-dark-ink); }
+.status-card .warn-text { color: var(--hud-dark-warn); }
 .tag-row { display: flex; gap: 6px; flex-wrap: wrap; }
 .empty-desk { text-align: center; padding: 12px; display: flex; flex-direction: column; gap: 12px; align-items: center; }
 .empty-desk .doodle { color: var(--ink-3); }

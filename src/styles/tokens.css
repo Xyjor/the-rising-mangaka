@@ -23,10 +23,13 @@
   --stage-bg: #1a1c25;
 
   /* A darker pixel-panel used for the status card: reads as a shaded window even against the
-     light theme's paper panel. --hud-dark-muted keeps 4.5:1 against --hud-dark. */
+     light theme's paper panel. --hud-dark-muted/-warn keep 4.5:1 against --hud-dark; --hud-dark-warn
+     is the warn-text colour for that dark surface (the theme's own --accent-text is tuned for
+     light backgrounds and does not pass on --hud-dark). */
   --hud-dark: #22232b;
   --hud-dark-ink: #f5f3ec;
   --hud-dark-muted: #a5a2ac;
+  --hud-dark-warn: #ff7370;
 
   --accent: #cc383d;
   --accent-ink: #ffffff;
@@ -107,6 +110,7 @@
     --hud-dark: #101019;
     --hud-dark-ink: #f5f3ec;
     --hud-dark-muted: #a5a2ac;
+    --hud-dark-warn: #ff7370;
     --accent-soft: #3a1f22;
     --blue-soft: #1e2740;
     --gold-soft: #3a2f10;
@@ -150,6 +154,7 @@
   --hud-dark: #101019;
   --hud-dark-ink: #f5f3ec;
   --hud-dark-muted: #a5a2ac;
+  --hud-dark-warn: #ff7370;
   --accent-soft: #3a1f22;
   --blue-soft: #1e2740;
   --gold-soft: #3a2f10;

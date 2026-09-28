@@ -53,7 +53,9 @@ p { margin: 0; }
    of border-radius. clip-path also clips a box's own outward hard box-shadow (the shadow sits
    entirely outside the 0-100% box), so the polygon is extended past the box on the bottom and
    right edges by --pf-x/--pf-y (the shadow's own offset) to keep a matching stepped silhouette
-   instead of losing the shadow outright. Boxes with no outward shadow leave --pf-x/--pf-y at 0. */
+   instead of losing the shadow outright. Boxes with no outward shadow leave --pf-x/--pf-y at 0.
+   --pf-x/--pf-y must always equal that element's own box-shadow x/y offset (including its
+   hover/active variants) or the notch drifts out of step with the shadow it is meant to match. */
 .badge-hud, .card, .modal, .btn:not(.ghost):not(.link), .choice {
   --step: 3px;
   --pf-x: 0px;

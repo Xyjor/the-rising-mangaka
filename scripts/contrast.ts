@@ -88,6 +88,7 @@ const PAIRS: Pair[] = [
   { fg: '--paper', bg: '--ink', label: 'paper on ink' },
   { fg: '--hud-dark-ink', bg: '--hud-dark', label: 'hud-dark-ink on hud-dark (status card)' },
   { fg: '--hud-dark-muted', bg: '--hud-dark', label: 'hud-dark-muted on hud-dark (status card)' },
+  { fg: '--hud-dark-warn', bg: '--hud-dark', label: 'hud-dark-warn on hud-dark (status card)' },
 ]
 
 let failures = 0
