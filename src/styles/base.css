@@ -310,6 +310,15 @@ p { margin: 0; }
 }
 .divider { height: 2px; background: var(--line); margin: 6px 0; }
 
+/* ---------- generated pixel art ---------- */
+.pixel-art {
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+}
+.art-frame {
+  display: inline-block; background: var(--paper-2); border: 2px solid var(--line-strong);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

@@ -1,0 +1,17 @@
+[
+  {
+    "id": "title/hero",
+    "model": "Z-Image-Turbo",
+    "resolution": "1280x720 ( 16:9 )",
+    "seed": 103706,
+    "steps": 8,
+    "shift": 3,
+    "prompt": "16-bit pixel art title screen key art for a cozy manga career game. A young chibi manga artist in a grey hoodie standing on a Tokyo apartment rooftop at golden hour, holding a manuscript page up to the sky, pen tucked behind ear, an orange cat beside them. Behind: soft city skyline, cherry blossom petals drifting, a large glowing sun. Empty sky area in the upper third reserved for a logo. Warm saturated palette of cream, coral red, indigo and gold, crisp pixels, limited palette, no text, no letters.",
+    "preamble": "none",
+    "native": [320, 180],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 32
+  }
+]
