@@ -51,11 +51,12 @@ describe('the sprites', () => {
     expect(MANGAKA_LIE).toHaveLength(14)
     expect(MANGAKA_LIE.every((row) => row.length === 30)).toBe(true)
     expect(MANGAKA_LIE[2].indexOf('H')).toBe(16)
-    // the editor: hair row 2 col 8, suit row 20 col 4, glasses row 8 col 6, briefcase row 24 col 20
+    // the editor: hair row 2 col 8, glasses row 10 col 5, tie row 17 col 11, suit row 18 col 5, briefcase row 24 col 20
     const e = EDITOR_IDLE[0]
-    expect([e[2][8], e[20][4], e[8][6], e[24][20]]).toEqual(['H', 'G', 'P', 'F'])
+    expect([e[2][8], e[10][5], e[17][11], e[18][5], e[24][20]]).toEqual(['H', 'P', 'N', 'G', 'F'])
+    // the doze: the head down 6 and right 2, so row 8 col 10 is hair and row 2 is clear
     expect(ASSISTANT_DOZE[8][10]).toBe('H')
-    expect(ASSISTANT_DOZE[2][8]).toBe('.')
+    expect(ASSISTANT_DOZE[2].slice(0, 10)).toBe('..........')
     expect([CAT_SIT[3][3], CAT_WALK[1][6][1], CAT_WALK[0][6][1]]).toEqual(['E', 'C', 'L'])
     expect([PROP_ENVELOPE[1][2], PROP_TROPHY[1][2]]).toEqual(['W', 'Y'])
   })

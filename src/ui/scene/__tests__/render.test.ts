@@ -248,26 +248,27 @@ describe('the characters, from the actor table', () => {
   }
 
   it('paints the editor at the spot, mirrored when facing right', () => {
-    // (198, 85): the suit at row 20 col 4, hair row 2 col 8, glasses row 8 col 6, the briefcase row 24 col 20
+    // (198, 85): the suit at row 18 col 5, hair row 2 col 8, glasses row 10 col 5, the briefcase row 24 col 20
     const left = paintWith(editorAt(-1), { visitor: 'editor' })
-    expect(has(left, '#5b6270', 202, 105)).toBe(true)
+    expect(has(left, '#5b6270', 203, 103)).toBe(true)
     expect(has(left, '#2b2140', 206, 87)).toBe(true)
-    expect(has(left, '#3b3b45', 204, 93)).toBe(true)
+    expect(has(left, '#3b3b45', 203, 95)).toBe(true)
     // (the bed frame behind is the same brown, so the case is found by its exact run: row 24's FFF, cols 19-21)
     expect(left).toContainEqual({ style: '#6d4c33', x: 217, y: 109, w: 3, h: 1 })
-    // facing right, col 4 mirrors to col 19 (x 217); col 19 of row 20 is the shade, so no base suit at x 202
+    // facing right, col 5 mirrors to x 198 + 23 - 5 = 216; x 203 is then row 18's col 18, the outline, so no suit there
     const log = paintWith(editorAt(1), { visitor: 'editor' })
-    expect(has(log, '#5b6270', 217, 105)).toBe(true)
-    expect(has(log, '#5b6270', 202, 105)).toBe(false)
+    expect(has(log, '#5b6270', 216, 103)).toBe(true)
+    expect(has(log, '#5b6270', 203, 103)).toBe(false)
   })
 
-  it('walks the editor with their own four frames, the briefcase moving with the trailing hand', () => {
-    // WALK[0] (anim 0): the case at cols 18-23, row 24's FFF at cols 19-21; WALK[2] (anim 200): cols 16-21, FFF at 17-19
-    const brown = (log: FillCall[]) => log.filter((c) => c.style === '#6d4c33' && c.y === 109 && c.h === 1 && c.w === 3)
-    const w0 = paintWith(editorAt(-1, { state: 'walking', targetX: 150, anim: 0 }), { visitor: 'editor' })
-    expect(brown(w0).map((c) => c.x)).toEqual([217])
-    const w2 = paintWith(editorAt(-1, { state: 'walking', targetX: 150, anim: 200 }), { visitor: 'editor' })
-    expect(brown(w2).map((c) => c.x)).toEqual([215])
+  it('walks the editor with their own four frames, the briefcase bobbing a row on the pass', () => {
+    // the case at cols 18-23: WALK[0] (anim 0) and WALK[2] (anim 200) have row 24's FFF at cols 19-21 (x 217, y 109);
+    // WALK[1] (anim 100, the pass) has it a row lower, row 25 (y 110), and row 24 there is the case's top edge only
+    const brown = (log: FillCall[], y: number) => log.filter((c) => c.style === '#6d4c33' && c.y === y && c.h === 1 && c.w === 3)
+    const walk = (anim: number) => paintWith(editorAt(-1, { state: 'walking', targetX: 150, anim }), { visitor: 'editor' })
+    expect(brown(walk(0), 109).map((c) => c.x)).toEqual([217])
+    expect(brown(walk(200), 109).map((c) => c.x)).toEqual([217])
+    expect(brown(walk(100), 110).map((c) => c.x)).toEqual([217])
   })
 
   it('puts the mangaka to bed to rest, the Zz rising over the pillow', () => {
@@ -288,13 +289,15 @@ describe('the characters, from the actor table', () => {
     }
     const env = at({ visitor: 'editor', visitorProp: 'envelope' }, 100)
     expect(covers(env, '#2b2140', 206, 87)).toBeGreaterThan(-1)
-    // the envelope sprite at (198 - 2, 85 + 19): row 1 col 2 is paper
-    expect(covers(env, '#fdfcf7', 198, 105)).toBeGreaterThan(-1)
+    // the envelope sprite at (198 - 2, 85 + 20) = (196, 105), the hand row 22's level: its corner, and row 1 col 2 paper
+    expect(covers(env, '#1c1a26', 196, 105)).toBeGreaterThan(-1)
+    expect(covers(env, '#fdfcf7', 198, 106)).toBeGreaterThan(-1)
+    expect(covers(env, '#fdfcf7', 198, 105)).toBe(-1)
     // frame 100: floor(100 / 16) % 2 = 0, so the ! tops out at 85 - 8 = 77 from x 209, its stroke in the glyph's middle
     // column (x 210)
     expect(covers(env, '#e5484d', 210, 77)).toBeGreaterThan(-1)
-    // the trophy at (196, 102): row 1 col 2 is gold
-    expect(covers(at({ visitor: 'editor', visitorProp: 'trophy' }, 100), '#f5b700', 198, 103)).toBeGreaterThan(-1)
+    // the trophy at (198 - 2, 85 + 18) = (196, 103): row 1 col 2 is gold
+    expect(covers(at({ visitor: 'editor', visitorProp: 'trophy' }, 100), '#f5b700', 198, 104)).toBeGreaterThan(-1)
     expect(covers(at({ visitor: 'editor', visitorProp: 'envelope' }, 16), '#e5484d', 210, 76)).toBeGreaterThan(-1)
   })
 
@@ -304,18 +307,18 @@ describe('the characters, from the actor table', () => {
     // the seated mangaka's row 1 '....LLHHHHHHHHHhLL......' at (132, 67): one 9x1 hair fill from x 138 (cols 6-14)
     expect(log).toContainEqual({ style: '#2b2140', x: 138, y: 68, w: 9, h: 1 })
     expect(log).not.toContainEqual({ style: '#2b2140', x: 139, y: 68, w: 1, h: 1 })
-    // the editor facing right at (198, 85), row 24 '......LgggggggggggLFFFfL' mirrored: FFF (cols 19-21) at x 200-202,
-    // the suit's shade (cols 7-17) at x 204-214
+    // the editor facing right at (198, 85), row 24 '.......LggggggggL.LFFFfL' mirrored: FFF (cols 19-21) at x 200-202,
+    // the suit's shade hem (cols 8-15) at x 206-213
     const ed = paintWith(editorAt(1), { visitor: 'editor' })
     expect(ed).toContainEqual({ style: '#6d4c33', x: 200, y: 109, w: 3, h: 1 })
-    expect(ed).toContainEqual({ style: '#454a55', x: 204, y: 109, w: 11, h: 1 })
+    expect(ed).toContainEqual({ style: '#454a55', x: 206, y: 109, w: 8, h: 1 })
   })
 
   it('paints no prop while the editor walks', () => {
     const table = editorAt(-1, { state: 'walking', targetX: 180 })
     const { ctx, log } = fakeContext()
     render(ctx, sceneSnapshot({ visitor: 'editor', visitorProp: 'envelope', actors: table }), 0.3, 100)
-    expect(covers(log, '#fdfcf7', 198, 105)).toBe(-1)
+    expect(covers(log, '#fdfcf7', 198, 106)).toBe(-1)
     expect(covers(log, '#e5484d', 210, 77)).toBe(-1)
   })
 })

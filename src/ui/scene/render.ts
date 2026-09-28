@@ -75,13 +75,14 @@ function glyph(ctx: CanvasRenderingContext2D, ch: string, x: number, y: number, 
 const PROP_PAPER = '#fdfcf7'
 const PROP_LINE = '#b8b2a5'
 
-/** What the standing editor holds in the leading hand (sprites in PROP_PAL), and the ! bobbing above them. */
+/** What the standing editor holds in the leading hand (row 22: the envelope at y + 20, the others at y + 18; sprites in
+ * PROP_PAL), and the ! bobbing above them. */
 function drawVisitorProp(ctx: CanvasRenderingContext2D, prop: Snapshot['visitorProp'], x: number, y: number, frame: number) {
   switch (prop) {
-    case 'envelope': drawSprite(ctx, PROP_ENVELOPE, x - 2, y + 19, 4, PROP_PAL); break
-    case 'letter': drawSprite(ctx, PROP_LETTER, x - 2, y + 17, 6, PROP_PAL); break
-    case 'contract': drawSprite(ctx, PROP_CONTRACT, x - 2, y + 17, 7, PROP_PAL); break
-    case 'trophy': drawSprite(ctx, PROP_TROPHY, x - 2, y + 17, 6, PROP_PAL); break
+    case 'envelope': drawSprite(ctx, PROP_ENVELOPE, x - 2, y + 20, 4, PROP_PAL); break
+    case 'letter': drawSprite(ctx, PROP_LETTER, x - 2, y + 18, 6, PROP_PAL); break
+    case 'contract': drawSprite(ctx, PROP_CONTRACT, x - 2, y + 18, 7, PROP_PAL); break
+    case 'trophy': drawSprite(ctx, PROP_TROPHY, x - 2, y + 18, 6, PROP_PAL); break
     case 'none': return
   }
   glyph(ctx, '!', x + 11, y - 8 - (Math.floor(frame / 16) % 2), '#e5484d')
