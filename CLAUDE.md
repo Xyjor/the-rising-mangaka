@@ -14,6 +14,8 @@ npm run lint           # oxlint
 npm run check           # Version check (package.json vs src-tauri/Cargo.toml) + lint (deny warnings) + typecheck +
                         # tests + build + contrast gate; CI runs these plus a balance smoke run
 npm run contrast        # WCAG AA 4.5:1 contrast gate over src/styles/tokens.css
+npm run art -- <id>|--all   # Regenerates a static illustration from art/manifest.json's raw source into
+                             # src/assets/art/ (scripts/pixelate.ts); run after adding or editing a manifest entry
 npm run balance -- [from=1] [to=20] [--detail seed]   # Balance bots (src/sim/bot.ts): a line per seed per bot, then the balance-band rows
 npm run tauri dev       # Desktop window; stop any running `npm run dev` first (it starts its own, strict port 5173)
 npm run tauri build     # Windows NSIS installer, in src-tauri/target/release/bundle/nsis/
@@ -94,13 +96,20 @@ canvas space; `story.ts` `storyLook`, the story props' five snapshot inputs read
   and `Pops.tsx` the DOM speech bubbles and floating money/fans/xp numbers, styled by `scene.css`;
   `StudioScene.tsx` is the component and its 24 fps frame loop (reading `studioLook` through `useShallow`, lighting
   from the presentation clock, playing the `knock` and `pop` cues); every render is checked against a hand-measured
-  fillRect baseline (`render.test.ts` 659, `studioArt.test.ts` 1048) and must stay under 1.5x it),
+  fillRect baseline (`render.test.ts` 673, `studioArt.test.ts` 1079) and must stay under 1.5x it),
   `components.tsx` (Bar, Pips, Modal, RankChart), `format.ts` (money/compact/plural formatters), `Icon.tsx`
   (inline SVG icon set), `SaveFileSection.tsx` and `useSaveFile.ts` (export and load, in Settings and on the
   title screen), and
   `ErrorBoundary.tsx` (wraps `App` in `main.tsx`; a render crash shows a recovery screen that exports the stored save
   and starts over, or in a tab that does not own the save, reloads). Tests live in `src/ui/__tests__` and
   `src/ui/scene/__tests__`; see the UI-test docblock rule under Commands above.
+- `src/ui/art/` — the generated-art layer: `palette.ts` (`ART_PALETTE`, every colour also literal in `src/ui/scene/*.ts`
+  or `src/styles/tokens.css`), `pixelOps.ts` (the pure pixel math `scripts/pixelate.ts` runs), `registry.ts` (typed
+  `ArtRef` lookups over the PNGs in `src/assets/art/`, eagerly globbed by Vite) and `PixelArt.tsx` (the `<img>`
+  wrapper every component uses to mount one). `art/manifest.json` and `art/raw/` at the repo root hold each asset's
+  generation recipe and committed raw source; see DESIGN.md's "Art" section.
+- `src/assets/art/` — generated indexed PNGs, one per `art/manifest.json` entry, written by `npm run art` and never
+  edited by hand; never base64-inlined (`vite.config.ts`'s `assetsInlineLimit`).
 - `src/platform/` — where the game runs, and the only place that imports `@tauri-apps/*`. `env.ts` `isDesktop()`
   (reads `globalThis.isTauri`, no Tauri import), `keys.ts` (`isBrowserShortcut`, `isEditableTarget`), `desktop.ts`
   `installDesktopShell` (save on close, F11 full screen, minimise pauses; in a production build, which every
@@ -147,6 +156,8 @@ canvas space; `story.ts` `storyLook`, the story props' five snapshot inputs read
 ## UI rules (from the design pass)
 
 - Icons are inline SVG via `<Icon name=... />`. No emoji in the interface.
+- Static illustrations come from `src/ui/art/registry.ts` through `PixelArt`; never import a PNG directly in a
+  component.
 - Labels are sentence case (`.lbl` class), never tracked all-caps. No middle-dot `·` separators in copy; use commas
   or sentences.
 - Buttons say what they do ("Submit manuscript", "Wrap up the series"). Errors and empty states say what to do next.

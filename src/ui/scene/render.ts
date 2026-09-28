@@ -12,7 +12,7 @@ import type { SpriteMap } from './sprites'
 import { BREATHE_POSES, catFrame, idleFrame, moodOf } from './mood'
 import type { Mood, MoodInput } from './mood'
 import { BAR_X, paneRect, rawRect, rect, shadow } from './paint'
-import { drawSeasonNight, drawSeasonPane, drawSeasonSill } from './season'
+import { drawSeasonNight, drawSeasonPane, drawSeasonSill, drawSeasonWall } from './season'
 import type { Season } from './season'
 import {
   EQUIPMENT_ART, TIER_ART, drawAnimePoster, drawEntrance, drawKitchenette, drawStudioLights, drawTrophies, drawVolumes,
@@ -29,6 +29,10 @@ export const H = 180
 // ---------- palette & sprites ----------
 
 const BOOK_COLS = ['#c94b4b', '#3b6fd6', '#3fa66c', '#f5b700', '#7c4dff', '#e07b39']
+
+/** The cat's round cushion on the blanket (mustard, the cardigan's colours). */
+const CUSHION = '#c9a24a'
+const CUSHION_SHADE = '#a8832f'
 
 /** The wall clock (7x7): the rim and the face, with its 12 and 6 marks. */
 const CLOCK = [
@@ -74,8 +78,20 @@ function glyph(ctx: CanvasRenderingContext2D, ch: string, x: number, y: number, 
 }
 
 /**
+ * The mark slot at the head's top-right edge: a 3x5 glyph at cols 20-22, rows -2 to 2 of a 24x32 frame, right of the
+ * hair (whose outline reaches col 18 on row 2 and col 19 from row 3) and clear of it; mirrored (cols 1-3) when the
+ * frame faces right.
+ */
+const MARK_DX = 20
+const MARK_DY = -2
+function markX(x: number, flip = false): number {
+  return flip ? x + 24 - MARK_DX - 3 : x + MARK_DX
+}
+
+/**
  * The mood overlay for a head-steady pose: the face (FACES[mood], rows 9-12 of the anchor, at x+4/x+6 flipped,
- * y+9+headDy) and, when `mark` is true, its mark above the head (MARKS[mood], at x+11, y-8, in MARK_PAL). Nothing
+ * y+9+headDy) and, when `mark` is true, its mark at the head's top-right edge (MARKS[mood], at `markX`, y-2, in
+ * MARK_PAL). Nothing
  * when neutral. Only one glyph ever occupies the mark slot above the head at once (fix round 1): the standing
  * mangaka's ready-manuscript '!' beats the mood mark, which beats the idle '?', so `mark` lets a caller draw the
  * face without the mark when something else already claims that slot. `face` is false for a pose that is not
@@ -85,7 +101,7 @@ function glyph(ctx: CanvasRenderingContext2D, ch: string, x: number, y: number, 
 function drawMood(ctx: CanvasRenderingContext2D, mood: Mood, x: number, y: number, headDy: number, mark = true, face = true) {
   if (mood === 'neutral') return
   if (face) drawSprite(ctx, FACES[mood], x + 4, y + 9 + headDy, 4, PAL)
-  if (mark) drawSprite(ctx, MARKS[mood], x + 11, y - 8, 5, MARK_PAL)
+  if (mark) drawSprite(ctx, MARKS[mood], markX(x), y + MARK_DY, 5, MARK_PAL)
 }
 
 /**
@@ -166,8 +182,8 @@ function drawMangaka(
       if (ready) {
         // the manuscript in the leading hand (row 22)
         rawRect(ctx, x - 8, y + 17, 8, 10, '#fdfcf7'); rawRect(ctx, x - 7, y + 19, 6, 1, '#b8b2a5'); rawRect(ctx, x - 7, y + 21, 6, 1, '#b8b2a5')
-        glyph(ctx, '!', x + 11, y - 8, '#e5484d')
-      } else if (faceSteady && mood === 'neutral' && frame % 120 < 40) glyph(ctx, '?', x + 11, y - 8, '#2f5ecf')
+        glyph(ctx, '!', markX(x), y + MARK_DY, '#e5484d')
+      } else if (faceSteady && mood === 'neutral' && frame % 120 < 40) glyph(ctx, '?', markX(x), y + MARK_DY, '#2f5ecf')
       return
     }
     case 'walking':
@@ -302,6 +318,7 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
   rect(ctx, BAR_X, 12, 2, 32, '#5a4634'); rect(ctx, 118, 27, 44, 2, '#5a4634')
   rect(ctx, 114, 45, 52, 3, '#4a3828')
   drawSeasonSill(ctx, s.season)
+  drawSeasonWall(ctx, s.season)
   if (s.owned.coffee) EQUIPMENT_ART.coffee(ctx, s, frame, night)
   drawTrophies(ctx, s.trophies)
 
@@ -409,7 +426,14 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
   // the cat (after the mangaka's front pass, so it curls on the blanket), then the editor
   const cat = s.actors.cat
   const catFlip = cat.facing === 1
-  if (cat.state === 'sleeping') drawSprite(ctx, CAT_SLEEP, cat.x, cat.y, 8, undefined, catFlip)
+  if (cat.state === 'sleeping') {
+    // a round cushion under the curled cat (16x7 from 2 px left of and 3 px below the frame's top: 4 fills)
+    const cx = Math.round(cat.x) - 2
+    const cy = Math.round(cat.y) + 3
+    rawRect(ctx, cx + 3, cy, 10, 1, CUSHION); rawRect(ctx, cx, cy + 1, 16, 4, CUSHION)
+    rawRect(ctx, cx + 1, cy + 5, 14, 1, CUSHION_SHADE); rawRect(ctx, cx + 3, cy + 6, 10, 1, CUSHION_SHADE)
+    drawSprite(ctx, CAT_SLEEP, cat.x, cat.y, 8, undefined, catFlip)
+  }
   else if (cat.state === 'walking') drawSprite(ctx, CAT_WALK[Math.floor(cat.anim / 125) % 2], cat.x, cat.y, 8, undefined, catFlip)
   else if (cat.state !== 'hidden' && cat.state !== 'away') {
     // the sitting cat's own idle cycle (Decision 6): sit, then a groom, then a stretch

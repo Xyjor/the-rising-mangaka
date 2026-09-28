@@ -162,7 +162,9 @@ Forecast calibration is a balance band: over year one the offer chances quoted a
 The studio window follows the calendar (`describeDate`'s month, floor((day mod 336) / 28) + 1): months 1-3 spring,
 4-6 summer, 7-9 autumn and 10-12 winter, so every year opens in spring (`seasonOf`). The season is decoration only; it
 changes no rule.
-- **Spring**: a cherry branch in blossom and 12 petals blowing down and across the pane.
+- **Spring**: a cherry branch in blossom and 12 petals blowing down and across the pane; the branch spills past the
+  frame onto the wall with four blossom clusters (`drawSeasonWall`, canvas x 171-181, y 42-48, after the window bars,
+  clear of the calendar and the corkboard), so the tree reads as bigger than the window.
 - **Summer**: a green canopy and a wind chime whose strip swings; at night 5 fireflies glow over the dark.
 - **Autumn**: a rust canopy and 12 leaves swaying as they fall.
 - **Winter**: a bare branch capped with snow, 16 snowflakes and snow on the sill.
@@ -205,7 +207,8 @@ on screen: the apartment is a six-mat room (sand plaster, a wooden ceiling moldi
 62-65 and 252-255, two rows of tatami with dark-green cloth edges at y 114, 146 and 178); the flat has teal wallpaper
 over a wood wainscot (rail at y 84), honey planks and a red rug in front of the desk (x 104-195, y 122-137); the loft
 has pale plaster, an exposed brick accent between the window and the door (x 230-253), polished concrete and an
-indigo rug. Every room has a light switch by the door (x 244-247, y 84-89) and an outlet (x 66-69, y 104-107). Under
+indigo rug. The flat and the loft are framed in dark wood like the apartment's pillars (upgrade 0.5.0): a 2 px beam
+under the ceiling (y 3-4) and two posts (x 62-65 and 252-255), clear of the door, the pane and the story props. Every room has a light switch by the door (x 244-247, y 84-89) and an outlet (x 66-69, y 104-107). Under
 the furniture and the standing or walking characters, a 2 px contact shadow (`paint.ts` `shadow`). A front row stands
 on the floor (`TIER_FRONT`, y 140-179, x 60-260, drawn after every actor so the cat passes behind it): the
 apartment's zabuton and manga boxes, the flat's fern and a stack of books, the loft's floor lamp and sofa corner, and
@@ -216,7 +219,7 @@ the bin in every tier.
 
 | Prop | Where (canvas) | What drives it |
 |---|---|---|
-| Corkboard | x 140-154, y 46-63 | one storyboard card per eighth of the pages drawn (while a manuscript is on the desk); the last poll's note in the corner: a gold star for the top three, a red mark for the bottom third (`rankTone`) |
+| Corkboard | x 140-154, y 46-63 | one storyboard card per sixth of the pages drawn, two rows of three (`corkCards`, while a manuscript is on the desk); the last poll's note in the corner: a gold star for the top three, a red mark for the bottom third (`rankTone`) |
 | Calendar | x 164-177, y 50-63 | the chapter's due day circled (`daysLeft`, a cell per day, up to 8), the grid reddened in the last three days, the binding blinking red while late |
 | Coffee cups | x 136-150, y 120-123 | one on the floor under the desk below 60, 40 and 20 stamina |
 | Serial cover | the poster's place, x 116-137, y 50-77 | while a serial runs (`serialOn`), tinted by its genre (`posterHue`); the anime's key visual still comes first |
@@ -224,7 +227,8 @@ the bin in every tier.
 | Bin | x 233-243, y 151-167 | a crumpled page per quarter of the manuscript drawn, while drawing |
 
 **The light** (`drawAmbient`, after the night overlay and the studio's lights): by day a shaft from the window lies on
-the floor in four steps and slides with the sun; at night while working, the desk lamp's pool on the desk (three
+the floor in four steps and slides with the sun, a broad warm wedge (each step 8 px wider than the last, 44 to 68,
+and fainter, alpha 0.14 to 0.08); at night while working, the desk lamp's pool on the desk (three
 steps); the pen tablet's glow while working; and a soft vignette on the four edges, always.
 
 **Hiding the desk.** On desktop the dock (the status card and the desk tray) sits over the lower middle of the scene,
@@ -274,8 +278,11 @@ chibi proportions (upgrade 0.4.0): the head is rows 0-15 (18 px wide, cols 2-19)
 `PAL` keys are an uppercase base and its lowercase shade (light from the top left, so the shade sits on the right and
 underneath), `L` the outline; `ASSISTANT_PALS[look]` swaps the hair and shirt. Every 24x32 frame passes `frameRules`
 (every row full width, every key in the palette, feet on the last row, a closed outline); `MANGAKA_PANIC` is the one
-deviation from the plan text (the ledger's ruling): its hands sit beside the head at rows 5-8, not the spec's rows
-2-3, because the literal spec's placement read as ears.
+redrawn in upgrade 0.5.0 with both hands clamped on top of the head (the arms raised, the elbows out at cols 0-3 and
+20-23, the hands meeting the hair at rows 1-3, frame 1 a row lower), replacing the earlier ruling's fists beside the
+head at rows 5-8: with the raised arms the hands read as hands, not ears. The cat has a cream chest patch (`Q`,
+`#f0ead6`) in every frame where its chest shows (not the curled `CAT_SLEEP`), and sleeps on a round mustard cushion
+at `CAT_BED` (4 fills, drawn just before it).
 
 - **Expressions** are an overlay, not baked into most frames: `FACES[mood]` (14 wide x 4 tall, `mood.ts`'s `Mood`,
   excluding `neutral`) is drawn at `(x+4, y+9+headDy)`, only on head-steady poses (the standing mangaka's breathing
@@ -286,7 +293,8 @@ deviation from the plan text (the ledger's ruling): its hands sit beside the hea
   pop, never a plain xp gain) beats `tired` (stamina below `LOW_STAMINA_THRESHOLD`) beats `sleepy` (working late at
   night: the seated mangaka is drawing, the clock is running, and it is night) beats `neutral`. Panic (the seated
   mangaka late on a chapter) is not a mood; it beats every one of them and stays the existing `MANGAKA_PANIC` frames.
-  Each mood also has a mark above the head at `(x+11, y-8)` in `MARK_PAL`: a sweat drop (tired), a sparkle (happy),
+  Each mood also has a mark at the head's top-right edge, `(x+20, y-2)` (cols 20-22, rows -2 to 2: right of the hair,
+  clear of its outline; `markX` mirrors it to cols 1-3 for a frame facing right) in `MARK_PAL`: a sweat drop (tired), a sparkle (happy),
   `!` (surprised), `z` (sleepy). Only one mark ever occupies that slot: the standing mangaka's ready-manuscript `!`
   beats the mood mark, which beats the idle `?`.
 - **Idle cycles** are pure functions of the frame counter in `mood.ts`. The standing mangaka's 360-frame cycle
@@ -298,7 +306,10 @@ deviation from the plan text (the ledger's ruling): its hands sit beside the hea
   (reduced motion) is always the plain idle for both.
 - **Outfits by level** (`outfitOf`, `OUTFIT_PALS`), the mangaka only, swap `J`/`j` in the palette: levels 1-4 a hoodie
   (`#6f7a8c`/`#525c6b`, the original palette), 5-9 a cardigan (`#c9a24a`/`#a8832f`), 10+ a blazer
-  (`#2e3a78`/`#222b5c`). Purely cosmetic, so no UI hint is needed.
+  (`#2e3a78`/`#222b5c`). The idle and seated frames carry a collar (`K`, either side of the neck) and a tie (`Y`, shade
+  `y`, down the shirt): the cardigan and the blazer show them white and red; in the hoodie (`PAL`) and on every
+  assistant (`ASSISTANT_PALS`, `y` their own shirt colour) they keep the colours of the cells they replaced, so those
+  look unchanged. Purely cosmetic, so no UI hint is needed.
 
 The frame sets: idle 2 frames (`frame/16 % 2`), walk 4 (`anim/100 % 4`), sit 2 (`frame/8 % 2` while working, frame 0
 otherwise), panic 2 (for 40 of every 240 frames while working on a late chapter, `Snapshot.late`), a 30x14 lying
@@ -322,11 +333,11 @@ Actors whose frame top is at canvas y 75 or below (standing, walking, at the doo
 (canvas x 62, width 8 + 20n for n assistants shown, at most 3, y 120-131), drawn after them so only head and shoulders
 show; each seated assistant's page is drawn after the desk, on its top, with one ink line per third of progress.
 
-The scene's fillRect budget is measured, not guessed: the one-assistant reference frame is a baseline of 659 calls
+The scene's fillRect budget is measured, not guessed: the one-assistant reference frame is a baseline of 673 calls
 (`render.test.ts`), and the bare full scene (`BARE_FULL`: three assistants, looks 0-2 at stamina 80, in winter,
-otherwise the reference scene, at night, t 0.9, frame 100) a baseline of 1065 (`studioArt.test.ts`; the full scene
+otherwise the reference scene, at night, t 0.9, frame 100) a baseline of 1079 (`studioArt.test.ts`; the full scene
 with every piece of equipment, the loft, the editor, a contract and every story prop stays well inside that
-ceiling); every render must stay under 1.5x its own baseline (988.5 and 1597.5), so a new sprite or a new studio piece fails its test the moment it pushes the frame
+ceiling); every render must stay under 1.5x its own baseline (1009.5 and 1618.5), so a new sprite or a new studio piece fails its test the moment it pushes the frame
 past budget. Upgrade 0.4.0's chibi cast (Task 6) moved both baselines up from 649 and 1025: the redrawn `MANGAKA_SIT`
 frames (used by both the mangaka and every seated assistant) cost 5 (frame 0) or 8 (frame 1) more fillRect runs each
 than the old sit frames, purely from the wider chibi head and torso; nothing else in the redesign (the face overlay,
@@ -335,6 +346,70 @@ at a neutral mood with no overlay drawn. The final whole-branch review's fix mad
 late at night, not the old dead `resting && night` check): `BARE_FULL`'s mangaka is exactly that (seated, working,
 t 0.9), so its baseline moved again, from 1048 to 1065 (+17: the sleepy face overlay and its mark, `studioArt.test.ts`
 does the fillRect-by-fillRect count); the one-assistant reference frame stays daytime (t 0.3) and is unaffected.
+Upgrade 0.5.0's scene redraw (Task 6) moved them from 659 and 1065 to 673 (+14) and 1079 (+14), item by item: the
+wider daylight shaft +0/+0 (still four steps; off at night), the flat's and loft's wood beams +0/+0 (both scenes
+are the apartment), the cherry past the pane +6/+0 (the reference scene is spring, `BARE_FULL` winter), the
+corkboard's 2x3 grid -2/-2 (3 cards at half the pages in place of 4), the cat's cushion +4/+4 (its chest patch is not
+in the curled sleep frame), the panic pose +0/+0 (nobody is late), the marks' new slot +0/+0 (same runs), and the
+collar and tie +6/+12 (3 more runs per seated frame, two and four seated figures).
+
+### Art
+The live scene and every sprite stay code-drawn `fillRect` (`render.ts`, `roomArt.ts`, `studioArt.ts`, `sprites.ts`):
+nothing generated is ever composited into the canvas at runtime. Generated raster art (upgrade 0.5.0) is a separate,
+smaller thing: static illustrations, shipped as indexed PNGs, that never move or redraw per frame. They exist to give
+a few fixed spots (so far, the title screen) real illustration instead of a code-drawn scene, and they double as
+reference art the hand-painted scene and sprites get redrawn toward, not as a replacement for it.
+
+**Making an asset.** Each asset is generated once with a Hugging Face image Space running Z-Image-Turbo at a fixed
+seed, and recorded as one entry in `art/manifest.json`: id, model, resolution, seed, steps, shift and the exact
+prompt, plus how the pipeline should treat it (`native` size, `sample` mode, whether it needs a `cutout` or an
+`outline`, an optional `colors` cap, and an optional `crop` or sheet `cell` for a multi-pose sheet). The raw generated
+file is committed under `art/raw/<id>.webp` (or the sheet's own name) rather than treated as disposable, because the
+Space's model or sampler can change and a generation is not reproducible from the manifest alone.
+
+`npm run art -- <id> | --all` runs `scripts/pixelate.ts`, which is IO and orchestration only; the pixel math lives in
+`src/ui/art/pixelOps.ts` (plain RGBA buffers, no `sharp` import, so it is unit-tested directly). For each entry it:
+crops the manifest's `crop` rect or slices one cell out of a sprite sheet; for a `cutout` entry, flood-fills
+transparent from the edges (`floodTransparentFromEdges`, matching the corner colour within a tolerance), finds the
+alpha bounding box, and pads it out to the target aspect ratio before cropping to it (`padToAspect`) so the subject
+isn't stretched; downsamples to the manifest's `native` size, either area-averaged (`sample: "area"`, alpha-weighted,
+transparent when under half a block is opaque) or nearest-neighbour (`sample: "nearest"`, for an already-blocky sheet
+crop); snaps every opaque pixel to the nearest `ART_PALETTE` colour in OKLab space (`snapToPalette`); reduces to the
+entry's colour cap, keeping the most-used colours and re-snapping the rest (`reduceColors`); despeckles single-pixel
+colour flecks against a unanimous 4-neighbour field (`despeckle`); optionally adds a 1px outline on transparent
+pixels 4-adjacent to an opaque one (`addOutline`); and writes an indexed PNG to `src/assets/art/<id>.png`, verifying
+afterward that every pixel it wrote is a literal `ART_PALETTE` colour.
+
+**The palette rule.** `ART_PALETTE` (`src/ui/art/palette.ts`) is a fixed, deduplicated list of lowercase hex colours,
+and every one of them must already appear literally somewhere in `src/ui/scene/*.ts` or `src/styles/tokens.css`
+(checked by `src/ui/__tests__/art.test.ts`) — a generated illustration can only use colours the hand-painted scene or
+the design tokens already use, so it reads as part of the same world rather than importing its own palette.
+
+**Budgets** (also `art.test.ts`, run against the committed PNGs, not regenerated): every manifest id needs both a raw
+source and a generated PNG, with no orphan PNGs left under `src/assets/art`; every PNG's IHDR size must match its
+manifest `native` size, its colour type must be indexed (PNG colour type 3), and every PLTE entry must be in
+`ART_PALETTE`; and every PNG must fit its size cap (16 KB for `title/hero`, 4 KB for any other entry, 100 KB total
+across every generated asset).
+
+**Mounting in the UI.** `src/ui/art/registry.ts` globs every generated PNG in eagerly (`import.meta.glob`, `eager:
+true`) so each one becomes a real bundled asset URL, never inlined as base64, and exposes a typed `art(id, w, h)`
+lookup that throws at module load — not render time — if an id has no generated PNG yet. A later task can add its
+own typed records here (for example a `Record<GenreId, ArtRef>`) built on the same helper. `PixelArt.tsx` renders an
+`ArtRef` as an `<img>` at an integer `scale`, undecorated (`loading="lazy"`, `decoding="async"`, not draggable) and
+crisp in every browser; its `alt` defaults to `''` (decorative) except where the image carries real meaning, such as
+the title hero.
+
+**The title hero** (`TitleScreen.tsx`) renders `TITLE_ART` (manifest id `title/hero`, native 320x180) directly rather
+than through `PixelArt`, with a real `alt` describing the scene, filling the `.title-screen.has-hero` background.
+`app.css`'s `.title-screen.has-hero::before` lays a scrim over it so the card text stays legible: a left-to-right
+gradient from `--title-scrim` to `--title-scrim-clear` on wide layouts (the card sits over the scrim, the art shows
+through past it), and a flat `--title-scrim` fill below the breakpoint where the card stacks below the art instead.
+`.has-hero` only applies when the hero image is present, so a title screen without one keeps its plain background.
+
+Generated art is excluded from Vite's asset inlining (`vite.config.ts`'s `assetsInlineLimit`, false for any path
+under `/assets/art/`), so `PixelArt.tsx`'s `<img src>` is always a real, cacheable URL rather than a base64 data URI;
+on desktop it loads under the CSP's `img-src 'self'` (`src-tauri/tauri.conf.json`), which only a same-origin bundled
+URL satisfies.
 
 ## Systems beyond the slice (implemented)
 
@@ -821,3 +896,21 @@ studio scene and restyled every panel. These decisions came out of that pass:
   voice's filter frequency, not a note, so it is exempt by construction rather than by exception.
 - Balance bands are unchanged: no sim formula or constant moved in this pass, so `balance.test.ts` and
   `npm run balance` still read the seeds 1-20 numbers already recorded above.
+
+**2026-09-28, the illustrated upgrade.** The 0.5.0 upgrade adds a hybrid art pipeline (generated static illustrations
+alongside the untouched code-drawn scene and sprites) and a handful of visual polish decisions:
+
+- Art is hybrid, not a replacement: the live scene and sprites stay code-drawn `fillRect`, and generated raster art
+  (Z-Image-Turbo, via `scripts/pixelate.ts`, see "Art" above) ships only as static illustrations, doubling as
+  reference for hand-painted redraws rather than being composited into the canvas at runtime.
+- Stepped pixel corners (`base.css`, `--step`) are cut with `clip-path`, and the same clip-path also carries the
+  box's own hard drop shadow around the step via `--pf-x`/`--pf-y`, which must always match that element's own
+  box-shadow offset so the shadow keeps the stepped silhouette instead of being clipped away with the corner.
+- The status card's dark theme is its own fixed token set (`--hud-dark`, `--hud-dark-ink`, `--hud-dark-muted`,
+  `--hud-dark-warn`), independent of the page's light/dark theme, each gated at 4.5:1 contrast against `--hud-dark`
+  by `scripts/contrast.ts`.
+- Positive money reads in `--gold-text`; the accent colour is reserved for negative money, so a red amount always
+  means money going out.
+- The scene redraw (Task 6) moved the fillRect baselines from 659/1065 to 673/1079 (`render.test.ts`,
+  `studioArt.test.ts`; see "The studio in the scene" above for the item-by-item accounting), and `roomArt.test.ts`
+  caps every tier's room-and-front-row fill count at 84.

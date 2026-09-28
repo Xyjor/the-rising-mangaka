@@ -18,12 +18,15 @@ export const PAL: Record<string, string> = {
   O: '#c0392b', o: '#8e2a20',
   G: '#5b6270', g: '#454a55', N: '#c0392b', P: '#3b3b45',
   F: '#6d4c33', f: '#4e3622',
-  C: '#e39a4a', c: '#c67d33',
+  C: '#e39a4a', c: '#c67d33', Q: '#f0ead6',
+  // the collar (K) and tie (Y, its shade y) on the idle and seated frames: in the hoodie (and on the assistants) they
+  // keep the colours of the cells they replaced (the hoodie J, the shirt's W and R stripes), so nothing changes there
+  K: '#6f7a8c', Y: '#f6f6f6', y: '#3b6fd6',
 }
 
 /** One palette per assistant look (look 0 is the mangaka's colours), built once so render allocates nothing. */
 export const ASSISTANT_PALS: Record<string, string>[] = LOOK_SHIRTS.map((_, i) => ({
-  ...PAL, H: LOOK_HAIRS[i], h: LOOK_HAIRS_SHADE[i], R: LOOK_SHIRTS[i], r: LOOK_SHIRTS_SHADE[i],
+  ...PAL, H: LOOK_HAIRS[i], h: LOOK_HAIRS_SHADE[i], R: LOOK_SHIRTS[i], r: LOOK_SHIRTS_SHADE[i], y: LOOK_SHIRTS[i],
 }))
 
 /** The mangaka's outfit by level (Decision 7): hoodie 1-4, cardigan 5-9, blazer 10+. Purely visual. */
@@ -35,11 +38,13 @@ export function outfitOf(level: number): Outfit {
 }
 
 /** One palette per outfit, PAL with J (base) and j (shade) swapped, built once so render allocates nothing. The
- * mangaka only; assistants keep ASSISTANT_PALS and are unaffected. */
+ * cardigan and the blazer also show the idle and seated frames' white collar (K) and red tie (Y, shade y); the hoodie
+ * keeps PAL, where they are the hoodie and shirt colours they replaced. The mangaka only; assistants keep
+ * ASSISTANT_PALS (y their own shirt colour, so they look unchanged). */
 export const OUTFIT_PALS: Record<Outfit, Record<string, string>> = {
   hoodie: PAL,
-  cardigan: { ...PAL, J: '#c9a24a', j: '#a8832f' },
-  blazer: { ...PAL, J: '#2e3a78', j: '#222b5c' },
+  cardigan: { ...PAL, J: '#c9a24a', j: '#a8832f', K: '#f6f6f6', Y: '#c0392b', y: '#8e2a20' },
+  blazer: { ...PAL, J: '#2e3a78', j: '#222b5c', K: '#f6f6f6', Y: '#c0392b', y: '#8e2a20' },
 }
 
 /** Standing, the style anchor (frame 0) and its breath (frame 1: rows 0-23 a row lower, the hem tucked under), 16 frames each. */
@@ -61,13 +66,13 @@ export const MANGAKA_IDLE: readonly [SpriteMap, SpriteMap] = [
     '...LSSSSSSSSSSSSSSsL....', // 13
     '....LSSSSSSSSSSSSsL.....', // 14
     '.....LLsssssssssLL......', // 15
-    '......LJJJsssJJjL.......', // 16
-    '.....LJJJJRWRJJjjL......', // 17
-    '....LJJJJJRWRJJJjjL.....', // 18
-    '....LJJJJJWRWJJJjjL.....', // 19
-    '....LJJLJJRWRJJLjjL.....', // 20
-    '....LJJLJJWRWJJLjjL.....', // 21
-    '....LSSLJJRWRJJLSsL.....', // 22
+    '......LJKKsssKKjL.......', // 16
+    '.....LJJJKRYRKJjjL......', // 17
+    '....LJJJJJRYRJJJjjL.....', // 18
+    '....LJJJJJWyWJJJjjL.....', // 19
+    '....LJJLJJRYRJJLjjL.....', // 20
+    '....LJJLJJWyWJJLjjL.....', // 21
+    '....LSSLJJRYRJJLSsL.....', // 22
     '.....LLLJJJJJJJLLL......', // 23
     '.......LjjjjjjjjL.......', // 24
     '.......LTTTTTTTtL.......', // 25
@@ -96,13 +101,13 @@ export const MANGAKA_IDLE: readonly [SpriteMap, SpriteMap] = [
     '...LSSSSSSSSSSSSSSsL....', // 14
     '....LSSSSSSSSSSSSsL.....', // 15
     '.....LLsssssssssLL......', // 16
-    '......LJJJsssJJjL.......', // 17
-    '.....LJJJJRWRJJjjL......', // 18
-    '....LJJJJJRWRJJJjjL.....', // 19
-    '....LJJJJJWRWJJJjjL.....', // 20
-    '....LJJLJJRWRJJLjjL.....', // 21
-    '....LJJLJJWRWJJLjjL.....', // 22
-    '....LSSLJJRWRJJLSsL.....', // 23
+    '......LJKKsssKKjL.......', // 17
+    '.....LJJJKRYRKJjjL......', // 18
+    '....LJJJJJRYRJJJjjL.....', // 19
+    '....LJJJJJWyWJJJjjL.....', // 20
+    '....LJJLJJRYRJJLjjL.....', // 21
+    '....LJJLJJWyWJJLjjL.....', // 22
+    '....LSSLJJRYRJJLSsL.....', // 23
     '.....LLLJJJJJJJLLL......', // 24
     '.......LTTTTTTTtL.......', // 25
     '.......LTTTLTTTtL.......', // 26
@@ -433,13 +438,13 @@ export const MANGAKA_SIT: readonly [SpriteMap, SpriteMap] = [
     '...LSSSSSSSSSSSSSSsL....', // 13
     '....LSSSSSSSSSSSSsL.....', // 14
     '.....LLsssssssssLL......', // 15
-    '......LJJJsssJJjL.......', // 16
-    '.....LJJJJRWRJJjjL......', // 17
-    '....LJJJJJRWRJJJjjL.....', // 18
-    '....LJJJJJWRWJJJjjL.....', // 19
-    'L...LJJLJJRWRJJLjjL.....', // 20
-    'LLLLLJJLJJWRWJJLjjL.....', // 21
-    'LSSJJJJLJJRWRJJLSsL.....', // 22
+    '......LJKKsssKKjL.......', // 16
+    '.....LJJJKRYRKJjjL......', // 17
+    '....LJJJJJRYRJJJjjL.....', // 18
+    '....LJJJJJWyWJJJjjL.....', // 19
+    'L...LJJLJJRYRJJLjjL.....', // 20
+    'LLLLLJJLJJWyWJJLjjL.....', // 21
+    'LSSJJJJLJJRYRJJLSsL.....', // 22
     'LLLLLLLLJJJJJJJLLL......', // 23
     '.LLLLLLLjjjjjjjjL.......', // 24
     '.LTTTTTTTTTTTTTtL.......', // 25
@@ -467,13 +472,13 @@ export const MANGAKA_SIT: readonly [SpriteMap, SpriteMap] = [
     '...LSSSSSSSSSSSSSSsL....', // 13
     '....LSSSSSSSSSSSSsL.....', // 14
     '.....LLsssssssssLL......', // 15
-    '......LJJJsssJJjL.......', // 16
-    '.....LJJJJRWRJJjjL......', // 17
-    '....LJJJJJRWRJJJjjL.....', // 18
-    '....LJJJJJWRWJJJjjL.....', // 19
-    'L...LJJLJJRWRJJLjjL.....', // 20
-    'L...LJJLJJWRWJJLjjL.....', // 21
-    'LLLLLJJLJJRWRJJLSsL.....', // 22
+    '......LJKKsssKKjL.......', // 16
+    '.....LJJJKRYRKJjjL......', // 17
+    '....LJJJJJRYRJJJjjL.....', // 18
+    '....LJJJJJWyWJJJjjL.....', // 19
+    'L...LJJLJJRYRJJLjjL.....', // 20
+    'L...LJJLJJWyWJJLjjL.....', // 21
+    'LLLLLJJLJJRYRJJLSsL.....', // 22
     'LSSJJJJLJJJJJJJLLL......', // 23
     'LLLLLLLLjjjjjjjjL.......', // 24
     '.LTTTTTTTTTTTTTtL.......', // 25
@@ -486,18 +491,23 @@ export const MANGAKA_SIT: readonly [SpriteMap, SpriteMap] = [
   ],
 ] as const
 
-/** Seated, late on a chapter: fists clutching the sides of the head, ringed eyes, the mouth open. Frame 1 has the fists a row lower. */
+/**
+ * Seated, late on a chapter: both hands clamped on top of the head (the hands meet the hair at rows 1-3, the forearms
+ * run down and out over the hair's edge, the elbows out at cols 0-3 and 20-23), ringed eyes, the mouth open. This
+ * replaces the earlier ruling's fists beside the head (rows 5-8): with the arms raised and the elbows out, the hands
+ * on top read as hands, not ears. Frame 1 presses them a row lower (rows 2-3).
+ */
 export const MANGAKA_PANIC: readonly [SpriteMap, SpriteMap] = [
   [
-    '......LLLLLLLLLL........', // 0
-    '....LLHHHHHHHHHhLL......', // 1
-    '...LHHHHHHHHHHHHhhL.....', // 2
-    '..LHHHHHHHHHHHHHHhhL....', // 3
-    'LLLLHHHHHHHHHHHHHhhLLLLL', // 4
-    'LSSLHHHHHHHHHHHHHhhLLSsL', // 5
-    'LSSLHHSHHHHSHHHHHhhLLSsL', // 6
-    'LSSLSSSSSSSSSSSSSShLLSsL', // 7
-    'LSSLSSSSSSSSSSSSSSsLLSsL', // 8
+    '..LLLLLLLLLLLLLLLLLL....', // 0
+    '..LSSLHHHHHHHHHHLSsL....', // 1
+    '.LSSSLHHHHHHHHHHhLSsL...', // 2
+    '.LJJLHHHHHHHHHHHHhLJjL..', // 3
+    'LJJLHHHHHHHHHHHHHhhLJjL.', // 4
+    'LJJLHHHHHHHHHHHHHhhLLJjL', // 5
+    'LJJLHHSHHHHSHHHHHhhLLJjL', // 6
+    'LJJLSSSSSSSSSSSSSShLLJjL', // 7
+    'LJJLSSSSSSSSSSSSSSsLLJjL', // 8
     'LJLHSWWWSSSSSWWWSSsLLJjL', // 9
     'LJLHSWEWSSSSSWEWSSsLLJjL', // 10
     'LJLHSWWWSSSSSWWWSSsLLJjL', // 11
@@ -524,15 +534,15 @@ export const MANGAKA_PANIC: readonly [SpriteMap, SpriteMap] = [
   ],
   [
     '......LLLLLLLLLL........', // 0
-    '....LLHHHHHHHHHhLL......', // 1
-    '...LHHHHHHHHHHHHhhL.....', // 2
-    '..LHHHHHHHHHHHHHHhhL....', // 3
-    '..LHHHHHHHHHHHHHHhhL....', // 4
-    'LLLLHHHHHHHHHHHHHhhLLLLL', // 5
-    'LSSLHHSHHHHSHHHHHhhLLSsL', // 6
-    'LSSLSSSSSSSSSSSSSShLLSsL', // 7
-    'LSSLSSSSSSSSSSSSSSsLLSsL', // 8
-    'LSSLSWWWSSSSSWWWSSsLLSsL', // 9
+    '..LLLLHHHHHHHHHhLLLL....', // 1
+    '..LSSLHHHHHHHHHHhLSsL...', // 2
+    '.LSSSLHHHHHHHHHHHhLSsL..', // 3
+    'LJJLHHHHHHHHHHHHHhhLJjL.', // 4
+    'LJJLHHHHHHHHHHHHHhhLLJjL', // 5
+    'LJJLHHSHHHHSHHHHHhhLLJjL', // 6
+    'LJJLSSSSSSSSSSSSSShLLJjL', // 7
+    'LJJLSSSSSSSSSSSSSSsLLJjL', // 8
+    'LJLHSWWWSSSSSWWWSSsLLJjL', // 9
     'LJLHSWEWSSSSSWEWSSsLLJjL', // 10
     'LJLHSWWWSSSSSWWWSSsLLJjL', // 11
     'LJLSBBSSSLMMLSSSBBsLLJjL', // 12
@@ -841,14 +851,17 @@ export const CAT_SLEEP: SpriteMap = [
   '..LLLLLLLLL.',
 ]
 
-/** The cat sitting up (12x8, facing left), the eye at row 3 col 3, the tail curled round at the back. */
+/**
+ * The cat sitting up (12x8, facing left), the eye at row 3 col 3, the tail curled round at the back, and a cream chest
+ * patch (`Q`, rows 4-5 at the front) as in every frame where the chest shows (not asleep: curled, it is hidden).
+ */
 export const CAT_SIT: SpriteMap = [
   '.L..L.......',
   'LCLLCL......',
   'LCCCcL......',
   'LCCEcL......',
-  '.LCCcLLLL...',
-  '.LCCCCCCcLL.',
+  '.LQCcLLLL...',
+  '.LQQCCCCcLL.',
   '.LcCCCCCcLCL',
   '..LLLLLLLLL.',
 ]
@@ -860,8 +873,8 @@ export const CAT_WALK: readonly [SpriteMap, SpriteMap] = [
     'LCLCL.......',
     'LECCLLLLLLL.',
     'LCCCCCCCCccL',
-    '.LCCCCCCCccL',
-    '.LCCCCCCCccL',
+    '.LQCCCCCCccL',
+    '.LQCCCCCCccL',
     '.LCL.LCL.LcL',
     '.LLL.LLL.LLL',
   ],
@@ -870,8 +883,8 @@ export const CAT_WALK: readonly [SpriteMap, SpriteMap] = [
     'LCLCL.......',
     'LECCLLLLLLL.',
     'LCCCCCCCCccL',
-    '.LCCCCCCCccL',
-    '.LCCCCCCCccL',
+    '.LQCCCCCCccL',
+    '.LQCCCCCCccL',
     'LCL..LCLLcL.',
     'LLL..LLLLLL.',
   ],
@@ -890,8 +903,8 @@ export const CAT_GROOM: readonly [SpriteMap, SpriteMap] = [
     'LCCCCL......', // the paw fills the ear gap (cols 2-3 were L, L in CAT_SIT)
     'LCcCcL......', // the paw's toe, a shade lower (col 2 was C in CAT_SIT)
     'LCCccL......', // the eye closed: a shade line, not hidden (col 3 was E in CAT_SIT)
-    '.LCCcLLLL...',
-    '.LCCCCCCcLL.',
+    '.LQCcLLLL...',
+    '.LQQCCCCcLL.',
     '.LcCCCCCcLCL',
     '..LLLLLLLLL.',
   ],
@@ -900,8 +913,8 @@ export const CAT_GROOM: readonly [SpriteMap, SpriteMap] = [
     'LCcCcL......', // the paw's toe (as frame 0, one row higher)
     'LCCCcL......',
     'LCCccL......', // the eye closed
-    '.LCCcLLLL...',
-    '.LCCCCCCcLL.',
+    '.LQCcLLLL...',
+    '.LQQCCCCcLL.',
     '.LcCCCCCcLCL',
     '..LLLLLLLLL.',
   ],
@@ -915,7 +928,7 @@ export const CAT_STRETCH: SpriteMap = [
   '.........LCL',
   '.........LCL',
   'LCCECCCCCCCL',
-  '.LCCCCCCCCcL',
+  '.LQQCCCCCCcL',
   '.LcCCCCCCcLL',
   '..LLLLLLLLL.',
 ]

@@ -10,6 +10,7 @@ import type { StudioTierId } from '../../sim'
 import { rawRect, shadow } from './paint'
 import type { Snapshot } from './render'
 import type { Art } from './studioArt'
+import { corkCards } from './story'
 
 /** Paints one tier's walls and floor across the whole 320x180 canvas (the wall to y 113, the floor from y 114). */
 export type RoomArt = (ctx: CanvasRenderingContext2D, night: boolean) => void
@@ -48,7 +49,10 @@ const SOFA_SHADE = '#2d566f'
 const SOFA_CUSHION = '#4f86a8'
 const LAMP_SHADE = '#f0ead6'
 const BOOKS = ['#3b6fd6', '#e07b39', '#3fa66c'] as const
-const DAYLIGHT = 'rgba(255, 244, 214, 0.14)'
+/** The daylight shaft's four steps, top to bottom: each one wider and fainter, a broad warm wedge. */
+const DAYLIGHT = [
+  'rgba(255, 244, 214, 0.14)', 'rgba(255, 244, 214, 0.12)', 'rgba(255, 244, 214, 0.1)', 'rgba(255, 244, 214, 0.08)',
+] as const
 const LAMP_POOL = 'rgba(255, 236, 170, 0.14)'
 const MONITOR_GLOW = 'rgba(140, 200, 255, 0.18)'
 const VIGNETTE = 'rgba(24, 16, 40, 0.12)'
@@ -90,6 +94,16 @@ function apartmentRoom(ctx: CanvasRenderingContext2D, night: boolean) {
   trim(ctx)
 }
 
+/**
+ * The flat's and the loft's wood-beam frame, like the apartment's pillars, so the room reads as a cosy box: a 2 px
+ * dark beam under the ceiling (y 3-4) and two posts (x 62-65 by the kitchenette, x 252-255 by the door, y 5-110),
+ * clear of the door (x 258-274), the window pane, the switch and outlet and every story prop. 3 fills.
+ */
+function frame(ctx: CanvasRenderingContext2D, wood: string) {
+  rawRect(ctx, 0, 3, 320, 2, wood)
+  rawRect(ctx, 62, 5, 4, 106, wood); rawRect(ctx, 252, 5, 4, 106, wood)
+}
+
 /** A rug on the floor in front of the desk (x 104-195, y 122-137): a field, a border and a fringe at each end. */
 function rug(ctx: CanvasRenderingContext2D, field: string, border: string) {
   rawRect(ctx, 106, 122, 88, 16, border)
@@ -99,7 +113,8 @@ function rug(ctx: CanvasRenderingContext2D, field: string, border: string) {
 
 /**
  * The flat: dusty teal wallpaper with pale stripes above a wood wainscot (rail at y 84, panel grooves every 32 px),
- * a baseboard, honey planks (rows every 8 px, seams every 80 px staggered row by row) and a red rug. 76 fills.
+ * the wood-beam frame, a baseboard, honey planks (rows every 8 px, seams every 80 px staggered row by row) and a red
+ * rug. 83 fills.
  */
 function flatRoom(ctx: CanvasRenderingContext2D, night: boolean) {
   rawRect(ctx, 0, 0, 320, 114, night ? '#56716c' : '#8fb5ac')
@@ -108,6 +123,7 @@ function flatRoom(ctx: CanvasRenderingContext2D, night: boolean) {
   rawRect(ctx, 0, 86, 320, 25, night ? '#735638' : '#b98a5c')
   rawRect(ctx, 0, 84, 320, 2, night ? '#5a4432' : '#8a5f3a')
   for (let x = 16; x < 320; x += 32) rawRect(ctx, x, 88, 1, 21, night ? '#634a31' : '#a0764c')
+  frame(ctx, night ? '#4a3626' : '#6e4a2c')
   rawRect(ctx, 0, 111, 320, 3, night ? '#4a3626' : '#6e4a2c')
   rawRect(ctx, 0, 114, 320, 66, night ? '#7d5634' : '#c8894e')
   const line = night ? '#654428' : '#a86d3a'
@@ -123,7 +139,7 @@ function flatRoom(ctx: CanvasRenderingContext2D, night: boolean) {
 /**
  * The loft: pale plaster with an exposed brick accent between the window and the door (x 230-253: mortar rows every
  * 5 px, the joints alternating), a steel baseboard, and polished concrete (a sheen band, expansion joints) under an
- * indigo rug. 64 fills.
+ * indigo rug, inside the wood-beam frame (its right post over the brick's last two columns). 70 fills.
  */
 function loftRoom(ctx: CanvasRenderingContext2D, night: boolean) {
   rawRect(ctx, 0, 0, 320, 114, night ? '#7e7b86' : '#dcd8cf')
@@ -134,6 +150,7 @@ function loftRoom(ctx: CanvasRenderingContext2D, night: boolean) {
     rawRect(ctx, 230, y, 24, 1, mortar)
     rawRect(ctx, row % 2 ? 246 : 238, y - 4, 1, 4, mortar)
   }
+  frame(ctx, night ? '#3f2e22' : '#6b4a32')
   rawRect(ctx, 0, 111, 320, 3, night ? '#34343c' : METAL_DARK)
   rawRect(ctx, 0, 114, 320, 66, night ? '#6c6a72' : '#bdb8ae')
   rawRect(ctx, 0, 150, 320, 3, night ? '#77757e' : '#cbc7bf')
@@ -210,15 +227,15 @@ export const TIER_FRONT: Record<StudioTierId, Art> = {
 // ---------- the story props ----------
 
 /**
- * The corkboard above the desk (x 140-154, y 46-63): one storyboard card per eighth of the pages drawn (3x4 each, a
- * 3x3 grid, while a manuscript is on the desk), and in the last slot the last poll's note: a gold star for the top
+ * The corkboard above the desk (x 140-154, y 46-63): one storyboard card per sixth of the pages drawn (3x4 each, two
+ * rows of three, `story.ts` `corkCards`, while a manuscript is on the desk), and below them the last poll's note: a gold star for the top
  * three, a red mark for the bottom third.
  */
 export function drawCorkboard(ctx: CanvasRenderingContext2D, s: Snapshot) {
   rawRect(ctx, 140, 46, 15, 18, CORK_FRAME)
   rawRect(ctx, 141, 47, 13, 16, CORK)
-  const onDesk = s.phase === 'drawing' || s.phase === 'ready'
-  const cards = onDesk ? Math.min(8, Math.floor(s.progress * 8)) : 0
+  // two rows of three thumbnails (x 142-152, y 48-56), clear of the poll note in the corner (x 150-152, y 58-61)
+  const cards = corkCards(s.phase, s.progress)
   for (let i = 0; i < cards; i++) {
     const x = 142 + (i % 3) * 4
     const y = 48 + Math.floor(i / 3) * 5
@@ -294,7 +311,10 @@ export function drawFanLetters(ctx: CanvasRenderingContext2D, level: Snapshot['f
 export function drawAmbient(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, night: boolean, working: boolean) {
   if (!night && t > 0.12 && t < 0.66) {
     const shift = Math.round(40 - ((t - 0.12) / 0.54) * 80)
-    for (let i = 0; i < 4; i++) rawRect(ctx, 182 + Math.round((shift * (i + 1)) / 4), 114 + i * 16, 44, 16, DAYLIGHT)
+    // four steps (4 fills), each 8 px wider than the last (44 to 68) and grown 4 px each side, fading as it spreads
+    for (let i = 0; i < 4; i++) {
+      rawRect(ctx, 182 - i * 4 + Math.round((shift * (i + 1)) / 4), 114 + i * 16, 44 + i * 8, 16, DAYLIGHT[i])
+    }
   }
   if (night && working) {
     rawRect(ctx, 158, 89, 13, 4, LAMP_POOL)

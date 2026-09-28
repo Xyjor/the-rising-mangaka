@@ -37,7 +37,7 @@ const GOLD = '#f5b700'
 const CUP = '#f2efe6'
 const URGENT = '#f7b8b0'
 const SHADOW = 'rgba(40, 24, 16, 0.28)'
-const DAYLIGHT = 'rgba(255, 244, 214, 0.14)'
+const DAYLIGHT = ['rgba(255, 244, 214, 0.14)', 'rgba(255, 244, 214, 0.12)', 'rgba(255, 244, 214, 0.1)', 'rgba(255, 244, 214, 0.08)']
 const VIGNETTE = 'rgba(24, 16, 40, 0.12)'
 const LAMP_POOL = 'rgba(255, 236, 170, 0.14)'
 const OVERLAY = 'rgba(20, 24, 60, 0.28)'
@@ -54,15 +54,29 @@ const STANDING: Box = [170, 193, 81, 112]
 const EDITOR: Box = [198, 221, 85, 116]
 
 describe('each tier\'s room', () => {
-  it('covers the whole canvas, wall and floor, in at most 80 fills', () => {
+  it('covers the whole canvas, wall and floor, in at most 84 fills (the flat 83 since its wood-beam frame)', () => {
     for (const tier of TIERS) {
       for (const night of [false, true]) {
         const log = alone((ctx) => TIER_ROOM[tier](ctx, night))
-        expect(log.length, tier).toBeLessThanOrEqual(80)
+        expect(log.length, tier).toBeLessThanOrEqual(84)
         for (const [x, y] of [[0, 0], [319, 0], [0, 113], [319, 113], [0, 114], [319, 179], [160, 60]]) {
           expect(coversAny(log, x, y), `${tier} ${x},${y}`).toBeGreaterThan(-1)
         }
         for (const c of log) expect(c.x >= 0 && c.y >= 0 && c.x + c.w <= 320 && c.y + c.h <= 180, JSON.stringify(c)).toBe(true)
+      }
+    }
+  })
+
+  it('frames the flat and the loft with a dark-wood beam and two posts, clear of the door and the story props', () => {
+    for (const tier of ['flat', 'loft'] as const) {
+      const log = alone((ctx) => TIER_ROOM[tier](ctx, false))
+      const beam = log.find((c) => c.x === 0 && c.y === 3 && c.w === 320 && c.h === 2)
+      expect(beam, tier).toBeDefined()
+      const posts = log.filter((c) => c.style === beam!.style && c.w === 4 && c.h === 106)
+      expect(posts.map((c) => c.x), tier).toEqual([62, 252])
+      for (const c of posts) {
+        expect(c.x + c.w <= 258, tier).toBe(true)
+        expect(c.x + c.w <= 140 || c.x >= 178, tier).toBe(true)
       }
     }
   })
@@ -112,13 +126,14 @@ describe('the front row', () => {
 })
 
 describe('the story props', () => {
-  it('pins one storyboard card per eighth of the pages on the corkboard, none with nothing on the desk', () => {
+  it('pins one storyboard card per sixth of the pages, in two rows of three, on the corkboard, none with nothing on the desk', () => {
     const cards = (over: Partial<Snapshot>) =>
       alone((ctx) => drawCorkboard(ctx, sceneSnapshot(over))).filter((c) => c.style === PAPER && c.w === 3 && c.h === 4)
     expect(cards({ progress: 0 })).toHaveLength(0)
-    expect(cards({ progress: 0.5 })).toHaveLength(4)
-    expect(cards({ progress: 0.99 })).toHaveLength(7)
-    expect(cards({ progress: 1, phase: 'ready' })).toHaveLength(8)
+    expect(cards({ progress: 0.5 })).toHaveLength(3)
+    expect(cards({ progress: 0.99 })).toHaveLength(5)
+    const full = cards({ progress: 1, phase: 'ready' })
+    expect(full.map((c) => [c.x, c.y])).toEqual([[142, 48], [146, 48], [150, 48], [142, 53], [146, 53], [150, 53]])
     expect(cards({ progress: 0.5, phase: 'idle' })).toHaveLength(0)
     for (const c of alone((ctx) => drawCorkboard(ctx, sceneSnapshot({ progress: 1, rankTone: 'top' })))) {
       expect(inBox(c, CORK), JSON.stringify(c)).toBe(true)
@@ -186,8 +201,10 @@ describe('the story props', () => {
 describe('the light', () => {
   it('lays a daylight shaft on the floor by day, moving with the sun, and none at night', () => {
     const shaft = (t: number) => alone((ctx) => drawAmbient(ctx, sceneSnapshot(), t, t > 0.72 || t < 0.06, false))
-      .filter((c) => c.style === DAYLIGHT)
+      .filter((c) => DAYLIGHT.includes(c.style))
     expect(shaft(0.3).length).toBeGreaterThan(0)
+    // four steps, each wider and fainter than the one above: a broad wedge
+    expect(shaft(0.3).map((c) => [c.w, c.style])).toEqual(DAYLIGHT.map((d, i) => [44 + i * 8, d]))
     expect(shaft(0.9)).toEqual([])
     expect(key(shaft(0.2))).not.toBe(key(shaft(0.5)))
     for (const c of shaft(0.3)) expect(c.y, JSON.stringify(c)).toBeGreaterThanOrEqual(114)

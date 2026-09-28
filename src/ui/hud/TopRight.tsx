@@ -10,7 +10,7 @@ function MoneyBadge() {
   const { cash, costs } = useStore(useShallow((s) => ({ cash: s.game!.player.money, costs: weeklyCosts(s.game!) })))
   const rolled = useRolledNumber(cash)
   return (
-    <div className={`badge-hud stat${cash < 0 ? ' neg' : ''}`}>
+    <div className={`badge-hud stat money${cash < 0 ? ' neg' : ''}`}>
       <span className="lbl">Money</span>
       <b className="num">{money(rolled)}</b>
       <span className="faint tiny">−{money(costs)} a week</span>

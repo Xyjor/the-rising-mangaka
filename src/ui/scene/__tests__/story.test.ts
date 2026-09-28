@@ -4,13 +4,25 @@ import { describe, expect, it } from 'vitest'
 import { acceptOffer, createGame, startProject } from '../../../sim'
 import type { GameState } from '../../../sim'
 import { DRAFT, KIDS_OFFER, withPendingResult } from '../../../test/fixtures'
-import { NO_STORY, storyLook } from '../story'
+import { CORK_CARDS, NO_STORY, corkCards, storyLook } from '../story'
 
 function serialGame(): GameState {
   // a fresh game handed the Kids Comic Go! offer, accepted: the serial runs and its first chapter is on the desk
   const s = acceptOffer({ ...createGame('Rin', 42), pendingOffer: KIDS_OFFER })
   return s
 }
+
+describe('corkCards', () => {
+  it('pins one card per sixth of the pages drawn, a 2x3 grid, only while a manuscript is on the desk', () => {
+    expect(CORK_CARDS).toBe(6)
+    expect(corkCards('drawing', 0)).toBe(0)
+    expect(corkCards('drawing', 1 / 6)).toBe(1)
+    expect(corkCards('drawing', 0.5)).toBe(3)
+    expect(corkCards('drawing', 0.99)).toBe(5)
+    expect(corkCards('ready', 1)).toBe(6)
+    expect(corkCards('idle', 0.5)).toBe(0)
+  })
+})
 
 describe('storyLook', () => {
   it('is the quiet default without a game', () => {

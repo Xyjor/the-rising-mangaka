@@ -18,12 +18,13 @@ afterEach(() => restore())
 
 describe('TopRight', () => {
   it('shows money, weekly costs, stamina and experience for a fresh game', () => {
-    render(<TopRight />)
+    const { container } = render(<TopRight />)
     expect(screen.getByText('¥3,000')).toBeTruthy()
     expect(screen.getByText('−¥400 a week')).toBeTruthy()
     expect(screen.getByRole('progressbar', { name: 'Stamina' }).getAttribute('aria-valuenow')).toBe('100')
     expect(screen.getByRole('progressbar', { name: 'Experience' }).getAttribute('aria-valuenow')).toBe('0')
     expect(screen.getAllByText('0/100').length).toBeGreaterThan(0)
+    expect(container.querySelector('.badge-hud.money:not(.neg)')).toBeTruthy()
   })
 
   it('marks money below zero', () => {
@@ -31,6 +32,7 @@ describe('TopRight', () => {
     useStore.setState({ game: { ...g, player: { ...g.player, money: -50 } } })
     const { container } = render(<TopRight />)
     expect(container.querySelector('.badge-hud.stat.neg')).toBeTruthy()
+    expect(container.querySelector('.badge-hud.money.neg')).toBeTruthy()
   })
 
   it('names unspent skill points and opens stats from the level badge', () => {

@@ -9,6 +9,11 @@ export default defineConfig({
   clearScreen: false,
   // tauri.conf.json devUrl expects exactly this port, and Rust rebuilds must not trigger a page reload.
   server: { port: 5173, strictPort: true, watch: { ignored: ['**/src-tauri/**'] } },
+  build: {
+    // Keep every generated art PNG as its own file (never base64-inlined), so PixelArt.tsx's <img src>
+    // stays a real URL the browser can lazily load and cache.
+    assetsInlineLimit: (filePath) => (filePath.includes('/assets/art/') ? false : undefined),
+  },
   test: {
     exclude: ['**/node_modules/**', '**/.git/**', 'dist/**', 'src-tauri/**', '.claude/**'],
   },

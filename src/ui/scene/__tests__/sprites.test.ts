@@ -27,7 +27,7 @@ describe('the sprites', () => {
     expect(frameRules(PROP_CONTRACT, 5, 7, PROP_PAL)).toEqual([])
     expect(frameRules(PROP_TROPHY, 5, 6, PROP_PAL)).toEqual([])
     // a prop key is not a person's
-    expect(frameRules(PROP_TROPHY, 5, 6)).not.toEqual([])
+    expect(frameRules(PROP_ENVELOPE, 6, 4)).not.toEqual([]) // its paper-line l
   })
 
   it('reports a short row, an unknown key and an empty last row', () => {
@@ -50,7 +50,11 @@ describe('the sprites', () => {
     expect(MANGAKA_IDLE[1][10][6]).toBe('E')
     // the pen hand (row 22 col 0 is the pen's L, so the hand starts at col 1: see the task 1 report)
     expect(MANGAKA_SIT[0][22][1]).toBe('S')
-    expect(MANGAKA_PANIC[0][5][1]).toBe('S')
+    // panic: both hands on top of the head, meeting the hair at rows 1-3, the raised arms' elbows out at cols 0 and 23
+    expect([MANGAKA_PANIC[0][1][3], MANGAKA_PANIC[0][1][17], MANGAKA_PANIC[0][1][6]]).toEqual(['S', 'S', 'H'])
+    expect([MANGAKA_PANIC[1][2][3], MANGAKA_PANIC[1][3][19], MANGAKA_PANIC[1][1][3]]).toEqual(['S', 'S', 'L'])
+    expect([MANGAKA_PANIC[0][6][1], MANGAKA_PANIC[0][6][22], MANGAKA_PANIC[0][6][0]]).toEqual(['J', 'j', 'L'])
+    for (const f of MANGAKA_PANIC) for (let r = 4; r <= 15; r++) expect(f[r].slice(0, 3), `row ${r}`).not.toContain('S')
     // the bed pose: 30x14, the first hair cell row 2 col 16
     expect(MANGAKA_LIE).toHaveLength(14)
     expect(MANGAKA_LIE.every((row) => row.length === 30)).toBe(true)
@@ -63,6 +67,28 @@ describe('the sprites', () => {
     expect(ASSISTANT_DOZE[2].slice(0, 10)).toBe('..........')
     expect([CAT_SIT[3][3], CAT_WALK[1][6][1], CAT_WALK[0][6][1]]).toEqual(['E', 'C', 'L'])
     expect([PROP_ENVELOPE[1][2], PROP_TROPHY[1][2]]).toEqual(['W', 'Y'])
+  })
+
+  it('gives the idle and seated frames a collar (K) and tie (Y/y) that only the cardigan and blazer show', () => {
+    for (const f of [...MANGAKA_IDLE, ...MANGAKA_SIT]) {
+      const all = f.join('')
+      expect(all).toContain('K')
+      expect(all).toContain('Y')
+    }
+    // the hoodie and every assistant keep the colours those cells had: the hoodie J, the shirt's W and R stripes
+    expect([PAL.K, PAL.Y, PAL.y]).toEqual([PAL.J, PAL.W, PAL.R])
+    for (const pal of ASSISTANT_PALS) expect([pal.K, pal.Y, pal.y]).toEqual([pal.J, pal.W, pal.R])
+    for (const o of ['cardigan', 'blazer'] as const) {
+      expect([OUTFIT_PALS[o].K, OUTFIT_PALS[o].Y]).toEqual(['#f6f6f6', '#c0392b'])
+    }
+    // the collar points either side of the neck, the tie down the middle of the shirt
+    expect([MANGAKA_SIT[0][16].slice(8, 15), MANGAKA_SIT[0][17][11], MANGAKA_SIT[0][19][11]]).toEqual(['KKsssKK', 'Y', 'y'])
+  })
+
+  it('gives the cat a cream chest patch wherever its chest shows (not curled asleep)', () => {
+    for (const cat of [CAT_SIT, ...CAT_WALK, ...CAT_GROOM, CAT_STRETCH]) expect(cat.join('')).toContain('Q')
+    expect(CAT_SLEEP.join('')).not.toContain('Q')
+    expect([CAT_SIT[4][2], CAT_SIT[5][2], CAT_SIT[5][3]]).toEqual(['Q', 'Q', 'Q'])
   })
 
   it('draws the groom paw so it reads as distinct from the plain sit (fix round 1)', () => {

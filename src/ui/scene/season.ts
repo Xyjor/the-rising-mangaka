@@ -141,6 +141,19 @@ export function drawSeasonSill(ctx: CanvasRenderingContext2D, season: Season) {
   rect(ctx, 114, 45, 52, 1, SNOW); rect(ctx, 117, 44, 7, 1, SNOW); rect(ctx, 148, 44, 10, 1, SNOW)
 }
 
+/**
+ * Spring's cherry spilling past the pane: the branch carries on over the frame's top-left corner onto the wall (room
+ * x 107-117, y 6-12; canvas x 171-181, y 42-48) with four blossom clusters, so the tree reads as bigger than the
+ * window. Drawn after the window bars and the sill (the pane's art stays between the sky and the bars), clear of the
+ * calendar (canvas y 50 and down) and the corkboard (canvas x 140-154). 6 fills, spring only.
+ */
+export function drawSeasonWall(ctx: CanvasRenderingContext2D, season: Season) {
+  if (season !== 'spring') return
+  rect(ctx, 111, 10, 7, 1, BRANCH); rect(ctx, 113, 8, 1, 2, BRANCH)
+  rect(ctx, 109, 9, 3, 2, PETAL_A); rect(ctx, 112, 6, 3, 2, PETAL_B); rect(ctx, 115, 7, 2, 2, PETAL_A)
+  rect(ctx, 107, 11, 2, 2, PETAL_B)
+}
+
 /** Summer's fireflies: drawn after the night overlay, so they glow, and only at night (the caller checks). */
 export function drawSeasonNight(ctx: CanvasRenderingContext2D, season: Season, frame: number) {
   if (season !== 'summer') return

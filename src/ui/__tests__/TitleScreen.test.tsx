@@ -7,6 +7,7 @@ import { createGame } from '../../sim'
 import { serializeSave } from '../../state/saveFile'
 import { SAVE_KEY, useStore } from '../../state/store'
 import { OWNER_KEY, isOwner } from '../../state/tabLock'
+import { TITLE_ART } from '../art/registry'
 import { TitleScreen } from '../TitleScreen'
 
 // The file dialog is replaced: each test says what the player picks.
@@ -28,6 +29,23 @@ afterEach(() => {
   delete g.isTauri
   localStorage.removeItem(OWNER_KEY)
   vi.clearAllMocks()
+})
+
+describe('TitleScreen hero art', () => {
+  it('renders the hero image and still starts a game', () => {
+    render(<TitleScreen />)
+    const hero = screen.getByAltText("A mangaka's rooftop at golden hour") as HTMLImageElement
+    expect(hero.src).toContain(TITLE_ART.src)
+    expect(hero.width).toBe(TITLE_ART.w)
+    expect(hero.height).toBe(TITLE_ART.h)
+    // The hero-only scrim/layout styling is scoped to .has-hero, which only this screen sets (the crash
+    // recovery screen reuses .title-screen with no hero and must not get it).
+    expect(document.querySelector('.title-screen')?.classList.contains('has-hero')).toBe(true)
+
+    fireEvent.change(screen.getByPlaceholderText('e.g. Rin Hoshino'), { target: { value: 'Aoi' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Open your studio' }))
+    expect(st().game?.player.name).toBe('Aoi')
+  })
 })
 
 describe('TitleScreen save note', () => {

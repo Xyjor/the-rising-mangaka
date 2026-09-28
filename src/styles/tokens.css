@@ -22,6 +22,15 @@
   --gold-text: #7a5a00;
   --stage-bg: #1a1c25;
 
+  /* A darker pixel-panel used for the status card: reads as a shaded window even against the
+     light theme's paper panel. --hud-dark-muted/-warn keep 4.5:1 against --hud-dark; --hud-dark-warn
+     is the warn-text colour for that dark surface (the theme's own --accent-text is tuned for
+     light backgrounds and does not pass on --hud-dark). */
+  --hud-dark: #22232b;
+  --hud-dark-ink: #f5f3ec;
+  --hud-dark-muted: #a5a2ac;
+  --hud-dark-warn: #ff7370;
+
   --accent: #cc383d;
   --accent-ink: #ffffff;
   --accent-soft: #fde4e5;
@@ -75,6 +84,9 @@
   --halftone: radial-gradient(rgba(22, 22, 26, 0.14) 1px, transparent 1.2px);
   --halftone-size: 6px 6px;
 
+  --title-scrim: rgba(250, 247, 240, 0.82);
+  --title-scrim-clear: rgba(250, 247, 240, 0);
+
   color-scheme: light;
 }
 
@@ -95,6 +107,10 @@
     --bevel-dark: #0c0d11;
     --gold-text: #f5b700;
     --stage-bg: #0f1016;
+    --hud-dark: #101019;
+    --hud-dark-ink: #f5f3ec;
+    --hud-dark-muted: #a5a2ac;
+    --hud-dark-warn: #ff7370;
     --accent-soft: #3a1f22;
     --blue-soft: #1e2740;
     --gold-soft: #3a2f10;
@@ -113,6 +129,8 @@
     --rating-3-text: var(--rating-3);
     --rating-4-text: #8fa9ff;
     --halftone: radial-gradient(rgba(242, 239, 230, 0.12) 1px, transparent 1.2px);
+    --title-scrim: rgba(22, 23, 28, 0.82);
+    --title-scrim-clear: rgba(22, 23, 28, 0);
     color-scheme: dark;
   }
 }
@@ -133,6 +151,10 @@
   --bevel-dark: #0c0d11;
   --gold-text: #f5b700;
   --stage-bg: #0f1016;
+  --hud-dark: #101019;
+  --hud-dark-ink: #f5f3ec;
+  --hud-dark-muted: #a5a2ac;
+  --hud-dark-warn: #ff7370;
   --accent-soft: #3a1f22;
   --blue-soft: #1e2740;
   --gold-soft: #3a2f10;
@@ -151,5 +173,7 @@
   --rating-3-text: var(--rating-3);
   --rating-4-text: #8fa9ff;
   --halftone: radial-gradient(rgba(242, 239, 230, 0.12) 1px, transparent 1.2px);
+  --title-scrim: rgba(22, 23, 28, 0.82);
+  --title-scrim-clear: rgba(22, 23, 28, 0);
   color-scheme: dark;
 }
