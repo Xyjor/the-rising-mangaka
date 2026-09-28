@@ -4,7 +4,7 @@ import { SPEED_MS, useStore } from '../state/store'
 import { useArrival } from './hooks/useArrival'
 import { useClockLoop, useClockSync } from './hooks/useClockLoop'
 import { DeskTray } from './hud/DeskTray'
-import { LogButton, Rail, SettingsButton } from './hud/Rail'
+import { DeskButton, LogButton, Rail, SettingsButton } from './hud/Rail'
 import { StatusCard } from './hud/StatusCard'
 import { TopLeft } from './hud/TopLeft'
 import { TopRight } from './hud/TopRight'
@@ -81,6 +81,7 @@ function useHotkeys() {
         case 'a': st.openModal('staff'); break
         case 't': st.openModal('trips'); break
         case 'l': st.openModal('log'); break
+        case 'd': st.toggleDesk(); break
         case 'w': if (!trip && phase === 'drawing') st.setActivity('work'); break
         case 'r': if (canPickActivity) st.setActivity('rest'); break
         case 'j': if (canPickActivity) st.setActivity('job'); break
@@ -100,6 +101,7 @@ export function App() {
   const hasOffer = useStore((s) => !!s.game?.pendingOffer)
   const phase = useStore((s) => (s.game ? getPhase(s.game) : 'idle'))
   const trip = useStore((s) => !!s.game?.trip)
+  const deskHidden = useStore((s) => s.deskHidden)
   const running = useGameClock()
   // the results and the offer open once the editor has walked in with them (the clock is already paused)
   const arrived = useArrival(hasResult || hasOffer)
@@ -117,9 +119,10 @@ export function App() {
           <TopLeft />
           <TopRight />
           <LogButton />
+          <DeskButton />
           <SettingsButton />
         </div>
-        <div className="dock">
+        <div className="dock" hidden={deskHidden}>
           <StatusCard />
           <DeskTray />
         </div>

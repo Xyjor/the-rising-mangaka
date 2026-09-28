@@ -182,8 +182,8 @@ animating behind modals (their backdrop is translucent) and only sleeps when the
 Two coordinate spaces meet in `paint.ts`: room space is the original 192x108 layout (every furniture, window and
 studio-art literal), offset by `OX 64, OY 36` into canvas space by `rect`; `rawRect` paints straight in canvas space
 for the wall, the floor, the kitchenette, the entrance and the door, none of which existed in the old room. The wall
-band runs canvas y 0-113 (27 stripes, a 2px skirting at y 112-113) and the floor y 114-179 (20 plank seams, 8 plank
-rows). The kitchenette sits on the left wall at canvas x 2-61, y 56-113. The front door is a fixed frame on the right
+band runs canvas y 0-113 and the floor y 114-179, painted per tier by `roomArt.ts`'s `TIER_ROOM` (see "The room"
+below). The kitchenette sits on the left wall at canvas x 2-61, y 56-113. The front door is a fixed frame on the right
 wall, canvas x 258-274, y 56-113: a plain two-panel door in the apartment, a lit indigo-noren doorway in the flat and
 the loft, spilling warm light at night. Beside it, the entrance holds a doormat and a coat rack (the mangaka's coat
 hangs there only while they are out). The whole scene is drawn for a phone's `object-fit: cover` crop of canvas x
@@ -200,10 +200,43 @@ hangs there only while they are out). The whole scene is drawn for a phone's `ob
 - **Anime poster**: while an anime's boost runs, its key visual replaces the poster (x 52-73, y 14-41).
 - **Trophies**: one gold trophy per award on the sill, the most recent 4 (x 130-144, y 38-44).
 
-Draw order: the coffee machine and the trophies after the sill and its snow; the volumes and the reference shelf after
+**The room** (`roomArt.ts`, canvas space, upgrade 0.3.0). Each tier has its own walls and floor, so moving up shows
+on screen: the apartment is a six-mat room (sand plaster, a wooden ceiling molding and nageshi beam, pillars at x
+62-65 and 252-255, two rows of tatami with dark-green cloth edges at y 114, 146 and 178); the flat has teal wallpaper
+over a wood wainscot (rail at y 84), honey planks and a red rug in front of the desk (x 104-195, y 122-137); the loft
+has pale plaster, an exposed brick accent between the window and the door (x 230-253), polished concrete and an
+indigo rug. Every room has a light switch by the door (x 244-247, y 84-89) and an outlet (x 66-69, y 104-107). Under
+the furniture and the standing or walking characters, a 2 px contact shadow (`paint.ts` `shadow`). A front row stands
+on the floor (`TIER_FRONT`, y 140-179, x 60-260, drawn after every actor so the cat passes behind it): the
+apartment's zabuton and manga boxes, the flat's fern and a stack of books, the loft's floor lamp and sofa corner, and
+the bin in every tier.
+
+**The story props** picture state the panels already explain (the "show the why" pillar: no rule lives in them).
+`story.ts` `storyLook` reads the game into five primitives on the snapshot:
+
+| Prop | Where (canvas) | What drives it |
+|---|---|---|
+| Corkboard | x 140-154, y 46-63 | one storyboard card per eighth of the pages drawn (while a manuscript is on the desk); the last poll's note in the corner: a gold star for the top three, a red mark for the bottom third (`rankTone`) |
+| Calendar | x 164-177, y 50-63 | the chapter's due day circled (`daysLeft`, a cell per day, up to 8), the grid reddened in the last three days, the binding blinking red while late |
+| Coffee cups | x 136-150, y 120-123 | one on the floor under the desk below 60, 40 and 20 stamina |
+| Serial cover | the poster's place, x 116-137, y 50-77 | while a serial runs (`serialOn`), tinted by its genre (`posterHue`); the anime's key visual still comes first |
+| Fan letters | x 259-273, y 108-113 | one on the doormat per fan level (100, 1,000, 10,000 fans) |
+| Bin | x 233-243, y 151-167 | a crumpled page per quarter of the manuscript drawn, while drawing |
+
+**The light** (`drawAmbient`, after the night overlay and the studio's lights): by day a shaft from the window lies on
+the floor in four steps and slides with the sun; at night while working, the desk lamp's pool on the desk (three
+steps); the pen tablet's glow while working; and a soft vignette on the four edges, always.
+
+**Hiding the desk.** On desktop the dock (the status card and the desk tray) sits over the lower middle of the scene,
+where the desk's front and the front row are. The eye button left of Settings (and the D key) tucks the dock away to
+look at the studio and brings it back; the flag (`deskHidden`) is not saved, and the auto-pause for any decision shows
+the desk again. On phones the scene is a band above the desk, so there is nothing to hide and the button is not shown.
+
+Draw order: the tier's room first; the coffee machine and the trophies after the sill and its snow; the volumes and the reference shelf after
 the bookshelf; the tier after the bed (the doorway stops where the bed begins, y 66, so the two never overlap) and
 before the sleeping mangaka's Zz; the chair before the mangaka at the desk, the drafting table, the lamp and the tablet
-after; the lamp's glow and the doorway's spill last, over the night overlay. Everything stays off the mangaka at the
+after; the corkboard and the calendar after the clock; the fan letters after the entrance; the cups after the desk;
+the front row after the editor; the lamp's glow and the doorway's spill over the night overlay, then the light. Everything stays off the mangaka at the
 desk and at the standing spot.
 
 **The cast** (`actors.ts`) is a table of actors (the mangaka, three assistant slots, the editor, the cat), each with a
@@ -261,11 +294,11 @@ Actors whose frame top is at canvas y 75 or below (standing, walking, at the doo
 (canvas x 62, width 8 + 20n for n assistants shown, at most 3, y 120-131), drawn after them so only head and shoulders
 show; each seated assistant's page is drawn after the desk, on its top, with one ink line per third of progress.
 
-The scene's fillRect budget is measured, not guessed: the one-assistant reference frame is a baseline of 596 calls
+The scene's fillRect budget is measured, not guessed: the one-assistant reference frame is a baseline of 649 calls
 (`render.test.ts`), and the bare full scene (`BARE_FULL`: three assistants, looks 0-2 at stamina 80, in winter,
-otherwise the reference scene, at night, t 0.9, frame 100) a baseline of 973 (`studioArt.test.ts`; the full scene
-with every piece of equipment, the loft, the editor and a contract stays well inside that ceiling); every render must stay under 1.5x
-its own baseline (894 and 1459.5), so a new sprite or a new studio piece fails its test the moment it pushes the frame
+otherwise the reference scene, at night, t 0.9, frame 100) a baseline of 1025 (`studioArt.test.ts`; the full scene
+with every piece of equipment, the loft, the editor, a contract and every story prop measures 1371, inside that
+ceiling); every render must stay under 1.5x its own baseline (973.5 and 1537.5), so a new sprite or a new studio piece fails its test the moment it pushes the frame
 past budget.
 
 ## Systems beyond the slice (implemented)

@@ -8,13 +8,17 @@ import {
   ASSISTANT_DOZE, ASSISTANT_PALS, CAT_SIT, CAT_SLEEP, CAT_WALK, EDITOR_IDLE, EDITOR_WALK, MANGAKA_IDLE, MANGAKA_LIE, MANGAKA_PANIC,
   MANGAKA_SIT, MANGAKA_WALK, PROP_CONTRACT, PROP_ENVELOPE, PROP_LETTER, PROP_PAL, PROP_TROPHY, drawSprite,
 } from './sprites'
-import { BAR_X, paneRect, rawRect, rect } from './paint'
+import { BAR_X, paneRect, rawRect, rect, shadow } from './paint'
 import { drawSeasonNight, drawSeasonPane, drawSeasonSill } from './season'
 import type { Season } from './season'
 import {
   EQUIPMENT_ART, TIER_ART, drawAnimePoster, drawEntrance, drawKitchenette, drawStudioLights, drawTrophies, drawVolumes,
 } from './studioArt'
 import type { Owned } from './studioArt'
+import {
+  TIER_FRONT, TIER_ROOM, drawAmbient, drawCalendar, drawCorkboard, drawCups, drawFanLetters, drawSeriesPoster,
+} from './roomArt'
+import type { StoryLook } from './story'
 
 export const W = 320
 export const H = 180
@@ -103,6 +107,7 @@ function drawMangaka(ctx: CanvasRenderingContext2D, s: Snapshot, a: Actor, frame
       return
     }
     case 'standing': {
+      shadow(ctx, x + 4, y + 30, 16)
       drawSprite(ctx, MANGAKA_IDLE[Math.floor(frame / 16) % 2], x, y)
       if (s.phase === 'ready') {
         // the manuscript in the leading hand (row 21)
@@ -112,6 +117,7 @@ function drawMangaka(ctx: CanvasRenderingContext2D, s: Snapshot, a: Actor, frame
       return
     }
     case 'walking':
+      shadow(ctx, x + 4, y + 30, 16)
       drawSprite(ctx, MANGAKA_WALK[Math.floor(a.anim / 100) % 4], x, y, 32, undefined, a.facing === 1)
       return
     case 'sleeping': {
@@ -126,21 +132,6 @@ function drawMangaka(ctx: CanvasRenderingContext2D, s: Snapshot, a: Actor, frame
     default:
       return
   }
-}
-
-// ---------- the room ----------
-
-/**
- * The wall and the floor, in canvas space across the whole 320x180: the wall to y 113 with 27 stripes (x 4 + 12k) and
- * the skirting at y 112-113, the floor below with 20 plank seams (x 16k) and 8 plank rows (y 122 + 8k). 58 fills.
- */
-function drawRoom(ctx: CanvasRenderingContext2D, night: boolean) {
-  rawRect(ctx, 0, 0, W, 114, night ? '#8f8272' : '#e8dcc8')
-  for (let x = 4; x < W; x += 12) rawRect(ctx, x, 0, 1, 114, night ? '#847763' : '#ddd0ba')
-  rawRect(ctx, 0, 112, W, 2, night ? '#5a4a3a' : '#8a6a4f')
-  rawRect(ctx, 0, 114, W, 66, night ? '#6f5438' : '#b0855b')
-  for (let x = 0; x < W; x += 16) rawRect(ctx, x, 114, 1, 66, night ? '#5c4530' : '#96704a')
-  for (let y = 122; y < H; y += 8) rawRect(ctx, 0, y, W, 1, night ? '#5c4530' : '#a37b52')
 }
 
 // ---------- sky ----------
@@ -181,8 +172,11 @@ export function skyColor(t: number): string {
 
 // ---------- scene ----------
 
-/** What one frame needs from the game, copied out of the store by the component (primitives and small objects). */
-export interface Snapshot {
+/**
+ * What one frame needs from the game, copied out of the store by the component (primitives and small objects); the
+ * story props' inputs come from story.ts.
+ */
+export interface Snapshot extends StoryLook {
   phase: 'idle' | 'drawing' | 'ready' | 'submitted'
   activity: 'work' | 'rest' | 'job'
   progress: number
@@ -225,8 +219,10 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
   const working = busy && s.running
   const sky = skyColor(t)
 
-  drawRoom(ctx, night)
+  TIER_ROOM[s.tier](ctx, night)
   drawKitchenette(ctx)
+  // contact shadows on the floor: the fridge, the counter, the bookshelf, the desk and the bed
+  shadow(ctx, 2, 114, 16); shadow(ctx, 20, 114, 42); shadow(ctx, 72, 114, 35); shadow(ctx, 116, 118, 58); shadow(ctx, 192, 128, 58)
 
   // window
   rect(ctx, 116, 10, 48, 36, '#5a4634')
@@ -266,9 +262,12 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
   if (s.owned.shelf) EQUIPMENT_ART.shelf(ctx, s, frame, night)
 
   drawClock(ctx, t)
+  drawCorkboard(ctx, s)
+  drawCalendar(ctx, s, frame)
 
-  // poster, or the anime's key visual while the show is on
+  // poster: the anime's key visual while the show is on, else the running serial's cover, else the stock poster
   if (s.animePoster) drawAnimePoster(ctx)
+  else if (s.serialOn) drawSeriesPoster(ctx, s.posterHue)
   else { rect(ctx, 52, 14, 22, 28, '#fff'); rect(ctx, 54, 16, 18, 24, '#e5484d'); rect(ctx, 57, 22, 12, 12, '#fff'); rect(ctx, 60, 25, 6, 6, '#16161a') }
 
   // bed
@@ -280,6 +279,7 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
   // the tier's room: the doorway above the bed's head (before the Zz that rise over it), the loft's plants
   TIER_ART[s.tier](ctx, s, frame, night)
   drawEntrance(ctx, absent)
+  drawFanLetters(ctx, s.fanLevel)
 
   // the assistants (front left, only when staff exists): their stools, each one seated or dozing, then the desk, then
   // each working assistant's page on it (after the desk, so it shows)
@@ -296,6 +296,7 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
       } else drawSprite(ctx, MANGAKA_SIT[working ? Math.floor((frame + i * 3) / 8) % 2 : 0], actor.x, actor.y, 32, pal)
     }
     const dw = 8 + 20 * shown
+    shadow(ctx, 62, 132, dw)
     rawRect(ctx, 62, 120, dw, 3, '#8b5a2b'); rawRect(ctx, 62, 123, dw, 9, '#70461f')
     if (working) {
       const inked = Math.round(s.progress * 3)
@@ -331,6 +332,7 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
   rect(ctx, ink, 58, 4, 4, '#1b1b1b'); rect(ctx, ink + 1, 57, 2, 1, '#1b1b1b')
   rect(ctx, 76, 58, 5, 4, '#fff'); rect(ctx, 81, 59, 1, 2, '#fff'); if (working) { const st = Math.floor(frame / 10) % 2; rect(ctx, 77 + st, 55, 1, 2, '#d9d3c5') }
   if (s.owned.tablet) EQUIPMENT_ART.tablet(ctx, s, frame, night)
+  drawCups(ctx, s)
   if (absent) { rect(ctx, 96, 58, 8, 5, '#fff7c2'); rect(ctx, 97, 59, 6, 1, '#b8b2a5'); rect(ctx, 97, 61, 4, 1, '#b8b2a5') }
 
   // the mangaka in front of the desk (standing, walking or in bed), then the editor on a visit
@@ -347,9 +349,13 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
   else if (cat.state !== 'hidden' && cat.state !== 'away') drawSprite(ctx, CAT_SIT, cat.x, cat.y, 8, undefined, catFlip)
   const editor = s.actors.editor
   const editorFlip = editor.facing === 1
+  if (editor.state !== 'hidden' && editor.state !== 'away') shadow(ctx, editor.x + 4, editor.y + 30, 16)
   if (editor.state === 'walking') drawSprite(ctx, EDITOR_WALK[Math.floor(editor.anim / 100) % 4], editor.x, editor.y, 32, undefined, editorFlip)
   else if (editor.state !== 'hidden' && editor.state !== 'away') drawSprite(ctx, EDITOR_IDLE[Math.floor(frame / 16) % 2], editor.x, editor.y, 32, undefined, editorFlip)
   if (s.visitor === 'editor' && editor.state === 'standing' && editor.facing === -1) drawVisitorProp(ctx, s.visitorProp, editor.x, editor.y, frame)
+
+  // the front row, in front of everyone
+  TIER_FRONT[s.tier](ctx, s, frame, night)
 
   if (night) {
     ctx.fillStyle = 'rgba(20, 24, 60, 0.28)'; ctx.fillRect(0, 0, W, H)
@@ -359,4 +365,5 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
   }
   // the arm lamp (at night or while working) and the doorway's spill (at night), after the overlay so they glow
   drawStudioLights(ctx, s, night, working)
+  drawAmbient(ctx, s, t, night, working)
 }

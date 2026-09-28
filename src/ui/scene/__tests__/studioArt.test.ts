@@ -40,9 +40,12 @@ const EVERYTHING: Partial<Snapshot> = {
  * way at 356 once drawSprite merged each horizontal run of one sprite key into one fillRect (same pixels, fewer fills).
  * Task B (0.2.1) re-measured it the same way at 505: the mangaka's 24x32 seated frame and the stock chair's back.
  * Task C (0.2.1) re-measured it the same way at 973: three 24x32 assistants on stools and the 12x8 cat (the full scene,
- * with the editor and a contract, measures 1083, under the 1500 ceiling).
+ * with the editor and a contract, measures 1083, under the 1500 ceiling). Upgrade 0.3.0 re-measured it the same way at
+ * 1025 (+52): render.test's +53 by day for the room, the shadows, the corkboard, the calendar, the front row, the bin and
+ * the light, less the daylight shaft (4) at night and plus the lamp's pool on the desk (3) (the full scene with every
+ * story prop measures 1371).
  */
-const FULL_BASELINE = 973
+const FULL_BASELINE = 1025
 
 function paint(over: Partial<Snapshot> = {}, t = 0.3, frame = 100): FillCall[] {
   const { ctx, log } = fakeContext()
@@ -147,13 +150,13 @@ describe('the studio in the scene', () => {
     expect(key(paint({ trophies: 2 }))).not.toBe(key(paint({ trophies: 1 })))
   })
 
-  it('paints the scene with no studio look in its measured 973 fills', () => {
+  it('paints the scene with no studio look in its measured 1025 fills', () => {
     expect(paint(BARE_FULL, 0.9, 100)).toHaveLength(FULL_BASELINE)
   })
 
   it('keeps the full scene inside the canvas, free of magenta and under 1.5 times its own baseline', () => {
     const budget = FULL_BASELINE * 1.5
-    expect(budget).toBe(1459.5)
+    expect(budget).toBe(1537.5)
     for (const [t, frame, visiting] of [[0.9, 100, 0], [0.9, 0, 0], [0.3, 100, 0], [0.9, 100, 1]]) {
       const log = paint(visiting ? { ...EVERYTHING, visitor: 'editor', visitorProp: 'contract' } : EVERYTHING, t, frame)
       expect(log.some((c) => c.style === '#f0f'), `t ${t} frame ${frame}`).toBe(false)

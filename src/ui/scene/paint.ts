@@ -34,3 +34,9 @@ export function paneRect(ctx: CanvasRenderingContext2D, x: number, y: number, w:
   const x1 = Math.min(x + w, PANE_X + PANE_W)
   if (x1 > x0) rect(ctx, x0, y, x1 - x0, h, color)
 }
+
+/** A contact shadow: a 2 px dark row in canvas space at an object's (or a character's) feet, grounding it on the floor. */
+export function shadow(ctx: CanvasRenderingContext2D, x: number, y: number, w: number) {
+  ctx.fillStyle = 'rgba(40, 24, 16, 0.28)'
+  ctx.fillRect(x, y, w, 2)
+}

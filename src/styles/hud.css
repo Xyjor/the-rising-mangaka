@@ -24,6 +24,9 @@
 .rail .badge.blue, .rail-log .badge.blue { background: var(--blue); }
 .rail-log { position: absolute; left: 12px; bottom: 16px; }
 .rail-settings { position: absolute; right: 16px; bottom: 16px; background: var(--panel); border: 3px solid var(--line-strong); }
+/* Hide the desk: left of Settings; pressed while the desk is tucked away. */
+.rail-desk { position: absolute; right: 72px; bottom: 16px; background: var(--panel); border: 3px solid var(--line-strong); }
+.btn.rail-desk[aria-pressed='true'] { background: var(--accent); color: var(--accent-ink); }
 
 /* ---------- status card ---------- */
 .status-card { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px 16px; padding: 12px 14px; }
@@ -67,6 +70,8 @@
   .speed button { min-width: 36px; }
   .rail-log { left: 8px; bottom: 8px; }
   .rail-settings { right: 8px; bottom: 8px; }
+  /* the phone's scene is a band above the desk, never under it: nothing to hide */
+  .rail-desk { display: none; }
   .status-card { grid-template-columns: 1fr; }
   .status-right { order: -1; }
 

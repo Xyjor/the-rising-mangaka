@@ -21,9 +21,9 @@ import type { Actor, ActorTable } from '../actors'
  * pixels and two hands), the cat's two 8x6 frames 30 pixels in place of the placeholder's 20 (+10) and the assistant's
  * page 3 (the sheet and round(0.5 * 3) = 2 ink lines). Task A (0.2.1) re-measured it the same way at 281 once
  * drawSprite merged each horizontal run of one key into one fillRect (the art unchanged, the same pixels painted): the
- * sprites' 1x1 pixels became runs (the hero, the assistant, the clock and the cat). Task B (0.2.1) re-measured it the same way at 430: the mangaka a 24x32 sprite and the stock chair's new back. Task C (0.2.1) re-measured it the same way at 596: the assistant a 24x32 seated frame, its stool and the page's wider lines, the cat's 12x8 sleeping frame. Every scene must stay under 1.5 times this.
+ * sprites' 1x1 pixels became runs (the hero, the assistant, the clock and the cat). Task B (0.2.1) re-measured it the same way at 430: the mangaka a 24x32 sprite and the stock chair's new back. Task C (0.2.1) re-measured it the same way at 596: the assistant a 24x32 seated frame, its stool and the page's wider lines, the cat's 12x8 sleeping frame. Upgrade 0.3.0 re-measured it the same way at 649: the tatami room 61 in place of the striped room's 58 (+3), five floor shadows and the staff desk's (+6), the corkboard 10 (board 2, four cards at 2), the calendar 7, the apartment's front row 12 and the bin 7 (5 and two crumpled pages), and the light 8 (the daylight shaft 4, the vignette 4). Every scene must stay under 1.5 times this.
  */
-const BASELINE_FILLS = 596
+const BASELINE_FILLS = 649
 const BUDGET = BASELINE_FILLS * 1.5
 
 describe('render', () => {
@@ -48,13 +48,13 @@ describe('render', () => {
     }
   })
 
-  it('paints the wall stripes and the floor planks across the whole canvas', () => {
-    const { ctx, log } = fakeContext()
-    render(ctx, sceneSnapshot(), 0.3, 100)
-    const has = (x: number, y: number, w: number, h: number) => log.some((c) => c.x === x && c.y === y && c.w === w && c.h === h)
-    expect(has(4, 0, 1, 114)).toBe(true)
-    expect(has(316, 0, 1, 114)).toBe(true)
-    expect(has(0, 178, 320, 1)).toBe(true)
+  it("paints the tier's wall and floor across the whole canvas, first", () => {
+    for (const tier of ['apartment', 'flat', 'loft'] as const) {
+      const { ctx, log } = fakeContext()
+      render(ctx, sceneSnapshot({ tier }), 0.3, 100)
+      expect(log[0], tier).toMatchObject({ x: 0, y: 0, w: 320, h: 114 })
+      expect(log.some((c) => c.x === 0 && c.y === 114 && c.w === 320 && c.h === 66), tier).toBe(true)
+    }
   })
 
   it('renders frame 0 the same way twice (a pure function of its inputs)', () => {
@@ -66,7 +66,7 @@ describe('render', () => {
   })
 
   it('stays under 1.5 times the measured baseline of fillRect calls in every season, by day and by night', () => {
-    expect(BUDGET).toBe(894)
+    expect(BUDGET).toBe(973.5)
     for (const season of ['spring', 'summer', 'autumn', 'winter'] as Season[]) {
       for (const t of [0.3, 0.9]) {
         const { ctx, log } = fakeContext()

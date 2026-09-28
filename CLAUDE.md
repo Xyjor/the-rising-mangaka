@@ -78,7 +78,10 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   with nothing allocated per frame (`Snapshot.late` turns the seated mangaka to the panic frames); `sprites.ts` the
   palette (uppercase base, lowercase shade, `L` outline), the 24×32 string-map frames, the run-length `drawSprite` and
   `frameRules` (closed outline, feet on the last row, every key in the palette); `spriteSvg.ts` `spriteRects` and
-  `SpriteAvatar.tsx`, the staff portrait drawn from the anchor frame's head; `season.ts` has `seasonOf(day)` and the window's season layer; `studioArt.ts` the
+  `SpriteAvatar.tsx`, the staff portrait drawn from the anchor frame's head; `season.ts` has `seasonOf(day)` and the window's season layer; `roomArt.ts` each tier's walls and floor (`TIER_ROOM`:
+tatami, planks, concrete), the front row of floor props (`TIER_FRONT`, drawn after the actors), the story props (corkboard,
+calendar, cups, the serial's cover, fan letters, bin) and `drawAmbient` (daylight shaft, lamp pool, vignette), all in
+canvas space; `story.ts` `storyLook`, the story props' five snapshot inputs read from the game; `studioArt.ts` the
   player's studio (`TIER_ART` and `EQUIPMENT_ART` records keyed by id, so a new tier or piece fails `tsc` until it is
   drawn, plus the kitchenette, the entrance, the volumes, anime poster, trophies and lights); `actors.ts` the cast as a
   table of actors (position, target, facing, pose, which axis it walks first) driven by `planActors`/`stepActors`/
@@ -87,7 +90,7 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   and `Pops.tsx` the DOM speech bubbles and floating money/fans/xp numbers, styled by `scene.css`;
   `StudioScene.tsx` is the component and its 24 fps frame loop (reading `studioLook` through `useShallow`, lighting
   from the presentation clock, playing the `knock` and `pop` cues); every render is checked against a hand-measured
-  fillRect baseline (`render.test.ts`, `studioArt.test.ts`) and must stay under 1.5x it),
+  fillRect baseline (`render.test.ts` 649, `studioArt.test.ts` 1025) and must stay under 1.5x it),
   `components.tsx` (Bar, Pips, Modal, RankChart), `format.ts` (money/compact/plural formatters), `Icon.tsx`
   (inline SVG icon set), `SaveFileSection.tsx` and `useSaveFile.ts` (export and load, in Settings and on the
   title screen), and
@@ -134,6 +137,8 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   returns null when empty, imports its own stylesheet (`src/styles/cards.css`), uses `card flat desk-card`, toasts on
   arrival and pauses once (the year review only toasts), and is placed by `DeskTray`.
 - Menus always pause (the studio log included).
+- The eye button (and D) hides the desk dock to show the studio; not saved, and any auto-pause for a decision shows it
+  again (`deskHidden` in the store's `tick`).
 
 ## UI rules (from the design pass)
 

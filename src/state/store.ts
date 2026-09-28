@@ -51,6 +51,11 @@ interface Store {
    * clock stopped when it was set, and the sound bridge plays no cue for the update that sets or clears it.
    */
   windowHidden: boolean
+  /**
+   * True while the player has tucked the desk (the status card and the desk tray) away to look at the studio. Not
+   * saved; the auto-pause for a decision shows the desk again.
+   */
+  deskHidden: boolean
 
   newGame: (name: string) => void
   /**
@@ -91,6 +96,7 @@ interface Store {
   spendSkillPoint: (s: StatId) => void
   dismissToast: (id: number) => void
   setTheme: (t: ThemeMode) => void
+  toggleDesk: () => void
   setSound: (patch: Partial<SoundPrefs>) => void
   finishTutorial: () => void
   /**
@@ -229,6 +235,7 @@ export const useStore = create<Store>()(
         sound: DEFAULT_SOUND,
         saveLoads: 0,
         windowHidden: false,
+        deskHidden: false,
 
         takeOver: () => {
           claim()
@@ -276,7 +283,10 @@ export const useStore = create<Store>()(
             tripEnded ||
             (!!next.event && !game.event) ||
             (!!next.animeOffer && !game.animeOffer)
-          if (needsDecision) patch.speed = 0
+          if (needsDecision) {
+            patch.speed = 0
+            patch.deskHidden = false
+          }
           set(patch)
         },
 
@@ -318,6 +328,7 @@ export const useStore = create<Store>()(
 
         dismissToast: (id) => set({ toasts: get().toasts.filter((t) => t.id !== id) }),
         setTheme: (t) => set({ theme: t }),
+        toggleDesk: () => set({ deskHidden: !get().deskHidden }),
         setSound: (patch) => {
           const current = get().sound
           const next = normalizeSound({ ...current, ...patch })
