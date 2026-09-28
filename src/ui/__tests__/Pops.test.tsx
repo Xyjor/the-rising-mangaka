@@ -27,6 +27,11 @@ describe('popsFor', () => {
     expect(popsFor(st(z), st(bump(z, { xp: 12 })), A)[0].text).toBe('+12 xp')
     expect(popsFor(st(z), st(bump(z, { xp: 0, level: 2 })), A)[0].text).toBe('Level 2')
   })
+  it('marks only the level-up pop with levelUp: true, not a plain xp gain (fix round 1)', () => {
+    const z = bump(base, { xp: 0, level: 1 })
+    expect(popsFor(st(z), st(bump(z, { xp: 12 })), A)[0].levelUp).toBeUndefined()
+    expect(popsFor(st(z), st(bump(z, { xp: 0, level: 2 })), A)[0].levelUp).toBe(true)
+  })
   it('stacks later pops 10 px higher', () => {
     const out = popsFor(st(base), st(bump(base, { money: m + 1200, fans: base.player.fans + 40 })), A)
     expect(out.map((p) => [p.kind, p.y])).toEqual([['money', 50], ['fans', 40]])

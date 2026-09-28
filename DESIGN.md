@@ -269,15 +269,43 @@ for `POP_MS` 1200 each, capped at `POP_MAX` 6 on screen, guarded against a save 
 jump so a pop never fires from anything but one step of play.
 
 **The sprites** (`sprites.ts`) are string maps, one character per pixel, drawn by `drawSprite`, which merges each
-horizontal run of one key into one fillRect and mirrors a frame to face right. People are 24x32 frames facing left.
+horizontal run of one key into one fillRect and mirrors a frame to face right. People are 24x32 frames facing left, in
+chibi proportions (upgrade 0.4.0): the head is rows 0-15 (18 px wide, cols 2-19), the body rows 16-31 (2 heads tall).
 `PAL` keys are an uppercase base and its lowercase shade (light from the top left, so the shade sits on the right and
 underneath), `L` the outline; `ASSISTANT_PALS[look]` swaps the hair and shirt. Every 24x32 frame passes `frameRules`
-(every row full width, every key in the palette, feet on the last row, a closed outline). The frame sets: idle 2 frames
-(`frame/16 % 2`), walk 4 (`anim/100 % 4`), sit 2 (`frame/8 % 2` while working, frame 0 otherwise), panic 2 (for 40 of
-every 240 frames while working on a late chapter, `Snapshot.late`), a 30x14 lying sprite for the bed (under a blanket,
-only head and shoulders show), the assistants' doze, the editor's idle and walk, and the 12x8 cat (sleep, sit, walk
-`anim/125 % 2`). Props (envelope, letter, contract, trophy) are small maps of their own. `SpriteAvatar` draws the
-anchor frame's head (rows 0-15, cols 4-19) as SVG rects (`spriteSvg.ts`) for the staff portraits.
+(every row full width, every key in the palette, feet on the last row, a closed outline); `MANGAKA_PANIC` is the one
+deviation from the plan text (the ledger's ruling): its hands sit beside the head at rows 5-8, not the spec's rows
+2-3, because the literal spec's placement read as ears.
+
+- **Expressions** are an overlay, not baked into most frames: `FACES[mood]` (14 wide x 4 tall, `mood.ts`'s `Mood`,
+  excluding `neutral`) is drawn at `(x+4, y+9+headDy)`, only on head-steady poses (the standing mangaka's breathing
+  idle, the seated mangaka outside panic, the seated assistants). Walking, panic, bed and doze keep their own
+  baked-in expression. `neutral` draws no overlay at all (the anchor's own face shows).
+- **Moods and marks** (`mood.ts` `moodOf`, priority order): `surprised` (the editor is standing in the studio and the
+  mangaka is home) beats `happy` (`cheer`, set for `CHEER_MS` 2400 ms by `cheersFor` after a fans pop or a level-up
+  pop, never a plain xp gain) beats `tired` (stamina below `LOW_STAMINA_THRESHOLD`) beats `sleepy` (working late at
+  night: the seated mangaka is drawing, the clock is running, and it is night) beats `neutral`. Panic (the seated
+  mangaka late on a chapter) is not a mood; it beats every one of them and stays the existing `MANGAKA_PANIC` frames.
+  Each mood also has a mark above the head at `(x+11, y-8)` in `MARK_PAL`: a sweat drop (tired), a sparkle (happy),
+  `!` (surprised), `z` (sleepy). Only one mark ever occupies that slot: the standing mangaka's ready-manuscript `!`
+  beats the mood mark, which beats the idle `?`.
+- **Idle cycles** are pure functions of the frame counter in `mood.ts`. The standing mangaka's 360-frame cycle
+  (`idleFrame`) is 0-239 breathing (today's `frame/16 % 2`), 240-299 a stretch (`MANGAKA_STRETCH`, 2 frames,
+  `frame/15 % 2`), 300-359 a sip from a mug (`MANGAKA_SIP`, 2 frames); it applies only outside the `ready` phase (the
+  manuscript is in hand then). The cat's 480-frame sitting cycle (`catFrame`) is 0-359 `CAT_SIT`, 360-419 a groom
+  (`CAT_GROOM`, 2 frames, `frame/15 % 2`; the ledger's ruling keeps the head in place and raises a paw over the ear
+  gap instead of the spec's "head lowered one row", which hid the change), 420-479 a stretch (`CAT_STRETCH`). Frame 0
+  (reduced motion) is always the plain idle for both.
+- **Outfits by level** (`outfitOf`, `OUTFIT_PALS`), the mangaka only, swap `J`/`j` in the palette: levels 1-4 a hoodie
+  (`#6f7a8c`/`#525c6b`, the original palette), 5-9 a cardigan (`#c9a24a`/`#a8832f`), 10+ a blazer
+  (`#2e3a78`/`#222b5c`). Purely cosmetic, so no UI hint is needed.
+
+The frame sets: idle 2 frames (`frame/16 % 2`), walk 4 (`anim/100 % 4`), sit 2 (`frame/8 % 2` while working, frame 0
+otherwise), panic 2 (for 40 of every 240 frames while working on a late chapter, `Snapshot.late`), a 30x14 lying
+sprite for the bed (under a blanket, only head and shoulders show), the assistants' doze, the editor's idle and walk,
+the standing idle cycle's stretch and sip, and the 12x8 cat (sleep, sit, its groom and stretch, walk `anim/125 % 2`).
+Props (envelope, letter, contract, trophy) are small maps of their own. `SpriteAvatar` draws the anchor frame's chibi
+head (rows 0-15, cols 2-19, 18x16; the SVG viewBox matches) as SVG rects (`spriteSvg.ts`) for the staff portraits.
 
 | Spot | Canvas (top left of the frame) |
 |---|---|
@@ -294,12 +322,19 @@ Actors whose frame top is at canvas y 75 or below (standing, walking, at the doo
 (canvas x 62, width 8 + 20n for n assistants shown, at most 3, y 120-131), drawn after them so only head and shoulders
 show; each seated assistant's page is drawn after the desk, on its top, with one ink line per third of progress.
 
-The scene's fillRect budget is measured, not guessed: the one-assistant reference frame is a baseline of 649 calls
+The scene's fillRect budget is measured, not guessed: the one-assistant reference frame is a baseline of 659 calls
 (`render.test.ts`), and the bare full scene (`BARE_FULL`: three assistants, looks 0-2 at stamina 80, in winter,
-otherwise the reference scene, at night, t 0.9, frame 100) a baseline of 1025 (`studioArt.test.ts`; the full scene
-with every piece of equipment, the loft, the editor, a contract and every story prop measures 1371, inside that
-ceiling); every render must stay under 1.5x its own baseline (973.5 and 1537.5), so a new sprite or a new studio piece fails its test the moment it pushes the frame
-past budget.
+otherwise the reference scene, at night, t 0.9, frame 100) a baseline of 1065 (`studioArt.test.ts`; the full scene
+with every piece of equipment, the loft, the editor, a contract and every story prop stays well inside that
+ceiling); every render must stay under 1.5x its own baseline (988.5 and 1597.5), so a new sprite or a new studio piece fails its test the moment it pushes the frame
+past budget. Upgrade 0.4.0's chibi cast (Task 6) moved both baselines up from 649 and 1025: the redrawn `MANGAKA_SIT`
+frames (used by both the mangaka and every seated assistant) cost 5 (frame 0) or 8 (frame 1) more fillRect runs each
+than the old sit frames, purely from the wider chibi head and torso; nothing else in the redesign (the face overlay,
+the marks, the idle cycles, the outfit palettes) adds a single fillRect to either reference scene, since both render
+at a neutral mood with no overlay drawn. The final whole-branch review's fix made the sleepy mood reachable (working
+late at night, not the old dead `resting && night` check): `BARE_FULL`'s mangaka is exactly that (seated, working,
+t 0.9), so its baseline moved again, from 1048 to 1065 (+17: the sleepy face overlay and its mark, `studioArt.test.ts`
+does the fillRect-by-fillRect count); the one-assistant reference frame stays daytime (t 0.3) and is unaffected.
 
 ## Systems beyond the slice (implemented)
 

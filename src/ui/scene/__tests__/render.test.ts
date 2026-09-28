@@ -21,9 +21,9 @@ import type { Actor, ActorTable } from '../actors'
  * pixels and two hands), the cat's two 8x6 frames 30 pixels in place of the placeholder's 20 (+10) and the assistant's
  * page 3 (the sheet and round(0.5 * 3) = 2 ink lines). Task A (0.2.1) re-measured it the same way at 281 once
  * drawSprite merged each horizontal run of one key into one fillRect (the art unchanged, the same pixels painted): the
- * sprites' 1x1 pixels became runs (the hero, the assistant, the clock and the cat). Task B (0.2.1) re-measured it the same way at 430: the mangaka a 24x32 sprite and the stock chair's new back. Task C (0.2.1) re-measured it the same way at 596: the assistant a 24x32 seated frame, its stool and the page's wider lines, the cat's 12x8 sleeping frame. Upgrade 0.3.0 re-measured it the same way at 649: the tatami room 61 in place of the striped room's 58 (+3), five floor shadows and the staff desk's (+6), the corkboard 10 (board 2, four cards at 2), the calendar 7, the apartment's front row 12 and the bin 7 (5 and two crumpled pages), and the light 8 (the daylight shaft 4, the vignette 4). Every scene must stay under 1.5 times this.
+ * sprites' 1x1 pixels became runs (the hero, the assistant, the clock and the cat). Task B (0.2.1) re-measured it the same way at 430: the mangaka a 24x32 sprite and the stock chair's new back. Task C (0.2.1) re-measured it the same way at 596: the assistant a 24x32 seated frame, its stool and the page's wider lines, the cat's 12x8 sleeping frame. Upgrade 0.3.0 re-measured it the same way at 649: the tatami room 61 in place of the striped room's 58 (+3), five floor shadows and the staff desk's (+6), the corkboard 10 (board 2, four cards at 2), the calendar 7, the apartment's front row 12 and the bin 7 (5 and two crumpled pages), and the light 8 (the daylight shaft 4, the vignette 4). Upgrade 0.4.0's chibi cast (Task 6) re-measured it the same way at 659 (+10): redrawing MANGAKA_SIT[0] to the chibi proportions (an 18-wide, 16-row head in place of the old frame's narrower crown) costs 5 more fillRect runs than the old frame, and the reference scene paints two seated figures from that map at frame 100 (the mangaka and its one assistant, both landing on index 0: `floor(100/8)%2` for the mangaka, `floor((100+0*3)/8)%2` for the assistant) — 5 + 5 = 10. The mood overlay adds nothing here: the reference scene's mood is neutral (home, no editor, no cheer, stamina 80), and `drawMood` returns early for `neutral`. Every scene must stay under 1.5 times this.
  */
-const BASELINE_FILLS = 649
+const BASELINE_FILLS = 659
 const BUDGET = BASELINE_FILLS * 1.5
 
 describe('render', () => {
@@ -66,7 +66,7 @@ describe('render', () => {
   })
 
   it('stays under 1.5 times the measured baseline of fillRect calls in every season, by day and by night', () => {
-    expect(BUDGET).toBe(973.5)
+    expect(BUDGET).toBe(988.5)
     for (const season of ['spring', 'summer', 'autumn', 'winter'] as Season[]) {
       for (const t of [0.3, 0.9]) {
         const { ctx, log } = fakeContext()
@@ -199,13 +199,15 @@ describe('the characters, from the actor table', () => {
   it('seats the mangaka at the desk in the reference scene, over the chair back and under the desk top', () => {
     const { ctx, log } = fakeContext()
     render(ctx, sceneSnapshot(), 0.3, 0)
-    // seat (132, 67): the anchor's row 2 col 8 is hair, row 7 col 8 skin
+    // seat (132, 67): the anchor's row 2 col 8 is hair, row 13 col 8 skin, row 9 col 6 an eye
     const hair = covers(log, '#2b2140', 140, 69)
     expect(hair).toBeGreaterThanOrEqual(0)
-    expect(covers(log, '#4a4a55', 140, 80)).toBeGreaterThan(-1)
-    expect(covers(log, '#4a4a55', 140, 80)).toBeLessThan(hair)
+    const chair = covers(log, '#4a4a55', 140, 90)
+    expect(chair).toBeGreaterThan(-1)
+    expect(chair).toBeLessThan(hair)
     expect(covers(log, '#8b5a2b', 116, 98)).toBeGreaterThan(hair)
-    expect(has(log, '#f4cfa5', 140, 74)).toBe(true)
+    expect(has(log, '#f4cfa5', 140, 80)).toBe(true)
+    expect(has(log, '#1b1b1b', 138, 76)).toBe(true)
   })
 
   it('stands the mangaka beside the desk between projects, after the desk top', () => {
@@ -214,16 +216,17 @@ describe('the characters, from the actor table', () => {
     const hair = covers(log, '#2b2140', 178, 83)
     expect(hair).toBeGreaterThan(covers(log, '#8b5a2b', 116, 98))
     expect(covers(log, '#8b5a2b', 116, 98)).toBeGreaterThan(-1)
-    // row 30 col 6, a shoe
-    expect(has(log, '#c0392b', 176, 111)).toBe(true)
+    // row 30 col 7, a shoe
+    expect(has(log, '#c0392b', 177, 111)).toBe(true)
   })
 
   it('walks the mangaka with the four-frame cycle, mirrored when facing right', () => {
-    // contact (anim 0): the leading shoe at cols 3-7; pass (anim 100): the legs together at cols 7-16
-    expect(has(paintWith(walking({})), '#c0392b', 153, 111)).toBe(true)
-    expect(has(paintWith(walking({ anim: 100 })), '#c0392b', 153, 111)).toBe(false)
-    // facing right, col 3 mirrors to col 20
-    expect(has(paintWith(walking({ facing: 1 })), '#c0392b', 170, 111)).toBe(true)
+    // contact (anim 0): WALK[0] row 30 '....LOOOOL...LOOOoL.....', the leading shoe's O at cols 5-8 (col 5 at x 155);
+    // pass (anim 100): the shoes together at cols 8-14, nothing at col 5
+    expect(has(paintWith(walking({})), '#c0392b', 155, 111)).toBe(true)
+    expect(has(paintWith(walking({ anim: 100 })), '#c0392b', 155, 111)).toBe(false)
+    // facing right, col 5 mirrors to x 150 + 23 - 5 = 168
+    expect(has(paintWith(walking({ facing: 1 })), '#c0392b', 168, 111)).toBe(true)
   })
 
   it('has the seated mangaka throw up their hands for 40 frames in 240 when the chapter is late', () => {
@@ -232,10 +235,27 @@ describe('the characters, from the actor table', () => {
       render(ctx, sceneSnapshot({ late }), 0.3, frame)
       return log
     }
-    // PANIC[0] row 4 col 3 is the leading hand
-    expect(covers(at(true, 0), '#f4cfa5', 135, 71)).toBeGreaterThanOrEqual(0)
-    expect(covers(at(true, 40), '#f4cfa5', 135, 71)).toBe(-1)
-    expect(covers(at(false, 0), '#f4cfa5', 135, 71)).toBe(-1)
+    // PANIC[0] row 5 col 1 is the leading fist (SIT's row 5 col 1 is clear)
+    expect(covers(at(true, 0), '#f4cfa5', 133, 72)).toBeGreaterThanOrEqual(0)
+    expect(covers(at(true, 40), '#f4cfa5', 133, 72)).toBe(-1)
+    expect(covers(at(false, 0), '#f4cfa5', 133, 72)).toBe(-1)
+  })
+
+  it('shows the sleepy face and z mark for the seated, working mangaka late at night, but not during the day', () => {
+    // seated (132, 67): the overlay's origin is (x+4, y+9) = (136, 76); FACES.sleepy row 1 col 1 is the closed-eye
+    // L, at (137, 77), painted after the base sprite's eye E at (138, 76) (the earlier test above)
+    const { ctx, log } = fakeContext()
+    render(ctx, sceneSnapshot(), 0.9, 0)
+    const eye = covers(log, '#1b1b1b', 138, 76)
+    expect(eye).toBeGreaterThanOrEqual(0)
+    const sleepyEye = covers(log, '#1c1a26', 137, 77)
+    expect(sleepyEye).toBeGreaterThan(eye)
+    // the z mark (MARKS.sleepy, MARK_PAL.L) above the head at (x+11, y-8) = (143, 59)
+    expect(covers(log, '#1c1a26', 143, 59)).toBeGreaterThan(-1)
+
+    const { ctx: dayCtx, log: dayLog } = fakeContext()
+    render(dayCtx, sceneSnapshot(), 0.3, 0)
+    expect(covers(dayLog, '#1c1a26', 137, 77)).toBe(-1)
   })
 
   function editorAt(facing: -1 | 1, over: Partial<Actor> = {}): ActorTable {
@@ -245,33 +265,34 @@ describe('the characters, from the actor table', () => {
   }
 
   it('paints the editor at the spot, mirrored when facing right', () => {
-    // (198, 85): the suit at row 20 col 4, hair row 2 col 8, glasses row 8 col 6, the briefcase row 24 col 20
+    // (198, 85): the suit at row 18 col 5, hair row 2 col 8, glasses row 10 col 5, the briefcase row 24 col 20
     const left = paintWith(editorAt(-1), { visitor: 'editor' })
-    expect(has(left, '#5b6270', 202, 105)).toBe(true)
+    expect(has(left, '#5b6270', 203, 103)).toBe(true)
     expect(has(left, '#2b2140', 206, 87)).toBe(true)
-    expect(has(left, '#3b3b45', 204, 93)).toBe(true)
+    expect(has(left, '#3b3b45', 203, 95)).toBe(true)
     // (the bed frame behind is the same brown, so the case is found by its exact run: row 24's FFF, cols 19-21)
     expect(left).toContainEqual({ style: '#6d4c33', x: 217, y: 109, w: 3, h: 1 })
-    // facing right, col 4 mirrors to col 19 (x 217); col 19 of row 20 is the shade, so no base suit at x 202
+    // facing right, col 5 mirrors to x 198 + 23 - 5 = 216; x 203 is then row 18's col 18, the outline, so no suit there
     const log = paintWith(editorAt(1), { visitor: 'editor' })
-    expect(has(log, '#5b6270', 217, 105)).toBe(true)
-    expect(has(log, '#5b6270', 202, 105)).toBe(false)
+    expect(has(log, '#5b6270', 216, 103)).toBe(true)
+    expect(has(log, '#5b6270', 203, 103)).toBe(false)
   })
 
-  it('walks the editor with their own four frames, the briefcase moving with the trailing hand', () => {
-    // WALK[0] (anim 0): the case at cols 18-23, row 24's FFF at cols 19-21; WALK[2] (anim 200): cols 16-21, FFF at 17-19
-    const brown = (log: FillCall[]) => log.filter((c) => c.style === '#6d4c33' && c.y === 109 && c.h === 1 && c.w === 3)
-    const w0 = paintWith(editorAt(-1, { state: 'walking', targetX: 150, anim: 0 }), { visitor: 'editor' })
-    expect(brown(w0).map((c) => c.x)).toEqual([217])
-    const w2 = paintWith(editorAt(-1, { state: 'walking', targetX: 150, anim: 200 }), { visitor: 'editor' })
-    expect(brown(w2).map((c) => c.x)).toEqual([215])
+  it('walks the editor with their own four frames, the briefcase bobbing a row on the pass', () => {
+    // the case at cols 18-23: WALK[0] (anim 0) and WALK[2] (anim 200) have row 24's FFF at cols 19-21 (x 217, y 109);
+    // WALK[1] (anim 100, the pass) has it a row lower, row 25 (y 110), and row 24 there is the case's top edge only
+    const brown = (log: FillCall[], y: number) => log.filter((c) => c.style === '#6d4c33' && c.y === y && c.h === 1 && c.w === 3)
+    const walk = (anim: number) => paintWith(editorAt(-1, { state: 'walking', targetX: 150, anim }), { visitor: 'editor' })
+    expect(brown(walk(0), 109).map((c) => c.x)).toEqual([217])
+    expect(brown(walk(200), 109).map((c) => c.x)).toEqual([217])
+    expect(brown(walk(100), 110).map((c) => c.x)).toEqual([217])
   })
 
   it('puts the mangaka to bed to rest, the Zz rising over the pillow', () => {
     const { ctx, log } = fakeContext()
     render(ctx, sceneSnapshot({ activity: 'rest' }), 0.3, 0)
-    // bed (216, 106): LIE row 2 col 20 is hair; the blanket over the body after it; the first Z at (234, 100)
-    const hair = covers(log, '#2b2140', 236, 108)
+    // bed (216, 106): LIE row 2's first H is col 16 (x 232); the blanket over the body after it; the first Z at (234, 100)
+    const hair = covers(log, '#2b2140', 232, 108)
     expect(hair).toBeGreaterThanOrEqual(0)
     expect(covers(log, '#c94b4b', 200, 116)).toBeGreaterThan(hair)
     expect(has(log, '#2f5ecf', 235, 100)).toBe(true)
@@ -285,34 +306,36 @@ describe('the characters, from the actor table', () => {
     }
     const env = at({ visitor: 'editor', visitorProp: 'envelope' }, 100)
     expect(covers(env, '#2b2140', 206, 87)).toBeGreaterThan(-1)
-    // the envelope sprite at (198 - 2, 85 + 19): row 1 col 2 is paper
-    expect(covers(env, '#fdfcf7', 198, 105)).toBeGreaterThan(-1)
+    // the envelope sprite at (198 - 2, 85 + 20) = (196, 105), the hand row 22's level: its corner, and row 1 col 2 paper
+    expect(covers(env, '#1c1a26', 196, 105)).toBeGreaterThan(-1)
+    expect(covers(env, '#fdfcf7', 198, 106)).toBeGreaterThan(-1)
+    expect(covers(env, '#fdfcf7', 198, 105)).toBe(-1)
     // frame 100: floor(100 / 16) % 2 = 0, so the ! tops out at 85 - 8 = 77 from x 209, its stroke in the glyph's middle
     // column (x 210)
     expect(covers(env, '#e5484d', 210, 77)).toBeGreaterThan(-1)
-    // the trophy at (196, 102): row 1 col 2 is gold
-    expect(covers(at({ visitor: 'editor', visitorProp: 'trophy' }, 100), '#f5b700', 198, 103)).toBeGreaterThan(-1)
+    // the trophy at (198 - 2, 85 + 18) = (196, 103): row 1 col 2 is gold
+    expect(covers(at({ visitor: 'editor', visitorProp: 'trophy' }, 100), '#f5b700', 198, 104)).toBeGreaterThan(-1)
     expect(covers(at({ visitor: 'editor', visitorProp: 'envelope' }, 16), '#e5484d', 210, 76)).toBeGreaterThan(-1)
   })
 
   it('merges horizontal runs of one sprite key into a single fill', () => {
     const { ctx, log } = fakeContext()
     render(ctx, sceneSnapshot(), 0.3, 0)
-    // the seated mangaka's row 1 '......LLHHHHHHHhL.......' at (132, 67): one 7x1 hair fill from x 140
-    expect(log).toContainEqual({ style: '#2b2140', x: 140, y: 68, w: 7, h: 1 })
-    expect(log).not.toContainEqual({ style: '#2b2140', x: 141, y: 68, w: 1, h: 1 })
-    // the editor facing right at (198, 85), row 24 '......LgggggggggggLFFFfL' mirrored: FFF (cols 19-21) at x 200-202,
-    // the suit's shade (cols 7-17) at x 204-214
+    // the seated mangaka's row 1 '....LLHHHHHHHHHhLL......' at (132, 67): one 9x1 hair fill from x 138 (cols 6-14)
+    expect(log).toContainEqual({ style: '#2b2140', x: 138, y: 68, w: 9, h: 1 })
+    expect(log).not.toContainEqual({ style: '#2b2140', x: 139, y: 68, w: 1, h: 1 })
+    // the editor facing right at (198, 85), row 24 '.......LggggggggL.LFFFfL' mirrored: FFF (cols 19-21) at x 200-202,
+    // the suit's shade hem (cols 8-15) at x 206-213
     const ed = paintWith(editorAt(1), { visitor: 'editor' })
     expect(ed).toContainEqual({ style: '#6d4c33', x: 200, y: 109, w: 3, h: 1 })
-    expect(ed).toContainEqual({ style: '#454a55', x: 204, y: 109, w: 11, h: 1 })
+    expect(ed).toContainEqual({ style: '#454a55', x: 206, y: 109, w: 8, h: 1 })
   })
 
   it('paints no prop while the editor walks', () => {
     const table = editorAt(-1, { state: 'walking', targetX: 180 })
     const { ctx, log } = fakeContext()
     render(ctx, sceneSnapshot({ visitor: 'editor', visitorProp: 'envelope', actors: table }), 0.3, 100)
-    expect(covers(log, '#fdfcf7', 198, 105)).toBe(-1)
+    expect(covers(log, '#fdfcf7', 198, 106)).toBe(-1)
     expect(covers(log, '#e5484d', 210, 77)).toBe(-1)
   })
 })
@@ -418,6 +441,95 @@ describe('the assistants, the wall clock and the cat (Task 2.5)', () => {
     expect(covers(walk(0), '#e39a4a', 121, 110)).toBe(-1)
   })
 
+  it('overlays the mood face and mark on the seated mangaka when cheer is on, over the base eye fill', () => {
+    // seated (132, 67), overlay at (136, 76): happy row 10 col 1 is L; the base sprite's eye fill at (138, 76) is
+    // painted first, so the overlay's L at (137, 77) must come after it
+    const { ctx, log } = fakeContext()
+    render(ctx, sceneSnapshot({ cheer: true }), 0.3, 0)
+    const eye = covers(log, '#1b1b1b', 138, 76)
+    expect(eye).toBeGreaterThanOrEqual(0)
+    const overlay = covers(log, '#1c1a26', 137, 77)
+    expect(overlay).toBeGreaterThan(eye)
+    // sparkle (happy's mark) at (x + 11, y - 8) = (143, 59), row 0 col 1
+    expect(covers(log, '#f5b700', 144, 59)).toBeGreaterThan(-1)
+  })
+
+  it('shows a sweat mark for a tired seated mangaka, and no more low-stamina !', () => {
+    const { ctx, log } = fakeContext()
+    render(ctx, sceneSnapshot({ stamina: 10 }), 0.3, 0)
+    expect(covers(log, '#8fd3ff', 144, 60)).toBeGreaterThan(-1)
+    expect(covers(log, '#e5484d', 144, 59)).toBe(-1)
+  })
+
+  it('paints no overlay for a neutral mood', () => {
+    const { ctx, log } = fakeContext()
+    render(ctx, sceneSnapshot(), 0.3, 0)
+    const before = covers(log, '#f4cfa5', 137, 77)
+    // nothing else paints at (137, 77) after the base sprite's own fill there
+    const after = coversAny(log, 137, 77)
+    expect(after).toBe(before)
+  })
+
+  it('skips the mood overlay while the mangaka walks, even with cheer on', () => {
+    const table = newActorTable()
+    Object.assign(table.mangaka, { x: 150, y: 81, targetX: 100, targetY: 81, state: 'walking', goal: 'standing', facing: -1, anim: 0 })
+    const { ctx, log } = fakeContext()
+    render(ctx, sceneSnapshot({ cheer: true, actors: table }), 0.3, 0)
+    expect(log.some((c) => c.style === '#1c1a26' && c.x === 154 && c.y === 90)).toBe(false)
+  })
+
+  it('lets the ready manuscript exclamation beat a tired mood mark above the standing mangaka (fix round 1)', () => {
+    // standing at MANGAKA_STAND (170, 81): mark slot (170+11, 81-8) = (181, 73); glyph '!' row 1 col 1 -> (182, 74)
+    const { ctx, log } = fakeContext()
+    render(ctx, sceneSnapshot({ phase: 'ready', stamina: 10 }), 0.3, 100)
+    expect(covers(log, '#e5484d', 182, 74)).toBeGreaterThan(-1)
+    expect(covers(log, '#8fd3ff', 182, 74)).toBe(-1)
+  })
+
+  it('lets a happy mood mark beat the idle question mark above the standing mangaka (fix round 1)', () => {
+    // idle phase, cheer on, frame 0 (frame % 120 < 40, when the '?' would show): sparkle row 0 col 1 -> (182, 73)
+    const { ctx, log } = fakeContext()
+    render(ctx, sceneSnapshot({ phase: 'idle', cheer: true }), 0.3, 0)
+    expect(covers(log, '#f5b700', 182, 73)).toBeGreaterThan(-1)
+    expect(log.some((c) => c.style === '#2f5ecf')).toBe(false)
+  })
+
+  it('shows a sweat mark on a tired assistant', () => {
+    const { ctx, log } = fakeContext()
+    render(ctx, sceneSnapshot({ assistants: [{ look: 0, stamina: 10 }] }), 0.3, 0)
+    // assistant at (66, 89): mark at (66 + 11, 89 - 8) = (77, 81), row 1 col 1
+    expect(covers(log, '#8fd3ff', 78, 82)).toBeGreaterThan(-1)
+  })
+
+  it('shows the sip mug at frame 300 (idle cycle), standing and not ready', () => {
+    // standing at MANGAKA_STAND (170, 81): SIP row 12 col 9 (the mug rim) -> (170+9, 81+12) = (179, 93)
+    const { ctx, log } = fakeContext()
+    render(ctx, sceneSnapshot({ phase: 'idle' }), 0.3, 300)
+    expect(covers(log, '#f6f6f6', 179, 93)).toBeGreaterThan(-1)
+  })
+
+  it('holds the manuscript instead of the mug at frame 300 when the phase is ready', () => {
+    const { ctx, log } = fakeContext()
+    render(ctx, sceneSnapshot({ phase: 'ready' }), 0.3, 300)
+    expect(covers(log, '#f6f6f6', 179, 93)).toBe(-1)
+  })
+
+  it('shows the plain idle at frame 0', () => {
+    const { ctx, log } = fakeContext()
+    render(ctx, sceneSnapshot({ phase: 'idle' }), 0.3, 0)
+    const hair = covers(log, '#2b2140', 178, 83)
+    expect(hair).toBeGreaterThan(-1)
+    expect(covers(log, '#f6f6f6', 179, 93)).toBe(-1)
+  })
+
+  it('paints the groom paw in fur at CAT_KITCHEN on frame 360 (fix round 1)', () => {
+    // resting sends the cat to CAT_KITCHEN (44, 150), unflipped (facing -1 by default); frame 360 is catFrame's
+    // groom, index 0: the paw's fur cell at local (row 1, col 2) -> canvas (44+2, 150+1) = (46, 151)
+    const { ctx, log } = fakeContext()
+    render(ctx, sceneSnapshot({ phase: 'drawing', activity: 'rest' }), 0.3, 360)
+    expect(covers(log, '#e39a4a', 46, 151)).toBeGreaterThan(-1)
+  })
+
   it('keeps the cat clear of the mangaka\'s, the editor\'s and the bed\'s spots', () => {
     type Box = readonly [number, number, number, number]
     const boxes: Box[] = [[132, 155, 67, 98], [170, 193, 81, 112], [198, 221, 85, 116], [216, 245, 106, 119]]
@@ -429,5 +541,28 @@ describe('the assistants, the wall clock and the cat (Task 2.5)', () => {
         expect(clear, JSON.stringify([c.x, c.y, x0, y0])).toBe(true)
       }
     }
+  })
+})
+
+describe('outfits by level (Task 5, Decision 7)', () => {
+  // standing at MANGAKA_STAND (170, 81): the anchor's row 18 col 6 'J' -> (170+6, 81+18) = (176, 99)
+  it('dresses the standing mangaka in the outfit for their level', () => {
+    const table = newActorTable()
+    Object.assign(table.mangaka, { x: 170, y: 81, targetX: 170, targetY: 81, state: 'standing', goal: 'standing' })
+    const at = (level: number) => {
+      const { ctx, log } = fakeContext()
+      render(ctx, sceneSnapshot({ level, actors: table }), 0.3, 0)
+      return log
+    }
+    expect(covers(at(1), '#6f7a8c', 176, 99)).toBeGreaterThan(-1)
+    expect(covers(at(5), '#c9a24a', 176, 99)).toBeGreaterThan(-1)
+    expect(covers(at(10), '#2e3a78', 176, 99)).toBeGreaterThan(-1)
+  })
+
+  it('leaves an assistant\'s look palette unaffected by the player\'s level', () => {
+    // the assistant seated at (66, 89): the same anchor cell -> (66+6, 89+18) = (72, 107)
+    const { ctx, log } = fakeContext()
+    render(ctx, sceneSnapshot({ level: 10 }), 0.3, 0)
+    expect(covers(log, '#6f7a8c', 72, 107)).toBeGreaterThan(-1)
   })
 })
