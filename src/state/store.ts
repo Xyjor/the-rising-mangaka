@@ -417,8 +417,8 @@ export const useStore = create<Store>()(
 
         loadSaveIntoSlot: (n, save) => {
           if (n === slots.active) return get().loadSave(save)
-          if (!canUseSlots()) return false
           const key = careerKey(n)
+          if (!canUseSlots() || key === LEGACY_SAVE_KEY) return false
           const state = { game: trimLog(save.game), tutorialStep: save.tutorialStep, resumeSpeed: save.resumeSpeed }
           try {
             localStorage.setItem(key, JSON.stringify({ version: SAVE_VERSION, state }))
