@@ -484,6 +484,27 @@ describe('the assistants, the wall clock and the cat (Task 2.5)', () => {
     expect(covers(log, '#8fd3ff', 78, 82)).toBeGreaterThan(-1)
   })
 
+  it('shows the sip mug at frame 300 (idle cycle), standing and not ready', () => {
+    // standing at MANGAKA_STAND (170, 81): SIP row 12 col 9 (the mug rim) -> (170+9, 81+12) = (179, 93)
+    const { ctx, log } = fakeContext()
+    render(ctx, sceneSnapshot({ phase: 'idle' }), 0.3, 300)
+    expect(covers(log, '#f6f6f6', 179, 93)).toBeGreaterThan(-1)
+  })
+
+  it('holds the manuscript instead of the mug at frame 300 when the phase is ready', () => {
+    const { ctx, log } = fakeContext()
+    render(ctx, sceneSnapshot({ phase: 'ready' }), 0.3, 300)
+    expect(covers(log, '#f6f6f6', 179, 93)).toBe(-1)
+  })
+
+  it('shows the plain idle at frame 0', () => {
+    const { ctx, log } = fakeContext()
+    render(ctx, sceneSnapshot({ phase: 'idle' }), 0.3, 0)
+    const hair = covers(log, '#2b2140', 178, 83)
+    expect(hair).toBeGreaterThan(-1)
+    expect(covers(log, '#f6f6f6', 179, 93)).toBe(-1)
+  })
+
   it('keeps the cat clear of the mangaka\'s, the editor\'s and the bed\'s spots', () => {
     type Box = readonly [number, number, number, number]
     const boxes: Box[] = [[132, 155, 67, 98], [170, 193, 81, 112], [198, 221, 85, 116], [216, 245, 106, 119]]

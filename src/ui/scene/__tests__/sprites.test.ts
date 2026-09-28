@@ -2,22 +2,26 @@
 // the outline closed on every row. Pure data, the default node environment.
 import { describe, expect, it } from 'vitest'
 import {
-  ASSISTANT_DOZE, ASSISTANT_PALS, CAT_SIT, CAT_SLEEP, CAT_WALK, EDITOR_IDLE, EDITOR_WALK, HUMAN_FRAMES, MANGAKA_IDLE, MANGAKA_LIE,
-  MANGAKA_PANIC, MANGAKA_SIT, MANGAKA_WALK, PAL, PROP_CONTRACT, PROP_ENVELOPE, PROP_LETTER, PROP_PAL, PROP_TROPHY, frameRules,
+  ASSISTANT_DOZE, ASSISTANT_PALS, CAT_GROOM, CAT_SIT, CAT_SLEEP, CAT_STRETCH, CAT_WALK, EDITOR_IDLE, EDITOR_WALK, HUMAN_FRAMES,
+  MANGAKA_IDLE, MANGAKA_LIE, MANGAKA_PANIC, MANGAKA_SIP, MANGAKA_SIT, MANGAKA_STRETCH, MANGAKA_WALK, PAL, PROP_CONTRACT,
+  PROP_ENVELOPE, PROP_LETTER, PROP_PAL, PROP_TROPHY, frameRules,
 } from '../sprites'
 import { LOOK_HAIRS, LOOK_HAIRS_SHADE, LOOK_SHIRTS, LOOK_SHIRTS_SHADE } from '../../looks'
 
 describe('the sprites', () => {
   it('passes the frame rules for every 24x32 frame, the 30x14 bed pose and the 12x8 cat', () => {
-    expect(HUMAN_FRAMES).toHaveLength(MANGAKA_IDLE.length + MANGAKA_WALK.length + MANGAKA_SIT.length + MANGAKA_PANIC.length + 1 + EDITOR_IDLE.length + EDITOR_WALK.length)
-    expect(HUMAN_FRAMES).toHaveLength(17)
+    expect(HUMAN_FRAMES).toHaveLength(
+      MANGAKA_IDLE.length + MANGAKA_WALK.length + MANGAKA_SIT.length + MANGAKA_PANIC.length + MANGAKA_STRETCH.length
+      + MANGAKA_SIP.length + 1 + EDITOR_IDLE.length + EDITOR_WALK.length,
+    )
+    expect(HUMAN_FRAMES).toHaveLength(21)
     expect(HUMAN_FRAMES).toContain(ASSISTANT_DOZE)
     HUMAN_FRAMES.forEach((f, i) => {
       expect(f.every((row) => row.length === 24), `frame ${i}`).toBe(true)
       expect(frameRules(f), `frame ${i}`).toEqual([])
     })
     expect(frameRules(MANGAKA_LIE, 30, 14)).toEqual([])
-    for (const cat of [CAT_SLEEP, CAT_SIT, ...CAT_WALK]) expect(frameRules(cat, 12, 8)).toEqual([])
+    for (const cat of [CAT_SLEEP, CAT_SIT, ...CAT_WALK, ...CAT_GROOM, CAT_STRETCH]) expect(frameRules(cat, 12, 8)).toEqual([])
     expect(frameRules(PROP_ENVELOPE, 6, 4, PROP_PAL)).toEqual([])
     expect(frameRules(PROP_LETTER, 5, 6, PROP_PAL)).toEqual([])
     expect(frameRules(PROP_CONTRACT, 5, 7, PROP_PAL)).toEqual([])

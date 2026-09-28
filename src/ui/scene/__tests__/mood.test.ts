@@ -1,7 +1,7 @@
 // mood.ts is pure TypeScript (no DOM), so this runs in the default node environment.
 import { describe, expect, it } from 'vitest'
 import { LOW_STAMINA_THRESHOLD } from '../../../sim'
-import { CHEER_MS, cheersFor, moodOf } from '../mood'
+import { CHEER_MS, catFrame, cheersFor, idleFrame, moodOf } from '../mood'
 import { FACES, PAL } from '../sprites'
 
 describe('moodOf', () => {
@@ -49,6 +49,29 @@ describe('cheersFor', () => {
 describe('CHEER_MS', () => {
   it('is 2400', () => {
     expect(CHEER_MS).toBe(2400)
+  })
+})
+
+describe('idleFrame', () => {
+  it('cycles breathe (0-239), stretch (240-299) and sip (300-359) over a 360-frame period', () => {
+    expect(idleFrame(0)).toEqual({ set: 'breathe', index: 0 })
+    expect(idleFrame(16)).toEqual({ set: 'breathe', index: 1 })
+    expect(idleFrame(239)).toEqual({ set: 'breathe', index: 0 })
+    expect(idleFrame(240)).toEqual({ set: 'stretch', index: 0 })
+    expect(idleFrame(255)).toEqual({ set: 'stretch', index: 1 })
+    expect(idleFrame(300)).toEqual({ set: 'sip', index: 0 })
+    expect(idleFrame(315)).toEqual({ set: 'sip', index: 1 })
+    expect(idleFrame(360)).toEqual({ set: 'breathe', index: 0 })
+  })
+})
+
+describe('catFrame', () => {
+  it('cycles sit (0-359), groom (360-419) and stretch (420-479) over a 480-frame period', () => {
+    expect(catFrame(0)).toEqual({ set: 'sit', index: 0 })
+    expect(catFrame(360)).toEqual({ set: 'groom', index: 0 })
+    expect(catFrame(375)).toEqual({ set: 'groom', index: 1 })
+    expect(catFrame(420)).toEqual({ set: 'stretch', index: 0 })
+    expect(catFrame(480)).toEqual({ set: 'sit', index: 0 })
   })
 })
 

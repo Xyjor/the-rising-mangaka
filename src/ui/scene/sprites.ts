@@ -101,6 +101,156 @@ export const MANGAKA_IDLE: readonly [SpriteMap, SpriteMap] = [
 /** How far each head-steady pose moves the head (the FACES overlay goes at rows 9-12 + headDy). */
 export const HEAD_DY = { idle: [0, 1], sit: [0, 0] } as const satisfies { idle: readonly [0, 1]; sit: readonly [0, 0] }
 
+/**
+ * The idle cycle's stretch (Decision 6): the anchor with the arms flung out and up beside the head, eyes closed.
+ * STRETCH[1] is the breath (rows 0-23 a row lower, headDy = 1), as MANGAKA_IDLE[1] is to MANGAKA_IDLE[0].
+ */
+export const MANGAKA_STRETCH: readonly [SpriteMap, SpriteMap] = [
+  [
+    '......LLLLLLLLLL........', // 0
+    '....LLHHHHHHHHHhLL......', // 1
+    '...LHHHHHHHHHHHHhhL.....', // 2
+    '..LHHHHHHHHHHHHHHhhL....', // 3
+    '..LHHHHHHHHHHHHHHhhL....', // 4
+    '..LHHHHHHHHHHHHHHhhL....', // 5
+    '..LHHHSHHHHSHHHHHhhL....', // 6
+    '..LHSSSSSSSSSSSSSShL....', // 7
+    '..LHSSSSSSSSSSSSSSsL....', // 8
+    '..LHSSSSSSSSSSSSSSsL....', // 9  eyes closed
+    '..LHSSssSSSSSSssSSsL....', // 10 eyes closed
+    '..LHSSSSSSSSSSSSSSsL....', // 11 eyes closed
+    '.LLSBBSSSSMMSSSSBBsL..L.', // 12 arms: hands beside the head
+    'LSLLSSSSSSSSSSSSSSsL.LSL', // 13
+    'LSL.LSSSSSSSSSSSSsL..LSL', // 14
+    'LJL..LLsssssssssLL...LJL', // 15
+    'LJL...LJJJsssJJjL....LJL', // 16
+    '.....LJJJJRWRJJjjL......', // 17
+    '....LJJJJJRWRJJJjjL.....', // 18
+    '....LJJJJJWRWJJJjjL.....', // 19
+    '....LJJJJJRWRJJJjjL.....', // 20 no arm-line L (cols 7, 15)
+    '....LJJJJJWRWJJJjjL.....', // 21 no arm-line L (cols 7, 15)
+    '....LJJJJJRWRJJJJjL.....', // 22 hands become JJ
+    '.....LLLJJJJJJJLLL......', // 23
+    '.......LjjjjjjjjL.......', // 24
+    '.......LTTTTTTTtL.......', // 25
+    '.......LTTTLTTTtL.......', // 26
+    '.......LTTTLTTTtL.......', // 27
+    '.......LTTTLTTttL.......', // 28
+    '.......LtttLttttL.......', // 29
+    '......LOOOLLOOOoL.......', // 30
+    '......LLLLLLLLLLL.......', // 31
+  ],
+  [
+    '........................', // 0
+    '......LLLLLLLLLL........', // 1
+    '....LLHHHHHHHHHhLL......', // 2
+    '...LHHHHHHHHHHHHhhL.....', // 3
+    '..LHHHHHHHHHHHHHHhhL....', // 4
+    '..LHHHHHHHHHHHHHHhhL....', // 5
+    '..LHHHHHHHHHHHHHHhhL....', // 6
+    '..LHHHSHHHHSHHHHHhhL....', // 7
+    '..LHSSSSSSSSSSSSSShL....', // 8
+    '..LHSSSSSSSSSSSSSSsL....', // 9
+    '..LHSSSSSSSSSSSSSSsL....', // 10 eyes closed
+    '..LHSSssSSSSSSssSSsL....', // 11 eyes closed
+    '..LHSSSSSSSSSSSSSSsL....', // 12 eyes closed
+    '.LLSBBSSSSMMSSSSBBsL..L.', // 13
+    'LSLLSSSSSSSSSSSSSSsL.LSL', // 14
+    'LSL.LSSSSSSSSSSSSsL..LSL', // 15
+    'LJL..LLsssssssssLL...LJL', // 16
+    'LJL...LJJJsssJJjL....LJL', // 17
+    '.....LJJJJRWRJJjjL......', // 18
+    '....LJJJJJRWRJJJjjL.....', // 19
+    '....LJJJJJWRWJJJjjL.....', // 20
+    '....LJJJJJRWRJJJjjL.....', // 21
+    '....LJJJJJWRWJJJjjL.....', // 22
+    '....LJJJJJRWRJJJJjL.....', // 23
+    '.....LLLJJJJJJJLLL......', // 24
+    '.......LTTTTTTTtL.......', // 25
+    '.......LTTTLTTTtL.......', // 26
+    '.......LTTTLTTTtL.......', // 27
+    '.......LTTTLTTttL.......', // 28
+    '.......LtttLttttL.......', // 29
+    '......LOOOLLOOOoL.......', // 30
+    '......LLLLLLLLLLL.......', // 31
+  ],
+] as const
+
+/**
+ * The idle cycle's sip (Decision 6): the anchor with the leading hand raised, a mug at the mouth (rows 12-14, the
+ * rim then the hand). SIP[1] closes the eyes, otherwise unchanged.
+ */
+export const MANGAKA_SIP: readonly [SpriteMap, SpriteMap] = [
+  [
+    '......LLLLLLLLLL........', // 0
+    '....LLHHHHHHHHHhLL......', // 1
+    '...LHHHHHHHHHHHHhhL.....', // 2
+    '..LHHHHHHHHHHHHHHhhL....', // 3
+    '..LHHHHHHHHHHHHHHhhL....', // 4
+    '..LHHHHHHHHHHHHHHhhL....', // 5
+    '..LHHHSHHHHSHHHHHhhL....', // 6
+    '..LHSSSSSSSSSSSSSShL....', // 7
+    '..LHSSSSSSSSSSSSSSsL....', // 8
+    '..LHSSEESSSSSSEESSsL....', // 9
+    '..LHSSEWSSSSSSEWSSsL....', // 10
+    '..LHSSEESSSSSSEESSsL....', // 11
+    '..LSBBSSLWWLSSSSBBsL....', // 12 the mug rim
+    '...LSSSSLWWLSSSSSSsL....', // 13 the mug rim
+    '....LSSSLSSLSSSSSsL.....', // 14 the hand
+    '.....LLsssssssssLL......', // 15
+    '......LJJJsssJJjL.......', // 16
+    '.....LJJJJRWRJJjjL......', // 17
+    '....LJJJJJRWRJJJjjL.....', // 18
+    '....LJJJJJWRWJJJjjL.....', // 19
+    '....LJJLJJRWRJJLjjL.....', // 20
+    '....LJJLJJWRWJJLjjL.....', // 21
+    '....LJJLJJRWRJJLSsL.....', // 22 the left hand becomes JJ
+    '.....LLLJJJJJJJLLL......', // 23
+    '.......LjjjjjjjjL.......', // 24
+    '.......LTTTTTTTtL.......', // 25
+    '.......LTTTLTTTtL.......', // 26
+    '.......LTTTLTTTtL.......', // 27
+    '.......LTTTLTTttL.......', // 28
+    '.......LtttLttttL.......', // 29
+    '......LOOOLLOOOoL.......', // 30
+    '......LLLLLLLLLLL.......', // 31
+  ],
+  [
+    '......LLLLLLLLLL........', // 0
+    '....LLHHHHHHHHHhLL......', // 1
+    '...LHHHHHHHHHHHHhhL.....', // 2
+    '..LHHHHHHHHHHHHHHhhL....', // 3
+    '..LHHHHHHHHHHHHHHhhL....', // 4
+    '..LHHHHHHHHHHHHHHhhL....', // 5
+    '..LHHHSHHHHSHHHHHhhL....', // 6
+    '..LHSSSSSSSSSSSSSShL....', // 7
+    '..LHSSSSSSSSSSSSSSsL....', // 8
+    '..LHSSSSSSSSSSSSSSsL....', // 9  eyes closed
+    '..LHSSssSSSSSSssSSsL....', // 10 eyes closed
+    '..LHSSSSSSSSSSSSSSsL....', // 11 eyes closed
+    '..LSBBSSLWWLSSSSBBsL....', // 12
+    '...LSSSSLWWLSSSSSSsL....', // 13
+    '....LSSSLSSLSSSSSsL.....', // 14
+    '.....LLsssssssssLL......', // 15
+    '......LJJJsssJJjL.......', // 16
+    '.....LJJJJRWRJJjjL......', // 17
+    '....LJJJJJRWRJJJjjL.....', // 18
+    '....LJJJJJWRWJJJjjL.....', // 19
+    '....LJJLJJRWRJJLjjL.....', // 20
+    '....LJJLJJWRWJJLjjL.....', // 21
+    '....LJJLJJRWRJJLSsL.....', // 22
+    '.....LLLJJJJJJJLLL......', // 23
+    '.......LjjjjjjjjL.......', // 24
+    '.......LTTTTTTTtL.......', // 25
+    '.......LTTTLTTTtL.......', // 26
+    '.......LTTTLTTTtL.......', // 27
+    '.......LTTTLTTttL.......', // 28
+    '.......LtttLttttL.......', // 29
+    '......LOOOLLOOOoL.......', // 30
+    '......LLLLLLLLLLL.......', // 31
+  ],
+] as const
+
 /** The walk, 100 ms a frame: contact, pass (a row lower), contact with the legs and arms swapped, pass again. */
 export const MANGAKA_WALK: readonly [SpriteMap, SpriteMap, SpriteMap, SpriteMap] = [
   [
@@ -707,6 +857,44 @@ export const CAT_WALK: readonly [SpriteMap, SpriteMap] = [
   ],
 ] as const
 
+/** The idle cycle's groom (Decision 6, 12x8): CAT_SIT with the head lowered one row and a paw raised. Frame 1 has
+ * the paw a row higher (row 3 instead of row 4). */
+export const CAT_GROOM: readonly [SpriteMap, SpriteMap] = [
+  [
+    '............',
+    '.L..L.......',
+    'LCLLCL......',
+    'LCCCcL......',
+    'LCCCCL......', // the paw raised
+    '.LCCCCCCcLL.',
+    '.LcCCCCCcLCL',
+    '..LLLLLLLLL.',
+  ],
+  [
+    '............',
+    '.L..L.......',
+    'LCLLCL......',
+    'LCCCcL......', // the paw raised, a row higher than frame 0
+    'LCCEcL......',
+    '.LCCCCCCcLL.',
+    '.LcCCCCCcLCL',
+    '..LLLLLLLLL.',
+  ],
+] as const
+
+/** The idle cycle's stretch (Decision 6, 12x8): the body stretched long and low, the head at cols 0-3, the tail up
+ * at cols 9-11. */
+export const CAT_STRETCH: SpriteMap = [
+  '............',
+  '.........LCL',
+  '.........LCL',
+  '.........LCL',
+  'LCCECCCCCCCL',
+  '.LCCCCCCCCcL',
+  '.LcCCCCCCcLL',
+  '..LLLLLLLLL.',
+]
+
 /** The editor's props: their own palette (paper, its lines, the contract's blue and red, gold, the trophy's wood). */
 export const PROP_PAL: Record<string, string> = {
   L: '#1c1a26', W: '#fdfcf7', l: '#b8b2a5', R: '#3b6fd6', M: '#e5484d', Y: '#f5b700', F: '#8b5a2b',
@@ -767,7 +955,8 @@ export const MARKS: Record<Exclude<Mood, 'neutral'>, SpriteMap> = {
 
 /** Every exported 24x32 frame, for the frame-rules test. */
 export const HUMAN_FRAMES: readonly SpriteMap[] = [
-  ...MANGAKA_IDLE, ...MANGAKA_WALK, ...MANGAKA_SIT, ...MANGAKA_PANIC, ASSISTANT_DOZE, ...EDITOR_IDLE, ...EDITOR_WALK,
+  ...MANGAKA_IDLE, ...MANGAKA_WALK, ...MANGAKA_SIT, ...MANGAKA_PANIC, ...MANGAKA_STRETCH, ...MANGAKA_SIP,
+  ASSISTANT_DOZE, ...EDITOR_IDLE, ...EDITOR_WALK,
 ]
 
 /**

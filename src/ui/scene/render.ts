@@ -4,10 +4,12 @@ import type { StudioTierId } from '../../sim'
 import { ASSISTANT_SEAT_X } from './actors'
 import type { Actor, ActorTable } from './actors'
 import {
-  ASSISTANT_DOZE, ASSISTANT_PALS, CAT_SIT, CAT_SLEEP, CAT_WALK, EDITOR_IDLE, EDITOR_WALK, FACES, HEAD_DY, MANGAKA_IDLE, MANGAKA_LIE,
-  MANGAKA_PANIC, MANGAKA_SIT, MANGAKA_WALK, MARKS, MARK_PAL, PAL, PROP_CONTRACT, PROP_ENVELOPE, PROP_LETTER, PROP_PAL, PROP_TROPHY, drawSprite,
+  ASSISTANT_DOZE, ASSISTANT_PALS, CAT_GROOM, CAT_SIT, CAT_SLEEP, CAT_STRETCH, CAT_WALK, EDITOR_IDLE, EDITOR_WALK, FACES, HEAD_DY,
+  MANGAKA_IDLE, MANGAKA_LIE, MANGAKA_PANIC, MANGAKA_SIP, MANGAKA_SIT, MANGAKA_STRETCH, MANGAKA_WALK, MARKS, MARK_PAL, PAL,
+  PROP_CONTRACT, PROP_ENVELOPE, PROP_LETTER, PROP_PAL, PROP_TROPHY, drawSprite,
 } from './sprites'
-import { moodOf } from './mood'
+import type { SpriteMap } from './sprites'
+import { catFrame, idleFrame, moodOf } from './mood'
 import type { Mood } from './mood'
 import { BAR_X, paneRect, rawRect, rect, shadow } from './paint'
 import { drawSeasonNight, drawSeasonPane, drawSeasonSill } from './season'
@@ -76,11 +78,15 @@ function glyph(ctx: CanvasRenderingContext2D, ch: string, x: number, y: number, 
  * y+9+headDy) and, when `mark` is true, its mark above the head (MARKS[mood], at x+11, y-8, in MARK_PAL). Nothing
  * when neutral. Only one glyph ever occupies the mark slot above the head at once (fix round 1): the standing
  * mangaka's ready-manuscript '!' beats the mood mark, which beats the idle '?', so `mark` lets a caller draw the
- * face without the mark when something else already claims that slot.
+ * face without the mark when something else already claims that slot. `face` is false for a pose that is not
+ * head-steady (the idle cycle's stretch and sip, Decision 6): the mark may still show, but the pose's own baked-in
+ * expression (closed eyes, a mug at the mouth) is left alone.
  */
-function drawMood(ctx: CanvasRenderingContext2D, mood: Mood, x: number, y: number, headDy: number, flip: boolean, mark = true) {
+function drawMood(
+  ctx: CanvasRenderingContext2D, mood: Mood, x: number, y: number, headDy: number, flip: boolean, mark = true, face = true,
+) {
   if (mood === 'neutral') return
-  drawSprite(ctx, FACES[mood], flip ? x + 6 : x + 4, y + 9 + headDy, 4, PAL, flip)
+  if (face) drawSprite(ctx, FACES[mood], flip ? x + 6 : x + 4, y + 9 + headDy, 4, PAL, flip)
   if (mark) drawSprite(ctx, MARKS[mood], x + 11, y - 8, 5, MARK_PAL)
 }
 
@@ -129,21 +135,29 @@ function drawMangaka(ctx: CanvasRenderingContext2D, s: Snapshot, a: Actor, frame
     }
     case 'standing': {
       shadow(ctx, x + 4, y + 30, 16)
-      const idx = Math.floor(frame / 16) % 2
-      drawSprite(ctx, MANGAKA_IDLE[idx], x, y)
       const ready = s.phase === 'ready'
+      // the manuscript is in hand while ready, so the idle cycle (Decision 6) applies only otherwise
+      const pose = ready ? { set: 'breathe' as const, index: (Math.floor(frame / 16) % 2) as 0 | 1 } : idleFrame(frame)
+      let map: SpriteMap
+      let headDy: number
+      // only the breathing pose is head-steady: the stretch and sip bake their own expression into the frame
+      let faceSteady: boolean
+      if (pose.set === 'stretch') { map = MANGAKA_STRETCH[pose.index]; headDy = pose.index; faceSteady = false }
+      else if (pose.set === 'sip') { map = MANGAKA_SIP[pose.index]; headDy = 0; faceSteady = false }
+      else { map = MANGAKA_IDLE[pose.index]; headDy = HEAD_DY.idle[pose.index]; faceSteady = true }
+      drawSprite(ctx, map, x, y)
       const mood = moodOf({
         home: true, editorHere: s.actors.editor.state === 'standing', cheer: s.cheer, stamina: s.stamina,
         resting: false, night: false,
       })
       // only one mark above the head at a time: the ready manuscript's '!' beats the mood mark, which beats the
-      // idle '?' (fix round 1)
-      drawMood(ctx, mood, x, y, HEAD_DY.idle[idx], false, !ready)
+      // idle '?' (fix round 1); the face overlay only ever shows on the head-steady breathing pose
+      drawMood(ctx, mood, x, y, headDy, false, !ready, faceSteady)
       if (ready) {
         // the manuscript in the leading hand (row 22)
         rawRect(ctx, x - 8, y + 17, 8, 10, '#fdfcf7'); rawRect(ctx, x - 7, y + 19, 6, 1, '#b8b2a5'); rawRect(ctx, x - 7, y + 21, 6, 1, '#b8b2a5')
         glyph(ctx, '!', x + 11, y - 8, '#e5484d')
-      } else if (mood === 'neutral' && frame % 120 < 40) glyph(ctx, '?', x + 11, y - 8, '#2f5ecf')
+      } else if (faceSteady && mood === 'neutral' && frame % 120 < 40) glyph(ctx, '?', x + 11, y - 8, '#2f5ecf')
       return
     }
     case 'walking':
@@ -387,7 +401,12 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
   const catFlip = cat.facing === 1
   if (cat.state === 'sleeping') drawSprite(ctx, CAT_SLEEP, cat.x, cat.y, 8, undefined, catFlip)
   else if (cat.state === 'walking') drawSprite(ctx, CAT_WALK[Math.floor(cat.anim / 125) % 2], cat.x, cat.y, 8, undefined, catFlip)
-  else if (cat.state !== 'hidden' && cat.state !== 'away') drawSprite(ctx, CAT_SIT, cat.x, cat.y, 8, undefined, catFlip)
+  else if (cat.state !== 'hidden' && cat.state !== 'away') {
+    // the sitting cat's own idle cycle (Decision 6): sit, then a groom, then a stretch
+    const pose = catFrame(frame)
+    const map = pose.set === 'sit' ? CAT_SIT : pose.set === 'groom' ? CAT_GROOM[pose.index] : CAT_STRETCH
+    drawSprite(ctx, map, cat.x, cat.y, 8, undefined, catFlip)
+  }
   const editor = s.actors.editor
   const editorFlip = editor.facing === 1
   if (editor.state !== 'hidden' && editor.state !== 'away') shadow(ctx, editor.x + 4, editor.y + 30, 16)

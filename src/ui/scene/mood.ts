@@ -42,3 +42,32 @@ export const CHEER_MS = 2400
 export function cheersFor(pops: readonly { kind: PopKind; levelUp?: boolean }[]): boolean {
   return pops.some((p) => p.kind === 'fans' || p.levelUp === true)
 }
+
+/** Which set and frame the standing mangaka's idle cycle shows. */
+export type IdlePose = { set: 'breathe' | 'stretch' | 'sip'; index: 0 | 1 }
+
+/**
+ * The standing mangaka's 360-frame idle cycle (Decision 6): breathing (0-239, today's frame/16 % 2), a stretch
+ * (240-299, 2 frames, frame/15 % 2) and a sip from a mug (300-359, 2 frames, frame/15 % 2), then back to breathing.
+ * Frame 0 (reduced motion) is always the plain idle (breathe, 0), which falls out of the cycle math on its own.
+ */
+export function idleFrame(frame: number): IdlePose {
+  const f = ((frame % 360) + 360) % 360
+  if (f < 240) return { set: 'breathe', index: (Math.floor(f / 16) % 2) as 0 | 1 }
+  if (f < 300) return { set: 'stretch', index: (Math.floor(f / 15) % 2) as 0 | 1 }
+  return { set: 'sip', index: (Math.floor(f / 15) % 2) as 0 | 1 }
+}
+
+/** Which set and frame the sitting cat's idle cycle shows. */
+export type CatPose = { set: 'sit' | 'groom' | 'stretch'; index: 0 | 1 }
+
+/**
+ * The sitting cat's 480-frame idle cycle (Decision 6): CAT_SIT (0-359), a groom (360-419, 2 frames, frame/15 % 2)
+ * and a stretch (420-479, one frame), then back to sitting. Frame 0 is always the plain sit.
+ */
+export function catFrame(frame: number): CatPose {
+  const f = ((frame % 480) + 480) % 480
+  if (f < 360) return { set: 'sit', index: 0 }
+  if (f < 420) return { set: 'groom', index: (Math.floor(f / 15) % 2) as 0 | 1 }
+  return { set: 'stretch', index: 0 }
+}
