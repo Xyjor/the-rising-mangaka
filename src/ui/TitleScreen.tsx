@@ -16,9 +16,11 @@ export function TitleScreen() {
   const start = () => newGame(name.trim() || 'Rookie')
 
   return (
-    <div className="title-screen">
+    <div className="title-screen has-hero">
       <img
         src={TITLE_ART.src}
+        width={TITLE_ART.w}
+        height={TITLE_ART.h}
         alt="A mangaka's rooftop at golden hour"
         loading="eager"
         decoding="async"

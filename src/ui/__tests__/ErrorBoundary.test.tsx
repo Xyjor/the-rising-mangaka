@@ -54,6 +54,14 @@ describe('ErrorBoundary', () => {
     expect(screen.getByRole('button', { name: 'Start over' })).toBeTruthy()
   })
 
+  it('has no hero image, unlike the title screen, so its .title-screen stays plain centred-on-paper', () => {
+    render(<ErrorBoundary><Crash /></ErrorBoundary>)
+    const screenEl = document.querySelector('.title-screen')
+    expect(screenEl).toBeTruthy()
+    expect(screenEl?.classList.contains('has-hero')).toBe(false)
+    expect(document.querySelector('.title-hero')).toBeNull()
+  })
+
   it('offers no export when there is no saved game', () => {
     render(<ErrorBoundary><Crash /></ErrorBoundary>)
     expect(screen.getByText(

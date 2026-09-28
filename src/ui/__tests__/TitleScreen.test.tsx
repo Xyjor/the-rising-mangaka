@@ -36,6 +36,11 @@ describe('TitleScreen hero art', () => {
     render(<TitleScreen />)
     const hero = screen.getByAltText("A mangaka's rooftop at golden hour") as HTMLImageElement
     expect(hero.src).toContain(TITLE_ART.src)
+    expect(hero.width).toBe(TITLE_ART.w)
+    expect(hero.height).toBe(TITLE_ART.h)
+    // The hero-only scrim/layout styling is scoped to .has-hero, which only this screen sets (the crash
+    // recovery screen reuses .title-screen with no hero and must not get it).
+    expect(document.querySelector('.title-screen')?.classList.contains('has-hero')).toBe(true)
 
     fireEvent.change(screen.getByPlaceholderText('e.g. Rin Hoshino'), { target: { value: 'Aoi' } })
     fireEvent.click(screen.getByRole('button', { name: 'Open your studio' }))

@@ -372,8 +372,10 @@
   pointer-events: none; z-index: 0;
 }
 /* A scrim between the hero and the card: strong toward the card's side (left on desktop, centred on
-   phones), fading out toward the mangaka so they stay visible. */
-.title-screen::before {
+   phones), fading out toward the mangaka so they stay visible. Scoped to .has-hero (set only by
+   TitleScreen, which actually renders the hero image) so other screens that reuse .title-screen/
+   .title-card, such as the crash recovery screen, keep their plain centred-on-paper look. */
+.title-screen.has-hero::before {
   content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 1;
   background: linear-gradient(to right, var(--title-scrim) 0%, var(--title-scrim) 34%, var(--title-scrim-clear) 55%);
 }
@@ -388,12 +390,13 @@
 @media (min-width: 641px) {
   /* place-items: center (above) sets justify-items, not just justify-content: with a single implicit grid
      item the auto track already spans the full container, so justify-content alone has no effect — override
-     justify-items to move the card itself, not the track, into the left third. */
-  .title-screen { justify-items: start; padding-left: 8vw; }
+     justify-items to move the card itself, not the track, into the left third. Scoped to .has-hero: the
+     recovery screen has no hero image to leave clear, so it stays centred. */
+  .title-screen.has-hero { justify-items: start; padding-left: 8vw; }
 }
 @media (max-width: 640px) {
   .title-screen { padding: 16px; }
-  .title-screen::before { background: var(--title-scrim); }
+  .title-screen.has-hero::before { background: var(--title-scrim); }
 }
 
 /* ---------- tab lock banner ---------- */
