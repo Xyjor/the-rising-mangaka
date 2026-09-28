@@ -13,6 +13,7 @@ import type { SoundPrefs } from '../audio/types'
 import { isDesktop } from '../platform/env'
 import { SAVE_VERSION, trimLog } from './saveFile'
 import type { SaveFile } from './saveFile'
+import { recordProfile } from './profile'
 import { LEGACY_SAVE_KEY, PREFS_KEY, SLOT_IDS, SLOT_INDEX_KEY, migrateLegacy, slotKey, viewSlots, writeIndex } from './slots'
 import type { SlotId, SlotStart } from './slots'
 import { claim, disableTabLock, isOwner, startTabLock } from './tabLock'
@@ -320,6 +321,12 @@ const saveStorage: PersistStorage<Persisted> = {
   removeItem: () => dropPending(),
 }
 
+/** Records newly earned badges in the cross-save profile, from the tab that owns the save only. */
+function noteBadges(prev: GameState, next: GameState) {
+  if ((next.badges?.length ?? 0) <= (prev.badges?.length ?? 0) || slots.active === null || !canUseSlots()) return
+  recordProfile(local(), next, slots.active)
+}
+
 /** Slot actions belong to the tab that owns the save. */
 function canUseSlots(): boolean {
   return !useStore.getState().readOnly && isOwner()
@@ -361,6 +368,7 @@ export const useStore = create<Store>()(
         if (opts.close) patch.modal = 'none'
         if (opts.resume) patch.speed = resumeSpeed
         set(patch)
+        noteBadges(game, next)
       }
 
       return {
@@ -490,6 +498,7 @@ export const useStore = create<Store>()(
             patch.deskHidden = false
           }
           set(patch)
+          noteBadges(game, next)
         },
 
         setSpeed: (s) => set(s === 0 ? { speed: 0 } : { speed: s, resumeSpeed: s }),

@@ -63,6 +63,12 @@ describe('cuesForTransition: the brief table', () => {
     expect(cues(prev, startProject(prev, DRAFT))).toEqual(['start'])
   })
 
+  it('plays the milestone cue for a badge', () => {
+    const prev = game()
+    const next = { ...prev, badges: [{ id: 'century' as const, day: prev.day }] }
+    expect(cues(prev, next)).toEqual(['milestone'])
+  })
+
   it('plays page only when the whole page count goes up', () => {
     const base = startProject(game(), DRAFT)
     expect(cues(withPages(base, 3.9), withPages(base, 4.1))).toEqual(['page'])
