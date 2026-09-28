@@ -857,25 +857,30 @@ export const CAT_WALK: readonly [SpriteMap, SpriteMap] = [
   ],
 ] as const
 
-/** The idle cycle's groom (Decision 6, 12x8): CAT_SIT with the head lowered one row and a paw raised. Frame 1 has
- * the paw a row higher (row 3 instead of row 4). */
+/**
+ * The idle cycle's groom (Decision 6, 12x8), redrawn (fix round 1: the first draft's paw was a bare colour swap on
+ * top of CAT_SIT's own cells, unreadable at scene scale). CAT_SIT with the eye closed (row 3 col 3, the socket
+ * shaded `c` rather than hidden) and a raised paw that fills the gap between the ears with two `C` cells and a `c`
+ * toe, clearly not the plain `L` ridge or `C` cheek CAT_SIT has at those cells. Frame 1 moves the paw one row up
+ * (into the ear gap itself, row 0) so the two frames visibly alternate.
+ */
 export const CAT_GROOM: readonly [SpriteMap, SpriteMap] = [
   [
-    '............',
     '.L..L.......',
-    'LCLLCL......',
-    'LCCCcL......',
-    'LCCCCL......', // the paw raised
+    'LCCCCL......', // the paw fills the ear gap (cols 2-3 were L, L in CAT_SIT)
+    'LCcCcL......', // the paw's toe, a shade lower (col 2 was C in CAT_SIT)
+    'LCCccL......', // the eye closed: a shade line, not hidden (col 3 was E in CAT_SIT)
+    '.LCCcLLLL...',
     '.LCCCCCCcLL.',
     '.LcCCCCCcLCL',
     '..LLLLLLLLL.',
   ],
   [
-    '............',
-    '.L..L.......',
-    'LCLLCL......',
-    'LCCCcL......', // the paw raised, a row higher than frame 0
-    'LCCEcL......',
+    '.LCCL.......', // the paw one row up, in the ear gap itself (cols 2-3 were . , . in CAT_SIT)
+    'LCcCcL......', // the paw's toe (as frame 0, one row higher)
+    'LCCCcL......',
+    'LCCccL......', // the eye closed
+    '.LCCcLLLL...',
     '.LCCCCCCcLL.',
     '.LcCCCCCcLCL',
     '..LLLLLLLLL.',

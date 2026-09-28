@@ -65,6 +65,21 @@ describe('the sprites', () => {
     expect([PROP_ENVELOPE[1][2], PROP_TROPHY[1][2]]).toEqual(['W', 'Y'])
   })
 
+  it('draws the groom paw so it reads as distinct from the plain sit (fix round 1)', () => {
+    // frame 0: the paw fills the ear gap at row 1, cols 2-3 (CAT_SIT has L there, the ridge between the ears)
+    expect(CAT_SIT[1][2]).toBe('L')
+    expect(CAT_GROOM[0][1][2]).toBe('C')
+    expect(CAT_GROOM[0][1][2]).not.toBe(CAT_SIT[1][2])
+    // frame 1: the paw one row up, at row 0, cols 2-3 (CAT_SIT has . there, the gap between the ears)
+    expect(CAT_SIT[0][2]).toBe('.')
+    expect(CAT_GROOM[1][0][2]).toBe('C')
+    expect(CAT_GROOM[1][0][2]).not.toBe(CAT_SIT[0][2])
+    // the eye closes to a shade line in both frames, not hidden: CAT_SIT's E at row 3 col 3 becomes c
+    expect(CAT_SIT[3][3]).toBe('E')
+    expect(CAT_GROOM[0][3][3]).toBe('c')
+    expect(CAT_GROOM[1][3][3]).toBe('c')
+  })
+
   it('dresses each assistant in their look, with its shade', () => {
     expect(ASSISTANT_PALS).toHaveLength(LOOK_SHIRTS.length)
     ASSISTANT_PALS.forEach((p, i) => {

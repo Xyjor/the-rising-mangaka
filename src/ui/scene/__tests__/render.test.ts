@@ -505,6 +505,14 @@ describe('the assistants, the wall clock and the cat (Task 2.5)', () => {
     expect(covers(log, '#f6f6f6', 179, 93)).toBe(-1)
   })
 
+  it('paints the groom paw in fur at CAT_KITCHEN on frame 360 (fix round 1)', () => {
+    // resting sends the cat to CAT_KITCHEN (44, 150), unflipped (facing -1 by default); frame 360 is catFrame's
+    // groom, index 0: the paw's fur cell at local (row 1, col 2) -> canvas (44+2, 150+1) = (46, 151)
+    const { ctx, log } = fakeContext()
+    render(ctx, sceneSnapshot({ phase: 'drawing', activity: 'rest' }), 0.3, 360)
+    expect(covers(log, '#e39a4a', 46, 151)).toBeGreaterThan(-1)
+  })
+
   it('keeps the cat clear of the mangaka\'s, the editor\'s and the bed\'s spots', () => {
     type Box = readonly [number, number, number, number]
     const boxes: Box[] = [[132, 155, 67, 98], [170, 193, 81, 112], [198, 221, 85, 116], [216, 245, 106, 119]]
