@@ -28,6 +28,14 @@ function toneOf(rank: number, entrants: number): RankTone {
   return rank * 3 > entrants * 2 ? 'low' : 'mid'
 }
 
+/** Storyboard cards on the corkboard, a 2x3 grid: one per sixth of the pages drawn, while a manuscript is on the desk. */
+export const CORK_CARDS = 6
+
+export function corkCards(phase: string, progress: number): number {
+  const onDesk = phase === 'drawing' || phase === 'ready'
+  return onDesk ? Math.min(CORK_CARDS, Math.floor(progress * CORK_CARDS)) : 0
+}
+
 export function storyLook(g: GameState | null): StoryLook {
   if (!g) return NO_STORY
   const ser = g.serial && g.serial.status === 'running' ? g.serial : null

@@ -10,6 +10,7 @@ import type { StudioTierId } from '../../sim'
 import { rawRect, shadow } from './paint'
 import type { Snapshot } from './render'
 import type { Art } from './studioArt'
+import { corkCards } from './story'
 
 /** Paints one tier's walls and floor across the whole 320x180 canvas (the wall to y 113, the floor from y 114). */
 export type RoomArt = (ctx: CanvasRenderingContext2D, night: boolean) => void
@@ -226,15 +227,15 @@ export const TIER_FRONT: Record<StudioTierId, Art> = {
 // ---------- the story props ----------
 
 /**
- * The corkboard above the desk (x 140-154, y 46-63): one storyboard card per eighth of the pages drawn (3x4 each, a
- * 3x3 grid, while a manuscript is on the desk), and in the last slot the last poll's note: a gold star for the top
+ * The corkboard above the desk (x 140-154, y 46-63): one storyboard card per sixth of the pages drawn (3x4 each, two
+ * rows of three, `story.ts` `corkCards`, while a manuscript is on the desk), and below them the last poll's note: a gold star for the top
  * three, a red mark for the bottom third.
  */
 export function drawCorkboard(ctx: CanvasRenderingContext2D, s: Snapshot) {
   rawRect(ctx, 140, 46, 15, 18, CORK_FRAME)
   rawRect(ctx, 141, 47, 13, 16, CORK)
-  const onDesk = s.phase === 'drawing' || s.phase === 'ready'
-  const cards = onDesk ? Math.min(8, Math.floor(s.progress * 8)) : 0
+  // two rows of three thumbnails (x 142-152, y 48-56), clear of the poll note in the corner (x 150-152, y 58-61)
+  const cards = corkCards(s.phase, s.progress)
   for (let i = 0; i < cards; i++) {
     const x = 142 + (i % 3) * 4
     const y = 48 + Math.floor(i / 3) * 5

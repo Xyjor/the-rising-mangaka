@@ -216,7 +216,7 @@ the bin in every tier.
 
 | Prop | Where (canvas) | What drives it |
 |---|---|---|
-| Corkboard | x 140-154, y 46-63 | one storyboard card per eighth of the pages drawn (while a manuscript is on the desk); the last poll's note in the corner: a gold star for the top three, a red mark for the bottom third (`rankTone`) |
+| Corkboard | x 140-154, y 46-63 | one storyboard card per sixth of the pages drawn, two rows of three (`corkCards`, while a manuscript is on the desk); the last poll's note in the corner: a gold star for the top three, a red mark for the bottom third (`rankTone`) |
 | Calendar | x 164-177, y 50-63 | the chapter's due day circled (`daysLeft`, a cell per day, up to 8), the grid reddened in the last three days, the binding blinking red while late |
 | Coffee cups | x 136-150, y 120-123 | one on the floor under the desk below 60, 40 and 20 stamina |
 | Serial cover | the poster's place, x 116-137, y 50-77 | while a serial runs (`serialOn`), tinted by its genre (`posterHue`); the anime's key visual still comes first |

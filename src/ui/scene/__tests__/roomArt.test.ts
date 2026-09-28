@@ -126,13 +126,14 @@ describe('the front row', () => {
 })
 
 describe('the story props', () => {
-  it('pins one storyboard card per eighth of the pages on the corkboard, none with nothing on the desk', () => {
+  it('pins one storyboard card per sixth of the pages, in two rows of three, on the corkboard, none with nothing on the desk', () => {
     const cards = (over: Partial<Snapshot>) =>
       alone((ctx) => drawCorkboard(ctx, sceneSnapshot(over))).filter((c) => c.style === PAPER && c.w === 3 && c.h === 4)
     expect(cards({ progress: 0 })).toHaveLength(0)
-    expect(cards({ progress: 0.5 })).toHaveLength(4)
-    expect(cards({ progress: 0.99 })).toHaveLength(7)
-    expect(cards({ progress: 1, phase: 'ready' })).toHaveLength(8)
+    expect(cards({ progress: 0.5 })).toHaveLength(3)
+    expect(cards({ progress: 0.99 })).toHaveLength(5)
+    const full = cards({ progress: 1, phase: 'ready' })
+    expect(full.map((c) => [c.x, c.y])).toEqual([[142, 48], [146, 48], [150, 48], [142, 53], [146, 53], [150, 53]])
     expect(cards({ progress: 0.5, phase: 'idle' })).toHaveLength(0)
     for (const c of alone((ctx) => drawCorkboard(ctx, sceneSnapshot({ progress: 1, rankTone: 'top' })))) {
       expect(inBox(c, CORK), JSON.stringify(c)).toBe(true)
