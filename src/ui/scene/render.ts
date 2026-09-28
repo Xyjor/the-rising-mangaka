@@ -73,12 +73,15 @@ function glyph(ctx: CanvasRenderingContext2D, ch: string, x: number, y: number, 
 
 /**
  * The mood overlay for a head-steady pose: the face (FACES[mood], rows 9-12 of the anchor, at x+4/x+6 flipped,
- * y+9+headDy) and its mark above the head (MARKS[mood], at x+11, y-8, in MARK_PAL). Nothing when neutral.
+ * y+9+headDy) and, when `mark` is true, its mark above the head (MARKS[mood], at x+11, y-8, in MARK_PAL). Nothing
+ * when neutral. Only one glyph ever occupies the mark slot above the head at once (fix round 1): the standing
+ * mangaka's ready-manuscript '!' beats the mood mark, which beats the idle '?', so `mark` lets a caller draw the
+ * face without the mark when something else already claims that slot.
  */
-function drawMood(ctx: CanvasRenderingContext2D, mood: Mood, x: number, y: number, headDy: number, flip: boolean) {
+function drawMood(ctx: CanvasRenderingContext2D, mood: Mood, x: number, y: number, headDy: number, flip: boolean, mark = true) {
   if (mood === 'neutral') return
   drawSprite(ctx, FACES[mood], flip ? x + 6 : x + 4, y + 9 + headDy, 4, PAL, flip)
-  drawSprite(ctx, MARKS[mood], x + 11, y - 8, 5, MARK_PAL)
+  if (mark) drawSprite(ctx, MARKS[mood], x + 11, y - 8, 5, MARK_PAL)
 }
 
 // ---------- the characters (canvas space, from the actor table) ----------
@@ -128,18 +131,19 @@ function drawMangaka(ctx: CanvasRenderingContext2D, s: Snapshot, a: Actor, frame
       shadow(ctx, x + 4, y + 30, 16)
       const idx = Math.floor(frame / 16) % 2
       drawSprite(ctx, MANGAKA_IDLE[idx], x, y)
-      {
-        const mood = moodOf({
-          home: true, editorHere: s.actors.editor.state === 'standing', cheer: s.cheer, stamina: s.stamina,
-          resting: false, night: false,
-        })
-        drawMood(ctx, mood, x, y, HEAD_DY.idle[idx], false)
-      }
-      if (s.phase === 'ready') {
+      const ready = s.phase === 'ready'
+      const mood = moodOf({
+        home: true, editorHere: s.actors.editor.state === 'standing', cheer: s.cheer, stamina: s.stamina,
+        resting: false, night: false,
+      })
+      // only one mark above the head at a time: the ready manuscript's '!' beats the mood mark, which beats the
+      // idle '?' (fix round 1)
+      drawMood(ctx, mood, x, y, HEAD_DY.idle[idx], false, !ready)
+      if (ready) {
         // the manuscript in the leading hand (row 22)
         rawRect(ctx, x - 8, y + 17, 8, 10, '#fdfcf7'); rawRect(ctx, x - 7, y + 19, 6, 1, '#b8b2a5'); rawRect(ctx, x - 7, y + 21, 6, 1, '#b8b2a5')
         glyph(ctx, '!', x + 11, y - 8, '#e5484d')
-      } else if (frame % 120 < 40) glyph(ctx, '?', x + 11, y - 8, '#2f5ecf')
+      } else if (mood === 'neutral' && frame % 120 < 40) glyph(ctx, '?', x + 11, y - 8, '#2f5ecf')
       return
     }
     case 'walking':

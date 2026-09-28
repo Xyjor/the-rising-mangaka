@@ -7,7 +7,9 @@ import { compact, money } from '../format'
 import { sceneToCss } from './sceneAnchor'
 
 export type PopKind = 'money' | 'fans' | 'xp'
-export interface Pop { id: number; kind: PopKind; text: string; x: number; y: number }
+/** `levelUp` is set only on the 'xp' pop that reads "Level N" (not on an ordinary "+N xp" pop), so a mood can cheer
+ * on a level-up without cheering on every small xp gain. */
+export interface Pop { id: number; kind: PopKind; text: string; x: number; y: number; levelUp?: true }
 /** The store fields a pop depends on. */
 export interface PopState { game: GameState | null; saveLoads: number; readOnly: boolean }
 
@@ -25,14 +27,14 @@ export function popsFor(prev: PopState, next: PopState, anchor: { x: number; y: 
   if (a.worldSeed !== b.worldSeed) return []
   const gap = b.day - a.day
   if (gap !== 0 && gap !== 1) return []
-  const parts: [PopKind, string][] = []
+  const parts: [PopKind, string, true?][] = []
   const dm = b.player.money - a.player.money
   if (dm !== 0) parts.push(['money', dm > 0 ? `+${money(dm)}` : money(dm)])
   const df = b.player.fans - a.player.fans
   if (df > 0) parts.push(['fans', `+${compact(df)} fans`])
-  if (b.player.level > a.player.level) parts.push(['xp', `Level ${b.player.level}`])
+  if (b.player.level > a.player.level) parts.push(['xp', `Level ${b.player.level}`, true])
   else if (b.player.xp > a.player.xp) parts.push(['xp', `+${b.player.xp - a.player.xp} xp`])
-  return parts.map(([kind, text], i) => ({ kind, text, x: anchor.x, y: anchor.y - i * POP_STACK }))
+  return parts.map(([kind, text, levelUp], i) => ({ kind, text, x: anchor.x, y: anchor.y - i * POP_STACK, ...(levelUp ? { levelUp } : {}) }))
 }
 
 let nextId = 1

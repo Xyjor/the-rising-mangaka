@@ -174,7 +174,7 @@ export function StudioScene({ running }: { running: boolean }) {
     if (next.windowHidden) return
     const pops = popsFor(prev, next, DESK)
     for (const p of pops) getSound().play('pop', { pitch: POP_PITCH[p.kind] })
-    if (cheersFor(pops.map((p) => p.kind))) {
+    if (cheersFor(pops)) {
       setCheer(true)
       clearTimeout(cheerTimer.current)
       cheerTimer.current = setTimeout(() => setCheer(false), CHEER_MS)

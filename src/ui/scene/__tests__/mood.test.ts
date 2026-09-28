@@ -35,13 +35,14 @@ describe('moodOf', () => {
 })
 
 describe('cheersFor', () => {
-  // Deviation from the brief's literal `cheersFor(['level'])`: PopKind (Pops.tsx) is 'money' | 'fans' | 'xp' — a
-  // level-up is carried as kind 'xp' with a "Level N" text, not a distinct 'level' kind, and Pops.tsx is out of scope
-  // for this task. 'xp' stands in for the brief's 'level' case.
-  it('is true for a fans or xp (level) pop, false for money alone', () => {
-    expect(cheersFor(['money'])).toBe(false)
-    expect(cheersFor(['money', 'fans'])).toBe(true)
-    expect(cheersFor(['xp'])).toBe(true)
+  // Fix round 1: cheersFor now reads the pops themselves (not just their kinds), so it can tell a level-up ('xp' with
+  // levelUp: true) apart from an ordinary xp gain ('xp' with no levelUp field) — plain xp accrues continuously, so it
+  // must not cheer on its own.
+  it('is false for money alone or plain xp, true for fans or a level-up', () => {
+    expect(cheersFor([{ kind: 'money' }])).toBe(false)
+    expect(cheersFor([{ kind: 'xp' }])).toBe(false)
+    expect(cheersFor([{ kind: 'money' }, { kind: 'fans' }])).toBe(true)
+    expect(cheersFor([{ kind: 'xp', levelUp: true }])).toBe(true)
   })
 })
 

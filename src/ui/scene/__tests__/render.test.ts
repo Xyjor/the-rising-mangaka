@@ -461,6 +461,22 @@ describe('the assistants, the wall clock and the cat (Task 2.5)', () => {
     expect(log.some((c) => c.style === '#1c1a26' && c.x === 154 && c.y === 90)).toBe(false)
   })
 
+  it('lets the ready manuscript exclamation beat a tired mood mark above the standing mangaka (fix round 1)', () => {
+    // standing at MANGAKA_STAND (170, 81): mark slot (170+11, 81-8) = (181, 73); glyph '!' row 1 col 1 -> (182, 74)
+    const { ctx, log } = fakeContext()
+    render(ctx, sceneSnapshot({ phase: 'ready', stamina: 10 }), 0.3, 100)
+    expect(covers(log, '#e5484d', 182, 74)).toBeGreaterThan(-1)
+    expect(covers(log, '#8fd3ff', 182, 74)).toBe(-1)
+  })
+
+  it('lets a happy mood mark beat the idle question mark above the standing mangaka (fix round 1)', () => {
+    // idle phase, cheer on, frame 0 (frame % 120 < 40, when the '?' would show): sparkle row 0 col 1 -> (182, 73)
+    const { ctx, log } = fakeContext()
+    render(ctx, sceneSnapshot({ phase: 'idle', cheer: true }), 0.3, 0)
+    expect(covers(log, '#f5b700', 182, 73)).toBeGreaterThan(-1)
+    expect(log.some((c) => c.style === '#2f5ecf')).toBe(false)
+  })
+
   it('shows a sweat mark on a tired assistant', () => {
     const { ctx, log } = fakeContext()
     render(ctx, sceneSnapshot({ assistants: [{ look: 0, stamina: 10 }] }), 0.3, 0)

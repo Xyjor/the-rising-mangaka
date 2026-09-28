@@ -35,9 +35,10 @@ export function moodOf(m: MoodInput): Mood {
 export const CHEER_MS = 2400
 
 /**
- * True when a fans pop, or an xp pop (which also carries the level-up text), is among these kinds: a moment worth a
- * happy mood.
+ * True when a fans pop, or a level-up pop (an 'xp' pop with `levelUp: true`, not an ordinary xp gain), is among
+ * these pops: a moment worth a happy mood. Plain xp accrues continuously, so it must not cheer on its own (Decision
+ * 4 means this as a rare 2.4s beat, not a near-constant state).
  */
-export function cheersFor(kinds: readonly PopKind[]): boolean {
-  return kinds.includes('fans') || kinds.includes('xp')
+export function cheersFor(pops: readonly { kind: PopKind; levelUp?: boolean }[]): boolean {
+  return pops.some((p) => p.kind === 'fans' || p.levelUp === true)
 }
