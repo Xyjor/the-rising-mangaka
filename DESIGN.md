@@ -470,38 +470,38 @@ URL satisfies.
 A money sink whose every effect is stated where it is sold (the Studio panel, from the desk's Studio button) and listed
 again under the reward tiles in Stats. `src/sim/studio.ts`; no RNG.
 - **Tiers.** A new career starts in the apartment. Moving goes one tier up at a time, never down, and costs the next
-  tier's move-in; the panel asks to confirm a move ("Yes, move in for ¥56,300" or "Stay here"), and the next tier's line
+  tier's move-in; the panel asks to confirm a move ("Yes, move in for ¥55,000" or "Stay here"), and the next tier's line
   says "You cannot move back down." Equipment is a single click. The tier's rent is part of the weekly costs (living + rent + salaries), and the weekly log line names
   it when it is not zero ("Weekly costs: -¥550 (living ¥400, rent ¥150)."). `hireAssistant` refuses once every desk is
   taken, on top of the rule that the bank must hold two weeks of that salary.
 
-| Tier | Desks | Rent/week | Move-in (base) | Move-in at scale 11.25 |
+| Tier | Desks | Rent/week | Move-in (base) | Move-in at scale 11 |
 |---|---|---|---|---|
 | Apartment | 1 | ¥0 | ¥0 | ¥0 |
-| Studio flat | 2 | ¥150 | ¥5,000 | ¥56,300 |
-| Studio loft | 3 | ¥350 | ¥15,000 (from the flat) | ¥168,800 (from the flat) |
+| Studio flat | 2 | ¥150 | ¥5,000 | ¥55,000 |
+| Studio loft | 3 | ¥350 | ¥15,000 (from the flat) | ¥165,000 (from the flat) |
 
 - **Equipment** is bought once and kept. A piece cannot be bought twice, without the money, or (the pen tablet) below
   the studio flat. Effects sum over everything owned; page multipliers multiply (drafting table and tablet: x1.265).
   Art and story bonuses go on the player's own samples of every working day (clamped to 100), never the assistants'.
   The page multiplier is part of `basePagesPerDay`, so the desk's pace, the ETA and the chapter deadline all include it.
 
-| Equipment | Base price | Price at scale 11.25 | Effect |
+| Equipment | Base price | Price at scale 11 | Effect |
 |---|---|---|---|
-| Coffee machine | ¥2,000 | ¥22,500 | Resting restores 3 more stamina a day (the rest branch, not trips) |
-| Daylight lamp | ¥2,500 | ¥28,100 | Art +3 on your pages |
-| Reference shelf | ¥3,000 | ¥33,800 | Story +3 on your pages |
-| Ergonomic chair | ¥4,000 | ¥45,000 | Drawing costs 1 less stamina a day (min 2); adds to an Inspiring assistant's 1 |
-| Drafting table | ¥7,000 | ¥78,800 | 10% more pages a day |
-| Pen tablet | ¥12,000, needs the flat | ¥135,000 | 15% more pages a day, art +2 |
+| Coffee machine | ¥2,000 | ¥22,000 | Resting restores 3 more stamina a day (the rest branch, not trips) |
+| Daylight lamp | ¥2,500 | ¥27,500 | Art +3 on your pages |
+| Reference shelf | ¥3,000 | ¥33,000 | Story +3 on your pages |
+| Ergonomic chair | ¥4,000 | ¥44,000 | Drawing costs 1 less stamina a day (min 2); adds to an Inspiring assistant's 1 |
+| Drafting table | ¥7,000 | ¥77,000 | 10% more pages a day |
+| Pen tablet | ¥12,000, needs the flat | ¥132,000 | 15% more pages a day, art +2 |
 
 - **Prices** go through `equipmentPrice(id)` and `moveInCost(tier)`: the base price times `EQUIPMENT_PRICE_SCALE`,
   rounded to the nearest ¥100. The panel and the tests read the helpers, never the base prices. The scale is
   S1 / 9000 rounded to 0.25 and held within 0.75-16 (`priceScale` in balance.ts), where S1 is the sensible balance
   bot's median money at day 336 with its shopping switched off (seeds 1-20; `npm run balance` prints it). S1 is
-  ¥100,573, so S1 / 9000 = 11.17 and the scale is 11.25; balance.test checks the constant is the scale S1 gives, so
+  ¥100,099, so S1 / 9000 = 11.12 and the scale is 11; balance.test checks the constant is the scale S1 gives, so
   a change that moves the economy says when the prices need re-deriving. The Full studio milestone (three assistants)
-  needs the loft: ¥225,100 in move-ins at this scale (¥56,300 for the flat, ¥168,800 for the loft), then ¥350 a week
+  needs the loft: ¥220,000 in move-ins at this scale (¥55,000 for the flat, ¥165,000 for the loft), then ¥350 a week
   in rent and three salaries.
 - **Saves** from before studios start in a studio with a desk for every assistant they have (3: loft, 2: flat,
   otherwise the apartment) and no equipment.
@@ -524,7 +524,7 @@ again under the reward tiles in Stats. `src/sim/studio.ts`; no RNG.
   (`RETREAT_MAX_STAMINA_CAP`; the Trips panel says so). A max stamina already at or above 150 stays where it is.
 - Three trips are reached only by answering a random event, and the Trips panel does not list them: the Comic
   Convention (2 days, ¥500, fans on return), the Manga Masterclass (3 days, ¥400, +3 to the lowest stat) and the
-  Book Signing (1 day, free, + round(average copies a volume x 0.3) x ¥2 on return, for the serial a reprint would be
+  Book Signing (1 day, free, + round(average copies a volume x 0.2) x ¥2 on return, for the serial a reprint would be
   for).
 - The balance bots never take a listed trip; they go on event trips only by answering an event 'a'.
 
@@ -566,10 +566,10 @@ every effect they have, and says how many days are left to answer. `src/sim/even
 | Reprint | a serial, running or archived, with a volume | Approve: + round(average copies a volume × 0.25) × VOLUME_PRICE | Colour page: stamina −12, + round(average copies a volume × 0.4) × VOLUME_PRICE |
 | Workshop | level ≥ 3, money ≥ ¥400 | Attend: 3-day trip, ¥400; on return +3 to the lowest stat (ties: art, story, pacing) | Decline |
 | Interview | fans ≥ 2,000 and a magazine (the running serial's, else the latest one-shot's) | On camera: stamina −6, fans + clamp(round(fans × 0.01), 30, 800) | Written reply: that magazine's editor relationship +1 |
-| Signing | a serial, running or archived, with a volume | Sign: 1-day trip, free; on return + round(average copies a volume × 0.3) × VOLUME_PRICE | Skip it |
+| Signing | a serial, running or archived, with a volume | Sign: 1-day trip, free; on return + round(average copies a volume × 0.2) × VOLUME_PRICE | Skip it |
 | Editor dinner | an editor at relationship ≥ 3 (the highest; ties in magazine order) | Go: −¥300, that editor +1 | Decline |
 | Cover | the running serial has ≥ 4 results | Draw the cover: stamina −15, popularity +3 (at most 100) | Decline |
-| Assistant sick | an assistant (the first on the payroll) | Paid rest: − round(salary / 2), their stamina full | Keep them working: their max stamina −5 |
+| Assistant sick | an assistant (picked by a hash of the roll's day and event seed) | Paid rest: − round(salary / 2), their stamina full | Keep them working: their max stamina −5, never below 40 |
 | Rival challenge | the running serial is in the rival's magazine, no challenge on | Accept: the next chapter result settles it (`settleChallenge`): above the rival, fans + min(1,500, round(fans × 0.03)); below, popularity −3; a tie or a poll without the rival, nothing | Decline |
 
 Stamina changes clamp to 0..max stamina. Each assistant asks for a raise once, whatever the answer. A reprint is for
@@ -1042,8 +1042,12 @@ alongside the untouched code-drawn scene and sprites) and a handful of visual po
   event-only Book Signing, editor personas and the rival temper. Editor relationships already existed, so the
   interview's written reply and the dinner raise the real relationship (no stand-in stat). A tip earned from an event
   reveals the first unknown pairing and draws no RNG, keeping events off the main seed. No max-stamina cap existed, so
-  the retreat introduces its own (150), shown on the Trips panel; the hot spring stays uncapped. The signing's pay was
-  tuned from 0.1 to 0.3 of the average copies a volume: at 0.1 the grown event pool reshuffled the sensible bot's
-  year-one events enough to drop S1 from ¥101,816.5 to ¥99,549.5 (scale 11.0, failing balance.test); at 0.3 S1 is
-  ¥100,573 and the scale stays 11.25. Every band row passes; none of the thresholds changed.
+  the retreat introduces its own (150), shown on the Trips panel; the hot spring stays uncapped. The signing pays 0.2
+  of the average copies a volume, its intended worth; it is not an S1 knob.
+- Content moved S1; scale re-derived to 11.0. With Task C's events S1 is ¥100,099 (S1 / 9000 = 11.12), so
+  `EQUIPMENT_PRICE_SCALE` went from 11.25 to 11 and every price and move-in with it (coffee ¥22,000, lamp ¥27,500,
+  shelf ¥33,000, chair ¥44,000, drafting table ¥77,000, tablet ¥132,000; flat ¥55,000, loft ¥165,000), re-derived by
+  hand in studio.test. No band threshold changed; every row passes.
+- A sick assistant kept working loses 5 max stamina, never below 40 (the card says so), and which assistant falls ill
+  is a hash of the roll's day and event seed, drawing no extra RNG.
 - The sensible bot skips a goods run whose `merchForecast` net is zero or less (carried from Task M).

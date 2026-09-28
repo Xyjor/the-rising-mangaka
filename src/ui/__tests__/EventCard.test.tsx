@@ -115,8 +115,8 @@ describe('event-only trips', () => {
     useStore.setState({ game })
     render(<EventCard />)
     const card = screen.getByRole('region', { name: 'A bookshop wants a signing' })
-    expect(card.textContent).toContain('It pays round(average copies a volume × 0.3) × ¥2.')
-    expect(screen.getByRole('button', { name: 'Sign for a day: 1-day trip, +¥2,400 on return' })).toBeTruthy()
+    expect(card.textContent).toContain('It pays round(average copies a volume × 0.2) × ¥2.')
+    expect(screen.getByRole('button', { name: 'Sign for a day: 1-day trip, +¥1,600 on return' })).toBeTruthy()
     expect(card.querySelector('svg')).not.toBeNull()
   })
 

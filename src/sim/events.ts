@@ -11,7 +11,7 @@ import {
 } from './data'
 import { bumpEditor } from './editors'
 import { CHALLENGE_POPULARITY_LOSS, challengeFans } from './rival'
-import { clamp, draw } from './rng'
+import { clamp, draw, hashString } from './rng'
 import type {
   Assistant, EventId, GameEvent, GameState, MagazineId, PlaceId, PlayerStats, Serial, StatId,
 } from './types'
@@ -36,6 +36,16 @@ const COVER_MIN_RESULTS = 4
 /** Popularity the colour cover adds, and the stamina it costs. */
 const COVER_POPULARITY = 3
 const COVER_STAMINA = 15
+/** Keeping a sick assistant working never takes their max stamina below this. */
+export const SICK_MAX_STAMINA_FLOOR = 40
+
+/**
+ * The assistant who falls ill: picked by a hash of the roll's day and event seed (after the roll's draws), so no extra
+ * RNG is drawn.
+ */
+function sickAssistant(s: GameState): Assistant {
+  return s.assistants[hashString(`sick:${s.day}:${s.eventSeed}`) % s.assistants.length]
+}
 
 /** Stat names for log lines and answers. */
 export const STAT_NAME: Record<StatId, string> = { art: 'Art', story: 'Story', pacing: 'Pacing' }
@@ -55,9 +65,9 @@ export function interviewFans(fans: number): number {
   return clamp(Math.round(fans * 0.01), 30, 800)
 }
 
-/** Money a book signing pays on return: round(average copies a volume x 0.3) x VOLUME_PRICE. */
+/** Money a book signing pays on return: round(average copies a volume x 0.2) x VOLUME_PRICE. */
 export function signingMoney(ser: Serial): number {
-  return Math.round((ser.totalCopies / ser.volumes) * 0.3) * VOLUME_PRICE
+  return Math.round((ser.totalCopies / ser.volumes) * 0.2) * VOLUME_PRICE
 }
 
 /** What a sick assistant's paid rest costs: half a week of their salary. */
@@ -264,7 +274,7 @@ export function eventChoices(s: GameState): EventPrompt | null {
       return {
         id: ev.id,
         title: 'A bookshop wants a signing',
-        body: `A bookshop will stock "${ser.title}" for a signing. It pays round(average copies a volume × 0.3) × ${yen(VOLUME_PRICE)}.`,
+        body: `A bookshop will stock "${ser.title}" for a signing. It pays round(average copies a volume × 0.2) × ${yen(VOLUME_PRICE)}.`,
         a: choice(s, `Sign for a day: ${place.days}-day trip, +${yen(signingMoney(ser))} on return`, 0, place.id),
         b: choice(s, 'Skip it'),
       }
@@ -299,7 +309,7 @@ export function eventChoices(s: GameState): EventPrompt | null {
         title: `${a.name} is ill`,
         body: `${a.name} came in with a fever and asks for a few paid days off.`,
         a: choice(s, `Paid rest: ${yen(-sickPay(a))} (half a week's salary), ${a.name}'s stamina full`, sickPay(a)),
-        b: choice(s, `Keep them working: ${a.name}'s max stamina -5`),
+        b: choice(s, `Keep them working: ${a.name}'s max stamina -5 (never below ${SICK_MAX_STAMINA_FLOOR})`),
       }
     }
     case 'rival-challenge': {
@@ -407,10 +417,11 @@ export function resolveEvent(state: GameState, key: 'a' | 'b'): GameState {
         return addLog(next, 'event', `${who.name} rested on full pay: ${yen(-pay)}. Stamina full.`, true)
       }
       const next = updateAssistant(s, who.id, (x) => {
-        const maxStamina = x.maxStamina - 5
+        const maxStamina = Math.max(Math.min(x.maxStamina, SICK_MAX_STAMINA_FLOOR), x.maxStamina - 5)
         return { ...x, maxStamina, stamina: clamp(x.stamina, 0, maxStamina) }
       })
-      return addLog(next, 'event', `${who.name} worked through it. Max stamina -5.`, true)
+      const lost = who.maxStamina - next.assistants.find((x) => x.id === who.id)!.maxStamina
+      return addLog(next, 'event', `${who.name} worked through it. Max stamina -${lost}.`, true)
     }
     case 'rival-challenge': {
       if (!a) return addLog(s, 'event', `You declined ${s.rival.name}'s challenge.`, false)
@@ -472,7 +483,7 @@ export function eventTick(state: GameState): GameState {
   if (id === 'interview') event.magazineId = interviewMagazine(s)
   if (id === 'editor-dinner') event.magazineId = dinnerEditor(s)
   if (id === 'cover') event.serialId = coverSerial(s)!.id
-  if (id === 'assistant-sick') event.assistantId = s.assistants[0].id
+  if (id === 'assistant-sick') event.assistantId = sickAssistant(s).id
   if (id === 'rival-challenge') event.serialId = challengeSerial(s)!.id
   s = { ...s, event, nextEventDay: s.day + EVENT_GAP_DAYS }
   return addLog(s, 'event', `${eventChoices(s)!.title}. Answer on your desk within ${EVENT_ANSWER_DAYS} days.`, true)

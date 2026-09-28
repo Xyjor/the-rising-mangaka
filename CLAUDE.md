@@ -203,9 +203,9 @@ magazine up a year), a year is 336 days (`DAYS_PER_YEAR`), weekly living
 cost 400 plus studio rent (flat 150, loft 350), one-shot 20 pages (~17 days solo), chapter 16 pages. A volume sells
 round((circulation x 20 + 40 x sqrt(fans)) x popularity / 100) copies at ¥2 (`volumeCopies`, the one place the curve
 lives). Anime offers need 37,000 copies sold; the Golden Pen 37,000 in a year (near miss from 22,000). Equipment prices
-and move-in costs go through `equipmentPrice` and `moveInCost`: base x `EQUIPMENT_PRICE_SCALE` (11.25: S1 / 9000 =
-11.17 rounded to 0.25, held within 0.75-16 by `priceScale`, where S1 is the sensible bot's median money at day 336
-buying nothing, ¥100,573). balance.test fails when the scale no longer matches S1: re-derive it and the price
+and move-in costs go through `equipmentPrice` and `moveInCost`: base x `EQUIPMENT_PRICE_SCALE` (11: S1 / 9000 =
+11.12 rounded to 0.25, held within 0.75-16 by `priceScale`, where S1 is the sensible bot's median money at day 336
+buying nothing, ¥100,099). balance.test fails when the scale no longer matches S1: re-derive it and the price
 literals together.
 
 `src/sim/__tests__/balance.test.ts` asserts the balance bands (DESIGN.md "Balance bots and bands") over seeds 1–20

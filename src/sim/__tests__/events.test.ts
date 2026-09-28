@@ -4,7 +4,7 @@ import {
   tickMany,
 } from '../index'
 import type { Assistant, ChapterResult, EventId, GameEvent, GameState, Player } from '../index'
-import { draw } from '../rng'
+import { draw, hashString } from '../rng'
 import { DRAFT } from '../../test/fixtures'
 
 const KIDS_OFFER = { magazineId: 'kids-comic', title: 'Magic Club', genre: 'fantasy', theme: 'magic', audience: 'kids' } as const
@@ -424,20 +424,20 @@ describe('random events: the six new ones', () => {
     expect(b.seed).toBe(s.seed)
   })
 
-  it('signing: eligible with a volume out; a 1-day trip that pays round(average copies x 0.3) x ¥2 on return', () => {
+  it('signing: eligible with a volume out; a 1-day trip that pays round(average copies x 0.2) x ¥2 on return', () => {
     expect(eligibleEvents(withSoldSerial(12_000, 3))).toContain('signing')
     expect(eligibleEvents(withSoldSerial(0, 0))).not.toContain('signing')
     const sold = withSoldSerial(12_000, 3)
     const ev = withEvent({ ...sold, day: 30 }, 'signing', { serialId: sold.serial!.id })
-    // 12,000 / 3 = 4,000 a volume; x 0.3 = 1,200 copies; x ¥2 = ¥2,400
-    expect(eventChoices(ev)!.a.label).toBe('Sign for a day: 1-day trip, +¥2,400 on return')
+    // 12,000 / 3 = 4,000 a volume; x 0.2 = 800 copies; x ¥2 = ¥1,600
+    expect(eventChoices(ev)!.a.label).toBe('Sign for a day: 1-day trip, +¥1,600 on return')
     const away = resolveEvent(ev, 'a')
     expect(away.trip).toEqual({ placeId: 'signing', startedDay: 30, endsDay: 31 })
     expect(away.player.money).toBe(ev.player.money)
     const back = tick(away)
     expect(back.trip).toBeNull()
-    expect(back.player.money).toBe(ev.player.money + 2400)
-    expect(back.log.some((e) => e.text === 'Back from the Book Signing. Signed copies of "Magic Club": +¥2,400.')).toBe(true)
+    expect(back.player.money).toBe(ev.player.money + 1600)
+    expect(back.log.some((e) => e.text === 'Back from the Book Signing. Signed copies of "Magic Club": +¥1,600.')).toBe(true)
     expect(resolveEvent(ev, 'b').trip).toBeNull()
   })
 
@@ -485,6 +485,29 @@ describe('random events: the six new ones', () => {
     expect(worked.player.money).toBe(ev.player.money)
     // the assistant left: no card, so it lapses
     expect(eventChoices({ ...ev, assistants: [] })).toBeNull()
+    // max stamina never goes below 40
+    const worn = withEvent({ ...s, assistants: [{ ...a, maxStamina: 43, stamina: 43 }] }, 'assistant-sick', { assistantId: a.id })
+    expect(eventChoices(worn)!.b.label).toBe(`Keep them working: ${a.name}'s max stamina -5 (never below 40)`)
+    expect(resolveEvent(worn, 'b').assistants[0]).toMatchObject({ maxStamina: 40, stamina: 40 })
+    const floor = withEvent({ ...s, assistants: [{ ...a, maxStamina: 40 }] }, 'assistant-sick', { assistantId: a.id })
+    expect(resolveEvent(floor, 'b').assistants[0].maxStamina).toBe(40)
+  })
+
+  it('assistant sick: the one who falls ill is a hash of the roll day and event seed, with no extra draw', () => {
+    const base = createGame('Rin', 1)
+    const staff = base.candidates.slice(0, 3).map((c, i) => ({ ...c, id: 100 + i, raised: true }))
+    const s: GameState = { ...base, assistants: staff, day: 30, nextEventDay: 0 }
+    const picked = new Set<number>()
+    for (let seed = 1; seed < 400 && picked.size < 3; seed++) {
+      const out = tick({ ...s, eventSeed: seed })
+      if (out.event?.id !== 'assistant-sick') continue
+      // the roll takes its two draws and nothing more
+      expect(out.eventSeed).toBe(draw(seed, 2).seed)
+      const want = staff[hashString(`sick:31:${out.eventSeed}`) % 3].id
+      expect(out.event.assistantId).toBe(want)
+      picked.add(want)
+    }
+    expect(picked.size).toBeGreaterThan(1)
   })
 
   it("rival challenge: only for a running serial in the rival's magazine; accepting stores the serial and result count", () => {
