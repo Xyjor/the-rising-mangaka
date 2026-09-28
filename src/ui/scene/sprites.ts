@@ -18,7 +18,7 @@ export const PAL: Record<string, string> = {
   O: '#c0392b', o: '#8e2a20',
   G: '#5b6270', g: '#454a55', N: '#c0392b', P: '#3b3b45',
   F: '#6d4c33', f: '#4e3622',
-  C: '#e39a4a', c: '#c67d33',
+  C: '#e39a4a', c: '#c67d33', Q: '#f0ead6',
 }
 
 /** One palette per assistant look (look 0 is the mangaka's colours), built once so render allocates nothing. */
@@ -841,14 +841,17 @@ export const CAT_SLEEP: SpriteMap = [
   '..LLLLLLLLL.',
 ]
 
-/** The cat sitting up (12x8, facing left), the eye at row 3 col 3, the tail curled round at the back. */
+/**
+ * The cat sitting up (12x8, facing left), the eye at row 3 col 3, the tail curled round at the back, and a cream chest
+ * patch (`Q`, rows 4-5 at the front) as in every frame where the chest shows (not asleep: curled, it is hidden).
+ */
 export const CAT_SIT: SpriteMap = [
   '.L..L.......',
   'LCLLCL......',
   'LCCCcL......',
   'LCCEcL......',
-  '.LCCcLLLL...',
-  '.LCCCCCCcLL.',
+  '.LQCcLLLL...',
+  '.LQQCCCCcLL.',
   '.LcCCCCCcLCL',
   '..LLLLLLLLL.',
 ]
@@ -860,8 +863,8 @@ export const CAT_WALK: readonly [SpriteMap, SpriteMap] = [
     'LCLCL.......',
     'LECCLLLLLLL.',
     'LCCCCCCCCccL',
-    '.LCCCCCCCccL',
-    '.LCCCCCCCccL',
+    '.LQCCCCCCccL',
+    '.LQCCCCCCccL',
     '.LCL.LCL.LcL',
     '.LLL.LLL.LLL',
   ],
@@ -870,8 +873,8 @@ export const CAT_WALK: readonly [SpriteMap, SpriteMap] = [
     'LCLCL.......',
     'LECCLLLLLLL.',
     'LCCCCCCCCccL',
-    '.LCCCCCCCccL',
-    '.LCCCCCCCccL',
+    '.LQCCCCCCccL',
+    '.LQCCCCCCccL',
     'LCL..LCLLcL.',
     'LLL..LLLLLL.',
   ],
@@ -890,8 +893,8 @@ export const CAT_GROOM: readonly [SpriteMap, SpriteMap] = [
     'LCCCCL......', // the paw fills the ear gap (cols 2-3 were L, L in CAT_SIT)
     'LCcCcL......', // the paw's toe, a shade lower (col 2 was C in CAT_SIT)
     'LCCccL......', // the eye closed: a shade line, not hidden (col 3 was E in CAT_SIT)
-    '.LCCcLLLL...',
-    '.LCCCCCCcLL.',
+    '.LQCcLLLL...',
+    '.LQQCCCCcLL.',
     '.LcCCCCCcLCL',
     '..LLLLLLLLL.',
   ],
@@ -900,8 +903,8 @@ export const CAT_GROOM: readonly [SpriteMap, SpriteMap] = [
     'LCcCcL......', // the paw's toe (as frame 0, one row higher)
     'LCCCcL......',
     'LCCccL......', // the eye closed
-    '.LCCcLLLL...',
-    '.LCCCCCCcLL.',
+    '.LQCcLLLL...',
+    '.LQQCCCCcLL.',
     '.LcCCCCCcLCL',
     '..LLLLLLLLL.',
   ],
@@ -915,7 +918,7 @@ export const CAT_STRETCH: SpriteMap = [
   '.........LCL',
   '.........LCL',
   'LCCECCCCCCCL',
-  '.LCCCCCCCCcL',
+  '.LQQCCCCCCcL',
   '.LcCCCCCCcLL',
   '..LLLLLLLLL.',
 ]

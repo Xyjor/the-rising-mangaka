@@ -21,9 +21,9 @@ import type { Actor, ActorTable } from '../actors'
  * pixels and two hands), the cat's two 8x6 frames 30 pixels in place of the placeholder's 20 (+10) and the assistant's
  * page 3 (the sheet and round(0.5 * 3) = 2 ink lines). Task A (0.2.1) re-measured it the same way at 281 once
  * drawSprite merged each horizontal run of one key into one fillRect (the art unchanged, the same pixels painted): the
- * sprites' 1x1 pixels became runs (the hero, the assistant, the clock and the cat). Task B (0.2.1) re-measured it the same way at 430: the mangaka a 24x32 sprite and the stock chair's new back. Task C (0.2.1) re-measured it the same way at 596: the assistant a 24x32 seated frame, its stool and the page's wider lines, the cat's 12x8 sleeping frame. Upgrade 0.3.0 re-measured it the same way at 649: the tatami room 61 in place of the striped room's 58 (+3), five floor shadows and the staff desk's (+6), the corkboard 10 (board 2, four cards at 2), the calendar 7, the apartment's front row 12 and the bin 7 (5 and two crumpled pages), and the light 8 (the daylight shaft 4, the vignette 4). Upgrade 0.4.0's chibi cast (Task 6) re-measured it the same way at 659 (+10): redrawing MANGAKA_SIT[0] to the chibi proportions (an 18-wide, 16-row head in place of the old frame's narrower crown) costs 5 more fillRect runs than the old frame, and the reference scene paints two seated figures from that map at frame 100 (the mangaka and its one assistant, both landing on index 0: `floor(100/8)%2` for the mangaka, `floor((100+0*3)/8)%2` for the assistant) — 5 + 5 = 10. The mood overlay adds nothing here: the reference scene's mood is neutral (home, no editor, no cheer, stamina 80), and `drawMood` returns early for `neutral`. Upgrade 0.5.0 Task 6.1 re-measured it the same way at 659 (+0): the daylight shaft keeps its four steps, each now wider and fainter. Upgrade 0.5.0 Task 6.2 re-measured it the same way at 659 (+0): the wood-beam frame is the flat's and the loft's, and this scene is the apartment. Upgrade 0.5.0 Task 6.3 re-measured it the same way at 665 (+6): the reference scene is spring, and the cherry now spills past the pane onto the wall (`drawSeasonWall`: a branch, a twig and four blossom clusters, 6 fills). Upgrade 0.5.0 Task 6.4 re-measured it the same way at 663 (-2): the corkboard pins a card per sixth of the pages (a 2x3 grid), so half the pages drawn shows 3 cards in place of 4, at 2 fills each. Every scene must stay under 1.5 times this.
+ * sprites' 1x1 pixels became runs (the hero, the assistant, the clock and the cat). Task B (0.2.1) re-measured it the same way at 430: the mangaka a 24x32 sprite and the stock chair's new back. Task C (0.2.1) re-measured it the same way at 596: the assistant a 24x32 seated frame, its stool and the page's wider lines, the cat's 12x8 sleeping frame. Upgrade 0.3.0 re-measured it the same way at 649: the tatami room 61 in place of the striped room's 58 (+3), five floor shadows and the staff desk's (+6), the corkboard 10 (board 2, four cards at 2), the calendar 7, the apartment's front row 12 and the bin 7 (5 and two crumpled pages), and the light 8 (the daylight shaft 4, the vignette 4). Upgrade 0.4.0's chibi cast (Task 6) re-measured it the same way at 659 (+10): redrawing MANGAKA_SIT[0] to the chibi proportions (an 18-wide, 16-row head in place of the old frame's narrower crown) costs 5 more fillRect runs than the old frame, and the reference scene paints two seated figures from that map at frame 100 (the mangaka and its one assistant, both landing on index 0: `floor(100/8)%2` for the mangaka, `floor((100+0*3)/8)%2` for the assistant) — 5 + 5 = 10. The mood overlay adds nothing here: the reference scene's mood is neutral (home, no editor, no cheer, stamina 80), and `drawMood` returns early for `neutral`. Upgrade 0.5.0 Task 6.1 re-measured it the same way at 659 (+0): the daylight shaft keeps its four steps, each now wider and fainter. Upgrade 0.5.0 Task 6.2 re-measured it the same way at 659 (+0): the wood-beam frame is the flat's and the loft's, and this scene is the apartment. Upgrade 0.5.0 Task 6.3 re-measured it the same way at 665 (+6): the reference scene is spring, and the cherry now spills past the pane onto the wall (`drawSeasonWall`: a branch, a twig and four blossom clusters, 6 fills). Upgrade 0.5.0 Task 6.4 re-measured it the same way at 663 (-2): the corkboard pins a card per sixth of the pages (a 2x3 grid), so half the pages drawn shows 3 cards in place of 4, at 2 fills each. Upgrade 0.5.0 Task 6.5 re-measured it the same way at 667 (+4): the cat sleeps on a round cushion (4 fills: its top, body, rim and bottom); its cream chest patch is only in the frames where the chest shows, never the curled `CAT_SLEEP` this scene draws. Every scene must stay under 1.5 times this.
  */
-const BASELINE_FILLS = 663
+const BASELINE_FILLS = 667
 const BUDGET = BASELINE_FILLS * 1.5
 
 describe('render', () => {
@@ -66,7 +66,7 @@ describe('render', () => {
   })
 
   it('stays under 1.5 times the measured baseline of fillRect calls in every season, by day and by night', () => {
-    expect(BUDGET).toBe(994.5)
+    expect(BUDGET).toBe(1000.5)
     const ref = fakeContext()
     render(ref.ctx, sceneSnapshot(), 0.3, 100)
     expect(ref.log).toHaveLength(BASELINE_FILLS)
@@ -414,7 +414,14 @@ describe('the assistants, the wall clock and the cat (Task 2.5)', () => {
     // CAT_SLEEP at (196, 118): row 3 col 1 is fur, and it has no eye
     expect(covers(ref, '#e39a4a', 197, 121)).toBeGreaterThan(-1)
     expect(ref.some((c) => c.style === '#1b1b1b' && c.x < 208 && c.x + c.w > 196 && c.y < 126 && c.y + c.h > 118)).toBe(false)
+    // the round cushion under it: 16 wide from x 194, its body y 122-125 (the rim at 126-127); drawn before the cat,
+    // so the fur at (197, 121) is the cat's own, and below the sprite (y 126) only the cushion shows
+    const cushion = covers(ref, '#c9a24a', 195, 124)
+    expect(cushion).toBeGreaterThan(-1)
+    expect(cushion).toBeLessThan(covers(ref, '#e39a4a', 197, 121))
+    expect(covers(ref, '#a8832f', 200, 127)).toBeGreaterThan(-1)
     const rest = at({ activity: 'rest' })
+    expect(rest.some((c) => c.style === '#c9a24a')).toBe(false)
     // CAT_SIT at (44, 150): the eye row 3 col 3, fur row 1 col 1
     expect(covers(rest, '#1b1b1b', 47, 153)).toBeGreaterThan(-1)
     expect(covers(rest, '#e39a4a', 45, 151)).toBeGreaterThan(-1)

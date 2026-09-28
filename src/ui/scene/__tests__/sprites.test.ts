@@ -65,6 +65,12 @@ describe('the sprites', () => {
     expect([PROP_ENVELOPE[1][2], PROP_TROPHY[1][2]]).toEqual(['W', 'Y'])
   })
 
+  it('gives the cat a cream chest patch wherever its chest shows (not curled asleep)', () => {
+    for (const cat of [CAT_SIT, ...CAT_WALK, ...CAT_GROOM, CAT_STRETCH]) expect(cat.join('')).toContain('Q')
+    expect(CAT_SLEEP.join('')).not.toContain('Q')
+    expect([CAT_SIT[4][2], CAT_SIT[5][2], CAT_SIT[5][3]]).toEqual(['Q', 'Q', 'Q'])
+  })
+
   it('draws the groom paw so it reads as distinct from the plain sit (fix round 1)', () => {
     // frame 0: the paw fills the ear gap at row 1, cols 2-3 (CAT_SIT has L there, the ridge between the ears)
     expect(CAT_SIT[1][2]).toBe('L')

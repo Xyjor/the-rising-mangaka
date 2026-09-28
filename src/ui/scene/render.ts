@@ -30,6 +30,10 @@ export const H = 180
 
 const BOOK_COLS = ['#c94b4b', '#3b6fd6', '#3fa66c', '#f5b700', '#7c4dff', '#e07b39']
 
+/** The cat's round cushion on the blanket (mustard, the cardigan's colours). */
+const CUSHION = '#c9a24a'
+const CUSHION_SHADE = '#a8832f'
+
 /** The wall clock (7x7): the rim and the face, with its 12 and 6 marks. */
 const CLOCK = [
   '.DDDDD.',
@@ -410,7 +414,14 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
   // the cat (after the mangaka's front pass, so it curls on the blanket), then the editor
   const cat = s.actors.cat
   const catFlip = cat.facing === 1
-  if (cat.state === 'sleeping') drawSprite(ctx, CAT_SLEEP, cat.x, cat.y, 8, undefined, catFlip)
+  if (cat.state === 'sleeping') {
+    // a round cushion under the curled cat (16x7 from 2 px left of and 3 px below the frame's top: 4 fills)
+    const cx = Math.round(cat.x) - 2
+    const cy = Math.round(cat.y) + 3
+    rawRect(ctx, cx + 3, cy, 10, 1, CUSHION); rawRect(ctx, cx, cy + 1, 16, 4, CUSHION)
+    rawRect(ctx, cx + 1, cy + 5, 14, 1, CUSHION_SHADE); rawRect(ctx, cx + 3, cy + 6, 10, 1, CUSHION_SHADE)
+    drawSprite(ctx, CAT_SLEEP, cat.x, cat.y, 8, undefined, catFlip)
+  }
   else if (cat.state === 'walking') drawSprite(ctx, CAT_WALK[Math.floor(cat.anim / 125) % 2], cat.x, cat.y, 8, undefined, catFlip)
   else if (cat.state !== 'hidden' && cat.state !== 'away') {
     // the sitting cat's own idle cycle (Decision 6): sit, then a groom, then a stretch
