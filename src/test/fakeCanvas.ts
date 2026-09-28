@@ -64,6 +64,7 @@ export function sceneSnapshot(over: Partial<Snapshot> = {}): Snapshot {
     activity: 'work',
     progress: 0.5,
     stamina: 80,
+    level: 1,
     running: true,
     away: false,
     assistants: [{ look: 0, stamina: 80 }],

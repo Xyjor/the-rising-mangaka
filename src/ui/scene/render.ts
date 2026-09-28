@@ -5,8 +5,8 @@ import { ASSISTANT_SEAT_X } from './actors'
 import type { Actor, ActorTable } from './actors'
 import {
   ASSISTANT_DOZE, ASSISTANT_PALS, CAT_GROOM, CAT_SIT, CAT_SLEEP, CAT_STRETCH, CAT_WALK, EDITOR_IDLE, EDITOR_WALK, FACES, HEAD_DY,
-  MANGAKA_IDLE, MANGAKA_LIE, MANGAKA_PANIC, MANGAKA_SIP, MANGAKA_SIT, MANGAKA_STRETCH, MANGAKA_WALK, MARKS, MARK_PAL, PAL,
-  PROP_CONTRACT, PROP_ENVELOPE, PROP_LETTER, PROP_PAL, PROP_TROPHY, drawSprite,
+  MANGAKA_IDLE, MANGAKA_LIE, MANGAKA_PANIC, MANGAKA_SIP, MANGAKA_SIT, MANGAKA_STRETCH, MANGAKA_WALK, MARKS, MARK_PAL, OUTFIT_PALS, PAL,
+  PROP_CONTRACT, PROP_ENVELOPE, PROP_LETTER, PROP_PAL, PROP_TROPHY, drawSprite, outfitOf,
 } from './sprites'
 import type { SpriteMap } from './sprites'
 import { catFrame, idleFrame, moodOf } from './mood'
@@ -117,13 +117,14 @@ function drawMangaka(ctx: CanvasRenderingContext2D, s: Snapshot, a: Actor, frame
   if ((a.y >= 75) !== front) return
   const x = a.x
   const y = a.y
+  const outfit = OUTFIT_PALS[outfitOf(s.level)]
   switch (a.state) {
     case 'seated': {
       // late on a chapter, the mangaka throws up their hands for 40 frames in every 240
       const panicking = working && s.late && frame % 240 < 40
       const idx = working ? Math.floor(frame / 8) % 2 : 0
       const map = panicking ? MANGAKA_PANIC[idx] : MANGAKA_SIT[idx]
-      drawSprite(ctx, map, x, y)
+      drawSprite(ctx, map, x, y, undefined, outfit)
       if (!panicking) {
         const mood = moodOf({
           home: true, editorHere: s.actors.editor.state === 'standing', cheer: s.cheer, stamina: s.stamina,
@@ -145,7 +146,7 @@ function drawMangaka(ctx: CanvasRenderingContext2D, s: Snapshot, a: Actor, frame
       if (pose.set === 'stretch') { map = MANGAKA_STRETCH[pose.index]; headDy = pose.index; faceSteady = false }
       else if (pose.set === 'sip') { map = MANGAKA_SIP[pose.index]; headDy = 0; faceSteady = false }
       else { map = MANGAKA_IDLE[pose.index]; headDy = HEAD_DY.idle[pose.index]; faceSteady = true }
-      drawSprite(ctx, map, x, y)
+      drawSprite(ctx, map, x, y, undefined, outfit)
       const mood = moodOf({
         home: true, editorHere: s.actors.editor.state === 'standing', cheer: s.cheer, stamina: s.stamina,
         resting: false, night: false,
@@ -162,7 +163,7 @@ function drawMangaka(ctx: CanvasRenderingContext2D, s: Snapshot, a: Actor, frame
     }
     case 'walking':
       shadow(ctx, x + 4, y + 30, 16)
-      drawSprite(ctx, MANGAKA_WALK[Math.floor(a.anim / 100) % 4], x, y, 32, undefined, a.facing === 1)
+      drawSprite(ctx, MANGAKA_WALK[Math.floor(a.anim / 100) % 4], x, y, 32, outfit, a.facing === 1)
       return
     case 'sleeping': {
       // the head on the pillow, the body under the blanket (canvas 196-229 x 114-121) and its fold
@@ -225,6 +226,8 @@ export interface Snapshot extends StoryLook {
   activity: 'work' | 'rest' | 'job'
   progress: number
   stamina: number
+  /** The player's level (Decision 7): picks the mangaka's outfit via outfitOf/OUTFIT_PALS. */
+  level: number
   running: boolean
   away: boolean
   assistants: { look: number; stamina: number }[]

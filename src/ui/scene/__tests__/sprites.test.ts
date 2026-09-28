@@ -3,8 +3,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   ASSISTANT_DOZE, ASSISTANT_PALS, CAT_GROOM, CAT_SIT, CAT_SLEEP, CAT_STRETCH, CAT_WALK, EDITOR_IDLE, EDITOR_WALK, HUMAN_FRAMES,
-  MANGAKA_IDLE, MANGAKA_LIE, MANGAKA_PANIC, MANGAKA_SIP, MANGAKA_SIT, MANGAKA_STRETCH, MANGAKA_WALK, PAL, PROP_CONTRACT,
-  PROP_ENVELOPE, PROP_LETTER, PROP_PAL, PROP_TROPHY, frameRules,
+  MANGAKA_IDLE, MANGAKA_LIE, MANGAKA_PANIC, MANGAKA_SIP, MANGAKA_SIT, MANGAKA_STRETCH, MANGAKA_WALK, OUTFIT_PALS, PAL,
+  PROP_CONTRACT, PROP_ENVELOPE, PROP_LETTER, PROP_PAL, PROP_TROPHY, frameRules, outfitOf,
 } from '../sprites'
 import { LOOK_HAIRS, LOOK_HAIRS_SHADE, LOOK_SHIRTS, LOOK_SHIRTS_SHADE } from '../../looks'
 
@@ -86,5 +86,22 @@ describe('the sprites', () => {
       expect([p.H, p.h, p.R, p.r]).toEqual([LOOK_HAIRS[i], LOOK_HAIRS_SHADE[i], LOOK_SHIRTS[i], LOOK_SHIRTS_SHADE[i]])
     })
     expect(ASSISTANT_PALS[0]).toEqual(PAL)
+  })
+
+  it('picks the outfit by level (Decision 7)', () => {
+    expect(outfitOf(1)).toBe('hoodie')
+    expect(outfitOf(4)).toBe('hoodie')
+    expect(outfitOf(5)).toBe('cardigan')
+    expect(outfitOf(9)).toBe('cardigan')
+    expect(outfitOf(10)).toBe('blazer')
+    expect(outfitOf(30)).toBe('blazer')
+  })
+
+  it('builds the outfit palettes once, swapping only J/j', () => {
+    expect(OUTFIT_PALS.hoodie).toEqual(PAL)
+    expect(OUTFIT_PALS.cardigan.J).toBe('#c9a24a')
+    expect(OUTFIT_PALS.cardigan.j).toBe('#a8832f')
+    expect(OUTFIT_PALS.blazer.J).toBe('#2e3a78')
+    expect(OUTFIT_PALS.blazer.j).toBe('#222b5c')
   })
 })

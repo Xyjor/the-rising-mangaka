@@ -96,6 +96,7 @@ export function StudioScene({ running }: { running: boolean }) {
   const activity = useStore((s) => s.game?.activity ?? 'rest')
   const progress = useStore((s) => (s.game?.project ? s.game.project.pagesDone / s.game.project.pagesTarget : 0))
   const stamina = useStore((s) => s.game?.player.stamina ?? 100)
+  const level = useStore((s) => s.game?.player.level ?? 1)
   const trip = useStore((s) => s.game?.trip ?? null)
   const assistants = useStore((s) => s.game?.assistants ?? EMPTY)
   const season = useStore((s) => (s.game ? seasonOf(s.game.day) : 'spring'))
@@ -109,13 +110,13 @@ export function StudioScene({ running }: { running: boolean }) {
   const story = useStore(useShallow((s) => storyLook(s.game)))
   // a placeholder until the effect below fills it in, which it does before the loop's first frame
   const snap = useRef<Snapshot>({
-    phase, activity, progress, stamina, running, away: !!trip, assistants: [], season,
+    phase, activity, progress, stamina, level, running, away: !!trip, assistants: [], season,
     tier: 'apartment', owned: NO_EQUIPMENT, volumes: 0, animePoster: false, trophies: 0,
     visitor: 'none', visitorProp: 'none', late, cheer, ...NO_STORY, actors: actors,
   })
   useEffect(() => {
     snap.current = {
-      phase, activity, progress, stamina, running, away: !!trip,
+      phase, activity, progress, stamina, level, running, away: !!trip,
       assistants: assistants.map((a) => ({ look: a.look, stamina: a.stamina })),
       season,
       // the studio as flags and counts, so render never walks a list per frame
@@ -135,7 +136,7 @@ export function StudioScene({ running }: { running: boolean }) {
       lastFrame.current = 0
       lastSnap.current = snap.current
     }
-  }, [actors, advance, placeBubbles, phase, activity, progress, stamina, running, trip, assistants, season, look, reason, late, cheer, story])
+  }, [actors, advance, placeBubbles, phase, activity, progress, stamina, level, running, trip, assistants, season, look, reason, late, cheer, story])
 
   // A new daily line (info, not a toast, today, not from a loaded save) is said by the mangaka, when they are home.
   useEffect(() => {

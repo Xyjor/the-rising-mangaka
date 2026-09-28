@@ -526,3 +526,26 @@ describe('the assistants, the wall clock and the cat (Task 2.5)', () => {
     }
   })
 })
+
+describe('outfits by level (Task 5, Decision 7)', () => {
+  // standing at MANGAKA_STAND (170, 81): the anchor's row 18 col 6 'J' -> (170+6, 81+18) = (176, 99)
+  it('dresses the standing mangaka in the outfit for their level', () => {
+    const table = newActorTable()
+    Object.assign(table.mangaka, { x: 170, y: 81, targetX: 170, targetY: 81, state: 'standing', goal: 'standing' })
+    const at = (level: number) => {
+      const { ctx, log } = fakeContext()
+      render(ctx, sceneSnapshot({ level, actors: table }), 0.3, 0)
+      return log
+    }
+    expect(covers(at(1), '#6f7a8c', 176, 99)).toBeGreaterThan(-1)
+    expect(covers(at(5), '#c9a24a', 176, 99)).toBeGreaterThan(-1)
+    expect(covers(at(10), '#2e3a78', 176, 99)).toBeGreaterThan(-1)
+  })
+
+  it('leaves an assistant\'s look palette unaffected by the player\'s level', () => {
+    // the assistant seated at (66, 89): the same anchor cell -> (66+6, 89+18) = (72, 107)
+    const { ctx, log } = fakeContext()
+    render(ctx, sceneSnapshot({ level: 10 }), 0.3, 0)
+    expect(covers(log, '#6f7a8c', 72, 107)).toBeGreaterThan(-1)
+  })
+})

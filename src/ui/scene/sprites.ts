@@ -26,6 +26,22 @@ export const ASSISTANT_PALS: Record<string, string>[] = LOOK_SHIRTS.map((_, i) =
   ...PAL, H: LOOK_HAIRS[i], h: LOOK_HAIRS_SHADE[i], R: LOOK_SHIRTS[i], r: LOOK_SHIRTS_SHADE[i],
 }))
 
+/** The mangaka's outfit by level (Decision 7): hoodie 1-4, cardigan 5-9, blazer 10+. Purely visual. */
+export type Outfit = 'hoodie' | 'cardigan' | 'blazer'
+
+/** The outfit for a player level (Decision 7's thresholds). */
+export function outfitOf(level: number): Outfit {
+  return level >= 10 ? 'blazer' : level >= 5 ? 'cardigan' : 'hoodie'
+}
+
+/** One palette per outfit, PAL with J (base) and j (shade) swapped, built once so render allocates nothing. The
+ * mangaka only; assistants keep ASSISTANT_PALS and are unaffected. */
+export const OUTFIT_PALS: Record<Outfit, Record<string, string>> = {
+  hoodie: PAL,
+  cardigan: { ...PAL, J: '#c9a24a', j: '#a8832f' },
+  blazer: { ...PAL, J: '#2e3a78', j: '#222b5c' },
+}
+
 /** Standing, the style anchor (frame 0) and its breath (frame 1: rows 0-23 a row lower, the hem tucked under), 16 frames each. */
 export const MANGAKA_IDLE: readonly [SpriteMap, SpriteMap] = [
   [
