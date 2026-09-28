@@ -199,13 +199,15 @@ describe('the characters, from the actor table', () => {
   it('seats the mangaka at the desk in the reference scene, over the chair back and under the desk top', () => {
     const { ctx, log } = fakeContext()
     render(ctx, sceneSnapshot(), 0.3, 0)
-    // seat (132, 67): the anchor's row 2 col 8 is hair, row 7 col 8 skin
+    // seat (132, 67): the anchor's row 2 col 8 is hair, row 13 col 8 skin, row 9 col 6 an eye
     const hair = covers(log, '#2b2140', 140, 69)
     expect(hair).toBeGreaterThanOrEqual(0)
-    expect(covers(log, '#4a4a55', 140, 80)).toBeGreaterThan(-1)
-    expect(covers(log, '#4a4a55', 140, 80)).toBeLessThan(hair)
+    const chair = covers(log, '#4a4a55', 140, 90)
+    expect(chair).toBeGreaterThan(-1)
+    expect(chair).toBeLessThan(hair)
     expect(covers(log, '#8b5a2b', 116, 98)).toBeGreaterThan(hair)
-    expect(has(log, '#f4cfa5', 140, 74)).toBe(true)
+    expect(has(log, '#f4cfa5', 140, 80)).toBe(true)
+    expect(has(log, '#1b1b1b', 138, 76)).toBe(true)
   })
 
   it('stands the mangaka beside the desk between projects, after the desk top', () => {
@@ -214,16 +216,17 @@ describe('the characters, from the actor table', () => {
     const hair = covers(log, '#2b2140', 178, 83)
     expect(hair).toBeGreaterThan(covers(log, '#8b5a2b', 116, 98))
     expect(covers(log, '#8b5a2b', 116, 98)).toBeGreaterThan(-1)
-    // row 30 col 6, a shoe
-    expect(has(log, '#c0392b', 176, 111)).toBe(true)
+    // row 30 col 7, a shoe
+    expect(has(log, '#c0392b', 177, 111)).toBe(true)
   })
 
   it('walks the mangaka with the four-frame cycle, mirrored when facing right', () => {
-    // contact (anim 0): the leading shoe at cols 3-7; pass (anim 100): the legs together at cols 7-16
-    expect(has(paintWith(walking({})), '#c0392b', 153, 111)).toBe(true)
-    expect(has(paintWith(walking({ anim: 100 })), '#c0392b', 153, 111)).toBe(false)
-    // facing right, col 3 mirrors to col 20
-    expect(has(paintWith(walking({ facing: 1 })), '#c0392b', 170, 111)).toBe(true)
+    // contact (anim 0): WALK[0] row 30 '....LOOOOL...LOOOoL.....', the leading shoe's O at cols 5-8 (col 5 at x 155);
+    // pass (anim 100): the shoes together at cols 8-14, nothing at col 5
+    expect(has(paintWith(walking({})), '#c0392b', 155, 111)).toBe(true)
+    expect(has(paintWith(walking({ anim: 100 })), '#c0392b', 155, 111)).toBe(false)
+    // facing right, col 5 mirrors to x 150 + 23 - 5 = 168
+    expect(has(paintWith(walking({ facing: 1 })), '#c0392b', 168, 111)).toBe(true)
   })
 
   it('has the seated mangaka throw up their hands for 40 frames in 240 when the chapter is late', () => {
@@ -232,10 +235,10 @@ describe('the characters, from the actor table', () => {
       render(ctx, sceneSnapshot({ late }), 0.3, frame)
       return log
     }
-    // PANIC[0] row 4 col 3 is the leading hand
-    expect(covers(at(true, 0), '#f4cfa5', 135, 71)).toBeGreaterThanOrEqual(0)
-    expect(covers(at(true, 40), '#f4cfa5', 135, 71)).toBe(-1)
-    expect(covers(at(false, 0), '#f4cfa5', 135, 71)).toBe(-1)
+    // PANIC[0] row 2 col 2 is the leading hand (SIT's row 2 col 2 is clear)
+    expect(covers(at(true, 0), '#f4cfa5', 134, 69)).toBeGreaterThanOrEqual(0)
+    expect(covers(at(true, 40), '#f4cfa5', 134, 69)).toBe(-1)
+    expect(covers(at(false, 0), '#f4cfa5', 134, 69)).toBe(-1)
   })
 
   function editorAt(facing: -1 | 1, over: Partial<Actor> = {}): ActorTable {
@@ -270,8 +273,8 @@ describe('the characters, from the actor table', () => {
   it('puts the mangaka to bed to rest, the Zz rising over the pillow', () => {
     const { ctx, log } = fakeContext()
     render(ctx, sceneSnapshot({ activity: 'rest' }), 0.3, 0)
-    // bed (216, 106): LIE row 2 col 20 is hair; the blanket over the body after it; the first Z at (234, 100)
-    const hair = covers(log, '#2b2140', 236, 108)
+    // bed (216, 106): LIE row 2's first H is col 16 (x 232); the blanket over the body after it; the first Z at (234, 100)
+    const hair = covers(log, '#2b2140', 232, 108)
     expect(hair).toBeGreaterThanOrEqual(0)
     expect(covers(log, '#c94b4b', 200, 116)).toBeGreaterThan(hair)
     expect(has(log, '#2f5ecf', 235, 100)).toBe(true)
@@ -298,9 +301,9 @@ describe('the characters, from the actor table', () => {
   it('merges horizontal runs of one sprite key into a single fill', () => {
     const { ctx, log } = fakeContext()
     render(ctx, sceneSnapshot(), 0.3, 0)
-    // the seated mangaka's row 1 '......LLHHHHHHHhL.......' at (132, 67): one 7x1 hair fill from x 140
-    expect(log).toContainEqual({ style: '#2b2140', x: 140, y: 68, w: 7, h: 1 })
-    expect(log).not.toContainEqual({ style: '#2b2140', x: 141, y: 68, w: 1, h: 1 })
+    // the seated mangaka's row 1 '....LLHHHHHHHHHhLL......' at (132, 67): one 9x1 hair fill from x 138 (cols 6-14)
+    expect(log).toContainEqual({ style: '#2b2140', x: 138, y: 68, w: 9, h: 1 })
+    expect(log).not.toContainEqual({ style: '#2b2140', x: 139, y: 68, w: 1, h: 1 })
     // the editor facing right at (198, 85), row 24 '......LgggggggggggLFFFfL' mirrored: FFF (cols 19-21) at x 200-202,
     // the suit's shade (cols 7-17) at x 204-214
     const ed = paintWith(editorAt(1), { visitor: 'editor' })

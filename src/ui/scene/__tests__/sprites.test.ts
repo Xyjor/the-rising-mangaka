@@ -29,21 +29,28 @@ describe('the sprites', () => {
   it('reports a short row, an unknown key and an empty last row', () => {
     const broken = MANGAKA_IDLE[0].slice()
     broken[5] = broken[5].slice(0, 23)
-    broken[8] = broken[8].replace('E', '#')
+    broken[9] = broken[9].replace('E', '#')
     broken[31] = '.'.repeat(24)
     expect(frameRules(broken)).toHaveLength(3)
     // and an open outline
     const open = MANGAKA_IDLE[0].slice()
-    open[7] = '....SSSSSSSSSSSSSsL.....'
+    open[7] = '..SHSSSSSSSSSSSSSShL....'
     expect(frameRules(open)).toEqual(['row 7 is open'])
   })
 
   it('keeps the anchor\'s hair, face and shoes where the scene tests read them', () => {
     const a = MANGAKA_IDLE[0]
-    expect([a[2][8], a[7][8], a[30][6]]).toEqual(['H', 'S', 'O'])
-    expect(MANGAKA_LIE[2][20]).toBe('H')
-    expect(MANGAKA_PANIC[0][4][3]).toBe('S')
-    expect(MANGAKA_SIT[0][4][3]).toBe('.')
+    expect([a[2][8], a[9][6], a[10][7], a[12][10], a[31][6], a[30][7]]).toEqual(['H', 'E', 'W', 'M', 'L', 'O'])
+    // the breath: rows 0-23 a row lower, so the eye on row 10
+    expect(MANGAKA_IDLE[1][0]).toBe('.'.repeat(24))
+    expect(MANGAKA_IDLE[1][10][6]).toBe('E')
+    // the pen hand (row 22 col 0 is the pen's L, so the hand starts at col 1: see the task 1 report)
+    expect(MANGAKA_SIT[0][22][1]).toBe('S')
+    expect(MANGAKA_PANIC[0][2][2]).toBe('S')
+    // the bed pose: 30x14, the first hair cell row 2 col 16
+    expect(MANGAKA_LIE).toHaveLength(14)
+    expect(MANGAKA_LIE.every((row) => row.length === 30)).toBe(true)
+    expect(MANGAKA_LIE[2].indexOf('H')).toBe(16)
     // the editor: hair row 2 col 8, suit row 20 col 4, glasses row 8 col 6, briefcase row 24 col 20
     const e = EDITOR_IDLE[0]
     expect([e[2][8], e[20][4], e[8][6], e[24][20]]).toEqual(['H', 'G', 'P', 'F'])

@@ -110,8 +110,8 @@ function drawMangaka(ctx: CanvasRenderingContext2D, s: Snapshot, a: Actor, frame
       shadow(ctx, x + 4, y + 30, 16)
       drawSprite(ctx, MANGAKA_IDLE[Math.floor(frame / 16) % 2], x, y)
       if (s.phase === 'ready') {
-        // the manuscript in the leading hand (row 21)
-        rawRect(ctx, x - 8, y + 16, 8, 10, '#fdfcf7'); rawRect(ctx, x - 7, y + 18, 6, 1, '#b8b2a5'); rawRect(ctx, x - 7, y + 20, 6, 1, '#b8b2a5')
+        // the manuscript in the leading hand (row 22)
+        rawRect(ctx, x - 8, y + 17, 8, 10, '#fdfcf7'); rawRect(ctx, x - 7, y + 19, 6, 1, '#b8b2a5'); rawRect(ctx, x - 7, y + 21, 6, 1, '#b8b2a5')
         glyph(ctx, '!', x + 11, y - 8, '#e5484d')
       } else if (frame % 120 < 40) glyph(ctx, '?', x + 11, y - 8, '#2f5ecf')
       return

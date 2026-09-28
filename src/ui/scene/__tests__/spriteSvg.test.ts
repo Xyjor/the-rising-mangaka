@@ -15,7 +15,9 @@ describe('spriteRects', () => {
   })
   it('draws the anchor head inside 16x16', () => {
     const rects = spriteRects(MANGAKA_IDLE[0], ASSISTANT_PALS[0], { rows: [0, 15], cols: [4, 19] })
-    expect(rects.filter((q) => q.y === 0)).toEqual([r(4, 0, 8, 1, '#1c1a26')])
+    // the chibi anchor's row 0 crown is cols 6-15; the crop starts at col 4, so x 2, 10 wide (the crop itself moves
+    // to cols 2-19 in a later task)
+    expect(rects.filter((q) => q.y === 0)).toEqual([r(2, 0, 10, 1, '#1c1a26')])
     for (const q of rects) {
       expect(q.x).toBeGreaterThanOrEqual(0); expect(q.y).toBeGreaterThanOrEqual(0)
       expect(q.x + q.w).toBeLessThanOrEqual(16); expect(q.y + q.h).toBeLessThanOrEqual(16)

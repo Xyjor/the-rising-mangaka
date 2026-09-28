@@ -218,7 +218,7 @@ describe('contact shadows', () => {
 
   it('grounds the standing mangaka: a shadow under the feet, drawn before them', () => {
     const log = paint({ phase: 'ready' })
-    // the standing spot's sprite is at (170, 81): its left foot on row 31 (x 175-181, y 112)
+    // the standing spot's sprite is at (170, 81): its soles on row 31 (cols 6-16, x 176-186, y 112)
     const under = covers(log, SHADOW, 178, 112)
     expect(under).toBeGreaterThan(-1)
     expect(coversAny(log, 178, 112)).toBeGreaterThan(under)
