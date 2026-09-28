@@ -12,7 +12,7 @@ import type { SpriteMap } from './sprites'
 import { BREATHE_POSES, catFrame, idleFrame, moodOf } from './mood'
 import type { Mood, MoodInput } from './mood'
 import { BAR_X, paneRect, rawRect, rect, shadow } from './paint'
-import { drawSeasonNight, drawSeasonPane, drawSeasonSill } from './season'
+import { drawSeasonNight, drawSeasonPane, drawSeasonSill, drawSeasonWall } from './season'
 import type { Season } from './season'
 import {
   EQUIPMENT_ART, TIER_ART, drawAnimePoster, drawEntrance, drawKitchenette, drawStudioLights, drawTrophies, drawVolumes,
@@ -302,6 +302,7 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
   rect(ctx, BAR_X, 12, 2, 32, '#5a4634'); rect(ctx, 118, 27, 44, 2, '#5a4634')
   rect(ctx, 114, 45, 52, 3, '#4a3828')
   drawSeasonSill(ctx, s.season)
+  drawSeasonWall(ctx, s.season)
   if (s.owned.coffee) EQUIPMENT_ART.coffee(ctx, s, frame, night)
   drawTrophies(ctx, s.trophies)
 

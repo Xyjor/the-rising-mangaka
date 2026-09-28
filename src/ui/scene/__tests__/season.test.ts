@@ -43,6 +43,11 @@ function isSillSnow(c: FillCall): boolean {
   return SILL_SNOW.some((s) => s.style === c.style && s.x === c.x && s.y === c.y && s.w === c.w && s.h === c.h)
 }
 
+/** Spring's blossoms on the wall past the pane's top-left corner (canvas x 171-181, y 42-48), off the pane. */
+function isWallBlossom(c: FillCall): boolean {
+  return c.x >= 171 && c.x + c.w <= 182 && c.y >= 42 && c.y + c.h <= 49
+}
+
 /** The 1x1 (or, for leaves, 2x1) moving particles of one colour set; the static art uses wider rects. */
 function particles(log: FillCall[], colours: string[], w = 1): FillCall[] {
   return log.filter((c) => colours.includes(c.style) && c.w === w && c.h === 1 && inPane(c))
@@ -69,7 +74,7 @@ describe('the season layer', () => {
       for (const t of [0.3, 0.9]) {
         for (let frame = 0; frame <= 2000; frame += 13) {
           for (const c of paint(season, t, frame)) {
-            if (!PARTICLE_COLOURS.includes(c.style) || isSillSnow(c)) continue
+            if (!PARTICLE_COLOURS.includes(c.style) || isSillSnow(c) || isWallBlossom(c)) continue
             expect(inPane(c), `${season} t ${t} frame ${frame}: ${JSON.stringify(c)}`).toBe(true)
           }
         }
@@ -133,13 +138,29 @@ describe('the season layer', () => {
         expect(bar, season).toBeGreaterThan(sky)
         // the sun or moon and stars, the clouds and the season's art: everything between the sky and the bars
         for (const c of log.slice(sky + 1, bar)) expect(inPane(c), `${season} t ${t}: ${JSON.stringify(c)}`).toBe(true)
-        const marks = log.flatMap((c, i) => (SEASON_MARK[season].includes(c.style) && !isSillSnow(c) ? [i] : []))
+        const marks = log.flatMap((c, i) => (SEASON_MARK[season].includes(c.style) && !isSillSnow(c) && !isWallBlossom(c) ? [i] : []))
         expect(marks.length, season).toBeGreaterThan(0)
         for (const i of marks) {
           expect(i, season).toBeGreaterThan(sky)
           expect(i, season).toBeLessThan(bar)
         }
       }
+    }
+  })
+
+  it('spills the spring cherry past the pane onto the wall, after the bars, clear of the calendar and corkboard', () => {
+    const log = paint('spring', 0.3, 100)
+    const bar = log.findIndex((c) => c.x === 203 && c.y === 48 && c.w === 2 && c.h === 32)
+    const wall = log.flatMap((c, i) => (!inPane(c) && isWallBlossom(c) && ['#f7b6c8', '#f29bb4', '#5b3a2e'].includes(c.style) ? [i] : []))
+    expect(wall.length).toBe(6)
+    for (const i of wall) {
+      expect(i).toBeGreaterThan(bar)
+      const c = log[i]
+      // the calendar is x 164-177 from y 50, the corkboard x 140-154
+      expect(c.y + c.h <= 50 && c.x >= 155, JSON.stringify(c)).toBe(true)
+    }
+    for (const season of ['summer', 'autumn', 'winter'] as const) {
+      expect(paint(season, 0.3, 100).some((c) => isWallBlossom(c) && ['#f7b6c8', '#f29bb4'].includes(c.style)), season).toBe(false)
     }
   })
 
