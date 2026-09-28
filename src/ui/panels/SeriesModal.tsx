@@ -6,6 +6,7 @@ import {
 import type { Serial } from '../../sim'
 import { useStore } from '../../state/store'
 import { Icon } from '../Icon'
+import { MerchSection } from './MerchSection'
 import { Metric, Modal, RankChart, Reward, WarningPips } from '../components'
 import { bestRank, compact, money, plural } from '../format'
 import { GRACE_TEXT, animeStatusLine, inGrace, warningText } from '../labels'
@@ -87,6 +88,8 @@ function SeriesDetail({ ser }: { ser: Serial }) {
       </div>
 
       <AnimeLine ser={ser} />
+
+      <MerchSection ser={ser} />
 
       <div className="rewards" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))' }}>
         <Reward value={ser.chaptersSent} label="Chapters" />

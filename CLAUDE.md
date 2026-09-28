@@ -45,7 +45,8 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
     `events.ts` random events (the weekly roll on its own `eventSeed`, the answers). `studio.ts` studio tiers (desks,
     rent) and equipment (effects, buying, moving, `studioLook`). `anime.ts` anime adaptation offers and deals
     (`animeTick`, signing, `animeVolumeMult`). `rival.ts` the named rival (`makeRival`, `growRival`, the head to
-    head). `year.ts` the year end (`closeYear`: awards, prizes, the year review, the rival's growth). `badges.ts` the
+    head). `merch.ts` merchandise from year two (the licence, `orderMerch`/`merchRefusal`, `merchForecast`,
+    `merchTick`). `year.ts` the year end (`closeYear`: awards, prizes, the year review, the rival's growth). `badges.ts` the
     badge gallery's rules (`awardBadges(prev, s)`, the last step of `tick()`: no XP, no money, no RNG). Hook files never
     import engine.ts.
   - Add a unit test in `src/sim/__tests__/engine.test.ts` for every new rule.

@@ -414,3 +414,11 @@
 .slot-list .slot { display: flex; flex-direction: column; gap: 8px; padding: 12px; }
 .slot-list .slot-name { font-family: var(--font-display); font-size: 16px; overflow-wrap: anywhere; }
 .title-screen.has-hero .title-card { max-height: calc(100% - 16px); overflow-y: auto; }
+
+/* The Series panel's Goods section (MerchSection.tsx). */
+.merch .merch-list, .merch .merch-runs { list-style: none; padding-left: 0; display: flex; flex-direction: column; gap: 10px; margin: 8px 0; }
+.merch-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.merch-art { width: 32px; height: 32px; display: grid; place-items: center; flex: none; }
+.merch-net { color: var(--green-text); }
+.merch-net.neg { color: var(--accent-text); }
+.merch-run { display: flex; flex-direction: column; gap: 4px; }

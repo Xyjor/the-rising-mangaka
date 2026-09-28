@@ -587,6 +587,33 @@ to day 548 (24 payouts: +21,600 fans and +¥24,000). The sensible balance bot si
 Hoshi Animation while the serial has fewer than 12 results, Studio Kumo after that. The careless bot and the stress
 case let it lapse.
 
+### Merchandise
+
+A year-two money stream (`merch.ts`, no RNG, money only: never fans, popularity or copies).
+
+- **The licence.** On the first day with `day > 336` on which any serial (running or archived) has shipped a volume,
+  a goods maker's licence arrives: a toast ("A goods maker wants to license your series."), no pause, nothing to
+  answer. Year one never sees merch, so S1 and `EQUIPMENT_PRICE_SCALE` cannot move.
+- **Items** (`MERCH_ITEMS`, plain yen, not scaled by `EQUIPMENT_PRICE_SCALE`): keychains ¥6,300 for 4 weeks (share
+  0.02, ¥20 a unit), posters ¥14,000 for 6 (0.015, ¥40), plushies ¥25,000 for 8 (0.01, ¥80), the art book ¥24,000
+  for 6 (0.02, ¥50; needs 4 volumes on the serial), figures ¥64,000 for 8 (0.008, ¥250; needs a signed anime deal).
+- **Ordering** (`orderMerch`, from the Series panel's Goods section): the cost is paid at once (a money toast). Refused,
+  with the reason shown under the row (`merchRefusal`), without the licence, for a serial with no volume out, with an
+  item gate unmet, with the same item already selling for that serial, with 2 runs selling (`MERCH_MAX_RUNS`), or
+  without the money.
+- **Weekly pay** (`merchTick`, at the end of each week from the order day): round(average copies per volume x share x
+  demand / 100) units x margin x `animeVolumeMult`, where demand is the serial's popularity while it runs and half its
+  final popularity once it has ended. A daily-chatter log line each week; on the last week the run sells out with a
+  toast ("Keychains sold out: +¥8,560 over 4 weeks.") and stays in `merch.runs` as history; `merch.earned` is the
+  Career panel's "Goods sold" total.
+- **Forecast** (`merchForecast`): a week at today's demand times the run's weeks, and the net after the cost, shown
+  as "About ¥X back over N weeks if popularity holds (net +¥Y)". Tuned on a year-one-median serial (6,700 copies a
+  volume, the sensible bot's median over seeds 1-20): at popularity 80 every item returns 1.34x-1.38x its cost; at 50
+  every item is a net loss (`merch.test.ts` shows the table).
+- **Bots.** The sensible bot, once licensed, orders the cheapest item it may order for its running serial when the bank
+  holds its cost plus four weeks of costs (the shops path only, so S1's no-buying run is untouched). The careless bot
+  and the stress case never order.
+
 ### Year end and awards
 Every `DAYS_PER_YEAR` (336) days the year closes: `closeYear` (`src/sim/year.ts`) runs when `day % 336 === 0` and
 `day > 0`, after `checkDeadline` and before `animeTick`. No RNG.
@@ -758,7 +785,8 @@ running.
    prices scaled to what a career earns (see Studio and equipment); volume sales flatten with fans (the square-root
    curve, see Serialisation); the smaller HUD on phones shipped separately.
 1. Awards and success. Shipped: year-end awards with a year review (see Year end and awards), anime adaptation offers
-   (see Anime adaptations) and conventions (an event-only trip, see Random events). Merchandise is not built.
+   (see Anime adaptations), conventions (an event-only trip, see Random events) and merchandise from year two (see
+   Merchandise).
 2. Rival mangaka. Shipped: one named rival per world with a visible career (a magazine and series, craft growing at
    every year end) and head-to-head results in every poll they share (see Named rival).
 3. Random events with choices. Shipped: six events as desk cards (see Random events).
@@ -841,11 +869,12 @@ The final hook order inside `tick()`:
    baseline).
 9. `animeTick` (a waiting anime offer whose series stopped running is withdrawn, one past its last day lapses; each
    deal's premiere, weekly pay, finale and end of boost; a new offer to a running hit).
-10. `eventTick` (an unanswered event past its last day, or one whose subject is gone, lapses; the weekly random-event
+10. `merchTick` (the goods maker's licence; each run's weekly pay and its sell-out).
+11. `eventTick` (an unanswered event past its last day, or one whose subject is gone, lapses; the weekly random-event
     roll).
-11. `awardMilestones`.
-12. `awardBadges(prev, s)` (no XP, no money, no RNG).
-13. Return.
+12. `awardMilestones`.
+13. `awardBadges(prev, s)` (no XP, no money, no RNG).
+14. Return.
 
 `closeYear` runs before `animeTick`, `eventTick` and `awardMilestones`, so they see the prizes and the grown rival
 the same day; a milestone that lands on the closing day counts toward the new year.
@@ -864,7 +893,8 @@ export them.
   serial up at 16 results with popularity 50 or more. It answers a random event 'a' when that answer can be given and
   leaves two weeks of costs in the bank (costs after answering, so a raise counts the new salary), else 'b'; signs an
   anime offer the day it lands (Hoshi Animation under 12 results, else Studio Kumo); buys the cheapest equipment its
-  studio may have once the bank holds the price plus four weeks of costs, one piece a day; and reads the year review.
+  studio may have once the bank holds the price plus four weeks of costs, one piece a day; from year two orders the
+  cheapest goods run for its running serial on the same terms (see Merchandise); and reads the year review.
 - **Careless** ignores the Notebook, the odds and the stats screen: every choice is a hash of the world seed and the
   project id, the focus is balanced, and it never spends points. It answers every event 'b' (the answer that costs no
   money), lets anime offers lapse, never buys or moves, and reads the year review.

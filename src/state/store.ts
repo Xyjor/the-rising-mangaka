@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware'
 import type { PersistStorage, StorageValue } from 'zustand/middleware'
 import * as sim from '../sim'
 import type {
-  Activity, AnimeStudioId, EquipmentId, Focus, GameState, LogKind, MagazineId, PlaceId, ProjectDraft, StatId,
+  Activity, AnimeStudioId, EquipmentId, MerchItemId, Focus, GameState, LogKind, MagazineId, PlaceId, ProjectDraft, StatId,
   StudioTierId,
 } from '../sim'
 import { upgradeSave } from '../sim/migrate'
@@ -103,6 +103,8 @@ interface Store {
   buyEquipment: (id: EquipmentId) => void
   /** Sign the anime adaptation offer waiting on the desk with one studio. */
   signAnime: (studio: AnimeStudioId) => void
+  /** Order a run of goods for a serial, paying its cost (refused as `merchRefusal` says). */
+  orderMerch: (item: MerchItemId, serialId: number) => void
   /** Pass on the anime adaptation offer waiting on the desk. */
   declineAnime: () => void
   /** The year review was opened: its desk card goes. */
@@ -531,6 +533,7 @@ export const useStore = create<Store>()(
         moveStudio: (t) => apply((g) => sim.moveStudio(g, t)),
         buyEquipment: (id) => apply((g) => sim.buyEquipment(g, id)),
         signAnime: (st) => apply((g) => sim.signAnime(g, st)),
+        orderMerch: (item, id) => apply((g) => sim.orderMerch(g, item, id)),
         declineAnime: () => apply((g) => sim.declineAnime(g)),
         markReviewRead: () => apply((g) => sim.markReviewRead(g)),
         setActivity: (a) => apply((g) => sim.setActivity(g, a)),
