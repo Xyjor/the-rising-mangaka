@@ -45,12 +45,15 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
     `events.ts` random events (the weekly roll on its own `eventSeed`, the answers). `studio.ts` studio tiers (desks,
     rent) and equipment (effects, buying, moving, `studioLook`). `anime.ts` anime adaptation offers and deals
     (`animeTick`, signing, `animeVolumeMult`). `rival.ts` the named rival (`makeRival`, `growRival`, the head to
-    head). `year.ts` the year end (`closeYear`: awards, prizes, the year review, the rival's growth). Hook files never
+    head). `year.ts` the year end (`closeYear`: awards, prizes, the year review, the rival's growth). `badges.ts` the
+    badge gallery's rules (`awardBadges(prev, s)`, the last step of `tick()`: no XP, no money, no RNG). Hook files never
     import engine.ts.
   - Add a unit test in `src/sim/__tests__/engine.test.ts` for every new rule.
 - `src/state/store.ts` — Zustand store. Wraps the sim, owns the real-time clock speed, modal state, toasts,
   and persists `game` to localStorage (`persist` version = `SAVE_VERSION`; new `GameState` fields default through
   `src/sim/migrate.ts` `upgradeSave`; bump `SAVE_VERSION` only for shape changes that cannot be defaulted).
+  `profile.ts` is the cross-save badge profile (`rising-mangaka-profile`: the first time each badge was earned in any
+  career), written after a tick or command that grew `game.badges`, by the tab that owns the save only.
   `clock.ts` is a separate, never-persisted presentation-time store: `t` (the week-long light cycle position),
   `isNight`, and `logSeenId` (the studio log's read marker).
   `saveFile.ts` owns `SAVE_VERSION`, the saved log length and the save file (`serializeSave`; `parseSave`, strict,
@@ -82,7 +85,8 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   (Modal holds 60% for as long as it is open; the results reveal stacks its own 30% under that).
 - `src/ui/` — React 19 components. `App.tsx` (shell, clock, hotkeys), `hud/` (the corner overlays and rail:
   `TopLeft`, `TopRight`, `Rail`, `StatusCard`, `statusParts`, `DeskTray`), `hooks/` (`useClockLoop`, `useRolledNumber`,
-  `useArrival`, the editor's walk-in delay before a pending card mounts), `panels/*` (modals, including `LogModal`, the
+  `useArrival`, the editor's walk-in delay before a pending card mounts), `panels/*` (modals, including `LogModal`, `BadgesModal`
+  (the badge gallery, rail button Badges and G; tile art from `art/registry.ts` `BADGE_ART`, an icon until it lands), the
   desk panel), `scene/` (pixel-art canvas, 320×180: two coordinate spaces meet in `paint.ts` (room space, the old
   192×108 layout, offset by `OX 64, OY 36` into canvas space by `rect`; `rawRect` for the wall, floor, kitchenette,
   entrance and door, drawn straight in canvas space) and its `PANE_X/Y/W/H`/`BAR_X` and `paneRect` clipped to the
@@ -185,7 +189,7 @@ canvas space; `story.ts` `storyLook`, the story props' five snapshot inputs read
 - Display type is Silkscreen (`--font-display` titles, `--font-num` numbers) at 8/16/24/32 px; it draws every letter
   as a capital, so keep DOM text sentence case and never add `text-transform` or `letter-spacing`. Body copy and
   button labels stay Nunito 15 px. HUD badges are opaque (`--panel`).
-- `Modal` sizing: `wide` on Results and Series, `narrow` on Offer, Stats, Career, Year, Settings, Trips and the Log,
+- `Modal` sizing: `wide` on Results and Series, `narrow` on Offer, Stats, Career, Badges, Year, Settings, Trips and the Log,
   `tabs` on Notebook and Series (a title-bar tab strip), and `quiet` only on the Results modal, which skips the
   modal's own open/close cue and duck entirely since `ResultsModal` holds its own duck and plays its own beats.
 

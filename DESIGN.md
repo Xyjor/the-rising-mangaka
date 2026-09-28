@@ -794,6 +794,39 @@ awarded on the next tick, at most one day later.
 | graceful-exit | Graceful exit | 150 | an archived serial with status ended and popularity >= 50 |
 | fans-100k | A hundred thousand fans | 200 | fans >= 100,000 |
 
+### Badges
+A gallery of 15 fun, often hidden achievements beside the milestone ladder (`src/sim/badges.ts`). Badges grant no
+XP and no money, consume no RNG and change no rule, so balance cannot move. Each rule reads the state before the tick
+(`prev`) and after it (`s`); `awardBadges(prev, s)` is the last step of `tick()` and logs `Badge: <title>.` as a toast
+(the milestone cue plays). A badge earned through a command lands on the next tick. `upgradeSave` grants quietly (no
+log, no toast, the save's current day) every badge the loaded state already earns; the two one-day happenings
+(all-nighter, ramen-budget) cannot be seen after the fact and are only earned in play. Hidden badges show "???" and a
+category hint in the gallery until earned.
+
+| Id | Title | Hidden | Rule |
+|----|-------|--------|------|
+| all-nighter | Pull an all-nighter | yes | prev activity work, not recovering; now recovering (a collapse at the desk) |
+| cancelled | Cancelled | yes | a serial with status cancelled |
+| stop-presses | Stop the presses | yes | a serial with missedIssues > 0 |
+| ramen-budget | Ramen budget | yes | a new day that ends a week (day % 7 == 0) with money < 0 |
+| first-place | Top of the poll | no | any poll placement rank 1 |
+| golden-pen | The Golden Pen | no | the Golden Pen in `awards` |
+| grand-slam | Grand slam | yes | all four awards in `awards` |
+| rival-10 | Old rivals | no | `rivalRecord(s).wins >= 10` |
+| perfect-pair | Perfect pairing | no | a Notebook genre-theme rating of 4 |
+| anime-signed | On the screen | no | one anime deal |
+| anime-declined | Not for sale | yes | a series in `animeOfferedFor` with no deal and no offer waiting (declined, lapsed or withdrawn) |
+| the-loft | Moving up | no | studio tier loft |
+| fully-equipped | Fully equipped | no | every piece of equipment owned |
+| century | Century | no | chapters sent across all serials >= 100 |
+| millionaire | Millionaire | no | money >= 1,000,000 |
+
+The cross-save profile (`src/state/profile.ts`, localStorage `rising-mangaka-profile`,
+`{ badges: { id, day, slot, penName }[] }`) keeps the first time each badge was ever earned in any career on the
+device. The store merges it after a tick or command that grew `game.badges`, only in the tab that owns the save; a
+failure is swallowed, and an unreadable key reads as empty and is replaced. The Badges panel (rail button, G) shows
+this career's badges with their date, badges from an earlier career dimmed, and the rest.
+
 ## Tick order
 The final hook order inside `tick()`:
 
@@ -811,7 +844,8 @@ The final hook order inside `tick()`:
 10. `eventTick` (an unanswered event past its last day, or one whose subject is gone, lapses; the weekly random-event
     roll).
 11. `awardMilestones`.
-12. Return.
+12. `awardBadges(prev, s)` (no XP, no money, no RNG).
+13. Return.
 
 `closeYear` runs before `animeTick`, `eventTick` and `awardMilestones`, so they see the prizes and the grown rival
 the same day; a milestone that lands on the closing day counts toward the new year.
