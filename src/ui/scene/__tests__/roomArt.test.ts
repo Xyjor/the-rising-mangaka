@@ -54,15 +54,29 @@ const STANDING: Box = [170, 193, 81, 112]
 const EDITOR: Box = [198, 221, 85, 116]
 
 describe('each tier\'s room', () => {
-  it('covers the whole canvas, wall and floor, in at most 80 fills', () => {
+  it('covers the whole canvas, wall and floor, in at most 84 fills (the flat 83 since its wood-beam frame)', () => {
     for (const tier of TIERS) {
       for (const night of [false, true]) {
         const log = alone((ctx) => TIER_ROOM[tier](ctx, night))
-        expect(log.length, tier).toBeLessThanOrEqual(80)
+        expect(log.length, tier).toBeLessThanOrEqual(84)
         for (const [x, y] of [[0, 0], [319, 0], [0, 113], [319, 113], [0, 114], [319, 179], [160, 60]]) {
           expect(coversAny(log, x, y), `${tier} ${x},${y}`).toBeGreaterThan(-1)
         }
         for (const c of log) expect(c.x >= 0 && c.y >= 0 && c.x + c.w <= 320 && c.y + c.h <= 180, JSON.stringify(c)).toBe(true)
+      }
+    }
+  })
+
+  it('frames the flat and the loft with a dark-wood beam and two posts, clear of the door and the story props', () => {
+    for (const tier of ['flat', 'loft'] as const) {
+      const log = alone((ctx) => TIER_ROOM[tier](ctx, false))
+      const beam = log.find((c) => c.x === 0 && c.y === 3 && c.w === 320 && c.h === 2)
+      expect(beam, tier).toBeDefined()
+      const posts = log.filter((c) => c.style === beam!.style && c.w === 4 && c.h === 106)
+      expect(posts.map((c) => c.x), tier).toEqual([62, 252])
+      for (const c of posts) {
+        expect(c.x + c.w <= 258, tier).toBe(true)
+        expect(c.x + c.w <= 140 || c.x >= 178, tier).toBe(true)
       }
     }
   })

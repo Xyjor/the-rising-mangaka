@@ -93,6 +93,16 @@ function apartmentRoom(ctx: CanvasRenderingContext2D, night: boolean) {
   trim(ctx)
 }
 
+/**
+ * The flat's and the loft's wood-beam frame, like the apartment's pillars, so the room reads as a cosy box: a 2 px
+ * dark beam under the ceiling (y 3-4) and two posts (x 62-65 by the kitchenette, x 252-255 by the door, y 5-110),
+ * clear of the door (x 258-274), the window pane, the switch and outlet and every story prop. 3 fills.
+ */
+function frame(ctx: CanvasRenderingContext2D, wood: string) {
+  rawRect(ctx, 0, 3, 320, 2, wood)
+  rawRect(ctx, 62, 5, 4, 106, wood); rawRect(ctx, 252, 5, 4, 106, wood)
+}
+
 /** A rug on the floor in front of the desk (x 104-195, y 122-137): a field, a border and a fringe at each end. */
 function rug(ctx: CanvasRenderingContext2D, field: string, border: string) {
   rawRect(ctx, 106, 122, 88, 16, border)
@@ -102,7 +112,8 @@ function rug(ctx: CanvasRenderingContext2D, field: string, border: string) {
 
 /**
  * The flat: dusty teal wallpaper with pale stripes above a wood wainscot (rail at y 84, panel grooves every 32 px),
- * a baseboard, honey planks (rows every 8 px, seams every 80 px staggered row by row) and a red rug. 76 fills.
+ * the wood-beam frame, a baseboard, honey planks (rows every 8 px, seams every 80 px staggered row by row) and a red
+ * rug. 83 fills.
  */
 function flatRoom(ctx: CanvasRenderingContext2D, night: boolean) {
   rawRect(ctx, 0, 0, 320, 114, night ? '#56716c' : '#8fb5ac')
@@ -111,6 +122,7 @@ function flatRoom(ctx: CanvasRenderingContext2D, night: boolean) {
   rawRect(ctx, 0, 86, 320, 25, night ? '#735638' : '#b98a5c')
   rawRect(ctx, 0, 84, 320, 2, night ? '#5a4432' : '#8a5f3a')
   for (let x = 16; x < 320; x += 32) rawRect(ctx, x, 88, 1, 21, night ? '#634a31' : '#a0764c')
+  frame(ctx, night ? '#4a3626' : '#6e4a2c')
   rawRect(ctx, 0, 111, 320, 3, night ? '#4a3626' : '#6e4a2c')
   rawRect(ctx, 0, 114, 320, 66, night ? '#7d5634' : '#c8894e')
   const line = night ? '#654428' : '#a86d3a'
@@ -126,7 +138,7 @@ function flatRoom(ctx: CanvasRenderingContext2D, night: boolean) {
 /**
  * The loft: pale plaster with an exposed brick accent between the window and the door (x 230-253: mortar rows every
  * 5 px, the joints alternating), a steel baseboard, and polished concrete (a sheen band, expansion joints) under an
- * indigo rug. 64 fills.
+ * indigo rug, inside the wood-beam frame (its right post over the brick's last two columns). 70 fills.
  */
 function loftRoom(ctx: CanvasRenderingContext2D, night: boolean) {
   rawRect(ctx, 0, 0, 320, 114, night ? '#7e7b86' : '#dcd8cf')
@@ -137,6 +149,7 @@ function loftRoom(ctx: CanvasRenderingContext2D, night: boolean) {
     rawRect(ctx, 230, y, 24, 1, mortar)
     rawRect(ctx, row % 2 ? 246 : 238, y - 4, 1, 4, mortar)
   }
+  frame(ctx, night ? '#3f2e22' : '#6b4a32')
   rawRect(ctx, 0, 111, 320, 3, night ? '#34343c' : METAL_DARK)
   rawRect(ctx, 0, 114, 320, 66, night ? '#6c6a72' : '#bdb8ae')
   rawRect(ctx, 0, 150, 320, 3, night ? '#77757e' : '#cbc7bf')
