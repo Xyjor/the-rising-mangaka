@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { isDesktop } from '../platform/env'
 import { useStore } from '../state/store'
+import { TITLE_ART } from './art/registry'
 import { ReadOnlyHint, SaveFileNoticeLine } from './SaveFileSection'
 import { TabBanner } from './TabBanner'
 import { useSaveFile } from './useSaveFile'
@@ -16,6 +17,14 @@ export function TitleScreen() {
 
   return (
     <div className="title-screen">
+      <img
+        src={TITLE_ART.src}
+        alt="A mangaka's rooftop at golden hour"
+        loading="eager"
+        decoding="async"
+        draggable={false}
+        className="pixel-art title-hero"
+      />
       <div className="title-card card">
         {/* A read-only tab can take over from here too: the game shell, with its banner, is not open yet. */}
         <TabBanner />
