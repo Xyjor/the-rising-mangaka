@@ -140,7 +140,7 @@ describe('studio tiers', () => {
     const loft = moveStudio(withMoney(s, moveInCost('loft')), 'loft')
     expect(loft.studio.tier).toBe('loft')
     expect(loft.player.money).toBe(0)
-    // at today's price scale (11.25) the log reads "-¥168,800"
+    // at today's price scale (11) the log reads "-¥165,000"
     expect(loft.log.at(-1)!.text).toBe(`You moved into the studio loft: -${yen(moveInCost('loft'))}. Rent is ¥350 a week, and it has 3 desks for assistants.`)
   })
 
@@ -181,7 +181,7 @@ describe('equipment', () => {
   })
 
   it('refuses the pen tablet in the apartment, sells it from the flat on', () => {
-    // ¥200,000 covers the tablet's ¥135,000 at the price scale 11.25
+    // ¥200,000 covers the tablet's ¥132,000 at the price scale 11
     const rich = withMoney(createGame('Rin', 42), 200_000)
     expect(buyEquipment(rich, 'tablet')).toBe(rich)
     expect(buyEquipment(withStudio(rich, 'flat'), 'tablet').studio.owned).toEqual(['tablet'])

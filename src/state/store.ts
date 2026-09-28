@@ -582,6 +582,10 @@ export const useStore = create<Store>()(
           game: merged.game, theme: merged.theme, resumeSpeed: merged.resumeSpeed, tutorialStep: merged.tutorialStep,
           sound: merged.sound,
         }
+        // Badges the old save already had (including any upgradeSave just granted quietly) belong in the cross-save
+        // profile too, not only ones earned from here on: noteBadges only fires when the count grows during play.
+        // Only the tab that owns the save writes it (same check the initial slot migration above uses).
+        if (merged.game && slots.active !== null && (isDesktop() || isOwner())) recordProfile(local(), merged.game, slots.active)
         return merged
       },
       migrate: (persisted, version) => {

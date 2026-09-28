@@ -7,7 +7,7 @@ import {
   describeDate, dismissResult, endSerial, evaluateChapter, evaluateProject, fireAssistant, genreThemeRating, getPhase,
   hireAssistant, magazineById, previewCombo, previewSubmission, projectArtQuality, serialFatigue, setActivity,
   spendSkillPoint, stalenessCount, startProject, startTrip, submitProject, themeAudienceKey, tick, tickMany,
-  volumeCopies, PLACES, GENRES, THEMES, MAGAZINES, RETREAT_MAX_STAMINA_CAP, placeById, genreThemeKey, biggestLoss,
+  volumeCopies, PLACES, GENRES, THEMES, MAGAZINES, MAX_STAMINA_CAP, placeById, genreThemeKey, biggestLoss,
   pointsLost,
 } from '../index'
 import type {
@@ -934,9 +934,20 @@ describe('Task C places: the Manga Museum and the Mountain Retreat', () => {
     const back = tickMany(startTrip(tired, 'mountain-retreat'), 5)
     expect(back.player).toMatchObject({ maxStamina: 105, stamina: 105 })
     const near = { ...s, player: { ...s.player, maxStamina: 148, stamina: 10 } }
-    expect(tickMany(startTrip(near, 'mountain-retreat'), 5).player).toMatchObject({ maxStamina: RETREAT_MAX_STAMINA_CAP, stamina: 150 })
+    expect(tickMany(startTrip(near, 'mountain-retreat'), 5).player).toMatchObject({ maxStamina: MAX_STAMINA_CAP, stamina: 150 })
     const over = { ...s, player: { ...s.player, maxStamina: 160, stamina: 10 } }
     expect(tickMany(startTrip(over, 'mountain-retreat'), 5).player).toMatchObject({ maxStamina: 160, stamina: 160 })
+  })
+
+  it('the hot spring restores stamina and adds 3 max stamina, capped the same way as the retreat', () => {
+    const s = { ...createGame('Rin', 1), day: 10 }
+    const tired = { ...s, player: { ...s.player, stamina: 30 } }
+    const back = tickMany(startTrip(tired, 'hot-spring'), 3)
+    expect(back.player).toMatchObject({ maxStamina: 103, stamina: 103 })
+    const near = { ...s, player: { ...s.player, maxStamina: 149, stamina: 10 } }
+    expect(tickMany(startTrip(near, 'hot-spring'), 3).player).toMatchObject({ maxStamina: MAX_STAMINA_CAP, stamina: 150 })
+    const over = { ...s, player: { ...s.player, maxStamina: 160, stamina: 10 } }
+    expect(tickMany(startTrip(over, 'hot-spring'), 3).player).toMatchObject({ maxStamina: 160, stamina: 160 })
   })
 })
 

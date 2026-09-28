@@ -520,8 +520,10 @@ again under the reward tiles in Stats. `src/sim/studio.ts`; no RNG.
   serials and the desk's project), with no RNG: the first such genre in `GENRES` order that still has an unknown
   theme, with its first unknown theme in `THEMES` order; once every undrawn genre is known, the first unknown pairing
   of any genre (`revealUndrawnGenre` in `editors.ts`).
-- The Mountain Retreat (5 days, ¥1,500) restores stamina and adds 5 max stamina, never above 150
-  (`RETREAT_MAX_STAMINA_CAP`; the Trips panel says so). A max stamina already at or above 150 stays where it is.
+- Every trip's max-stamina gain is capped at 150 (`MAX_STAMINA_CAP`; the Trips panel says so for each trip that
+  raises it). The Hot Spring (3 days, ¥400) restores stamina and adds 3 max stamina, never above 150. The Mountain
+  Retreat (5 days, ¥1,500) restores stamina and adds 5 max stamina, never above 150. A max stamina already at or
+  above 150 stays where it is.
 - Three trips are reached only by answering a random event, and the Trips panel does not list them: the Comic
   Convention (2 days, ¥500, fans on return), the Manga Masterclass (3 days, ¥400, +3 to the lowest stat) and the
   Book Signing (1 day, free, + round(average copies a volume x 0.2) x ¥2 on return, for the serial a reprint would be

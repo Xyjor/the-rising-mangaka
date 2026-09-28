@@ -4,7 +4,7 @@ import {
   EVENT_FIRST_DAY,
   HIRE_RUNWAY_WEEKS, JOB_PAY_PER_DAY, JOB_STAMINA_COST, LOW_STAMINA_THRESHOLD, MAGAZINES, MIN_WORK_STAMINA_COST,
   ONE_SHOT_PAGES, OVERDRAFT_FEE_MIN, OVERDRAFT_FEE_RATE,
-  RESULTS_DELAY_DAYS, RETREAT_MAX_STAMINA_CAP, REST_STAMINA_GAIN, SERIAL_CLIMAX_MIN_POPULARITY, SERIAL_CLIMAX_VOLUME_MULT,
+  RESULTS_DELAY_DAYS, MAX_STAMINA_CAP, REST_STAMINA_GAIN, SERIAL_CLIMAX_MIN_POPULARITY, SERIAL_CLIMAX_VOLUME_MULT,
   SERIAL_GRACE_CHAPTERS, SERIAL_MISSED_ISSUE_POPULARITY, SERIAL_OFFER_MIN_RANK, SERIAL_OFFER_MIN_SCORE,
   SERIAL_WARNINGS_TO_CANCEL,
   VOLUME_EVERY_CHAPTERS,
@@ -518,14 +518,13 @@ function finishTrip(state: GameState): GameState {
       s = { ...s, player: { ...s.player, stats: { ...s.player.stats, pacing: Math.min(100, s.player.stats.pacing + 2) } } }
       text = 'Pacing +2.'
       break
-    case 'hot-spring':
-      s = {
-        ...s,
-        player: { ...s.player, maxStamina: s.player.maxStamina + 3, stamina: s.player.maxStamina + 3 },
-        lowStaminaWarned: false,
-      }
-      text = 'Fully rested. Max stamina +3.'
+    case 'hot-spring': {
+      const maxStamina = Math.max(s.player.maxStamina, Math.min(MAX_STAMINA_CAP, s.player.maxStamina + 3))
+      const gain = maxStamina - s.player.maxStamina
+      s = { ...s, player: { ...s.player, maxStamina, stamina: maxStamina }, lowStaminaWarned: false }
+      text = gain ? `Fully rested. Max stamina +${gain}.` : `Fully rested. Max stamina is already at the cap of ${MAX_STAMINA_CAP}.`
       break
+    }
     case 'convention': {
       const gain = conventionFans(s.player.fans)
       s = { ...s, player: { ...s.player, fans: s.player.fans + gain } }
@@ -538,10 +537,10 @@ function finishTrip(state: GameState): GameState {
       break
     }
     case 'mountain-retreat': {
-      const maxStamina = Math.max(s.player.maxStamina, Math.min(RETREAT_MAX_STAMINA_CAP, s.player.maxStamina + 5))
+      const maxStamina = Math.max(s.player.maxStamina, Math.min(MAX_STAMINA_CAP, s.player.maxStamina + 5))
       const gain = maxStamina - s.player.maxStamina
       s = { ...s, player: { ...s.player, maxStamina, stamina: maxStamina }, lowStaminaWarned: false }
-      text = gain ? `Fully rested. Max stamina +${gain}.` : `Fully rested. Max stamina is already at the retreat's cap of ${RETREAT_MAX_STAMINA_CAP}.`
+      text = gain ? `Fully rested. Max stamina +${gain}.` : `Fully rested. Max stamina is already at the retreat's cap of ${MAX_STAMINA_CAP}.`
       break
     }
     case 'signing': {

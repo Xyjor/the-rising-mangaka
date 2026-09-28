@@ -84,7 +84,7 @@ export const PLACES: Place[] = [
   { id: 'art-class', name: 'Life Drawing Class', days: 4, cost: 600, blurb: 'Anatomy, perspective, inking.', effect: 'Art +2' },
   { id: 'writing-workshop', name: 'Writing Workshop', days: 4, cost: 600, blurb: 'Structure, dialogue, endings.', effect: 'Story +2' },
   { id: 'editing-seminar', name: 'Editing Seminar', days: 4, cost: 600, blurb: 'Panel flow and page turns.', effect: 'Pacing +2' },
-  { id: 'hot-spring', name: 'Hot Spring', days: 3, cost: 400, blurb: 'Steam, silence, and no deadlines.', effect: 'Full stamina, max stamina +3' },
+  { id: 'hot-spring', name: 'Hot Spring', days: 3, cost: 400, blurb: 'Steam, silence, and no deadlines.', effect: 'Full stamina, max stamina +3 (never above 150)' },
   {
     id: 'manga-museum', name: 'Manga Museum', days: 3, cost: 700, blurb: 'Original pages from every genre under glass.',
     effect: 'Reveals one genre × theme pairing for a genre you have never drawn',
@@ -247,8 +247,8 @@ export const SERIAL_OFFER_MIN_RANK = 3
 export const SERIAL_OFFER_MIN_SCORE = 65
 /** The default tip cadence; each magazine's `tipEvery` is the one in play (Sato 2, Kuroda 4, the others 3). */
 export const EDITOR_TIP_EVERY = 3
-/** The Mountain Retreat raises max stamina by 5, never above this. */
-export const RETREAT_MAX_STAMINA_CAP = 150
+/** The cap every trip's max-stamina gain respects (the Hot Spring +3, the Mountain Retreat +5). */
+export const MAX_STAMINA_CAP = 150
 /** Spread of rival poll scores around a magazine's rivalMean. */
 export const RIVAL_SCORE_SD = 8
 /** Spread of the pacing component's random noise around the player's pacing stat. */
