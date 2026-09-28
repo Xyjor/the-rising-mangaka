@@ -42,7 +42,8 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   - `compat.ts` hidden compatibility ratings. `scoring.ts` poll scoring. `engine.ts` commands + `tick()`.
   - `core.ts` state helpers shared by the engine and its tick hooks (`addLog`, `grantXp`, `xpToNext`, `startTrip`,
     and `num`/`yen`, locale-free thousands commas for log lines).
-    `events.ts` random events (the weekly roll on its own `eventSeed`, the answers). `studio.ts` studio tiers (desks,
+    `events.ts` random events (the weekly roll on its own `eventSeed`, the answers). `editors.ts` the editor
+    relationship and tips (`bumpEditor`, each magazine's `tipEvery`) and the Notebook reveals trips share. `studio.ts` studio tiers (desks,
     rent) and equipment (effects, buying, moving, `studioLook`). `anime.ts` anime adaptation offers and deals
     (`animeTick`, signing, `animeVolumeMult`). `rival.ts` the named rival (`makeRival`, `growRival`, the head to
     head). `merch.ts` merchandise from year two (the licence, `orderMerch`/`merchRefusal`, `merchForecast`,

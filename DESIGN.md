@@ -112,6 +112,10 @@ from before the rival get the one their world would have by the save's day (`upg
 whole years played).
 The editor writes a one-line comment on the component that cost the most points at that magazine
 (`biggestLoss`: the largest weight × (100 − component), ties in the order art, story, pacing, fit, freshness).
+The rival has a temper (`temper`: gracious, cocky or stoic), from `hashString('temper:' + worldSeed) % 3`, so it
+consumes no RNG; `makeRival` stores it and `upgradeSave` gives an older save's rival its world's temper. It is text
+only: the results rival line ends with the rival's quote for ahead, behind or tied, and the year review's rival line
+with a quote for a year led, trailed or even (`RIVAL_RESULT_QUOTES`, `RIVAL_YEAR_QUOTES` in `ui/labels.ts`).
 
 ### Pay
 Every poll, one-shot or chapter, pays `round(pageRate × pages × score × tier% / (PAY_FULL_RATE_SCORE × 100))`
@@ -512,12 +516,31 @@ again under the reward tiles in Stats. `src/sim/studio.ts`; no RNG.
 ### Trips and training
 - Library / Reader survey reveal Notebook cells. Classes add +2 to a stat. Hot spring restores and raises max stamina.
 - The player is away for the trip's length; nothing is drawn.
-- Two trips are reached only by answering a random event, and the Trips panel does not list them: the Comic
-  Convention (2 days, ¥500, fans on return) and the Manga Masterclass (3 days, ¥400, +3 to the lowest stat).
+- The Manga Museum (3 days, ¥700) reveals one genre x theme pairing for a genre you have never drawn (one-shots,
+  serials and the desk's project), with no RNG: the first such genre in `GENRES` order that still has an unknown
+  theme, with its first unknown theme in `THEMES` order; once every undrawn genre is known, the first unknown pairing
+  of any genre (`revealUndrawnGenre` in `editors.ts`).
+- The Mountain Retreat (5 days, ¥1,500) restores stamina and adds 5 max stamina, never above 150
+  (`RETREAT_MAX_STAMINA_CAP`; the Trips panel says so). A max stamina already at or above 150 stays where it is.
+- Three trips are reached only by answering a random event, and the Trips panel does not list them: the Comic
+  Convention (2 days, ¥500, fans on return), the Manga Masterclass (3 days, ¥400, +3 to the lowest stat) and the
+  Book Signing (1 day, free, + round(average copies a volume x 0.3) x ¥2 on return, for the serial a reprint would be
+  for).
+- The balance bots never take a listed trip; they go on event trips only by answering an event 'a'.
 
 ### Editors
-- Each magazine has an editor. Every result raises the relationship; every 3 points the editor shares a tip that
-  reveals a theme x audience pairing for that magazine's readers.
+- Each magazine has an editor. Every result raises the relationship; every `tipEvery` points the editor shares a tip
+  that reveals a theme x audience pairing for that magazine's readers (`bumpEditor` in `editors.ts`; a random pick,
+  one draw from the main seed; a tip earned by answering a random event takes the first unknown pairing instead and
+  draws nothing, so events never move the main seed).
+- Each editor has a visible persona (`persona`, `personaLine` in `MAGAZINES`), printed on the Submit and Offer
+  magazine cards and under the Results editor comment:
+  - Mori (Kids Comic Go!), cheerleader: no mechanical change, a tip every 3 points.
+  - Tanaka (Weekly Bolt), deadline hawk: a tip every 3 points, and a log line (no toast) on the day a Weekly Bolt
+    chapter's deadline turns from on track to tight or late for the same chapter (`deadlineHawk` in `tick()`).
+  - Sato (Monthly Petal), mentor: a tip every 2 points.
+  - Kuroda (Ultra Seinen), critic: a tip every 4 points, and his one-shot results comment ends "That cost you N
+    points.", N = round(weight x (100 - component) / 100) for the component that cost the most (`pointsLost`).
 
 ### Random events
 One decision at a time, shown as a card on the desk and never as a popup (pillar 3). The card names both answers with
@@ -542,9 +565,19 @@ every effect they have, and says how many days are left to answer. `src/sim/even
 | Raise | the first assistant who has not asked yet | Give the raise: salary becomes round(salary × 1.2 / 10) × 10, their art and story +3 | Not this year: their max stamina −10 |
 | Reprint | a serial, running or archived, with a volume | Approve: + round(average copies a volume × 0.25) × VOLUME_PRICE | Colour page: stamina −12, + round(average copies a volume × 0.4) × VOLUME_PRICE |
 | Workshop | level ≥ 3, money ≥ ¥400 | Attend: 3-day trip, ¥400; on return +3 to the lowest stat (ties: art, story, pacing) | Decline |
+| Interview | fans ≥ 2,000 and a magazine (the running serial's, else the latest one-shot's) | On camera: stamina −6, fans + clamp(round(fans × 0.01), 30, 800) | Written reply: that magazine's editor relationship +1 |
+| Signing | a serial, running or archived, with a volume | Sign: 1-day trip, free; on return + round(average copies a volume × 0.3) × VOLUME_PRICE | Skip it |
+| Editor dinner | an editor at relationship ≥ 3 (the highest; ties in magazine order) | Go: −¥300, that editor +1 | Decline |
+| Cover | the running serial has ≥ 4 results | Draw the cover: stamina −15, popularity +3 (at most 100) | Decline |
+| Assistant sick | an assistant (the first on the payroll) | Paid rest: − round(salary / 2), their stamina full | Keep them working: their max stamina −5 |
+| Rival challenge | the running serial is in the rival's magazine, no challenge on | Accept: the next chapter result settles it (`settleChallenge`): above the rival, fans + min(1,500, round(fans × 0.03)); below, popularity −3; a tie or a poll without the rival, nothing | Decline |
 
 Stamina changes clamp to 0..max stamina. Each assistant asks for a raise once, whatever the answer. A reprint is for
-the running serial when it has shipped a volume, else the latest archived one that has.
+the running serial when it has shipped a volume, else the latest archived one that has. No event changes story, art or
+pacing. The six events from Interview down were appended to `EVENT_IDS` (0.7.0), so the first six keep their pool
+order. `GameState.rivalChallenge` (`{ serialId, fromResult }` or null) holds an accepted challenge; a series that ends
+before its next result calls it off. Each card states its numbers before the choice; `EVENT_ART` (a Partial record)
+holds card art once generated, and the card falls back to its icon.
 
 ### Anime adaptations
 A hit serial is offered one adaptation, shown as a card on the desk and never as a popup (pillar 3). The card lists
@@ -611,7 +644,8 @@ A year-two money stream (`merch.ts`, no RNG, money only: never fans, popularity 
   volume, the sensible bot's median over seeds 1-20): at popularity 80 every item returns 1.34x-1.38x its cost; at 50
   every item is a net loss (`merch.test.ts` shows the table).
 - **Bots.** The sensible bot, once licensed, orders the cheapest item it may order for its running serial when the bank
-  holds its cost plus four weeks of costs (the shops path only, so S1's no-buying run is untouched). The careless bot
+  holds its cost plus four weeks of costs, and skips it when `merchForecast(...).net` is zero or less (the shops path
+  only, so S1's no-buying run is untouched). The careless bot
   and the stress case never order.
 
 ### Year end and awards
@@ -865,6 +899,8 @@ The final hook order inside `tick()`:
 5. One-shot poll result and serialisation offer.
 6. `resolveChapters` (chapter polls, volumes, warnings, cancellation, archiving).
 7. `checkDeadline` (a serial chapter not in by its due day misses the issue; warnings and cancellation).
+7a. `settleChallenge` (an accepted rival challenge settles on its serial's next result, or is called off).
+7b. `deadlineHawk` (Tanaka's log line the day a Weekly Bolt deadline turns tight).
 8. `closeYear` (on day % 336 == 0, day > 0: awards and prizes, the year review, the rival's growth, the new year's
    baseline).
 9. `animeTick` (a waiting anime offer whose series stopped running is withdrawn, one past its last day lapses; each
@@ -1002,3 +1038,12 @@ alongside the untouched code-drawn scene and sprites) and a handful of visual po
 - The scene redraw (Task 6) moved the fillRect baselines from 659/1065 to 673/1079 (`render.test.ts`,
   `studioArt.test.ts`; see "The studio in the scene" above for the item-by-item accounting), and `roomArt.test.ts`
   caps every tier's room-and-front-row fill count at 84.
+- Task C content pass (0.7.0): six events appended to the pool, the Manga Museum, the Mountain Retreat and the
+  event-only Book Signing, editor personas and the rival temper. Editor relationships already existed, so the
+  interview's written reply and the dinner raise the real relationship (no stand-in stat). A tip earned from an event
+  reveals the first unknown pairing and draws no RNG, keeping events off the main seed. No max-stamina cap existed, so
+  the retreat introduces its own (150), shown on the Trips panel; the hot spring stays uncapped. The signing's pay was
+  tuned from 0.1 to 0.3 of the average copies a volume: at 0.1 the grown event pool reshuffled the sensible bot's
+  year-one events enough to drop S1 from ¥101,816.5 to ¥99,549.5 (scale 11.0, failing balance.test); at 0.3 S1 is
+  ¥100,573 and the scale stays 11.25. Every band row passes; none of the thresholds changed.
+- The sensible bot skips a goods run whose `merchForecast` net is zero or less (carried from Task M).
