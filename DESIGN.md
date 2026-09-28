@@ -720,7 +720,13 @@ the key it was queued for, so it lands in its own slot even when the player swit
 reads it back and compares byte for byte, copies the old theme and sound to the prefs key if that key is absent, and
 only then sets `active: 1`. Any failed write or check puts every key back as it was and this run reads (and saves to)
 the old key exactly as 0.5.0 did, slot 1 standing for it; the copy is tried again at the next start. A filled slot 1
-is never overwritten, and nothing ever deletes the old key. In the desktop
+is never overwritten, and nothing ever deletes the old key. Only the tab that owns the save (or the desktop app)
+migrates; another tab only looks. The index records the copy's fingerprint (`migratedFrom`): if a fallback run kept
+playing the old key after another start copied it, and slot 1 is still exactly that copy, the next start refreshes slot
+1 from the old key (verified). With no index, a filled slot 1 is an unverified copy and is not trusted: the old key is
+read. If a fallback run's crash screen starts over, it writes `{ active: null }`, which also stops the old save being
+copied at later starts (the old key stays on disk). A new game with all three slots full is refused with a toast, and a
+save that cannot be written toasts too. In the desktop
 app that same storage lives inside the app's own WebView2 profile, under the identifier
 `com.xyjor.risingmangaka` in `%LOCALAPPDATA%`; the remembered window state is a small file under the same
 identifier in `%APPDATA%`. Only one tab or window plays at a time: a tab lock (`tabLock.ts`, browser only — the

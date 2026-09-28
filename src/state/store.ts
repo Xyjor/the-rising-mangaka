@@ -13,7 +13,7 @@ import type { SoundPrefs } from '../audio/types'
 import { isDesktop } from '../platform/env'
 import { SAVE_VERSION, trimLog } from './saveFile'
 import type { SaveFile } from './saveFile'
-import { LEGACY_SAVE_KEY, PREFS_KEY, SLOT_IDS, SLOT_INDEX_KEY, migrateLegacy, readIndex, slotKey, writeIndex } from './slots'
+import { LEGACY_SAVE_KEY, PREFS_KEY, SLOT_IDS, SLOT_INDEX_KEY, migrateLegacy, slotKey, viewSlots, writeIndex } from './slots'
 import type { SlotId, SlotStart } from './slots'
 import { claim, disableTabLock, isOwner, startTabLock } from './tabLock'
 
@@ -160,8 +160,9 @@ function local(): Storage | null {
  */
 let slots: SlotStart = { active: null, legacy: false }
 {
+  // Only the tab that owns the save (or the desktop app, the one window) migrates; another tab only looks.
   const ls = local()
-  if (ls) slots = migrateLegacy(ls)
+  if (ls) slots = isDesktop() || isOwner() ? migrateLegacy(ls) : viewSlots(ls)
 }
 
 /** The key slot `n`'s career is kept under. */
@@ -234,8 +235,20 @@ export function flushSave() {
       localStorage.setItem(key, JSON.stringify({ version: value.version, state }))
     }
   } catch {
-    /* quota or privacy mode: the game keeps running unsaved */
+    // Quota or privacy mode: the game keeps running, and the player is told it is not being saved.
+    warnUnsaved(SAVE_FAILED)
   }
+}
+
+export const NO_FREE_SLOT = 'All three slots hold a career. Delete one on the title screen to start another.'
+export const SAVE_FAILED = 'The game could not be saved. Free some browser storage, then export your save file.'
+
+/** Toasts a save that could not happen, after the current update (the store may be mid-set). */
+function warnUnsaved(text: string) {
+  queueMicrotask(() => {
+    const { toasts } = useStore.getState()
+    useStore.setState({ toasts: mergeToasts(toasts, [{ id: toastSeq++, kind: 'warn', text }]) })
+  })
 }
 
 function parse(raw: string | null | undefined): Record<string, unknown> | null {
@@ -293,7 +306,7 @@ const saveStorage: PersistStorage<Persisted> = {
         const ls = local()
         if (ls) writeIndex(ls, free)
         queueMicrotask(() => useStore.setState({ activeSlot: free }))
-      }
+      } else warnUnsaved(NO_FREE_SLOT)
     }
     pending = { key: activeSaveKey(), value }
     if (gameReplaced) {
@@ -323,9 +336,10 @@ function switchTo(n: SlotId) {
  * Re-reads the index (another tab may have opened another slot) and loads that slot, or the title screen when none is
  * open. Used by a read-only tab mirroring the owner and by a take-over.
  */
-function followIndex() {
+function followIndex(owner = false) {
   const ls = local()
-  if (ls && !slots.legacy) slots = { ...slots, active: readIndex(ls) }
+  // A take-over makes this tab the owner: it runs the migration a read-only tab skipped at its start.
+  if (ls) slots = owner ? migrateLegacy(ls) : viewSlots(ls)
   // Load first: the merge makes what loaded the save's baseline, so the update below cannot write this tab's stale game
   // over the owner's slot. With no slot open, the rehydrate finds no career and the game goes (the title screen).
   void useStore.persist.rehydrate()
@@ -369,7 +383,7 @@ export const useStore = create<Store>()(
           // Drop any write the read-only tab queued from local-only changes, then load the owner's save (in the slot
           // the owner had open) before flipping the flag so nothing stale can overwrite it.
           dropPending()
-          followIndex()
+          followIndex(true)
           set({ readOnly: false })
         },
 
@@ -429,6 +443,15 @@ export const useStore = create<Store>()(
         },
 
         newGame: (name) => {
+          if (slots.active === null) {
+            const free = firstFreeSlot()
+            if (free === null) {
+              set({ toasts: mergeToasts(get().toasts, [{ id: toastSeq++, kind: 'warn', text: NO_FREE_SLOT }]) })
+              return
+            }
+            switchTo(free)
+            set({ activeSlot: free })
+          }
           const seed = (Date.now() ^ (Math.random() * 0xffffffff)) | 0
           set({ game: sim.createGame(name, seed), speed: 0, modal: 'none', toasts: [], tutorialStep: 0 })
         },

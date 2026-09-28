@@ -37,7 +37,7 @@ describe('store slots', () => {
     expect(st().startInSlot(2, 'Aoi')).toBe(true)
     expect(st().activeSlot).toBe(2)
     expect(saved(2).player.name).toBe('Aoi')
-    expect(JSON.parse(storage.getItem(SLOT_INDEX_KEY)!)).toEqual({ active: 2 })
+    expect(JSON.parse(storage.getItem(SLOT_INDEX_KEY)!).active).toBe(2)
     expect(storage.getItem(slotKey(1))).toBe(LEGACY)
   })
 
@@ -67,7 +67,7 @@ describe('store slots', () => {
     expect(st().game).toBeNull()
     expect(st().activeSlot).toBeNull()
     expect(saved(1).day).toBe(day)
-    expect(JSON.parse(storage.getItem(SLOT_INDEX_KEY)!)).toEqual({ active: null })
+    expect(JSON.parse(storage.getItem(SLOT_INDEX_KEY)!).active).toBe(null)
   })
 
   it('loadSaveIntoSlot writes another slot without opening it', () => {
@@ -96,5 +96,21 @@ describe('store slots', () => {
     expect(st().loadSaveIntoSlot(3, { game: createGame('Y', 1), tutorialStep: 0, resumeSpeed: 1 })).toBe(false)
     expect(st().activeSlot).toBe(2)
     expect(saved(3).player.name).toBe('File')
+  })
+
+  it('refuses a new game when every slot is full, and says so', async () => {
+    useStore.setState({ readOnly: false })
+    storage.removeItem(OWNER_KEY)
+    st().backToTitle()
+    for (const n of [1, 2, 3] as const) {
+      if (slotRaw(n)) continue
+      st().startInSlot(n, `P${n}`)
+      st().backToTitle()
+    }
+    st().newGame('Nobody')
+    expect(st().game).toBeNull()
+    expect(st().toasts.map((t) => t.text)).toContain(
+      'All three slots hold a career. Delete one on the title screen to start another.',
+    )
   })
 })
