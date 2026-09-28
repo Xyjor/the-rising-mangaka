@@ -4,7 +4,7 @@ export type IconName =
   | 'pen' | 'moon' | 'briefcase' | 'notebook' | 'chart' | 'trophy' | 'gear' | 'people' | 'map' | 'book'
   | 'close' | 'dice' | 'check' | 'alert' | 'star' | 'yen' | 'sparkle' | 'info' | 'play' | 'pause' | 'fast' | 'faster'
   | 'plus' | 'bolt' | 'heart' | 'home' | 'tv' | 'sound' | 'mute'
-  | 'sun' | 'log' | 'history' | 'series'
+  | 'sun' | 'log' | 'history' | 'series' | 'eye'
 
 const PATHS: Record<IconName, string> = {
   pen: 'M4 20l4-1 11-11-3-3L5 16l-1 4zM14 6l3 3',
@@ -40,6 +40,7 @@ const PATHS: Record<IconName, string> = {
   log: 'M5 4h14v16H5zM8 8h8M8 12h8M8 16h5',
   history: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 2',
   series: 'M7 3h10v14H7zM5 7v14h10M10 7h4M10 11h4',
+  eye: 'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z',
 }
 
 export function Icon({ name, size = 18, ...rest }: { name: IconName; size?: number } & SVGProps<SVGSVGElement>) {

@@ -122,7 +122,7 @@ p { margin: 0; }
   .toast button { min-width: 44px; margin: -13px -12px -13px 0; }
   .btn.icon { width: 44px; height: 44px; }
   .badge-hud.as-button { min-height: 44px; }
-  .rail .btn, .rail-log, .rail-settings { min-height: 44px; min-width: 44px; }
+  .rail .btn, .rail-log, .rail-settings, .rail-desk { min-height: 44px; min-width: 44px; }
 }
 
 /* ---------- pixel-frame kit ---------- */

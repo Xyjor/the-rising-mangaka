@@ -63,6 +63,18 @@ export function LogButton() {
   )
 }
 
+/** Tucks the desk (the status card and the desk tray) away to look at the studio, and brings it back (D). */
+export function DeskButton() {
+  const hidden = useStore((s) => s.deskHidden)
+  const toggleDesk = useStore((s) => s.toggleDesk)
+  const label = hidden ? 'Show the desk' : 'Hide the desk'
+  return (
+    <button className="btn ghost icon rail-desk" onClick={toggleDesk} aria-label={label} aria-pressed={hidden} title={`${label} (D)`}>
+      <Icon name="eye" />
+    </button>
+  )
+}
+
 export function SettingsButton() {
   const openModal = useStore((s) => s.openModal)
   return (

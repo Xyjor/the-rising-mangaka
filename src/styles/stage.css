@@ -26,6 +26,8 @@
 /* The dock: the status card bottom centre, the desk tray beside it when the row fits (about 1090 px), above it otherwise. */
 .dock { position: absolute; left: 80px; right: 80px; bottom: 16px; display: flex; flex-wrap: wrap-reverse; align-items: flex-end; justify-content: center; gap: 12px; pointer-events: none; }
 .dock > * { pointer-events: auto; }
+/* tucked away (the Hide the desk button) to look at the studio; the cards stay mounted */
+.dock[hidden] { display: none; }
 .status-stack { width: min(640px, 100%); display: flex; flex-direction: column; gap: 8px; }
 .desk-tray { width: 280px; max-height: 60vh; overflow: auto; display: flex; flex-direction: column; gap: 8px; }
 .desk-tray:empty { display: none; }
@@ -39,6 +41,7 @@
     padding: 8px 12px 0; gap: 8px; pointer-events: auto;
   }
   .status-stack, .desk-tray { width: 100%; max-height: none; overflow: visible; }
+  .dock[hidden] { display: flex; }
   /* .rail's phone override lives in hud.css, which loads after this file (see main.tsx) — a copy here
      would lose the cascade to hud.css's desktop .rail rule at the same specificity. */
 }

@@ -10,6 +10,7 @@ import { anyWalking, newActorTable, planActors, settleActors, stepActors } from 
 import { H, W, render } from './render'
 import type { Snapshot } from './render'
 import { seasonOf } from './season'
+import { NO_STORY, storyLook } from './story'
 import { GREETING, PROP_FOR, visitorReasonOf } from './visitor'
 import { BUBBLE_MS, Bubble } from './Bubble'
 import { sceneToCss, useSceneRect } from './sceneAnchor'
@@ -97,11 +98,14 @@ export function StudioScene({ running }: { running: boolean }) {
   // studioLook builds a new object every call; useShallow hands back the previous one while every field is the same
   // (primitives, and the owned and awards lists by reference), so the snapshot is rebuilt only when the studio changes.
   const look = useStore(useShallow((s) => (s.game ? studioLook(s.game) : NO_LOOK)))
+  // the story props' inputs (the deadline, the serial's cover, the last poll, the fans): primitives, so useShallow keeps
+  // the previous object until one of them changes
+  const story = useStore(useShallow((s) => storyLook(s.game)))
   // a placeholder until the effect below fills it in, which it does before the loop's first frame
   const snap = useRef<Snapshot>({
     phase, activity, progress, stamina, running, away: !!trip, assistants: [], season,
     tier: 'apartment', owned: NO_EQUIPMENT, volumes: 0, animePoster: false, trophies: 0,
-    visitor: 'none', visitorProp: 'none', late, actors: actors,
+    visitor: 'none', visitorProp: 'none', late, ...NO_STORY, actors: actors,
   })
   useEffect(() => {
     snap.current = {
@@ -111,7 +115,7 @@ export function StudioScene({ running }: { running: boolean }) {
       // the studio as flags and counts, so render never walks a list per frame
       tier: look.tier, owned: ownedFlags(look.equipment), volumes: look.volumes, animePoster: look.animePoster,
       trophies: Math.min(SHOWN_TROPHIES, look.trophies.length),
-      visitor: reason === 'none' ? 'none' : 'editor', visitorProp: PROP_FOR[reason], late, actors: actors,
+      visitor: reason === 'none' ? 'none' : 'editor', visitorProp: PROP_FOR[reason], late, ...story, actors: actors,
     }
     planActors(actors, snap.current)
     // Under reduced motion the loop only repaints once a second, so state changes repaint at once.
@@ -125,7 +129,7 @@ export function StudioScene({ running }: { running: boolean }) {
       lastFrame.current = 0
       lastSnap.current = snap.current
     }
-  }, [actors, advance, placeBubbles, phase, activity, progress, stamina, running, trip, assistants, season, look, reason, late])
+  }, [actors, advance, placeBubbles, phase, activity, progress, stamina, running, trip, assistants, season, look, reason, late, story])
 
   // A new daily line (info, not a toast, today, not from a loaded save) is said by the mangaka, when they are home.
   useEffect(() => {
