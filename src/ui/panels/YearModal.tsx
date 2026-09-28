@@ -13,6 +13,7 @@ import '../../styles/career.css'
  */
 export function YearModal() {
   const r = useStore((s) => s.game?.yearReviews.at(-1) ?? null)
+  const temper = useStore((s) => s.game?.rival.temper)
   const closeModal = useStore((s) => s.closeModal)
   const markReviewRead = useStore((s) => s.markReviewRead)
   useEffect(() => { markReviewRead() }, [markReviewRead])
@@ -76,7 +77,7 @@ export function YearModal() {
 
       <section className="year-section" aria-labelledby="year-rival">
         <div className="lbl" id="year-rival">Rival</div>
-        <p className="small">{rivalYearLine(r)}</p>
+        <p className="small">{rivalYearLine(r, temper)}</p>
       </section>
     </Modal>
   )

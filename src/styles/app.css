@@ -309,6 +309,15 @@
 .postcard[data-place='hot-spring'] { background-image: linear-gradient(180deg, var(--blue-soft) 0 50%, var(--blue) 50% 100%); }
 .postcard[data-place='convention'] { background-image: linear-gradient(180deg, var(--accent-soft) 0 40%, var(--accent) 40% 100%); }
 .postcard[data-place='masterclass'] { background-image: linear-gradient(180deg, var(--green-soft) 0 60%, var(--green) 60% 100%); }
+.postcard[data-place='manga-museum'] {
+  background-image: repeating-linear-gradient(90deg, var(--panel) 0 6px, var(--line-strong) 6px 8px);
+  background-color: var(--gold-soft);
+}
+.postcard[data-place='mountain-retreat'] {
+  background-image: linear-gradient(135deg, transparent 0 50%, var(--green) 50% 100%), linear-gradient(225deg, transparent 0 50%, var(--green) 50% 100%);
+  background-color: var(--blue-soft);
+}
+.postcard[data-place='signing'] { background-image: linear-gradient(180deg, var(--purple-soft) 0 50%, var(--purple) 50% 100%); }
 /* An armed ConfirmRow (moving studio) takes the button's cell. */
 .place > .row { grid-column: 2; grid-row: 1 / span 3; }
 @media (max-width: 640px), (min-width: 900px) {

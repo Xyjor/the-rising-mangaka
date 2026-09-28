@@ -88,6 +88,7 @@ export function SubmitModal() {
                   <span>{m.tasteLine}</span> <b>Art {m.taste.art}%, story {m.taste.story}%</b>
                 </span>
                 <span className="tiny faint">{m.blurb}</span>
+                <span className="tiny">Editor: {m.editor}, {m.persona}. {m.personaLine}</span>
                 {mismatch
                   ? <span className="warn row"><Icon name="alert" size={14} /> Readers are {audienceById(m.audience).name}, your manga is for {audienceById(p.audience).name}: −{MAGAZINE_MISMATCH_PENALTY} audience fit</span>
                   : <span className="ok row"><Icon name="check" size={14} /> Readers match</span>}

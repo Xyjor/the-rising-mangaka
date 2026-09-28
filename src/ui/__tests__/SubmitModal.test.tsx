@@ -118,4 +118,12 @@ describe('SubmitModal magazine covers', () => {
       }
     })
   })
+
+  it("prints each editor's persona and what it does on the magazine card", () => {
+    render(<SubmitModal />)
+    for (const m of MAGAZINES) {
+      const b = screen.getByRole('button', { name: new RegExp(m.name.replace(/[!?]/g, '.')) })
+      expect(b.textContent).toContain(`Editor: ${m.editor}, ${m.persona}. ${m.personaLine}`)
+    }
+  })
 })

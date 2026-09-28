@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import type { PollResult, Rival } from '../../sim'
+import type { PollResult, Rival, YearReview } from '../../sim'
 import {
   GRACE_TEXT, animeStatusLine, beatLabel, firstName, inGrace, likelyLine, offerLabel, payWhy, rivalCareerLine, rivalLine,
+  rivalYearLine,
   warningText,
 } from '../labels'
 
@@ -114,6 +115,23 @@ describe('likelyLine', () => {
   })
 })
 
+describe('rival year quote', () => {
+  const review = (wins: number, losses: number) => ({
+    rivalAward: null,
+    rival: {
+      name: 'Iori Hayama', wins, losses, fromMagazine: 'kids-comic', toMagazine: 'monthly-petal',
+      craftBefore: 57, craftAfter: 61, series: 'Glasshouse Summer',
+    },
+  }) as unknown as YearReview
+
+  it('closes the rival line with a quote by temper and by who led the head to head', () => {
+    expect(rivalYearLine(review(5, 2), 'gracious').endsWith('Iori says: "You pushed me all year. Thank you for that."')).toBe(true)
+    expect(rivalYearLine(review(1, 4), 'cocky').endsWith('Iori says: "Same time next year? Bring more."')).toBe(true)
+    expect(rivalYearLine(review(0, 0), 'stoic').endsWith('Iori says: "Even. Fine."')).toBe(true)
+    expect(rivalYearLine(review(5, 2))).not.toContain('says')
+  })
+})
+
 describe('rival copy', () => {
   const rival = { name: 'Iori Hayama', score: 51, rank: 4 }
 
@@ -134,6 +152,12 @@ describe('rival copy', () => {
 
   it('has nothing to say about a poll without the rival', () => {
     expect(rivalLine({ score: 51, rank: 4 })).toBeNull()
+    // a temper adds the rival's quote, text only
+    expect(rivalLine({ score: 55, rank: 2, rival }, 'cocky')).toBe(
+      'Iori Hayama placed #4 with 51. You finished ahead. Iori: "Enjoy it. It will not happen twice."')
+    expect(rivalLine({ score: 47, rank: 6, rival }, 'gracious')).toBe(
+      'Iori Hayama placed #4 with 51. You finished behind. Iori: "Good try. Next issue is yours to take."')
+    expect(rivalLine({ score: 51, rank: 4, rival }, 'stoic')).toBe('Iori Hayama placed #4 with 51. You tied. Iori: "Even. Back to work."')
   })
 
   it('names the rival by first name and quotes the chance to beat them as a whole percent', () => {
