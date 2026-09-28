@@ -22,6 +22,12 @@
   --gold-text: #7a5a00;
   --stage-bg: #1a1c25;
 
+  /* A darker pixel-panel used for the status card: reads as a shaded window even against the
+     light theme's paper panel. --hud-dark-muted keeps 4.5:1 against --hud-dark. */
+  --hud-dark: #22232b;
+  --hud-dark-ink: #f5f3ec;
+  --hud-dark-muted: #a5a2ac;
+
   --accent: #cc383d;
   --accent-ink: #ffffff;
   --accent-soft: #fde4e5;
@@ -98,6 +104,9 @@
     --bevel-dark: #0c0d11;
     --gold-text: #f5b700;
     --stage-bg: #0f1016;
+    --hud-dark: #101019;
+    --hud-dark-ink: #f5f3ec;
+    --hud-dark-muted: #a5a2ac;
     --accent-soft: #3a1f22;
     --blue-soft: #1e2740;
     --gold-soft: #3a2f10;
@@ -138,6 +147,9 @@
   --bevel-dark: #0c0d11;
   --gold-text: #f5b700;
   --stage-bg: #0f1016;
+  --hud-dark: #101019;
+  --hud-dark-ink: #f5f3ec;
+  --hud-dark-muted: #a5a2ac;
   --accent-soft: #3a1f22;
   --blue-soft: #1e2740;
   --gold-soft: #3a2f10;

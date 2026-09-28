@@ -48,12 +48,33 @@ p { margin: 0; }
   overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
 }
 
+/* ---------- stepped pixel corners ----------
+   A pixel-art window corner: a 3px step (--step) cut from each corner via clip-path, in place
+   of border-radius. clip-path also clips a box's own outward hard box-shadow (the shadow sits
+   entirely outside the 0-100% box), so the polygon is extended past the box on the bottom and
+   right edges by --pf-x/--pf-y (the shadow's own offset) to keep a matching stepped silhouette
+   instead of losing the shadow outright. Boxes with no outward shadow leave --pf-x/--pf-y at 0. */
+.badge-hud, .card, .modal, .btn:not(.ghost):not(.link), .choice {
+  --step: 3px;
+  --pf-x: 0px;
+  --pf-y: 0px;
+  border-radius: 0;
+  clip-path: polygon(
+    0 var(--step), var(--step) var(--step), var(--step) 0,
+    calc(100% - var(--step)) 0, calc(100% - var(--step)) var(--step), calc(100% + var(--pf-x)) var(--step),
+    calc(100% + var(--pf-x)) calc(100% - var(--step) + var(--pf-y)),
+    calc(100% - var(--step) + var(--pf-x)) calc(100% - var(--step) + var(--pf-y)),
+    calc(100% - var(--step) + var(--pf-x)) calc(100% + var(--pf-y)),
+    var(--step) calc(100% + var(--pf-y)), var(--step) calc(100% - var(--step) + var(--pf-y)),
+    0 calc(100% - var(--step) + var(--pf-y))
+  );
+}
+
 /* ---------- buttons ---------- */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   min-height: 40px;
   padding: 8px 16px;
-  border-radius: var(--radius-s);
   border: 3px solid var(--line-strong);
   background: var(--paper);
   color: var(--ink);
@@ -63,15 +84,19 @@ p { margin: 0; }
   user-select: none;
   white-space: nowrap;
 }
+.btn:not(.ghost):not(.link) { --pf-x: 3px; --pf-y: 3px; }
 .btn:hover:not(:disabled) {
   transform: translate(-1px, -1px);
   box-shadow: inset 2px 2px 0 var(--bevel-light), inset -2px -2px 0 var(--bevel-dark), 4px 4px 0 var(--line-strong);
 }
+.btn:not(.ghost):not(.link):hover:not(:disabled) { --pf-x: 4px; --pf-y: 4px; }
 .btn:active:not(:disabled) {
   transform: translate(2px, 2px);
   box-shadow: inset 2px 2px 0 var(--bevel-light), inset -2px -2px 0 var(--bevel-dark), 1px 1px 0 var(--line-strong);
 }
+.btn:not(.ghost):not(.link):active:not(:disabled) { --pf-x: 1px; --pf-y: 1px; }
 .btn:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+.btn:not(.ghost):not(.link):focus-visible { outline-offset: -5px; }
 .btn.primary {
   background: var(--accent); color: var(--accent-ink);
   box-shadow: inset 2px 2px 0 rgba(255,255,255,0.35), inset -2px -2px 0 rgba(0,0,0,0.25), 3px 3px 0 var(--line-strong);
@@ -93,9 +118,10 @@ p { margin: 0; }
 .btn.ghost { border-color: transparent; box-shadow: none; background: transparent; }
 .btn.ghost:hover:not(:disabled) { background: var(--paper-2); transform: none; box-shadow: none; }
 .btn.sm {
-  min-height: 32px; padding: 4px 10px; font-size: 13px; border: 2px solid var(--line-strong); border-radius: var(--radius-s);
+  min-height: 32px; padding: 4px 10px; font-size: 13px; border: 2px solid var(--line-strong);
   box-shadow: inset 1px 1px 0 var(--bevel-light), inset -1px -1px 0 var(--bevel-dark), 2px 2px 0 var(--line-strong);
 }
+.btn.sm:not(.ghost):not(.link) { --step: 2px; --pf-x: 2px; --pf-y: 2px; }
 .btn.lg { min-height: 50px; padding: 12px 24px; font-size: 17px; }
 .btn.block { width: 100%; }
 .btn.icon { padding: 8px; width: 40px; height: 40px; }
@@ -132,26 +158,27 @@ p { margin: 0; }
   box-shadow: inset 2px 2px 0 var(--bevel-light), inset -2px -2px 0 var(--bevel-dark), var(--shadow-ink);
 }
 .badge-hud {
+  --pf-x: 3px; --pf-y: 3px;
   display: inline-flex; flex-direction: column; gap: 2px; padding: 6px 10px;
   background: var(--panel); color: var(--ink);
-  border: 3px solid var(--line-strong); border-radius: var(--radius-s);
+  border: 3px solid var(--line-strong);
   box-shadow: inset 2px 2px 0 var(--bevel-light), inset -2px -2px 0 var(--bevel-dark), 3px 3px 0 var(--line-strong);
   font-size: 12px; font-weight: 700; line-height: 1.15;
 }
 .badge-hud .num { font-family: var(--font-num); font-weight: 400; font-size: 16px; line-height: 1; }
 .badge-hud.as-button { cursor: pointer; text-align: left; font: inherit; }
-.badge-hud.as-button:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
+.badge-hud.as-button:focus-visible { outline: 3px solid var(--blue); outline-offset: -5px; }
 
 /* ---------- surfaces ---------- */
 .card {
+  --pf-x: 4px; --pf-y: 4px;
   background: var(--paper);
   border: 3px solid var(--line-strong);
-  border-radius: var(--radius-s);
   box-shadow: inset 2px 2px 0 var(--bevel-light), inset -2px -2px 0 var(--bevel-dark), var(--shadow-ink);
   padding: var(--space-4);
 }
-.card.flat { box-shadow: none; border-color: var(--line); border-width: 2px; }
-.card.soft { border-color: var(--line); box-shadow: var(--shadow-1); }
+.card.flat { box-shadow: none; border-color: var(--line); border-width: 2px; --step: 2px; --pf-x: 0px; --pf-y: 0px; }
+.card.soft { border-color: var(--line); box-shadow: var(--shadow-1); --pf-x: 0px; --pf-y: 0px; }
 .panel-title {
   display: flex; align-items: baseline; gap: 10px;
   font-family: var(--font-display); font-size: 16px; letter-spacing: 0;
@@ -206,6 +233,7 @@ p { margin: 0; }
 /* A native <dialog> opened with showModal(): the browser owns focus containment, Escape and the
    inert background. `display: flex` lives under [open] only, or closed dialogs would render. */
 .modal {
+  --pf-x: 8px; --pf-y: 8px;
   margin: auto;
   padding: 0;
   width: min(880px, calc(100% - 32px));
@@ -213,9 +241,7 @@ p { margin: 0; }
   background: var(--paper);
   color: var(--ink);
   border: 3px solid var(--line-strong);
-  border-radius: var(--radius-s);
   box-shadow: inset 2px 2px 0 var(--bevel-light), inset -2px -2px 0 var(--bevel-dark), 8px 8px 0 var(--line-strong), var(--shadow-2);
-  overflow: hidden;
 }
 .modal[open] { display: flex; flex-direction: column; transform-origin: 50% 50%; animation: modal-unfold 120ms steps(3) both; }
 .modal.narrow { width: min(560px, calc(100% - 32px)); }
@@ -266,14 +292,15 @@ p { margin: 0; }
 /* ---------- choice grid ---------- */
 .choice-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
 .choice {
-  text-align: left; padding: 12px; border-radius: var(--radius-s);
+  --pf-x: 3px; --pf-y: 3px;
+  text-align: left; padding: 12px;
   border: 3px solid var(--line-strong); background: var(--panel); box-shadow: 3px 3px 0 var(--line-strong);
   transition: transform 120ms var(--ease-out), border-color 120ms, box-shadow 120ms;
   display: flex; flex-direction: column; gap: 4px;
 }
-.choice:hover { transform: translateY(-2px); box-shadow: 3px 5px 0 var(--line-strong); }
+.choice:hover { transform: translateY(-2px); box-shadow: 3px 5px 0 var(--line-strong); --pf-y: 5px; }
 .choice[aria-pressed='true'] { border-color: var(--accent); background: var(--accent-soft); box-shadow: 3px 3px 0 var(--accent); }
-.choice:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+.choice:focus-visible { outline: 3px solid var(--blue); outline-offset: -5px; }
 .choice .name { font-weight: 800; }
 .choice .blurb { font-size: 12px; color: var(--ink-2); }
 .choice .hint { margin-top: 4px; font-size: 12px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
