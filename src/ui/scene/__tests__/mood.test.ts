@@ -5,7 +5,7 @@ import { CHEER_MS, catFrame, cheersFor, idleFrame, moodOf } from '../mood'
 import { FACES, PAL } from '../sprites'
 
 describe('moodOf', () => {
-  const base = { home: true, editorHere: false, cheer: false, stamina: 80, resting: false, night: false }
+  const base = { home: true, editorHere: false, cheer: false, stamina: 80, lateNight: false }
 
   it('is neutral by default', () => {
     expect(moodOf(base)).toBe('neutral')
@@ -24,9 +24,11 @@ describe('moodOf', () => {
     expect(moodOf({ ...base, stamina: LOW_STAMINA_THRESHOLD })).toBe('neutral')
   })
 
-  it('is sleepy only resting at night', () => {
-    expect(moodOf({ ...base, resting: true, night: true })).toBe('sleepy')
-    expect(moodOf({ ...base, resting: true, night: false })).toBe('neutral')
+  it('is sleepy working late at night, but tired still wins below the low-stamina threshold, and happy over both', () => {
+    expect(moodOf({ ...base, lateNight: true })).toBe('sleepy')
+    expect(moodOf({ ...base, lateNight: false })).toBe('neutral')
+    expect(moodOf({ ...base, lateNight: true, stamina: LOW_STAMINA_THRESHOLD - 1 })).toBe('tired')
+    expect(moodOf({ ...base, lateNight: true, cheer: true })).toBe('happy')
   })
 
   it('is never surprised when the mangaka is not home', () => {
@@ -63,6 +65,11 @@ describe('idleFrame', () => {
     expect(idleFrame(315)).toEqual({ set: 'sip', index: 1 })
     expect(idleFrame(360)).toEqual({ set: 'breathe', index: 0 })
   })
+
+  it('returns the same object for the same pose (nothing allocated per call)', () => {
+    expect(idleFrame(0)).toBe(idleFrame(32))
+    expect(idleFrame(240)).toBe(idleFrame(240))
+  })
 })
 
 describe('catFrame', () => {
@@ -72,6 +79,11 @@ describe('catFrame', () => {
     expect(catFrame(375)).toEqual({ set: 'groom', index: 1 })
     expect(catFrame(420)).toEqual({ set: 'stretch', index: 0 })
     expect(catFrame(480)).toEqual({ set: 'sit', index: 0 })
+  })
+
+  it('returns the same object for the same pose (nothing allocated per call)', () => {
+    expect(catFrame(0)).toBe(catFrame(480))
+    expect(catFrame(360)).toBe(catFrame(360))
   })
 })
 

@@ -114,8 +114,12 @@ export const MANGAKA_IDLE: readonly [SpriteMap, SpriteMap] = [
   ],
 ] as const
 
-/** How far each head-steady pose moves the head (the FACES overlay goes at rows 9-12 + headDy). */
-export const HEAD_DY = { idle: [0, 1], sit: [0, 0] } as const satisfies { idle: readonly [0, 1]; sit: readonly [0, 0] }
+/** How far each head-steady pose moves the head (the FACES overlay goes at rows 9-12 + headDy). stretch[1] is a row
+ * lower than stretch[0] (MANGAKA_STRETCH[1] leads with a blank row, like MANGAKA_IDLE); sip's two frames share the
+ * same row 0, so sip has no offset. */
+export const HEAD_DY = { idle: [0, 1], sit: [0, 0], stretch: [0, 1], sip: [0, 0] } as const satisfies {
+  idle: readonly [0, 1]; sit: readonly [0, 0]; stretch: readonly [0, 1]; sip: readonly [0, 0]
+}
 
 /**
  * The idle cycle's stretch (Decision 6): the anchor with the arms flung out and up beside the head, eyes closed.

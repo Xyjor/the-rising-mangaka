@@ -9,8 +9,8 @@ import {
   PROP_CONTRACT, PROP_ENVELOPE, PROP_LETTER, PROP_PAL, PROP_TROPHY, drawSprite, outfitOf,
 } from './sprites'
 import type { SpriteMap } from './sprites'
-import { catFrame, idleFrame, moodOf } from './mood'
-import type { Mood } from './mood'
+import { BREATHE_POSES, catFrame, idleFrame, moodOf } from './mood'
+import type { Mood, MoodInput } from './mood'
 import { BAR_X, paneRect, rawRect, rect, shadow } from './paint'
 import { drawSeasonNight, drawSeasonPane, drawSeasonSill } from './season'
 import type { Season } from './season'
@@ -82,12 +82,25 @@ function glyph(ctx: CanvasRenderingContext2D, ch: string, x: number, y: number, 
  * head-steady (the idle cycle's stretch and sip, Decision 6): the mark may still show, but the pose's own baked-in
  * expression (closed eyes, a mug at the mouth) is left alone.
  */
-function drawMood(
-  ctx: CanvasRenderingContext2D, mood: Mood, x: number, y: number, headDy: number, flip: boolean, mark = true, face = true,
-) {
+function drawMood(ctx: CanvasRenderingContext2D, mood: Mood, x: number, y: number, headDy: number, mark = true, face = true) {
   if (mood === 'neutral') return
-  if (face) drawSprite(ctx, FACES[mood], flip ? x + 6 : x + 4, y + 9 + headDy, 4, PAL, flip)
+  if (face) drawSprite(ctx, FACES[mood], x + 4, y + 9 + headDy, 4, PAL)
   if (mark) drawSprite(ctx, MARKS[mood], x + 11, y - 8, 5, MARK_PAL)
+}
+
+/**
+ * One scratch object moodOf reads from, mutated field by field before each call so render allocates nothing per
+ * frame; `home` is true at every call site (the mangaka or an assistant, always in the studio when this runs).
+ */
+const moodScratch: MoodInput = { home: true, editorHere: false, cheer: false, stamina: 0, lateNight: false }
+
+/** moodOf via the shared scratch object: no per-frame `{...}` literal. */
+function moodFor(editorHere: boolean, cheer: boolean, stamina: number, lateNight: boolean): Mood {
+  moodScratch.editorHere = editorHere
+  moodScratch.cheer = cheer
+  moodScratch.stamina = stamina
+  moodScratch.lateNight = lateNight
+  return moodOf(moodScratch)
 }
 
 // ---------- the characters (canvas space, from the actor table) ----------
@@ -113,7 +126,9 @@ function drawVisitorProp(ctx: CanvasRenderingContext2D, prop: Snapshot['visitorP
  * when y < 75: seated at 67, behind the desk top) and after it (only when y >= 75: standing, walking, at the door or in
  * bed, in front of it).
  */
-function drawMangaka(ctx: CanvasRenderingContext2D, s: Snapshot, a: Actor, frame: number, working: boolean, front: boolean) {
+function drawMangaka(
+  ctx: CanvasRenderingContext2D, s: Snapshot, a: Actor, frame: number, working: boolean, front: boolean, night: boolean,
+) {
   if ((a.y >= 75) !== front) return
   const x = a.x
   const y = a.y
@@ -126,11 +141,8 @@ function drawMangaka(ctx: CanvasRenderingContext2D, s: Snapshot, a: Actor, frame
       const map = panicking ? MANGAKA_PANIC[idx] : MANGAKA_SIT[idx]
       drawSprite(ctx, map, x, y, undefined, outfit)
       if (!panicking) {
-        const mood = moodOf({
-          home: true, editorHere: s.actors.editor.state === 'standing', cheer: s.cheer, stamina: s.stamina,
-          resting: false, night: false,
-        })
-        drawMood(ctx, mood, x, y, HEAD_DY.sit[idx], false)
+        const mood = moodFor(s.actors.editor.state === 'standing', s.cheer, s.stamina, night && working)
+        drawMood(ctx, mood, x, y, HEAD_DY.sit[idx])
       }
       return
     }
@@ -138,22 +150,19 @@ function drawMangaka(ctx: CanvasRenderingContext2D, s: Snapshot, a: Actor, frame
       shadow(ctx, x + 4, y + 30, 16)
       const ready = s.phase === 'ready'
       // the manuscript is in hand while ready, so the idle cycle (Decision 6) applies only otherwise
-      const pose = ready ? { set: 'breathe' as const, index: (Math.floor(frame / 16) % 2) as 0 | 1 } : idleFrame(frame)
+      const pose = ready ? BREATHE_POSES[Math.floor(frame / 16) % 2] : idleFrame(frame)
       let map: SpriteMap
       let headDy: number
       // only the breathing pose is head-steady: the stretch and sip bake their own expression into the frame
       let faceSteady: boolean
-      if (pose.set === 'stretch') { map = MANGAKA_STRETCH[pose.index]; headDy = pose.index; faceSteady = false }
-      else if (pose.set === 'sip') { map = MANGAKA_SIP[pose.index]; headDy = 0; faceSteady = false }
+      if (pose.set === 'stretch') { map = MANGAKA_STRETCH[pose.index]; headDy = HEAD_DY.stretch[pose.index]; faceSteady = false }
+      else if (pose.set === 'sip') { map = MANGAKA_SIP[pose.index]; headDy = HEAD_DY.sip[pose.index]; faceSteady = false }
       else { map = MANGAKA_IDLE[pose.index]; headDy = HEAD_DY.idle[pose.index]; faceSteady = true }
       drawSprite(ctx, map, x, y, undefined, outfit)
-      const mood = moodOf({
-        home: true, editorHere: s.actors.editor.state === 'standing', cheer: s.cheer, stamina: s.stamina,
-        resting: false, night: false,
-      })
+      const mood = moodFor(s.actors.editor.state === 'standing', s.cheer, s.stamina, false)
       // only one mark above the head at a time: the ready manuscript's '!' beats the mood mark, which beats the
       // idle '?' (fix round 1); the face overlay only ever shows on the head-steady breathing pose
-      drawMood(ctx, mood, x, y, headDy, false, !ready, faceSteady)
+      drawMood(ctx, mood, x, y, headDy, !ready, faceSteady)
       if (ready) {
         // the manuscript in the leading hand (row 22)
         rawRect(ctx, x - 8, y + 17, 8, 10, '#fdfcf7'); rawRect(ctx, x - 7, y + 19, 6, 1, '#b8b2a5'); rawRect(ctx, x - 7, y + 21, 6, 1, '#b8b2a5')
@@ -345,12 +354,10 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
       } else {
         const idx = working ? Math.floor((frame + i * 3) / 8) % 2 : 0
         drawSprite(ctx, MANGAKA_SIT[idx], actor.x, actor.y, 32, pal)
-        // assistants only ever go tired or happy (Decision 5): editorHere and resting stay false so surprised and
+        // assistants only ever go tired or happy (Decision 5): editorHere and lateNight stay false so surprised and
         // sleepy never fire here
-        const mood = moodOf({
-          home: true, editorHere: false, cheer: s.cheer, stamina: s.assistants[i].stamina, resting: false, night: false,
-        })
-        drawMood(ctx, mood, actor.x, actor.y, HEAD_DY.sit[idx], false)
+        const mood = moodFor(false, s.cheer, s.assistants[i].stamina, false)
+        drawMood(ctx, mood, actor.x, actor.y, HEAD_DY.sit[idx])
       }
     }
     const dw = 8 + 20 * shown
@@ -371,7 +378,7 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
   else { rect(ctx, 72, 42, 16, 12, '#4a4a55'); rect(ctx, 70, 54, 20, 4, '#4a4a55'); rect(ctx, 71, 58, 2, 14, '#4a4a55'); rect(ctx, 87, 58, 2, 14, '#4a4a55') }
 
   // the mangaka seated at the desk (behind its top)
-  drawMangaka(ctx, s, s.actors.mangaka, frame, working, false)
+  drawMangaka(ctx, s, s.actors.mangaka, frame, working, false, night)
 
   // desk (or the drafting table in its place) and the lamp
   if (s.owned['drafting-table']) EQUIPMENT_ART['drafting-table'](ctx, s, frame, night)
@@ -394,7 +401,7 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
   if (absent) { rect(ctx, 96, 58, 8, 5, '#fff7c2'); rect(ctx, 97, 59, 6, 1, '#b8b2a5'); rect(ctx, 97, 61, 4, 1, '#b8b2a5') }
 
   // the mangaka in front of the desk (standing, walking or in bed), then the editor on a visit
-  drawMangaka(ctx, s, s.actors.mangaka, frame, working, true)
+  drawMangaka(ctx, s, s.actors.mangaka, frame, working, true, night)
   if (!absent && s.phase === 'submitted') {
     const d = Math.floor((s.running ? frame : 0) / 12) % 4
     for (let i = 0; i < d; i++) glyph(ctx, '.', 214 + i * 3, 92, '#16161a')

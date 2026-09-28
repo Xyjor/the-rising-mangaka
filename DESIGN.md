@@ -278,17 +278,17 @@ deviation from the plan text (the ledger's ruling): its hands sit beside the hea
 2-3, because the literal spec's placement read as ears.
 
 - **Expressions** are an overlay, not baked into most frames: `FACES[mood]` (14 wide x 4 tall, `mood.ts`'s `Mood`,
-  excluding `neutral`) is drawn at `(x+4, y+9+headDy)` (`x+6` and itself flipped when the sprite faces right), only on
-  head-steady poses (the standing mangaka's breathing idle, the seated mangaka outside panic, the seated assistants).
-  Walking, panic, bed and doze keep their own baked-in expression. `neutral` draws no overlay at all (the anchor's own
-  face shows).
+  excluding `neutral`) is drawn at `(x+4, y+9+headDy)`, only on head-steady poses (the standing mangaka's breathing
+  idle, the seated mangaka outside panic, the seated assistants). Walking, panic, bed and doze keep their own
+  baked-in expression. `neutral` draws no overlay at all (the anchor's own face shows).
 - **Moods and marks** (`mood.ts` `moodOf`, priority order): `surprised` (the editor is standing in the studio and the
   mangaka is home) beats `happy` (`cheer`, set for `CHEER_MS` 2400 ms by `cheersFor` after a fans pop or a level-up
-  pop, never a plain xp gain) beats `tired` (stamina below `LOW_STAMINA_THRESHOLD`) beats `sleepy` (resting, at night)
-  beats `neutral`. Panic (the seated mangaka late on a chapter) is not a mood; it beats every one of them and stays
-  the existing `MANGAKA_PANIC` frames. Each mood also has a mark above the head at `(x+11, y-8)` in `MARK_PAL`: a
-  sweat drop (tired), a sparkle (happy), `!` (surprised), `z` (sleepy). Only one mark ever occupies that slot: the
-  standing mangaka's ready-manuscript `!` beats the mood mark, which beats the idle `?`.
+  pop, never a plain xp gain) beats `tired` (stamina below `LOW_STAMINA_THRESHOLD`) beats `sleepy` (working late at
+  night: the seated mangaka is drawing, the clock is running, and it is night) beats `neutral`. Panic (the seated
+  mangaka late on a chapter) is not a mood; it beats every one of them and stays the existing `MANGAKA_PANIC` frames.
+  Each mood also has a mark above the head at `(x+11, y-8)` in `MARK_PAL`: a sweat drop (tired), a sparkle (happy),
+  `!` (surprised), `z` (sleepy). Only one mark ever occupies that slot: the standing mangaka's ready-manuscript `!`
+  beats the mood mark, which beats the idle `?`.
 - **Idle cycles** are pure functions of the frame counter in `mood.ts`. The standing mangaka's 360-frame cycle
   (`idleFrame`) is 0-239 breathing (today's `frame/16 % 2`), 240-299 a stretch (`MANGAKA_STRETCH`, 2 frames,
   `frame/15 % 2`), 300-359 a sip from a mug (`MANGAKA_SIP`, 2 frames); it applies only outside the `ready` phase (the

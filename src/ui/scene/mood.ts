@@ -10,12 +10,11 @@ export interface MoodInput {
   home: boolean
   /** The editor is standing in the studio, visiting. */
   editorHere: boolean
-  /** A fans or xp/level pop fired within the last CHEER_MS. */
+  /** A fans or level-up pop fired within the last CHEER_MS. */
   cheer: boolean
   stamina: number
-  /** The activity is rest. */
-  resting: boolean
-  night: boolean
+  /** The mangaka is at the desk working, at night. */
+  lateNight: boolean
 }
 
 /**
@@ -27,7 +26,7 @@ export function moodOf(m: MoodInput): Mood {
   if (m.home && m.editorHere) return 'surprised'
   if (m.cheer) return 'happy'
   if (m.stamina < LOW_STAMINA_THRESHOLD) return 'tired'
-  if (m.resting && m.night) return 'sleepy'
+  if (m.lateNight) return 'sleepy'
   return 'neutral'
 }
 
@@ -46,6 +45,13 @@ export function cheersFor(pops: readonly { kind: PopKind; levelUp?: boolean }[])
 /** Which set and frame the standing mangaka's idle cycle shows. */
 export type IdlePose = { set: 'breathe' | 'stretch' | 'sip'; index: 0 | 1 }
 
+// Every pose idleFrame can return, built once (not allocated per frame): same values every time the same pose comes
+// up, so callers may compare by identity (idleFrame(0) === idleFrame(32)).
+/** The breathing pose only, exposed so render.ts's ready branch (manuscript in hand) can share the same table. */
+export const BREATHE_POSES: readonly [IdlePose, IdlePose] = [{ set: 'breathe', index: 0 }, { set: 'breathe', index: 1 }]
+const STRETCH_POSES: readonly [IdlePose, IdlePose] = [{ set: 'stretch', index: 0 }, { set: 'stretch', index: 1 }]
+const SIP_POSES: readonly [IdlePose, IdlePose] = [{ set: 'sip', index: 0 }, { set: 'sip', index: 1 }]
+
 /**
  * The standing mangaka's 360-frame idle cycle (Decision 6): breathing (0-239, today's frame/16 % 2), a stretch
  * (240-299, 2 frames, frame/15 % 2) and a sip from a mug (300-359, 2 frames, frame/15 % 2), then back to breathing.
@@ -53,13 +59,18 @@ export type IdlePose = { set: 'breathe' | 'stretch' | 'sip'; index: 0 | 1 }
  */
 export function idleFrame(frame: number): IdlePose {
   const f = ((frame % 360) + 360) % 360
-  if (f < 240) return { set: 'breathe', index: (Math.floor(f / 16) % 2) as 0 | 1 }
-  if (f < 300) return { set: 'stretch', index: (Math.floor(f / 15) % 2) as 0 | 1 }
-  return { set: 'sip', index: (Math.floor(f / 15) % 2) as 0 | 1 }
+  if (f < 240) return BREATHE_POSES[Math.floor(f / 16) % 2]
+  if (f < 300) return STRETCH_POSES[Math.floor(f / 15) % 2]
+  return SIP_POSES[Math.floor(f / 15) % 2]
 }
 
 /** Which set and frame the sitting cat's idle cycle shows. */
 export type CatPose = { set: 'sit' | 'groom' | 'stretch'; index: 0 | 1 }
+
+// Same idea as the mangaka's poses above: pre-built constants, not allocated per frame.
+const SIT_POSE: CatPose = { set: 'sit', index: 0 }
+const GROOM_POSES: readonly [CatPose, CatPose] = [{ set: 'groom', index: 0 }, { set: 'groom', index: 1 }]
+const STRETCH_POSE: CatPose = { set: 'stretch', index: 0 }
 
 /**
  * The sitting cat's 480-frame idle cycle (Decision 6): CAT_SIT (0-359), a groom (360-419, 2 frames, frame/15 % 2)
@@ -67,7 +78,7 @@ export type CatPose = { set: 'sit' | 'groom' | 'stretch'; index: 0 | 1 }
  */
 export function catFrame(frame: number): CatPose {
   const f = ((frame % 480) + 480) % 480
-  if (f < 360) return { set: 'sit', index: 0 }
-  if (f < 420) return { set: 'groom', index: (Math.floor(f / 15) % 2) as 0 | 1 }
-  return { set: 'stretch', index: 0 }
+  if (f < 360) return SIT_POSE
+  if (f < 420) return GROOM_POSES[Math.floor(f / 15) % 2]
+  return STRETCH_POSE
 }

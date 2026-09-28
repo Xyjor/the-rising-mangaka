@@ -241,6 +241,23 @@ describe('the characters, from the actor table', () => {
     expect(covers(at(false, 0), '#f4cfa5', 133, 72)).toBe(-1)
   })
 
+  it('shows the sleepy face and z mark for the seated, working mangaka late at night, but not during the day', () => {
+    // seated (132, 67): the overlay's origin is (x+4, y+9) = (136, 76); FACES.sleepy row 1 col 1 is the closed-eye
+    // L, at (137, 77), painted after the base sprite's eye E at (138, 76) (the earlier test above)
+    const { ctx, log } = fakeContext()
+    render(ctx, sceneSnapshot(), 0.9, 0)
+    const eye = covers(log, '#1b1b1b', 138, 76)
+    expect(eye).toBeGreaterThanOrEqual(0)
+    const sleepyEye = covers(log, '#1c1a26', 137, 77)
+    expect(sleepyEye).toBeGreaterThan(eye)
+    // the z mark (MARKS.sleepy, MARK_PAL.L) above the head at (x+11, y-8) = (143, 59)
+    expect(covers(log, '#1c1a26', 143, 59)).toBeGreaterThan(-1)
+
+    const { ctx: dayCtx, log: dayLog } = fakeContext()
+    render(dayCtx, sceneSnapshot(), 0.3, 0)
+    expect(covers(dayLog, '#1c1a26', 137, 77)).toBe(-1)
+  })
+
   function editorAt(facing: -1 | 1, over: Partial<Actor> = {}): ActorTable {
     const t = newActorTable()
     Object.assign(t.editor, { x: 198, y: 85, targetX: 198, targetY: 85, state: 'standing', goal: 'standing', facing }, over)
