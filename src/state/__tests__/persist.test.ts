@@ -7,11 +7,15 @@ import { installFakeStorage } from '../../test/fakeStorage'
 
 vi.useFakeTimers()
 const storage = installFakeStorage()
-const { SAVE_KEY, useStore } = await import('../store')
+const { useStore } = await import('../store')
+/** A fresh install's first game goes to slot 1. */
+const SAVE_KEY = 'rising-mangaka-save-1'
 const { OWNER_KEY } = await import('../tabLock')
 const { upgradeSave } = await import('../../sim/migrate')
 
+const PREFS_KEY = 'rising-mangaka-prefs'
 const saveWrites = () => storage.setItem.mock.calls.filter(([k]) => k === SAVE_KEY)
+const prefsWrites = () => storage.setItem.mock.calls.filter(([k]) => k === PREFS_KEY)
 const lastSave = () =>
   JSON.parse(saveWrites().at(-1)![1]) as { version: number; state: { game: GameState | null; sound: SoundPrefs } }
 
@@ -60,12 +64,14 @@ describe('persistence', () => {
     storage.removeItem(OWNER_KEY)
   })
 
-  it('debounces a sound-only change into one write', () => {
+  it('debounces a sound-only change into one write of the device prefs', () => {
     useStore.getState().setSound({ muted: true })
-    expect(saveWrites()).toHaveLength(0)
+    expect(prefsWrites()).toHaveLength(0)
     vi.advanceTimersByTime(800)
-    expect(saveWrites()).toHaveLength(1)
-    expect(lastSave().state.sound).toEqual({ muted: true, volume: 0.5, music: true })
+    expect(prefsWrites()).toHaveLength(1)
+    expect(JSON.parse(prefsWrites()[0][1]).sound).toEqual({ muted: true, volume: 0.5, music: true })
+    // The career carries no device prefs.
+    expect(lastSave().state).not.toHaveProperty('sound')
   })
 
   it('does not schedule a write when setSound does not change the value', () => {
@@ -97,13 +103,7 @@ describe('persistence', () => {
   })
 
   it('clamps an out-of-range saved volume on rehydrate', async () => {
-    storage.setItem(
-      SAVE_KEY,
-      JSON.stringify({
-        version: 2,
-        state: { game: null, theme: 'auto', resumeSpeed: 1, tutorialStep: 0, sound: { muted: false, volume: 7, music: true } },
-      }),
-    )
+    storage.setItem(PREFS_KEY, JSON.stringify({ theme: 'auto', sound: { muted: false, volume: 7, music: true } }))
     await useStore.persist.rehydrate()
     expect(useStore.getState().sound.volume).toBe(1)
   })

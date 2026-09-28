@@ -16,7 +16,9 @@ import { DEFAULT_SOUND } from '../types'
 // The store's save storage and its debounce timer are faked before the store loads, as persist.test.ts does.
 vi.useFakeTimers()
 const storage = installFakeStorage()
-const { SAVE_KEY, useStore } = await import('../../state/store')
+const { useStore } = await import('../../state/store')
+/** A fresh install's first game goes to slot 1. */
+const SAVE_KEY = 'rising-mangaka-save-1'
 
 const st = () => useStore.getState()
 
@@ -64,8 +66,9 @@ function start(game: GameState | null, speed: Speed = 0) {
   disconnect = connectSound(useStore, sound, null)
 }
 
-/** Write a save of `game`, the way the owner tab leaves it in storage. */
+/** Write a save of `game`, the way the owner tab leaves it in storage: slot 1, open in the index. */
 function writeSave(game: GameState) {
+  storage.setItem('rising-mangaka-slots', JSON.stringify({ active: 1 }))
   storage.setItem(
     SAVE_KEY,
     JSON.stringify({ version: 2, state: { game, theme: 'auto', resumeSpeed: 1, tutorialStep: 0, sound: DEFAULT_SOUND } }),
@@ -237,9 +240,9 @@ describe('connectSound: prefs and music', () => {
     expect(sound.music).toEqual(['start', 'stop', 'start', 'stop'])
   })
 
-  it('stops the music, silently, when the game is abandoned', () => {
+  it('stops the music, silently, when the player goes back to the title screen', () => {
     start(createGame('Rin', 42), 1)
-    st().abandonGame()
+    st().backToTitle()
     expect(sound.music).toEqual(['start', 'stop'])
     expect(sound.plays).toEqual([])
   })

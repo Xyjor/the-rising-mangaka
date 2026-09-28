@@ -13,7 +13,9 @@ import type { ShellWindow } from '../desktop'
 const g = globalThis as { isTauri?: unknown }
 g.isTauri = true
 localStorage.setItem(OWNER_KEY, JSON.stringify({ tabId: 'an-earlier-run', at: Date.now() }))
-const { SAVE_KEY, useStore } = await import('../../state/store')
+const { useStore } = await import('../../state/store')
+/** A fresh install's first game goes to slot 1. */
+const SAVE_KEY = 'rising-mangaka-save-1'
 const { installDesktopShell } = await import('../desktop')
 
 const st = () => useStore.getState()
