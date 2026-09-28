@@ -1,19 +1,20 @@
-import { genreThemeKey, genreThemeRating, themeAudienceKey, themeAudienceRating } from './compat'
+import { genreThemeKey, themeAudienceKey } from './compat'
 import {
-  ASSISTANT_NAMES, AUDIENCES, CANDIDATE_REFRESH_DAYS, CHAPTER_PAGES, DAYS_PER_YEAR, DEADLINE_REST_FACTOR, EDITOR_TIP_EVERY,
-  EVENT_FIRST_DAY, GENRES,
+  ASSISTANT_NAMES, CANDIDATE_REFRESH_DAYS, CHAPTER_PAGES, DAYS_PER_YEAR, DEADLINE_REST_FACTOR,
+  EVENT_FIRST_DAY,
   HIRE_RUNWAY_WEEKS, JOB_PAY_PER_DAY, JOB_STAMINA_COST, LOW_STAMINA_THRESHOLD, MAGAZINES, MIN_WORK_STAMINA_COST,
   ONE_SHOT_PAGES, OVERDRAFT_FEE_MIN, OVERDRAFT_FEE_RATE,
-  RATING_LABEL, RESULTS_DELAY_DAYS, REST_STAMINA_GAIN, SERIAL_CLIMAX_MIN_POPULARITY, SERIAL_CLIMAX_VOLUME_MULT,
+  RESULTS_DELAY_DAYS, RETREAT_MAX_STAMINA_CAP, REST_STAMINA_GAIN, SERIAL_CLIMAX_MIN_POPULARITY, SERIAL_CLIMAX_VOLUME_MULT,
   SERIAL_GRACE_CHAPTERS, SERIAL_MISSED_ISSUE_POPULARITY, SERIAL_OFFER_MIN_RANK, SERIAL_OFFER_MIN_SCORE,
-  SERIAL_WARNINGS_TO_CANCEL, THEMES,
+  SERIAL_WARNINGS_TO_CANCEL,
   VOLUME_EVERY_CHAPTERS,
-  VOLUME_PRICE, WEEKLY_LIVING_COST, WORK_STAMINA_COST, audienceById, magazineById, placeById, themeById, genreById,
+  VOLUME_PRICE, WEEKLY_LIVING_COST, WORK_STAMINA_COST, magazineById, placeById,
 } from './data'
-import { addLog, grantXp } from './core'
+import { addLog, grantXp, yen } from './core'
+import { bumpEditor, revealCell, revealUndrawnGenre } from './editors'
 import { animeTick, animeVolumeMult, withdrawAnimeOffer } from './anime'
 import { merchTick } from './merch'
-import { STAT_NAME, conventionFans, eventTick, lowestStat } from './events'
+import { STAT_NAME, conventionFans, eventTick, lowestStat, signingMoney, signingSerial } from './events'
 import { clamp, draw, hashString, range } from './rng'
 import {
   evaluateChapter, evaluateProject, projectArtQuality, projectStoryQuality, rankScore, stalenessCount, weakRankLine,
@@ -26,7 +27,7 @@ import type {
 } from './types'
 import { awardBadges } from './badges'
 import { pendingMilestones } from './milestones'
-import { makeRival } from './rival'
+import { makeRival, settleChallenge } from './rival'
 import { equipmentEffects, studioSlots, studioTier } from './studio'
 import { closeYear } from './year'
 
@@ -86,6 +87,7 @@ export function createGame(name: string, seed: number): GameState {
     animeOffer: null,
     animeOfferedFor: [],
     merch: { licensedDay: null, runs: [], nextRunId: 1, earned: 0 },
+    rivalChallenge: null,
     yearStart: { day: 0, money: player.money, fans: player.fans, level: player.level, copies: 0, volumes: 0 },
     yearReviews: [],
     reviewUnread: null,
@@ -317,49 +319,6 @@ function collapse(state: GameState, text: string): GameState {
 }
 
 /** Reveal one unknown notebook cell. Returns the text of what was learned, or null. */
-function revealCell(state: GameState, kind: 'gt' | 'ta', audience?: AudienceId): { state: GameState; text: string | null } {
-  const { values, seed } = draw(state.seed, 1)
-  let s = { ...state, seed }
-  if (kind === 'gt') {
-    const unknown: [GenreId, ThemeId][] = []
-    for (const g of GENRES) for (const t of THEMES) {
-      if (s.notebook.genreTheme[genreThemeKey(g.id, t.id)] === undefined) unknown.push([g.id, t.id])
-    }
-    if (!unknown.length) return { state: s, text: null }
-    const [g, t] = unknown[Math.floor(values[0] * unknown.length)]
-    const r = genreThemeRating(s.worldSeed, g, t)
-    s = { ...s, notebook: { ...s.notebook, genreTheme: { ...s.notebook.genreTheme, [genreThemeKey(g, t)]: r } } }
-    return { state: s, text: `${genreById(g).name} × ${themeById(t).name} is ${RATING_LABEL[r]}` }
-  }
-  const auds = audience ? [audienceById(audience)] : AUDIENCES
-  const unknown: [ThemeId, AudienceId][] = []
-  for (const t of THEMES) for (const a of auds) {
-    if (s.notebook.themeAudience[themeAudienceKey(t.id, a.id)] === undefined) unknown.push([t.id, a.id])
-  }
-  if (!unknown.length) return { state: s, text: null }
-  const [t, a] = unknown[Math.floor(values[0] * unknown.length)]
-  const r = themeAudienceRating(s.worldSeed, t, a)
-  s = { ...s, notebook: { ...s.notebook, themeAudience: { ...s.notebook.themeAudience, [themeAudienceKey(t, a)]: r } } }
-  return { state: s, text: `${themeById(t).name} for ${audienceById(a).name} is ${RATING_LABEL[r]}` }
-}
-
-function bumpEditor(state: GameState, magazineId: MagazineId, amount: number): GameState {
-  const mag = magazineById(magazineId)
-  const rel = state.editors[magazineId]
-  const relationship = rel.relationship + amount
-  let s: GameState = { ...state, editors: { ...state.editors, [magazineId]: { ...rel, relationship } } }
-  const owed = Math.floor(relationship / EDITOR_TIP_EVERY)
-  if (owed > rel.tips) {
-    const revealed = revealCell(s, 'ta', mag.audience)
-    s = revealed.state
-    s = { ...s, editors: { ...s.editors, [magazineId]: { relationship, tips: owed } } }
-    if (revealed.text) {
-      s = addLog(s, 'info', `${mag.editor} at ${mag.name} passes on a tip: ${revealed.text}. Noted in your Notebook.`, true)
-    }
-  }
-  return s
-}
-
 function makeProject(state: GameState, kind: Project['kind'], chapter: number, draft: ProjectDraft, magazineId: MagazineId | null): Project {
   return {
     id: state.nextProjectId,
@@ -571,6 +530,25 @@ function finishTrip(state: GameState): GameState {
       const gain = conventionFans(s.player.fans)
       s = { ...s, player: { ...s.player, fans: s.player.fans + gain } }
       text = `Fans +${gain}.`
+      break
+    }
+    case 'manga-museum': {
+      const r = revealUndrawnGenre(s); s = r.state
+      text = r.text ? `The originals taught you that ${r.text}.` : 'Nothing new under the glass. You know it all.'
+      break
+    }
+    case 'mountain-retreat': {
+      const maxStamina = Math.max(s.player.maxStamina, Math.min(RETREAT_MAX_STAMINA_CAP, s.player.maxStamina + 5))
+      const gain = maxStamina - s.player.maxStamina
+      s = { ...s, player: { ...s.player, maxStamina, stamina: maxStamina }, lowStaminaWarned: false }
+      text = gain ? `Fully rested. Max stamina +${gain}.` : `Fully rested. Max stamina is already at the retreat's cap of ${RETREAT_MAX_STAMINA_CAP}.`
+      break
+    }
+    case 'signing': {
+      const ser = signingSerial(s)
+      const money = ser ? signingMoney(ser) : 0
+      s = { ...s, player: { ...s.player, money: s.player.money + money } }
+      text = ser ? `Signed copies of "${ser.title}": +${yen(money)}.` : 'Nobody had a volume to sign.'
       break
     }
     case 'masterclass': {
@@ -785,6 +763,22 @@ function checkDeadline(state: GameState): GameState {
   return s
 }
 
+/**
+ * Tanaka at Weekly Bolt is a deadline hawk: the day a Weekly Bolt chapter's deadline turns from on track to tight (or
+ * late) for the same chapter, a log line says so (no toast). Consumes no RNG.
+ */
+function deadlineHawk(prev: GameState, state: GameState): GameState {
+  const ser = state.serial
+  if (!ser || ser.magazineId !== 'weekly-bolt') return state
+  const before = chapterDeadline(prev)
+  const now = chapterDeadline(state)
+  if (!before || !now || before.status !== 'on-track' || now.status === 'on-track') return state
+  if (prev.project?.id !== state.project?.id) return state
+  const mag = magazineById(ser.magazineId)
+  return addLog(state, 'warn',
+    `${mag.editor} calls: chapter ${state.project!.chapter} is due in ${now.daysLeft} days and needs ${now.workDaysLeft} working days. Keep drawing.`, false)
+}
+
 export function tick(state: GameState): GameState {
   let s: GameState = { ...state, day: state.day + 1 }
 
@@ -884,6 +878,8 @@ export function tick(state: GameState): GameState {
 
   s = resolveChapters(s)
   s = checkDeadline(s)
+  s = settleChallenge(s)
+  s = deadlineHawk(state, s)
   s = closeYear(s)
   s = animeTick(s)
   s = merchTick(s)

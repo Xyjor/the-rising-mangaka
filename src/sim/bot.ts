@@ -15,7 +15,7 @@ import {
 } from './engine'
 import type { SubmissionPreview } from './engine'
 import { resolveEvent } from './events'
-import { merchRefusal, orderMerch } from './merch'
+import { merchForecast, merchRefusal, orderMerch } from './merch'
 import { clamp, hashString } from './rng'
 import { stalenessCount, suitedFocus } from './scoring'
 import { buyEquipment, equipmentEffects, moveStudio, studioAtLeast, studioSlots } from './studio'
@@ -357,7 +357,7 @@ function shop(s: GameState, p: BotPolicy): GameState {
 
 /**
  * A policy that shops, once licensed, orders the cheapest goods run it may order for its running serial when the bank
- * holds its cost and four weeks of costs: one run a day.
+ * holds its cost and four weeks of costs, unless `merchForecast` says it would lose money: one run a day.
  */
 function orderGoods(s: GameState, p: BotPolicy): GameState {
   const ser = s.serial
@@ -368,6 +368,8 @@ function orderGoods(s: GameState, p: BotPolicy): GameState {
     if (!best || m.cost < best.cost) best = m
   }
   if (!best || s.player.money < best.cost + BUY_COST_WEEKS * weeklyCosts(s)) return s
+  // A run the forecast says loses money (net at or below zero at today's demand) is skipped.
+  if (merchForecast(s, best.id, ser.id).net <= 0) return s
   return orderMerch(s, best.id, ser.id)
 }
 

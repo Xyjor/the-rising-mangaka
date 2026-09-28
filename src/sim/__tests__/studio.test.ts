@@ -46,8 +46,8 @@ describe('studio data', () => {
     ])
   })
 
-  it('sells at 11.25 times the base prices: EQUIPMENT_PRICE_SCALE is S1 / 9000 = 11.31 rounded to 0.25', () => {
-    // S1 = ¥101,816.5 (Task 19, Package A): 101,816.5 / 9000 = 11.31, and 11.31 x 4 = 45.25 rounds to 45 quarters
+  it('sells at 11.25 times the base prices: EQUIPMENT_PRICE_SCALE is S1 / 9000 = 11.17 rounded to 0.25', () => {
+    // S1 = ¥100,573 (Task C, 0.7.0): 100,573 / 9000 = 11.17, and 11.17 x 4 = 44.70 rounds to 45 quarters
     expect(EQUIPMENT_PRICE_SCALE).toBe(11.25)
     // x 11.25, to the nearest ¥100 (halves round up): 2,000 -> 22,500; 2,500 -> 28,125 -> 28,100;
     // 3,000 -> 33,750 -> 33,800; 4,000 -> 45,000; 7,000 -> 78,750 -> 78,800; 12,000 -> 135,000

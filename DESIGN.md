@@ -495,7 +495,7 @@ again under the reward tiles in Stats. `src/sim/studio.ts`; no RNG.
   rounded to the nearest ¥100. The panel and the tests read the helpers, never the base prices. The scale is
   S1 / 9000 rounded to 0.25 and held within 0.75-16 (`priceScale` in balance.ts), where S1 is the sensible balance
   bot's median money at day 336 with its shopping switched off (seeds 1-20; `npm run balance` prints it). S1 is
-  ¥101,816.5, so S1 / 9000 = 11.31 and the scale is 11.25; balance.test checks the constant is the scale S1 gives, so
+  ¥100,573, so S1 / 9000 = 11.17 and the scale is 11.25; balance.test checks the constant is the scale S1 gives, so
   a change that moves the economy says when the prices need re-deriving. The Full studio milestone (three assistants)
   needs the loft: ¥225,100 in move-ins at this scale (¥56,300 for the flat, ¥168,800 for the loft), then ¥350 a week
   in rent and three salaries.

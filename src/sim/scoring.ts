@@ -67,6 +67,13 @@ interface CommentContext {
   theme: ThemeId
   audience: AudienceId
   magAudience: AudienceId
+  /** Kuroda (the critic persona, `tipEvery` 4) quotes the points the costliest component lost */
+  critic: boolean
+}
+
+/** Points a component lost at this magazine: round(weight x (100 - component) / 100). */
+export function pointsLost(b: ScoreBreakdown, taste: ScoreWeights, k: keyof ScoreBreakdown): number {
+  return Math.round((taste[k] * (100 - b[k])) / 100)
 }
 
 /** One line from the editor that names the component that cost the most at this magazine, and a lever the player has. */
@@ -85,7 +92,8 @@ function editorComment(b: ScoreBreakdown, score: number, ctx: CommentContext): s
   }
   const opener =
     score >= 80 ? 'Excellent work. One nitpick:' : score >= 60 ? 'Solid.' : score >= 40 ? 'Not bad.' : 'Rough one.'
-  return `${opener} ${lines[costliest]}`
+  const quote = ctx.critic ? ` That cost you ${pointsLost(b, ctx.taste, costliest)} points.` : ''
+  return `${opener} ${lines[costliest]}${quote}`
 }
 
 export interface BreakdownInput {
@@ -240,6 +248,7 @@ export function evaluateProject(
     editorComment: editorComment(breakdown, score, {
       taste: mag.taste, mismatch, staleness,
       genre: project.genre, theme: project.theme, audience: project.audience, magAudience: mag.audience,
+      critic: mag.persona === 'critic',
     }),
     pages: project.pagesDone,
     ...(field.rival ? { rival: field.rival } : {}),

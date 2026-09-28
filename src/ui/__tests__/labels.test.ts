@@ -144,7 +144,7 @@ describe('rival copy', () => {
   })
 
   it('sums up the rival for the career screen: series, magazine, usual scores and the head-to-head record', () => {
-    const r: Rival = { name: 'Iori Hayama', craft: 50, magazineId: 'kids-comic', seriesTitle: 'Robo Pals Go!' }
+    const r: Rival = { name: 'Iori Hayama', craft: 50, magazineId: 'kids-comic', seriesTitle: 'Robo Pals Go!', temper: 'stoic' }
     // 50 - 8 to 50 + 8; a magazine name that ends in "!" ends its sentence without another full stop
     expect(rivalCareerLine(r, { wins: 3, losses: 2 })).toBe(
       'Iori Hayama draws "Robo Pals Go!" for Kids Comic Go! Usually scores 42 to 58. Head to head: 3 wins, 2 losses.',

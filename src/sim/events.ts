@@ -7,16 +7,35 @@
 // the road. While away no new event is rolled, and an unanswered one still lapses on time.
 import { addLog, num, startTrip, yen } from './core'
 import {
-  EVENT_ANSWER_DAYS, EVENT_CHANCE, EVENT_GAP_DAYS, EVENT_ROLL_WEEKDAY, VOLUME_PRICE, placeById,
+  EVENT_ANSWER_DAYS, EVENT_CHANCE, EVENT_GAP_DAYS, EVENT_ROLL_WEEKDAY, MAGAZINES, VOLUME_PRICE, magazineById, placeById,
 } from './data'
+import { bumpEditor } from './editors'
+import { CHALLENGE_POPULARITY_LOSS, challengeFans } from './rival'
 import { clamp, draw } from './rng'
-import type { Assistant, EventId, GameEvent, GameState, PlaceId, PlayerStats, Serial, StatId } from './types'
+import type {
+  Assistant, EventId, GameEvent, GameState, MagazineId, PlaceId, PlayerStats, Serial, StatId,
+} from './types'
 
 /** Every event, in the order the pool lists them (the second draw indexes into the eligible ones). */
-export const EVENT_IDS: readonly EventId[] = ['letter', 'cold', 'convention', 'raise', 'reprint', 'workshop']
+export const EVENT_IDS: readonly EventId[] = [
+  'letter', 'cold', 'convention', 'raise', 'reprint', 'workshop',
+  'interview', 'signing', 'editor-dinner', 'cover', 'assistant-sick', 'rival-challenge',
+]
 
 /** What seeing a doctor about a cold costs. */
 const DOCTOR_FEE = 300
+
+/** What taking an editor to dinner costs. */
+const DINNER_COST = 300
+/** The relationship an editor needs before they ask you to dinner. */
+const DINNER_MIN_RELATIONSHIP = 3
+/** Fans a magazine interview needs before a reporter calls. */
+const INTERVIEW_MIN_FANS = 2000
+/** Results a serial needs before the magazine offers it the cover. */
+const COVER_MIN_RESULTS = 4
+/** Popularity the colour cover adds, and the stamina it costs. */
+const COVER_POPULARITY = 3
+const COVER_STAMINA = 15
 
 /** Stat names for log lines and answers. */
 export const STAT_NAME: Record<StatId, string> = { art: 'Art', story: 'Story', pacing: 'Pacing' }
@@ -29,6 +48,21 @@ export function letterFans(fans: number): number {
 /** Fans the convention brings on return: 150 plus 4% of fans, at most 5,000. */
 export function conventionFans(fans: number): number {
   return Math.min(5000, 150 + Math.round(fans * 0.04))
+}
+
+/** Fans an interview brings: 1% of fans, at least 30, at most 800. */
+export function interviewFans(fans: number): number {
+  return clamp(Math.round(fans * 0.01), 30, 800)
+}
+
+/** Money a book signing pays on return: round(average copies a volume x 0.3) x VOLUME_PRICE. */
+export function signingMoney(ser: Serial): number {
+  return Math.round((ser.totalCopies / ser.volumes) * 0.3) * VOLUME_PRICE
+}
+
+/** What a sick assistant's paid rest costs: half a week of their salary. */
+export function sickPay(a: Assistant): number {
+  return Math.round(a.salary / 2)
 }
 
 /** The weekly salary after a raise: 20% more, rounded to the nearest ¥10. */
@@ -58,6 +92,38 @@ function reprintCandidate(s: GameState): Serial | undefined {
   return serials.find((x) => x.volumes >= 1)
 }
 
+/** The serial a book signing is for: the same one a reprint would be (`reprintCandidate`). */
+export function signingSerial(s: GameState): Serial | undefined {
+  return reprintCandidate(s)
+}
+
+/** The magazine an interview is for: the running serial's, else the latest one-shot's. */
+function interviewMagazine(s: GameState): MagazineId | undefined {
+  return s.serial?.status === 'running' ? s.serial.magazineId : s.history.at(-1)?.magazineId
+}
+
+/** The editor who asks you to dinner: the highest relationship at 3 or more, ties in MAGAZINES order. */
+function dinnerEditor(s: GameState): MagazineId | undefined {
+  let best: MagazineId | undefined
+  for (const m of MAGAZINES) {
+    const rel = s.editors[m.id].relationship
+    if (rel >= DINNER_MIN_RELATIONSHIP && (!best || rel > s.editors[best].relationship)) best = m.id
+  }
+  return best
+}
+
+/** The running serial that could take the cover: 4 results or more. */
+function coverSerial(s: GameState): Serial | undefined {
+  const ser = s.serial
+  return ser && ser.status === 'running' && ser.results.length >= COVER_MIN_RESULTS ? ser : undefined
+}
+
+/** The running serial a rival challenge is for: in the rival's magazine, with no challenge already on. */
+function challengeSerial(s: GameState): Serial | undefined {
+  const ser = s.serial
+  return ser && ser.status === 'running' && ser.magazineId === s.rival.magazineId && !s.rivalChallenge ? ser : undefined
+}
+
 function serialById(s: GameState, id: number | undefined): Serial | undefined {
   return (s.serial ? [s.serial, ...s.serials] : s.serials).find((x) => x.id === id)
 }
@@ -72,6 +138,12 @@ export function eligibleEvents(s: GameState): EventId[] {
     raise: !!raiseCandidate(s),
     reprint: !!reprintCandidate(s),
     workshop: p.level >= 3 && p.money >= placeById('masterclass').cost,
+    interview: p.fans >= INTERVIEW_MIN_FANS && !!interviewMagazine(s),
+    signing: !!signingSerial(s),
+    'editor-dinner': !!dinnerEditor(s),
+    cover: !!coverSerial(s),
+    'assistant-sick': s.assistants.length > 0,
+    'rival-challenge': !!challengeSerial(s),
   }
   return EVENT_IDS.filter((id) => ok[id])
 }
@@ -174,6 +246,74 @@ export function eventChoices(s: GameState): EventPrompt | null {
         b: choice(s, 'Decline'),
       }
     }
+    case 'interview': {
+      if (!ev.magazineId) return null
+      const mag = magazineById(ev.magazineId)
+      return {
+        id: ev.id,
+        title: 'A magazine wants an interview',
+        body: `A reporter wants an hour on camera about your work, or a written reply ${mag.editor} at ${mag.name} could run.`,
+        a: choice(s, `On camera: stamina -6, fans +${num(interviewFans(p.fans))} (1% of fans, 30 to 800)`),
+        b: choice(s, `Written reply: ${mag.editor}'s relationship +1 (a tip every ${mag.tipEvery} points)`),
+      }
+    }
+    case 'signing': {
+      const ser = serialById(s, ev.serialId)
+      if (!ser || ser.volumes < 1) return null
+      const place = placeById('signing')
+      return {
+        id: ev.id,
+        title: 'A bookshop wants a signing',
+        body: `A bookshop will stock "${ser.title}" for a signing. It pays round(average copies a volume × 0.3) × ${yen(VOLUME_PRICE)}.`,
+        a: choice(s, `Sign for a day: ${place.days}-day trip, +${yen(signingMoney(ser))} on return`, 0, place.id),
+        b: choice(s, 'Skip it'),
+      }
+    }
+    case 'editor-dinner': {
+      if (!ev.magazineId) return null
+      const mag = magazineById(ev.magazineId)
+      return {
+        id: ev.id,
+        title: `${mag.editor} suggests dinner`,
+        body: `${mag.editor} at ${mag.name} wants to talk shop over dinner, and the bill is yours.`,
+        a: choice(s, `Go: ${yen(-DINNER_COST)}, ${mag.editor}'s relationship +1 (a tip every ${mag.tipEvery} points)`, DINNER_COST),
+        b: choice(s, 'Decline'),
+      }
+    }
+    case 'cover': {
+      const ser = s.serial
+      if (!ser || ser.id !== ev.serialId || ser.status !== 'running') return null
+      return {
+        id: ev.id,
+        title: 'The cover is yours',
+        body: `${magazineById(ser.magazineId).name} offers "${ser.title}" a colour cover, if you can draw it this week.`,
+        a: choice(s, `Draw the cover: stamina -${COVER_STAMINA}, popularity +${COVER_POPULARITY}`),
+        b: choice(s, 'Decline'),
+      }
+    }
+    case 'assistant-sick': {
+      const a = s.assistants.find((x) => x.id === ev.assistantId)
+      if (!a) return null
+      return {
+        id: ev.id,
+        title: `${a.name} is ill`,
+        body: `${a.name} came in with a fever and asks for a few paid days off.`,
+        a: choice(s, `Paid rest: ${yen(-sickPay(a))} (half a week's salary), ${a.name}'s stamina full`, sickPay(a)),
+        b: choice(s, `Keep them working: ${a.name}'s max stamina -5`),
+      }
+    }
+    case 'rival-challenge': {
+      const ser = s.serial
+      if (!ser || ser.id !== ev.serialId || ser.status !== 'running' || ser.magazineId !== s.rival.magazineId || s.rivalChallenge) return null
+      const r = s.rival
+      return {
+        id: ev.id,
+        title: `${r.name} throws down a challenge`,
+        body: `${r.name} bets "${r.seriesTitle}" outranks "${ser.title}" in the next chapter poll.`,
+        a: choice(s, `Accept: place above them for fans +${num(challengeFans(p.fans))} (3% of fans, at most 1,500); below them, popularity -${CHALLENGE_POPULARITY_LOSS}`),
+        b: choice(s, 'Decline'),
+      }
+    }
   }
 }
 
@@ -237,6 +377,47 @@ export function resolveEvent(state: GameState, key: 'a' | 'b'): GameState {
     }
     case 'workshop':
       return a ? startTrip(s, 'masterclass') : addLog(s, 'event', 'You declined the masterclass.', false)
+    case 'interview': {
+      const mag = magazineById(ev.magazineId!)
+      if (!a) return addLog(bumpEditor(s, mag.id, 1, true), 'event', `${mag.editor} ran your written reply. Relationship +1.`, true)
+      const gain = interviewFans(fans)
+      const next = addStamina({ ...s, player: { ...s.player, fans: fans + gain } }, -6)
+      return addLog(next, 'event', `The interview aired. Fans +${num(gain)}, stamina -6.`, true)
+    }
+    case 'signing':
+      return a ? startTrip(s, 'signing') : addLog(s, 'event', 'You skipped the signing.', false)
+    case 'editor-dinner': {
+      const mag = magazineById(ev.magazineId!)
+      if (!a) return addLog(s, 'event', `You declined dinner with ${mag.editor}.`, false)
+      const paid: GameState = { ...s, player: { ...s.player, money: s.player.money - DINNER_COST } }
+      return addLog(bumpEditor(paid, mag.id, 1, true), 'event', `Dinner with ${mag.editor}: ${yen(-DINNER_COST)}, relationship +1.`, true)
+    }
+    case 'cover': {
+      if (!a) return addLog(s, 'event', 'You passed on the cover.', false)
+      const ser = s.serial!
+      const next = addStamina({ ...s, serial: { ...ser, popularity: Math.min(100, ser.popularity + COVER_POPULARITY) } }, -COVER_STAMINA)
+      return addLog(next, 'event', `"${ser.title}" made the cover. Popularity +${COVER_POPULARITY}, stamina -${COVER_STAMINA}.`, true)
+    }
+    case 'assistant-sick': {
+      const who = s.assistants.find((x) => x.id === ev.assistantId)!
+      if (a) {
+        const pay = sickPay(who)
+        const next = updateAssistant({ ...s, player: { ...s.player, money: s.player.money - pay } }, who.id,
+          (x) => ({ ...x, stamina: x.maxStamina }))
+        return addLog(next, 'event', `${who.name} rested on full pay: ${yen(-pay)}. Stamina full.`, true)
+      }
+      const next = updateAssistant(s, who.id, (x) => {
+        const maxStamina = x.maxStamina - 5
+        return { ...x, maxStamina, stamina: clamp(x.stamina, 0, maxStamina) }
+      })
+      return addLog(next, 'event', `${who.name} worked through it. Max stamina -5.`, true)
+    }
+    case 'rival-challenge': {
+      if (!a) return addLog(s, 'event', `You declined ${s.rival.name}'s challenge.`, false)
+      const ser = s.serial!
+      const next: GameState = { ...s, rivalChallenge: { serialId: ser.id, fromResult: ser.results.length } }
+      return addLog(next, 'event', `Challenge accepted: the next chapter poll of "${ser.title}" decides it.`, true)
+    }
   }
 }
 
@@ -254,6 +435,15 @@ function lapseText(s: GameState, ev: GameEvent): string {
     }
     case 'reprint': return 'The reprint offer lapsed. Nothing changed.'
     case 'workshop': return 'The masterclass filled up without you. Nothing changed.'
+    case 'interview': return 'The reporter found another story. Nothing changed.'
+    case 'signing': return 'The bookshop booked someone else. Nothing changed.'
+    case 'editor-dinner': return 'The dinner never happened. Nothing changed.'
+    case 'cover': return 'The cover went to another series. Nothing changed.'
+    case 'assistant-sick': {
+      const who = s.assistants.find((x) => x.id === ev.assistantId)
+      return `${who ? who.name : 'Your assistant'} got better on their own. Nothing changed.`
+    }
+    case 'rival-challenge': return 'The challenge was never answered. Nothing changed.'
   }
 }
 
@@ -278,7 +468,12 @@ export function eventTick(state: GameState): GameState {
   const id = pool[Math.floor(values[1] * pool.length)]
   const event: GameEvent = { id, day: s.day, expiresDay: s.day + EVENT_ANSWER_DAYS }
   if (id === 'raise') event.assistantId = raiseCandidate(s)!.id
-  if (id === 'reprint') event.serialId = reprintCandidate(s)!.id
+  if (id === 'reprint' || id === 'signing') event.serialId = reprintCandidate(s)!.id
+  if (id === 'interview') event.magazineId = interviewMagazine(s)
+  if (id === 'editor-dinner') event.magazineId = dinnerEditor(s)
+  if (id === 'cover') event.serialId = coverSerial(s)!.id
+  if (id === 'assistant-sick') event.assistantId = s.assistants[0].id
+  if (id === 'rival-challenge') event.serialId = challengeSerial(s)!.id
   s = { ...s, event, nextEventDay: s.day + EVENT_GAP_DAYS }
   return addLog(s, 'event', `${eventChoices(s)!.title}. Answer on your desk within ${EVENT_ANSWER_DAYS} days.`, true)
 }

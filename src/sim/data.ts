@@ -46,6 +46,8 @@ export const MAGAZINES: Magazine[] = [
     taste: { art: 35, story: 15, pacing: 20, audienceFit: 10, freshness: 20 },
     tasteLine: 'Readers love big art and fast pacing.',
     blurb: 'The big weekly. Twelve rivals in every poll and the biggest readership in town.', editor: 'Tanaka',
+    persona: 'deadline hawk', tipEvery: 3,
+    personaLine: 'Tanaka watches the calendar: the log notes the day a chapter deadline turns tight. A tip every 3 points.',
   },
   {
     id: 'monthly-petal', name: 'Monthly Petal', audience: 'young-adults',
@@ -53,6 +55,8 @@ export const MAGAZINES: Magazine[] = [
     taste: { art: 15, story: 35, pacing: 10, audienceFit: 20, freshness: 20 },
     tasteLine: 'Readers want a story, and a manga made for them.',
     blurb: 'A quieter book for young adults. Fewer rivals, a little more per page.', editor: 'Sato',
+    persona: 'mentor', tipEvery: 2,
+    personaLine: 'Sato mentors new artists: a Notebook tip every 2 relationship points instead of 3.',
   },
   {
     id: 'ultra-seinen', name: 'Ultra Seinen', audience: 'adults',
@@ -60,6 +64,8 @@ export const MAGAZINES: Magazine[] = [
     taste: { art: 15, story: 35, pacing: 20, audienceFit: 10, freshness: 20 },
     tasteLine: 'Readers prize story and pacing.',
     blurb: 'Prestige anthology for grown-ups. Best page rate going, and the toughest rivals.', editor: 'Kuroda',
+    persona: 'critic', tipEvery: 4,
+    personaLine: 'Kuroda is a critic: a Notebook tip only every 4 points, and his comment says how many points you lost.',
   },
   {
     id: 'kids-comic', name: 'Kids Comic Go!', audience: 'kids',
@@ -67,6 +73,8 @@ export const MAGAZINES: Magazine[] = [
     taste: { art: 35, story: 15, pacing: 10, audienceFit: 20, freshness: 20 },
     tasteLine: 'Readers love bright art, and a manga made for them.',
     blurb: 'Bright, loud, and forgiving. The easiest polls to win, the lowest page rate.', editor: 'Mori',
+    persona: 'cheerleader', tipEvery: 3,
+    personaLine: 'Mori cheers every new artist on. No special rules: a tip every 3 relationship points.',
   },
 ]
 
@@ -77,6 +85,14 @@ export const PLACES: Place[] = [
   { id: 'writing-workshop', name: 'Writing Workshop', days: 4, cost: 600, blurb: 'Structure, dialogue, endings.', effect: 'Story +2' },
   { id: 'editing-seminar', name: 'Editing Seminar', days: 4, cost: 600, blurb: 'Panel flow and page turns.', effect: 'Pacing +2' },
   { id: 'hot-spring', name: 'Hot Spring', days: 3, cost: 400, blurb: 'Steam, silence, and no deadlines.', effect: 'Full stamina, max stamina +3' },
+  {
+    id: 'manga-museum', name: 'Manga Museum', days: 3, cost: 700, blurb: 'Original pages from every genre under glass.',
+    effect: 'Reveals one genre × theme pairing for a genre you have never drawn',
+  },
+  {
+    id: 'mountain-retreat', name: 'Mountain Retreat', days: 5, cost: 1500, blurb: 'Thin air, long walks, early nights.',
+    effect: 'Full stamina, max stamina +5 (never above 150)',
+  },
   // Reached only by answering a random event (events.ts); the Trips panel leaves them out.
   {
     id: 'convention', name: 'Comic Convention', days: 2, cost: 500, blurb: 'A table in the artist alley and a queue of readers.',
@@ -85,6 +101,10 @@ export const PLACES: Place[] = [
   {
     id: 'masterclass', name: 'Manga Masterclass', days: 3, cost: 400, blurb: 'A veteran mangaka works on your weakest skill.',
     effect: '+3 to your lowest stat', eventOnly: true,
+  },
+  {
+    id: 'signing', name: 'Book Signing', days: 1, cost: 0, blurb: 'A bookshop queue for your volumes, pen in hand.',
+    effect: 'On return + round(average copies a volume x 0.3) x ¥2, from signed copies', eventOnly: true,
   },
 ]
 
@@ -189,8 +209,8 @@ export const EQUIPMENT: Equipment[] = [
 /**
  * Scales every equipment price and move-in cost (see `equipmentPrice`, `moveInCost`): S1 / 9000 rounded to 0.25 and
  * clamped to 0.75-16 (`priceScale` in balance.ts), where S1 is the sensible balance bot's median money at day 336
- * buying nothing over seeds 1-20 (`npm run balance` prints it and the scale it gives). S1 = ¥101,816.5 gives 11.31,
- * so 11.25.
+ * buying nothing over seeds 1-20 (`npm run balance` prints it and the scale it gives). S1 = ¥100,573 (after Task C's
+ * events) gives 11.17, so 11.25.
  */
 export const EQUIPMENT_PRICE_SCALE = 11.25
 
@@ -225,7 +245,10 @@ export const SERIAL_MISSED_ISSUE_POPULARITY = 10
 export const DEADLINE_REST_FACTOR = 1.25
 export const SERIAL_OFFER_MIN_RANK = 3
 export const SERIAL_OFFER_MIN_SCORE = 65
+/** The default tip cadence; each magazine's `tipEvery` is the one in play (Sato 2, Kuroda 4, the others 3). */
 export const EDITOR_TIP_EVERY = 3
+/** The Mountain Retreat raises max stamina by 5, never above this. */
+export const RETREAT_MAX_STAMINA_CAP = 150
 /** Spread of rival poll scores around a magazine's rivalMean. */
 export const RIVAL_SCORE_SD = 8
 /** Spread of the pacing component's random noise around the player's pacing stat. */
