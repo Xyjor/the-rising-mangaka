@@ -6,6 +6,7 @@ import type { FillCall } from '../../../test/fakeCanvas'
 import { H, SKY_LUT, W, render, skyColor } from '../render'
 import type { Season } from '../season'
 import { newActorTable } from '../actors'
+import { MANGAKA_SIT } from '../sprites'
 import type { Actor, ActorTable } from '../actors'
 
 /**
@@ -21,7 +22,7 @@ import type { Actor, ActorTable } from '../actors'
  * pixels and two hands), the cat's two 8x6 frames 30 pixels in place of the placeholder's 20 (+10) and the assistant's
  * page 3 (the sheet and round(0.5 * 3) = 2 ink lines). Task A (0.2.1) re-measured it the same way at 281 once
  * drawSprite merged each horizontal run of one key into one fillRect (the art unchanged, the same pixels painted): the
- * sprites' 1x1 pixels became runs (the hero, the assistant, the clock and the cat). Task B (0.2.1) re-measured it the same way at 430: the mangaka a 24x32 sprite and the stock chair's new back. Task C (0.2.1) re-measured it the same way at 596: the assistant a 24x32 seated frame, its stool and the page's wider lines, the cat's 12x8 sleeping frame. Upgrade 0.3.0 re-measured it the same way at 649: the tatami room 61 in place of the striped room's 58 (+3), five floor shadows and the staff desk's (+6), the corkboard 10 (board 2, four cards at 2), the calendar 7, the apartment's front row 12 and the bin 7 (5 and two crumpled pages), and the light 8 (the daylight shaft 4, the vignette 4). Upgrade 0.4.0's chibi cast (Task 6) re-measured it the same way at 659 (+10): redrawing MANGAKA_SIT[0] to the chibi proportions (an 18-wide, 16-row head in place of the old frame's narrower crown) costs 5 more fillRect runs than the old frame, and the reference scene paints two seated figures from that map at frame 100 (the mangaka and its one assistant, both landing on index 0: `floor(100/8)%2` for the mangaka, `floor((100+0*3)/8)%2` for the assistant) — 5 + 5 = 10. The mood overlay adds nothing here: the reference scene's mood is neutral (home, no editor, no cheer, stamina 80), and `drawMood` returns early for `neutral`. Upgrade 0.5.0 Task 6.1 re-measured it the same way at 659 (+0): the daylight shaft keeps its four steps, each now wider and fainter. Upgrade 0.5.0 Task 6.2 re-measured it the same way at 659 (+0): the wood-beam frame is the flat's and the loft's, and this scene is the apartment. Upgrade 0.5.0 Task 6.3 re-measured it the same way at 665 (+6): the reference scene is spring, and the cherry now spills past the pane onto the wall (`drawSeasonWall`: a branch, a twig and four blossom clusters, 6 fills). Upgrade 0.5.0 Task 6.4 re-measured it the same way at 663 (-2): the corkboard pins a card per sixth of the pages (a 2x3 grid), so half the pages drawn shows 3 cards in place of 4, at 2 fills each. Upgrade 0.5.0 Task 6.5 re-measured it the same way at 667 (+4): the cat sleeps on a round cushion (4 fills: its top, body, rim and bottom); its cream chest patch is only in the frames where the chest shows, never the curled `CAT_SLEEP` this scene draws. Upgrade 0.5.0 Task 6.6 re-measured it the same way at 667 (+0): `MANGAKA_PANIC`'s hands-on-head redraw only paints while a chapter is late, and this scene is not. Every scene must stay under 1.5 times this.
+ * sprites' 1x1 pixels became runs (the hero, the assistant, the clock and the cat). Task B (0.2.1) re-measured it the same way at 430: the mangaka a 24x32 sprite and the stock chair's new back. Task C (0.2.1) re-measured it the same way at 596: the assistant a 24x32 seated frame, its stool and the page's wider lines, the cat's 12x8 sleeping frame. Upgrade 0.3.0 re-measured it the same way at 649: the tatami room 61 in place of the striped room's 58 (+3), five floor shadows and the staff desk's (+6), the corkboard 10 (board 2, four cards at 2), the calendar 7, the apartment's front row 12 and the bin 7 (5 and two crumpled pages), and the light 8 (the daylight shaft 4, the vignette 4). Upgrade 0.4.0's chibi cast (Task 6) re-measured it the same way at 659 (+10): redrawing MANGAKA_SIT[0] to the chibi proportions (an 18-wide, 16-row head in place of the old frame's narrower crown) costs 5 more fillRect runs than the old frame, and the reference scene paints two seated figures from that map at frame 100 (the mangaka and its one assistant, both landing on index 0: `floor(100/8)%2` for the mangaka, `floor((100+0*3)/8)%2` for the assistant) — 5 + 5 = 10. The mood overlay adds nothing here: the reference scene's mood is neutral (home, no editor, no cheer, stamina 80), and `drawMood` returns early for `neutral`. Upgrade 0.5.0 Task 6.1 re-measured it the same way at 659 (+0): the daylight shaft keeps its four steps, each now wider and fainter. Upgrade 0.5.0 Task 6.2 re-measured it the same way at 659 (+0): the wood-beam frame is the flat's and the loft's, and this scene is the apartment. Upgrade 0.5.0 Task 6.3 re-measured it the same way at 665 (+6): the reference scene is spring, and the cherry now spills past the pane onto the wall (`drawSeasonWall`: a branch, a twig and four blossom clusters, 6 fills). Upgrade 0.5.0 Task 6.4 re-measured it the same way at 663 (-2): the corkboard pins a card per sixth of the pages (a 2x3 grid), so half the pages drawn shows 3 cards in place of 4, at 2 fills each. Upgrade 0.5.0 Task 6.5 re-measured it the same way at 667 (+4): the cat sleeps on a round cushion (4 fills: its top, body, rim and bottom); its cream chest patch is only in the frames where the chest shows, never the curled `CAT_SLEEP` this scene draws. Upgrade 0.5.0 Task 6.6 re-measured it the same way at 667 (+0): `MANGAKA_PANIC`'s hands-on-head redraw only paints while a chapter is late, and this scene is not. Upgrade 0.5.0 Task 6.7 re-measured it the same way at 667 (+0): the mood marks move to the head's top-right edge (x+20, y-2), and this scene's neutral mood draws none. Every scene must stay under 1.5 times this.
  */
 const BASELINE_FILLS = 667
 const BUDGET = BASELINE_FILLS * 1.5
@@ -253,8 +254,8 @@ describe('the characters, from the actor table', () => {
     expect(eye).toBeGreaterThanOrEqual(0)
     const sleepyEye = covers(log, '#1c1a26', 137, 77)
     expect(sleepyEye).toBeGreaterThan(eye)
-    // the z mark (MARKS.sleepy, MARK_PAL.L) above the head at (x+11, y-8) = (143, 59)
-    expect(covers(log, '#1c1a26', 143, 59)).toBeGreaterThan(-1)
+    // the z mark (MARKS.sleepy, MARK_PAL.L) at the head's top-right edge, (x+20, y-2) = (152, 65)
+    expect(covers(log, '#1c1a26', 152, 65)).toBeGreaterThan(-1)
 
     const { ctx: dayCtx, log: dayLog } = fakeContext()
     render(dayCtx, sceneSnapshot(), 0.3, 0)
@@ -460,15 +461,15 @@ describe('the assistants, the wall clock and the cat (Task 2.5)', () => {
     expect(eye).toBeGreaterThanOrEqual(0)
     const overlay = covers(log, '#1c1a26', 137, 77)
     expect(overlay).toBeGreaterThan(eye)
-    // sparkle (happy's mark) at (x + 11, y - 8) = (143, 59), row 0 col 1
-    expect(covers(log, '#f5b700', 144, 59)).toBeGreaterThan(-1)
+    // sparkle (happy's mark) at (x + 20, y - 2) = (152, 65), row 0 col 1
+    expect(covers(log, '#f5b700', 153, 65)).toBeGreaterThan(-1)
   })
 
   it('shows a sweat mark for a tired seated mangaka, and no more low-stamina !', () => {
     const { ctx, log } = fakeContext()
     render(ctx, sceneSnapshot({ stamina: 10 }), 0.3, 0)
-    expect(covers(log, '#8fd3ff', 144, 60)).toBeGreaterThan(-1)
-    expect(covers(log, '#e5484d', 144, 59)).toBe(-1)
+    expect(covers(log, '#8fd3ff', 153, 66)).toBeGreaterThan(-1)
+    expect(covers(log, '#e5484d', 153, 65)).toBe(-1)
   })
 
   it('paints no overlay for a neutral mood', () => {
@@ -489,26 +490,37 @@ describe('the assistants, the wall clock and the cat (Task 2.5)', () => {
   })
 
   it('lets the ready manuscript exclamation beat a tired mood mark above the standing mangaka (fix round 1)', () => {
-    // standing at MANGAKA_STAND (170, 81): mark slot (170+11, 81-8) = (181, 73); glyph '!' row 1 col 1 -> (182, 74)
+    // standing at MANGAKA_STAND (170, 81): mark slot (170+20, 81-2) = (190, 79); glyph '!' row 1 col 1 -> (191, 80)
     const { ctx, log } = fakeContext()
     render(ctx, sceneSnapshot({ phase: 'ready', stamina: 10 }), 0.3, 100)
-    expect(covers(log, '#e5484d', 182, 74)).toBeGreaterThan(-1)
-    expect(covers(log, '#8fd3ff', 182, 74)).toBe(-1)
+    expect(covers(log, '#e5484d', 191, 80)).toBeGreaterThan(-1)
+    expect(covers(log, '#8fd3ff', 191, 80)).toBe(-1)
   })
 
   it('lets a happy mood mark beat the idle question mark above the standing mangaka (fix round 1)', () => {
-    // idle phase, cheer on, frame 0 (frame % 120 < 40, when the '?' would show): sparkle row 0 col 1 -> (182, 73)
+    // idle phase, cheer on, frame 0 (frame % 120 < 40, when the '?' would show): sparkle row 0 col 1 -> (191, 79)
     const { ctx, log } = fakeContext()
     render(ctx, sceneSnapshot({ phase: 'idle', cheer: true }), 0.3, 0)
-    expect(covers(log, '#f5b700', 182, 73)).toBeGreaterThan(-1)
+    expect(covers(log, '#f5b700', 191, 79)).toBeGreaterThan(-1)
     expect(log.some((c) => c.style === '#2f5ecf')).toBe(false)
   })
 
   it('shows a sweat mark on a tired assistant', () => {
     const { ctx, log } = fakeContext()
     render(ctx, sceneSnapshot({ assistants: [{ look: 0, stamina: 10 }] }), 0.3, 0)
-    // assistant at (66, 89): mark at (66 + 11, 89 - 8) = (77, 81), row 1 col 1
-    expect(covers(log, '#8fd3ff', 78, 82)).toBeGreaterThan(-1)
+    // assistant at (66, 89): mark at (66 + 20, 89 - 2) = (86, 87), row 1 col 1
+    expect(covers(log, '#8fd3ff', 87, 88)).toBeGreaterThan(-1)
+  })
+
+  it('puts the mark at the top-right edge, right of the hair and clear of its outline', () => {
+    // seated (132, 67), sleepy at night: every MARK fill sits in cols 20-22, rows -2 to 2 of the frame, and the frame's
+    // own cells there (MANGAKA_SIT rows 0-2, cols 20-22) are empty, so the mark never touches the hair
+    const { ctx, log } = fakeContext()
+    render(ctx, sceneSnapshot(), 0.9, 0)
+    const z = log.filter((c) => c.style === '#1c1a26' && c.y < 70 && c.x >= 152)
+    expect(z.length).toBeGreaterThan(0)
+    for (const c of z) expect(c.x >= 152 && c.x + c.w <= 155 && c.y >= 65 && c.y + c.h <= 70, JSON.stringify(c)).toBe(true)
+    expect(MANGAKA_SIT[0].slice(0, 3).map((row) => row.slice(19))).toEqual(['.....', '.....', '.....'])
   })
 
   it('shows the sip mug at frame 300 (idle cycle), standing and not ready', () => {
