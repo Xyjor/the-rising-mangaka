@@ -23,6 +23,7 @@ import type {
   Activity, Assistant, AssistantTrait, AudienceId, EditorRel, Focus, GameState, GenreId, Magazine,
   MagazineId, PendingChapter, Phase, Player, Project, ProjectDraft, Rating, Serial, StatId, ThemeId,
 } from './types'
+import { awardBadges } from './badges'
 import { pendingMilestones } from './milestones'
 import { makeRival } from './rival'
 import { equipmentEffects, studioSlots, studioTier } from './studio'
@@ -74,6 +75,7 @@ export function createGame(name: string, seed: number): GameState {
     nextLogId: 1,
     nextAssistantId: 1,
     milestonesDone: [],
+    badges: [],
     rival: makeRival(worldSeed, 0),
     event: null,
     eventSeed: hashString(`events:${worldSeed}`) | 0,
@@ -884,6 +886,7 @@ export function tick(state: GameState): GameState {
   s = animeTick(s)
   s = eventTick(s)
   s = awardMilestones(s)
+  s = awardBadges(state, s)
   return s
 }
 

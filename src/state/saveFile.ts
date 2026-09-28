@@ -1,6 +1,6 @@
 // The save file: a career written out to carry between computers or keep as a backup, and read back strictly. The
 // browser's own save (store.ts) and this file share the version and the trimmed log.
-import { describeDate, getPhase, tick } from '../sim'
+import { describeDate, getPhase, shortDate, tick } from '../sim'
 import type { GameState } from '../sim'
 import { upgradeSave } from '../sim/migrate'
 
@@ -144,4 +144,32 @@ export function storedSaveFile(raw: string | null, now: Date = new Date()): { fi
   const name = isObject(player) && typeof player.name === 'string' ? player.name : ''
   const day = typeof game.day === 'number' && Number.isFinite(game.day) && game.day >= 0 ? game.day : 0
   return { fileName: saveFileName(name, day), text: fileText(game, state.tutorialStep, state.resumeSpeed, now) }
+}
+
+/** What a slot card shows about the career stored in it. */
+export interface SlotSummary { penName: string; dateLabel: string; money: number; fans: number; serialTitle: string | null }
+
+/** A stored slot's summary, read from its JSON (`raw`); null when the slot is empty or unreadable. */
+export function slotSummary(raw: string | null): SlotSummary | null {
+  if (raw === null) return null
+  let state: unknown
+  try {
+    state = (JSON.parse(raw) as { state?: unknown }).state
+  } catch {
+    return null
+  }
+  if (!isObject(state) || !isObject(state.game)) return null
+  const game = state.game
+  const player = game.player
+  if (!isObject(player) || typeof player.name !== 'string') return null
+  const day = typeof game.day === 'number' && Number.isFinite(game.day) && game.day >= 0 ? game.day : 0
+  const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : 0)
+  const serial = game.serial
+  return {
+    penName: player.name,
+    dateLabel: shortDate(day),
+    money: num(player.money),
+    fans: num(player.fans),
+    serialTitle: isObject(serial) && typeof serial.title === 'string' ? serial.title : null,
+  }
 }

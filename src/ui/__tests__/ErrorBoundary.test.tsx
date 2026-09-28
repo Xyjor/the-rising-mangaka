@@ -6,7 +6,10 @@ import '../../test/dom'
 import { exportSave } from '../../platform/saveTransfer'
 import { createGame, tickMany } from '../../sim'
 import { parseSave, trimLog } from '../../state/saveFile'
-import { SAVE_KEY, useStore } from '../../state/store'
+import { useStore } from '../../state/store'
+
+/** A fresh install's first game goes to slot 1. */
+const SAVE_KEY = 'rising-mangaka-save-1'
 import { OWNER_KEY } from '../../state/tabLock'
 import { ErrorBoundary } from '../ErrorBoundary'
 

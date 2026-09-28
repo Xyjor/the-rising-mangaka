@@ -13,18 +13,22 @@ import type { SoundPrefs } from '../audio/types'
 import { isDesktop } from '../platform/env'
 import { SAVE_VERSION, trimLog } from './saveFile'
 import type { SaveFile } from './saveFile'
+import { recordProfile } from './profile'
+import { LEGACY_SAVE_KEY, PREFS_KEY, SLOT_IDS, SLOT_INDEX_KEY, migrateLegacy, slotKey, viewSlots, writeIndex } from './slots'
+import type { SlotId, SlotStart } from './slots'
 import { claim, disableTabLock, isOwner, startTabLock } from './tabLock'
 
 export type Speed = 0 | 1 | 2 | 3
 export type RunSpeed = Exclude<Speed, 0>
 export type Modal =
   | 'none' | 'wizard' | 'submit' | 'stats' | 'notebook' | 'history' | 'settings' | 'staff' | 'trips' | 'series'
-  | 'career' | 'studio' | 'year' | 'log'
+  | 'career' | 'studio' | 'year' | 'log' | 'badges'
 export type ThemeMode = 'auto' | 'light' | 'dark'
 
 export interface Toast { id: number; kind: LogKind; text: string }
 
 export const SPEED_MS: Record<RunSpeed, number> = { 1: 1000, 2: 500, 3: 220 }
+/** The persist middleware's name; the key a career is written under follows the open slot (`careerKey`). */
 export const SAVE_KEY = 'rising-mangaka-save'
 /** How long the save waits for more changes before it is written. */
 const SAVE_DEBOUNCE_MS = 800
@@ -57,7 +61,20 @@ interface Store {
    */
   deskHidden: boolean
 
+  /** The open career's slot; null on the title screen. Not saved (the slot index holds it). */
+  activeSlot: SlotId | null
+
   newGame: (name: string) => void
+  /** Flush the open career, then open the career in slot `n`. False in a tab that does not own the save or for an empty slot. */
+  openSlot: (n: SlotId) => boolean
+  /** Start a new career in empty slot `n`. False in a tab that does not own the save or when the slot is filled. */
+  startInSlot: (n: SlotId, penName: string) => boolean
+  /** Flush the open career and go back to the title screen; the career stays in its slot. */
+  backToTitle: () => boolean
+  /** Delete the career in slot `n` (never the old single save, never the open slot). */
+  deleteSlot: (n: SlotId) => boolean
+  /** Write a save file into slot `n`: the open slot through `loadSave`, any other straight to its key. */
+  loadSaveIntoSlot: (n: SlotId, save: SaveFile) => boolean
   /**
    * Replace the game with one read from a save file, stopped, and write it at once. Refused (false) in a tab that does
    * not own the save. Counts as a save load, so the sound bridge plays nothing for the jump.
@@ -65,7 +82,6 @@ interface Store {
   loadSave: (save: SaveFile) => boolean
   /** Claim the save for this tab and reload the latest state from storage. */
   takeOver: () => void
-  abandonGame: () => void
   tick: () => void
   setSpeed: (s: Speed) => void
   togglePause: () => void
@@ -131,19 +147,72 @@ interface Persisted {
   sound: SoundPrefs
 }
 
+function local(): Storage | null {
+  try {
+    return typeof localStorage !== 'undefined' ? localStorage : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Which slot is open, and whether this run fell back to the old single save (the copy into slot 1 failed: slot 1 then
+ * stands for the old key, read and written exactly as 0.5.0 did). Set once before the store hydrates.
+ */
+let slots: SlotStart = { active: null, legacy: false }
+{
+  // Only the tab that owns the save (or the desktop app, the one window) migrates; another tab only looks.
+  const ls = local()
+  if (ls) slots = isDesktop() || isOwner() ? migrateLegacy(ls) : viewSlots(ls)
+}
+
+/** The key slot `n`'s career is kept under. */
+export function careerKey(n: SlotId): string {
+  return slots.legacy && n === 1 ? LEGACY_SAVE_KEY : slotKey(n)
+}
+
+/** The open career's key, or null on the title screen. */
+export function activeSaveKey(): string | null {
+  return slots.active === null ? null : careerKey(slots.active)
+}
+
+/** The stored text of slot `n`, or null when it is empty or storage cannot be read. */
+export function slotRaw(n: SlotId): string | null {
+  try {
+    return local()?.getItem(careerKey(n)) ?? null
+  } catch {
+    return null
+  }
+}
+
+/** True when this run reads the old single save because the copy into slot 1 failed. */
+export function isLegacyFallback(): boolean {
+  return slots.legacy
+}
+
 /**
  * Debounced, de-duplicated, single-writer save storage. Zustand's persist calls setItem on every set();
  * this only accepts a value when one of the persisted fields changed by reference, writes it after a short
  * quiet period (at once when a game starts, ends or is replaced), and never writes while another tab owns
  * the save. The saved log is trimmed to what the studio log shows.
+ *
+ * The career goes to the open slot's key, resolved when the change is accepted and kept with the waiting write, so a
+ * write still waiting on the debounce lands in the slot it belongs to even after the slot changes. The theme and sound
+ * go to the prefs key. A null game is never written: only `deleteSlot` empties a slot.
  */
 let lastAccepted: Persisted | null = null
-let pending: { name: string; value: StorageValue<Persisted> } | null = null
+let pending: { key: string | null; value: StorageValue<Persisted> } | null = null
 let flushTimer: ReturnType<typeof setTimeout> | null = null
 
 function cancelFlush() {
   if (flushTimer !== null) clearTimeout(flushTimer)
   flushTimer = null
+}
+
+/** Drops a waiting write without writing it. */
+function dropPending() {
+  cancelFlush()
+  pending = null
 }
 
 /** Writes the waiting save now instead of after the debounce: the page is going away or out of sight. */
@@ -152,26 +221,71 @@ export function flushSave() {
   const job = pending
   pending = null
   if (!job || !isOwner()) return
-  const { name, value } = job
-  const game = value.state.game
-  const state: Persisted = { ...value.state, game: game && trimLog(game) }
+  const { key, value } = job
+  const { game, theme, sound, resumeSpeed, tutorialStep } = value.state
   try {
-    localStorage.setItem(name, JSON.stringify({ version: value.version, state }))
+    if (key === LEGACY_SAVE_KEY) {
+      // The fallback run: the old key, in its old shape, prefs included.
+      const state: Persisted = { ...value.state, game: game && trimLog(game) }
+      localStorage.setItem(key, JSON.stringify({ version: value.version, state }))
+      return
+    }
+    localStorage.setItem(PREFS_KEY, JSON.stringify({ theme, sound }))
+    if (key && game) {
+      const state = { game: trimLog(game), resumeSpeed, tutorialStep }
+      localStorage.setItem(key, JSON.stringify({ version: value.version, state }))
+    }
   } catch {
-    /* quota or privacy mode: the game keeps running unsaved */
+    // Quota or privacy mode: the game keeps running, and the player is told it is not being saved.
+    warnUnsaved(SAVE_FAILED)
   }
 }
 
+export const NO_FREE_SLOT = 'All three slots hold a career. Delete one on the title screen to start another.'
+export const SAVE_FAILED = 'The game could not be saved. Free some browser storage, then export your save file.'
+
+/** Toasts a save that could not happen, after the current update (the store may be mid-set). */
+function warnUnsaved(text: string) {
+  queueMicrotask(() => {
+    const { toasts } = useStore.getState()
+    useStore.setState({ toasts: mergeToasts(toasts, [{ id: toastSeq++, kind: 'warn', text }]) })
+  })
+}
+
+function parse(raw: string | null | undefined): Record<string, unknown> | null {
+  if (!raw) return null
+  try {
+    const v = JSON.parse(raw) as unknown
+    return typeof v === 'object' && v !== null ? (v as Record<string, unknown>) : null
+  } catch {
+    return null
+  }
+}
+
+/** The first empty slot, for a game that starts with no slot open (it must never go unsaved). */
+function firstFreeSlot(): SlotId | null {
+  return SLOT_IDS.find((n) => slotRaw(n) === null) ?? null
+}
+
 const saveStorage: PersistStorage<Persisted> = {
-  getItem: (name) => {
+  getItem: () => {
+    const ls = local()
+    if (!ls) return null
     try {
-      const raw = localStorage.getItem(name)
-      return raw ? (JSON.parse(raw) as StorageValue<Persisted>) : null
+      const key = activeSaveKey()
+      const career = parse(key ? ls.getItem(key) : null)
+      const prefs = key === LEGACY_SAVE_KEY ? null : parse(ls.getItem(PREFS_KEY))
+      if (!career && !prefs) return null
+      const careerState = (career?.state ?? {}) as Partial<Persisted>
+      const state = { ...careerState, ...(prefs ?? {}) } as Persisted
+      if (!career) state.game = null
+      const version = typeof career?.version === 'number' ? career.version : SAVE_VERSION
+      return { version, state }
     } catch {
       return null
     }
   },
-  setItem: (name, value) => {
+  setItem: (_name, value) => {
     if (!isOwner()) return
     const s = value.state
     const last = lastAccepted
@@ -186,7 +300,16 @@ const saveStorage: PersistStorage<Persisted> = {
     const gameReplaced =
       !!s.game !== !!last?.game || (!!s.game && !!last?.game && s.game.worldSeed !== last.game.worldSeed)
     lastAccepted = s
-    pending = { name, value }
+    if (s.game && slots.active === null) {
+      const free = firstFreeSlot()
+      if (free !== null) {
+        slots = { ...slots, active: free }
+        const ls = local()
+        if (ls) writeIndex(ls, free)
+        queueMicrotask(() => useStore.setState({ activeSlot: free }))
+      } else warnUnsaved(NO_FREE_SLOT)
+    }
+    pending = { key: activeSaveKey(), value }
     if (gameReplaced) {
       flushSave()
       return
@@ -194,16 +317,40 @@ const saveStorage: PersistStorage<Persisted> = {
     cancelFlush()
     flushTimer = setTimeout(flushSave, SAVE_DEBOUNCE_MS)
   },
-  removeItem: (name) => {
-    cancelFlush()
-    pending = null
-    lastAccepted = null
-    try {
-      localStorage.removeItem(name)
-    } catch {
-      /* nothing to remove */
-    }
-  },
+  // Nothing in the game clears storage through persist; a slot goes only through deleteSlot.
+  removeItem: () => dropPending(),
+}
+
+/** Records newly earned badges in the cross-save profile, from the tab that owns the save only. */
+function noteBadges(prev: GameState, next: GameState) {
+  if ((next.badges?.length ?? 0) <= (prev.badges?.length ?? 0) || slots.active === null || !canUseSlots()) return
+  recordProfile(local(), next, slots.active)
+}
+
+/** Slot actions belong to the tab that owns the save. */
+function canUseSlots(): boolean {
+  return !useStore.getState().readOnly && isOwner()
+}
+
+/** Points the save at slot `n` and records it in the index. Drops nothing: flush first. */
+function switchTo(n: SlotId) {
+  slots = { ...slots, active: n }
+  const ls = local()
+  if (ls && !slots.legacy) writeIndex(ls, n)
+}
+
+/**
+ * Re-reads the index (another tab may have opened another slot) and loads that slot, or the title screen when none is
+ * open. Used by a read-only tab mirroring the owner and by a take-over.
+ */
+function followIndex(owner = false) {
+  const ls = local()
+  // A take-over makes this tab the owner: it runs the migration a read-only tab skipped at its start.
+  if (ls) slots = owner ? migrateLegacy(ls) : viewSlots(ls)
+  // Load first: the merge makes what loaded the save's baseline, so the update below cannot write this tab's stale game
+  // over the owner's slot. With no slot open, the rehydrate finds no career and the game goes (the title screen).
+  void useStore.persist.rehydrate()
+  useStore.setState(slots.active === null ? { activeSlot: null, speed: 0, modal: 'none' } : { activeSlot: slots.active })
 }
 
 export const useStore = create<Store>()(
@@ -221,6 +368,7 @@ export const useStore = create<Store>()(
         if (opts.close) patch.modal = 'none'
         if (opts.resume) patch.speed = resumeSpeed
         set(patch)
+        noteBadges(game, next)
       }
 
       return {
@@ -236,18 +384,82 @@ export const useStore = create<Store>()(
         saveLoads: 0,
         windowHidden: false,
         deskHidden: false,
+        activeSlot: slots.active,
 
         takeOver: () => {
           claim()
-          // Drop any write the read-only tab queued from local-only changes, then load the owner's save before
-          // flipping the flag so nothing stale can overwrite it.
-          cancelFlush()
-          pending = null
-          void useStore.persist.rehydrate()
+          // Drop any write the read-only tab queued from local-only changes, then load the owner's save (in the slot
+          // the owner had open) before flipping the flag so nothing stale can overwrite it.
+          dropPending()
+          followIndex(true)
           set({ readOnly: false })
         },
 
+        openSlot: (n) => {
+          if (!canUseSlots() || slotRaw(n) === null) return false
+          // The open career's waiting write lands in its own slot before the key moves.
+          flushSave()
+          switchTo(n)
+          // The merge makes the loaded career the baseline, so nothing is written back.
+          void useStore.persist.rehydrate()
+          set({ activeSlot: n, speed: 0, modal: 'none', toasts: [], deskHidden: false })
+          return true
+        },
+
+        startInSlot: (n, penName) => {
+          if (!canUseSlots() || slotRaw(n) !== null) return false
+          flushSave()
+          switchTo(n)
+          set({ activeSlot: n, deskHidden: false })
+          get().newGame(penName.trim() || 'Rookie')
+          return true
+        },
+
+        backToTitle: () => {
+          if (!canUseSlots()) return false
+          flushSave()
+          // The fallback run keeps no index, so the next start tries the copy into slot 1 again.
+          slots = { ...slots, active: null }
+          const ls = local()
+          if (ls && !slots.legacy) writeIndex(ls, null)
+          set({ game: null, speed: 0, modal: 'none', toasts: [], activeSlot: null, deskHidden: false })
+          return true
+        },
+
+        deleteSlot: (n) => {
+          const key = careerKey(n)
+          if (!canUseSlots() || key === LEGACY_SAVE_KEY || n === slots.active) return false
+          try {
+            localStorage.removeItem(key)
+            return true
+          } catch {
+            return false
+          }
+        },
+
+        loadSaveIntoSlot: (n, save) => {
+          if (n === slots.active) return get().loadSave(save)
+          const key = careerKey(n)
+          if (!canUseSlots() || key === LEGACY_SAVE_KEY) return false
+          const state = { game: trimLog(save.game), tutorialStep: save.tutorialStep, resumeSpeed: save.resumeSpeed }
+          try {
+            localStorage.setItem(key, JSON.stringify({ version: SAVE_VERSION, state }))
+            return true
+          } catch {
+            return false
+          }
+        },
+
         newGame: (name) => {
+          if (slots.active === null) {
+            const free = firstFreeSlot()
+            if (free === null) {
+              set({ toasts: mergeToasts(get().toasts, [{ id: toastSeq++, kind: 'warn', text: NO_FREE_SLOT }]) })
+              return
+            }
+            switchTo(free)
+            set({ activeSlot: free })
+          }
           const seed = (Date.now() ^ (Math.random() * 0xffffffff)) | 0
           set({ game: sim.createGame(name, seed), speed: 0, modal: 'none', toasts: [], tutorialStep: 0 })
         },
@@ -262,8 +474,6 @@ export const useStore = create<Store>()(
           flushSave()
           return true
         },
-
-        abandonGame: () => set({ game: null, speed: 0, modal: 'none', toasts: [] }),
 
         tick: () => {
           const { game, toasts } = get()
@@ -288,6 +498,7 @@ export const useStore = create<Store>()(
             patch.deskHidden = false
           }
           set(patch)
+          noteBadges(game, next)
         },
 
         setSpeed: (s) => set(s === 0 ? { speed: 0 } : { speed: s, resumeSpeed: s }),
@@ -404,8 +615,11 @@ if (typeof window !== 'undefined') {
   } else {
     // Only the owner tab writes the save and runs the clock; the others mirror it read-only.
     startTabLock((owner) => useStore.setState(owner ? { readOnly: false } : { readOnly: true, speed: 0 }))
+    // A read-only tab mirrors the owner: the owner's open slot (the index), that slot's career and the prefs.
     window.addEventListener('storage', (e) => {
-      if (e.key === SAVE_KEY && useStore.getState().readOnly) void useStore.persist.rehydrate()
+      if (!useStore.getState().readOnly) return
+      if (e.key === SLOT_INDEX_KEY || e.key === null) followIndex()
+      else if (e.key === PREFS_KEY || e.key === activeSaveKey()) void useStore.persist.rehydrate()
     })
   }
 }

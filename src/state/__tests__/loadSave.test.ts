@@ -8,7 +8,9 @@ import type { SaveFile } from '../saveFile'
 // The save storage and its debounce timer are faked before the store loads, as persist.test.ts does.
 vi.useFakeTimers()
 const storage = installFakeStorage()
-const { SAVE_KEY, useStore } = await import('../store')
+const { useStore } = await import('../store')
+/** A fresh install's first game goes to slot 1. */
+const SAVE_KEY = 'rising-mangaka-save-1'
 const { OWNER_KEY } = await import('../tabLock')
 
 const st = () => useStore.getState()

@@ -288,7 +288,7 @@ describe('serialisation', () => {
     expect(ser.status).toBe('cancelled')
     expect(ser.results).toHaveLength(7)
     // Weak chapters and missed issues share the warning count, so the cancellation names warnings, not weak chapters.
-    expect(s.log[s.log.length - 1].text).toMatch(
+    expect(lastLine(s).text).toMatch(
       /^Weekly Bolt cancelled "Blade Club" after 3 warnings in a row\. Fans -\d+\. A one-shot that places top 3 or scores 65\+ earns a new offer\.$/,
     )
   })
@@ -402,7 +402,7 @@ describe('chapter deadlines', () => {
     expect(missLogs(s)[2].text).toBe(
       '"Magic Club" missed its issue: chapter 5 was not ready. Popularity -10. Warning 3 of 3.',
     )
-    expect(s.log[s.log.length - 1]).toMatchObject({
+    expect(lastLine(s)).toMatchObject({
       kind: 'warn',
       toast: true,
       text: 'Kids Comic Go! cancelled "Magic Club" after 3 warnings in a row. Fans -100. A one-shot that places top 3 or scores 65+ earns a new offer.',
@@ -448,7 +448,7 @@ describe('chapter deadlines', () => {
     expect(s.serial).toBeNull()
     expect(s.serials[0].results[5].rank).toBe(11)
     expect(s.serials[0]).toMatchObject({ status: 'cancelled', warnings: 3, missedIssues: 1 })
-    expect(s.log[s.log.length - 1].text).toMatch(
+    expect(lastLine(s).text).toMatch(
       /^Kids Comic Go! cancelled "Magic Club" after 3 warnings in a row\. Fans -\d+\. A one-shot that places top 3 or scores 65\+ earns a new offer\.$/,
     )
   })
@@ -576,7 +576,7 @@ describe('exhaustion', () => {
     expect(s.player.stamina).toBe(0)
     expect(s.recovering).toBe(true)
     expect(s.activity).toBe('rest')
-    expect(s.log[s.log.length - 1].kind).toBe('warn')
+    expect(lastLine(s).kind).toBe('warn')
     expect(countLogs(s, 'You collapsed')).toBe(1)
     expect(tick(jobAt(10)).player.money).toBe(money + 60)
     expect(tick(jobAt(25)).player.money).toBe(money + 120)
@@ -887,3 +887,8 @@ describe('candidates', () => {
     }
   })
 })
+
+/** the tick's last log line before the badges (the last step of every tick) */
+function lastLine(s: GameState) {
+  return s.log.filter((e) => !e.text.startsWith('Badge:')).at(-1)!
+}

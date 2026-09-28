@@ -131,4 +131,13 @@ describe('SettingsModal save file', () => {
     expect(screen.getByRole('button', { name: 'Export save file' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Load save file…' })).toBeTruthy()
   })
+  it('goes back to the title screen after a confirmation, keeping the career in its slot', () => {
+    render(<SettingsModal />)
+    fireEvent.click(screen.getByRole('button', { name: 'Back to the title screen' }))
+    expect(useStore.getState().game).not.toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Yes, go to the title screen' }))
+    expect(useStore.getState().game).toBeNull()
+    expect(useStore.getState().activeSlot).toBeNull()
+    expect(localStorage.getItem('rising-mangaka-save-1')).toContain('"Rin"')
+  })
 })

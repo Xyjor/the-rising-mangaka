@@ -21,7 +21,8 @@ export function SettingsModal() {
   const setTheme = useStore((s) => s.setTheme)
   const sound = useStore((s) => s.sound)
   const setSound = useStore((s) => s.setSound)
-  const abandon = useStore((s) => s.abandonGame)
+  const backToTitle = useStore((s) => s.backToTitle)
+  const readOnly = useStore((s) => s.readOnly)
 
   const keys = isDesktop() ? [...KEYS, ...DESKTOP_KEYS] : KEYS
   const volumePct = Math.round(sound.volume * 100)
@@ -92,10 +93,17 @@ export function SettingsModal() {
 
         <section className="settings-section row between wrap">
           <div>
-            <div style={{ fontWeight: 800 }}>Start over</div>
-            <div className="tiny faint">Deletes this save. There is no undo.</div>
+            <div style={{ fontWeight: 800 }}>Title screen</div>
+            <div className="tiny faint">Your career stays saved in its slot. Open it again from the title screen.</div>
           </div>
-          <ConfirmRow label="New game…" confirmLabel="Yes, delete save" cancelLabel="Keep playing" onConfirm={abandon} />
+          {!readOnly && (
+            <ConfirmRow
+              label="Back to the title screen"
+              confirmLabel="Yes, go to the title screen"
+              cancelLabel="Keep playing"
+              onConfirm={() => void backToTitle()}
+            />
+          )}
         </section>
       </div>
     </Modal>

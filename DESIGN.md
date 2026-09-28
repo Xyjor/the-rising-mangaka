@@ -704,21 +704,45 @@ included), the browser engine's own shortcuts (reload, print, going back) are ca
 included, and its right-click menu everywhere except text fields; only `npm run tauri dev` keeps both, for
 development.
 
-**Where a career lives.** In the browser it is `localStorage` under the key `rising-mangaka-save`. In the desktop
+**Where a career lives.** There are three careers, one per slot, each in `localStorage` under its own key,
+`rising-mangaka-save-1`, `-2` and `-3` (the game, the tips step and the run speed, the same payload and
+`SAVE_VERSION` as before). The index `rising-mangaka-slots` holds only `{ active: 1 | 2 | 3 | null }`, the open
+career; the device's preferences (the theme and the sound: muted, volume, music) live apart in
+`rising-mangaka-prefs`, shared by every career. The title screen lists the three slots: a filled one shows the pen
+name, the date, money, fans and the running serial (`slotSummary`, read from the slot's JSON, never stored twice) and
+offers Continue, Export save file, Load a save file into this slot (asking first before it replaces a career) and
+Delete this career (behind a confirmation); an empty one takes a pen name and starts a career there. Settings' "Back
+to the title screen" writes the career and leaves it in its slot. A write still waiting on the save's debounce keeps
+the key it was queued for, so it lands in its own slot even when the player switches slots straight after.
+
+**The single save of 0.5.0.** Before the store loads, `slots.ts` `migrateLegacy` copies the old key
+`rising-mangaka-save` into slot 1 when the slots were never set up (no index) and slot 1 is empty: it writes slot 1,
+reads it back and compares byte for byte, copies the old theme and sound to the prefs key if that key is absent, and
+only then sets `active: 1`. Any failed write or check puts every key back as it was and this run reads (and saves to)
+the old key exactly as 0.5.0 did, slot 1 standing for it; the copy is tried again at the next start. A filled slot 1
+is never overwritten, and nothing ever deletes the old key. Only the tab that owns the save (or the desktop app)
+migrates; another tab only looks. The index records the copy's fingerprint (`migratedFrom`): if a fallback run kept
+playing the old key after another start copied it, and slot 1 is still exactly that copy, the next start refreshes slot
+1 from the old key (verified). With no index, a filled slot 1 is an unverified copy and is not trusted: the old key is
+read. If a fallback run's crash screen starts over, it writes `{ active: null }`, which also stops the old save being
+copied at later starts (the old key stays on disk). A new game with all three slots full is refused with a toast, and a
+save that cannot be written toasts too. In the desktop
 app that same storage lives inside the app's own WebView2 profile, under the identifier
 `com.xyjor.risingmangaka` in `%LOCALAPPDATA%`; the remembered window state is a small file under the same
 identifier in `%APPDATA%`. Only one tab or window plays at a time: a tab lock (`tabLock.ts`, browser only — the
 desktop app has a single window and disables it) lets one tab own the save and run the clock while any other
 mirrors it read-only and stays silent, with a heartbeat so a tab that closed or crashed without saying so goes
-stale and another can take over.
+stale and another can take over. The lock covers the whole app: a read-only tab follows the owner's open slot (the
+index) and that slot's career, and every slot action is off in it.
 
 **Save files.** A career can be written out as a `.json` file (`saveFile.ts`) and read back on any computer:
-Settings' Save file section, and the title screen before a career starts, offer Export save file and Load a save
-file. The file names itself after the pen name and the in-game date (year only after the first), carries a format
+Settings' Save file section (the open career) and each slot on the title screen offer Export save file and Load a
+save file; a file loaded into a slot that is not open is checked the same way and written to that slot's key. The file names itself after the pen name and the in-game date (year only after the first), carries a format
 marker and the save version, and a load is strict: text that is not valid JSON, does not carry that marker, comes
 from an older or newer save version, runs over 5,000,000 characters, or holds a game the sim cannot even advance by
 a day is refused, each refusal saying what to do next rather than only that it failed. If the game ever crashes, a
-recovery screen offers to export whatever is in storage before starting over — or, in a tab that has lost the save
+recovery screen offers to export whatever is in the open slot before starting over (which empties that slot, never
+the old single save) — or, in a tab that has lost the save
 to another, only a reload, since starting over is not that tab's to do.
 
 ### Auto-pause rules
@@ -770,6 +794,39 @@ awarded on the next tick, at most one day later.
 | graceful-exit | Graceful exit | 150 | an archived serial with status ended and popularity >= 50 |
 | fans-100k | A hundred thousand fans | 200 | fans >= 100,000 |
 
+### Badges
+A gallery of 15 fun, often hidden achievements beside the milestone ladder (`src/sim/badges.ts`). Badges grant no
+XP and no money, consume no RNG and change no rule, so balance cannot move. Each rule reads the state before the tick
+(`prev`) and after it (`s`); `awardBadges(prev, s)` is the last step of `tick()` and logs `Badge: <title>.` as a toast
+(the milestone cue plays). A badge earned through a command lands on the next tick. `upgradeSave` grants quietly (no
+log, no toast, the save's current day) every badge the loaded state already earns; the two one-day happenings
+(all-nighter, ramen-budget) cannot be seen after the fact and are only earned in play. Hidden badges show "???" and a
+category hint in the gallery until earned.
+
+| Id | Title | Hidden | Rule |
+|----|-------|--------|------|
+| all-nighter | Pull an all-nighter | yes | prev activity work, not recovering; now recovering (a collapse at the desk) |
+| cancelled | Cancelled | yes | a serial with status cancelled |
+| stop-presses | Stop the presses | yes | a serial with missedIssues > 0 |
+| ramen-budget | Ramen budget | yes | a new day that ends a week (day % 7 == 0) with money < 0 |
+| first-place | Top of the poll | no | any poll placement rank 1 |
+| golden-pen | The Golden Pen | no | the Golden Pen in `awards` |
+| grand-slam | Grand slam | yes | all four awards in `awards` |
+| rival-10 | Old rivals | no | `rivalRecord(s).wins >= 10` |
+| perfect-pair | Perfect pairing | no | a Notebook genre-theme rating of 4 |
+| anime-signed | On the screen | no | one anime deal |
+| anime-declined | Not for sale | yes | a series in `animeOfferedFor` with no deal and no offer waiting (declined, lapsed or withdrawn) |
+| the-loft | Moving up | no | studio tier loft |
+| fully-equipped | Fully equipped | no | every piece of equipment owned |
+| century | Century | no | chapters sent across all serials >= 100 |
+| millionaire | Millionaire | no | money >= 1,000,000 |
+
+The cross-save profile (`src/state/profile.ts`, localStorage `rising-mangaka-profile`,
+`{ badges: { id, day, slot, penName }[] }`) keeps the first time each badge was ever earned in any career on the
+device. The store merges it after a tick or command that grew `game.badges`, only in the tab that owns the save; a
+failure is swallowed, and an unreadable key reads as empty and is replaced. The Badges panel (rail button, G) shows
+this career's badges with their date, badges from an earlier career dimmed, and the rest.
+
 ## Tick order
 The final hook order inside `tick()`:
 
@@ -787,7 +844,8 @@ The final hook order inside `tick()`:
 10. `eventTick` (an unanswered event past its last day, or one whose subject is gone, lapses; the weekly random-event
     roll).
 11. `awardMilestones`.
-12. Return.
+12. `awardBadges(prev, s)` (no XP, no money, no RNG).
+13. Return.
 
 `closeYear` runs before `animeTick`, `eventTick` and `awardMilestones`, so they see the prizes and the grown rival
 the same day; a milestone that lands on the closing day counts toward the new year.

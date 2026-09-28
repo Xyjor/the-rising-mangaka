@@ -1,6 +1,6 @@
 // Which sounds a change of game state makes. Pure: it compares two states field by field (never the log's wording),
 // so the same rules hear a day's tick and a player's command alike. Framework-free; the store plays what it returns.
-import { PODIUM_RANK, doneIds, getPhase, isPayDay, weakRankLine } from '../sim'
+import { PODIUM_RANK, doneIds, earnedBadges, getPhase, isPayDay, weakRankLine } from '../sim'
 import type { GameState, Serial } from '../sim'
 import type { CueId } from './types'
 
@@ -71,7 +71,8 @@ export function cuesForTransition(prev: GameState, next: GameState): CueId[] {
     !prev.event && next.event ? 'event' : null,
     phaseWas === 'drawing' && phase === 'ready' ? 'ready' : null,
     next.player.level > prev.player.level ? 'levelup' : null,
-    doneIds(next).length > doneIds(prev).length ? 'milestone' : null,
+    doneIds(next).length > doneIds(prev).length || earnedBadges(next).length > earnedBadges(prev).length
+      ? 'milestone' : null,
     chapterCue(pairs),
     coinsCue(prev, next, pairs),
     phaseWas === 'ready' && phase === 'submitted' ? 'submit' : null,

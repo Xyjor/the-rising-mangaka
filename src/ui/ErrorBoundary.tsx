@@ -1,24 +1,28 @@
 import { Component, useState } from 'react'
 import type { ReactNode } from 'react'
 import { storedSaveFile } from '../state/saveFile'
-import { SAVE_KEY, flushSave, useStore } from '../state/store'
+import { LEGACY_SAVE_KEY, writeIndex } from '../state/slots'
+import { activeSaveKey, flushSave, useStore } from '../state/store'
 import { isOwner } from '../state/tabLock'
 import { ConfirmRow } from './ConfirmRow'
 import { SaveFileNoticeLine } from './SaveFileSection'
 import { exportNotice } from './useSaveFile'
 import type { SaveFileNotice } from './useSaveFile'
 
-/** The save kept in storage, read raw: after a crash the store's state may be what broke. */
+/** The open slot's save kept in storage, read raw: after a crash the store's state may be what broke. */
 function storedSave(): string | null {
+  const key = activeSaveKey()
+  if (key === null) return null
   try {
-    return localStorage.getItem(SAVE_KEY)
+    return localStorage.getItem(key)
   } catch {
     return null
   }
 }
 
 /**
- * Deletes the save and reloads into the title screen. The store drops its game first, so neither a write still waiting
+ * Deletes the open slot's save and reloads into the title screen, with no slot open. The old single save of 0.5.0 is
+ * never deleted: when this run fell back to it, only the index is written, so the next start opens the title screen. The store drops its game first, so neither a write still waiting
  * on the debounce (flushed as the page goes) nor any later update can bring the old save back. A tab that has lost the
  * save to another since the screen appeared only reloads: the save belongs to the tab that owns it.
  */
@@ -29,8 +33,10 @@ function startOver() {
     } catch {
       /* the store is past helping: the key still goes */
     }
+    const key = activeSaveKey()
     try {
-      localStorage.removeItem(SAVE_KEY)
+      if (key !== null && key !== LEGACY_SAVE_KEY) localStorage.removeItem(key)
+      writeIndex(localStorage, null)
     } catch {
       /* storage unavailable: there is nothing to delete */
     }

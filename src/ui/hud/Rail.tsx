@@ -47,6 +47,7 @@ export const Rail = memo(function Rail() {
         disabled={!hasSerial && pastSerials === 0} />
       <RailButton icon="history" label="History" title="History (H)" onClick={() => openModal('history')} />
       <RailButton icon="trophy" label="Career" title="Career" onClick={() => openModal('career')} />
+      <RailButton icon="star" label="Badges" title="Badges (G)" onClick={() => openModal('badges')} />
     </nav>
   )
 })

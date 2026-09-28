@@ -1,4 +1,5 @@
 // Pure simulation types. No React, no DOM.
+import type { BadgeEarned } from './badges'
 import type { MilestoneId } from './milestones'
 
 export type GenreId =
@@ -477,6 +478,8 @@ export interface GameState {
   reviewUnread: number | null
   /** every award won, oldest first */
   awards: AwardWon[]
+  /** badges earned in this career, in the order they landed (see badges.ts); no XP, no money */
+  badges: BadgeEarned[]
 }
 
 export type Phase = 'idle' | 'drawing' | 'ready' | 'submitted'
