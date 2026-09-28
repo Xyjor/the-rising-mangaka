@@ -56,6 +56,16 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   `saveFile.ts` owns `SAVE_VERSION`, the saved log length and the save file (`serializeSave`; `parseSave`, strict,
   every refusal a `SaveFileError`; `saveFileName`; `storedSaveFile` for the recovery screen); the store's `loadSave`
   installs a parsed file (refused in a tab that does not own the save), bumps `saveLoads` and writes at once.
+  `slots.ts` holds the three save slots: `rising-mangaka-save-1/-2/-3` (the career: game, tips step, run speed), the
+  index `rising-mangaka-slots` (`{ active }` only) and `rising-mangaka-prefs` (theme, sound, shared by every slot);
+  `migrateLegacy` runs once before the store hydrates and copies the 0.5.0 key `rising-mangaka-save` into an empty
+  slot 1 (verified byte for byte, rolled back on any failure, which falls back to the old key for that run; never
+  deletes or writes the old key otherwise). The store's save storage resolves the open slot's key (`careerKey`,
+  `activeSaveKey`) when a change is accepted and keeps it with the debounced write, so `flushSave` always lands a
+  write in its own slot; it never writes a null game (only `deleteSlot` empties a slot). Slot actions: `openSlot`
+  (flush, switch, rehydrate), `startInSlot`, `backToTitle` (Settings' "Back to the title screen"), `deleteSlot`
+  (never the legacy key or the open slot), `loadSaveIntoSlot`; all refused in a read-only tab, which follows the
+  owner's index and slot through its `storage` listener. `slotSummary` (`saveFile.ts`) reads a slot card's summary.
   Sim commands go through the `apply()` helper so toasts and auto-resume stay consistent. `setWindowHidden` (from
   the page's `visibilitychange` and the desktop shell's minimise) stops the clock and suspends the sound; the
   non-persisted `windowHidden` flag keeps that pause silent. `flushSave` writes the debounced save at once. The tab

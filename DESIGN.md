@@ -704,21 +704,39 @@ included), the browser engine's own shortcuts (reload, print, going back) are ca
 included, and its right-click menu everywhere except text fields; only `npm run tauri dev` keeps both, for
 development.
 
-**Where a career lives.** In the browser it is `localStorage` under the key `rising-mangaka-save`. In the desktop
+**Where a career lives.** There are three careers, one per slot, each in `localStorage` under its own key,
+`rising-mangaka-save-1`, `-2` and `-3` (the game, the tips step and the run speed, the same payload and
+`SAVE_VERSION` as before). The index `rising-mangaka-slots` holds only `{ active: 1 | 2 | 3 | null }`, the open
+career; the device's preferences (the theme and the sound: muted, volume, music) live apart in
+`rising-mangaka-prefs`, shared by every career. The title screen lists the three slots: a filled one shows the pen
+name, the date, money, fans and the running serial (`slotSummary`, read from the slot's JSON, never stored twice) and
+offers Continue, Export save file, Load a save file into this slot (asking first before it replaces a career) and
+Delete this career (behind a confirmation); an empty one takes a pen name and starts a career there. Settings' "Back
+to the title screen" writes the career and leaves it in its slot. A write still waiting on the save's debounce keeps
+the key it was queued for, so it lands in its own slot even when the player switches slots straight after.
+
+**The single save of 0.5.0.** Before the store loads, `slots.ts` `migrateLegacy` copies the old key
+`rising-mangaka-save` into slot 1 when the slots were never set up (no index) and slot 1 is empty: it writes slot 1,
+reads it back and compares byte for byte, copies the old theme and sound to the prefs key if that key is absent, and
+only then sets `active: 1`. Any failed write or check puts every key back as it was and this run reads (and saves to)
+the old key exactly as 0.5.0 did, slot 1 standing for it; the copy is tried again at the next start. A filled slot 1
+is never overwritten, and nothing ever deletes the old key. In the desktop
 app that same storage lives inside the app's own WebView2 profile, under the identifier
 `com.xyjor.risingmangaka` in `%LOCALAPPDATA%`; the remembered window state is a small file under the same
 identifier in `%APPDATA%`. Only one tab or window plays at a time: a tab lock (`tabLock.ts`, browser only — the
 desktop app has a single window and disables it) lets one tab own the save and run the clock while any other
 mirrors it read-only and stays silent, with a heartbeat so a tab that closed or crashed without saying so goes
-stale and another can take over.
+stale and another can take over. The lock covers the whole app: a read-only tab follows the owner's open slot (the
+index) and that slot's career, and every slot action is off in it.
 
 **Save files.** A career can be written out as a `.json` file (`saveFile.ts`) and read back on any computer:
-Settings' Save file section, and the title screen before a career starts, offer Export save file and Load a save
-file. The file names itself after the pen name and the in-game date (year only after the first), carries a format
+Settings' Save file section (the open career) and each slot on the title screen offer Export save file and Load a
+save file; a file loaded into a slot that is not open is checked the same way and written to that slot's key. The file names itself after the pen name and the in-game date (year only after the first), carries a format
 marker and the save version, and a load is strict: text that is not valid JSON, does not carry that marker, comes
 from an older or newer save version, runs over 5,000,000 characters, or holds a game the sim cannot even advance by
 a day is refused, each refusal saying what to do next rather than only that it failed. If the game ever crashes, a
-recovery screen offers to export whatever is in storage before starting over — or, in a tab that has lost the save
+recovery screen offers to export whatever is in the open slot before starting over (which empties that slot, never
+the old single save) — or, in a tab that has lost the save
 to another, only a reload, since starting over is not that tab's to do.
 
 ### Auto-pause rules
