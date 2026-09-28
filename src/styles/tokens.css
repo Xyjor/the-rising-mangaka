@@ -76,6 +76,7 @@
   --halftone-size: 6px 6px;
 
   --title-scrim: rgba(250, 247, 240, 0.82);
+  --title-scrim-clear: rgba(250, 247, 240, 0);
 
   color-scheme: light;
 }
@@ -116,6 +117,7 @@
     --rating-4-text: #8fa9ff;
     --halftone: radial-gradient(rgba(242, 239, 230, 0.12) 1px, transparent 1.2px);
     --title-scrim: rgba(22, 23, 28, 0.82);
+    --title-scrim-clear: rgba(22, 23, 28, 0);
     color-scheme: dark;
   }
 }
@@ -155,5 +157,6 @@
   --rating-4-text: #8fa9ff;
   --halftone: radial-gradient(rgba(242, 239, 230, 0.12) 1px, transparent 1.2px);
   --title-scrim: rgba(22, 23, 28, 0.82);
+  --title-scrim-clear: rgba(22, 23, 28, 0);
   color-scheme: dark;
 }
