@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 import {
   addOutline,
   alphaBoundingBox,
+  despeckle,
   downsampleArea,
+  downsampleNearest,
   floodTransparentFromEdges,
   makeImage,
   nearestPaletteIndex,
@@ -246,5 +248,88 @@ describe('addOutline', () => {
     const out = addOutline(img, '#1c1a26')
     expect(out.data[0]).toBe(10)
     expect(out.data[4]).toBe(20)
+  })
+})
+
+describe('downsampleNearest', () => {
+  it('picks the source pixel at each destination cell centre, no averaging', () => {
+    const src = makeImage(2, 1)
+    setPixel(src, 0, 0, 0, 0, 0)
+    setPixel(src, 1, 0, 100, 100, 100)
+    const out = downsampleNearest(src, 2, 1)
+    // 1:1 mapping should reproduce the source exactly (no blending).
+    expect(out.data[0]).toBe(0)
+    expect(out.data[4]).toBe(100)
+  })
+
+  it('does not blend a block the way downsampleArea would', () => {
+    const src = makeImage(4, 1)
+    setPixel(src, 0, 0, 0, 0, 0)
+    setPixel(src, 1, 0, 0, 0, 0)
+    setPixel(src, 2, 0, 200, 200, 200)
+    setPixel(src, 3, 0, 200, 200, 200)
+    const out = downsampleNearest(src, 2, 1)
+    // Each destination cell samples a single source pixel: no 100-in-between average like area sampling would give.
+    expect(out.data[0]).toBe(0)
+    expect(out.data[4]).toBe(200)
+  })
+
+  it('preserves alpha of the sampled pixel', () => {
+    const src = makeImage(2, 1)
+    setPixel(src, 0, 0, 200, 200, 200, 0)
+    setPixel(src, 1, 0, 200, 200, 200, 255)
+    const out = downsampleNearest(src, 2, 1)
+    expect(out.data[3]).toBe(0)
+    expect(out.data[7]).toBe(255)
+  })
+})
+
+describe('despeckle', () => {
+  it('clears an isolated single-pixel speck surrounded by one flat colour', () => {
+    const img = makeImage(3, 3)
+    fill(img, 200, 100, 50) // flat field
+    setPixel(img, 1, 1, 10, 10, 10) // centre speck, a different colour
+    const out = despeckle(img)
+    const centre = (1 * 3 + 1) * 4
+    expect(out.data[centre]).toBe(200)
+    expect(out.data[centre + 1]).toBe(100)
+    expect(out.data[centre + 2]).toBe(50)
+  })
+
+  it('leaves a pixel whose neighbours are not unanimous', () => {
+    const img = makeImage(3, 3)
+    fill(img, 200, 100, 50)
+    setPixel(img, 1, 1, 10, 10, 10) // centre
+    setPixel(img, 0, 1, 30, 30, 30) // one neighbour disagrees with the rest
+    const out = despeckle(img)
+    const centre = (1 * 3 + 1) * 4
+    expect(out.data[centre]).toBe(10)
+  })
+
+  it('leaves an edge pixel untouched (missing a neighbour)', () => {
+    const img = makeImage(3, 3)
+    fill(img, 200, 100, 50)
+    setPixel(img, 0, 0, 10, 10, 10) // corner, missing two neighbours
+    const out = despeckle(img)
+    expect(out.data[0]).toBe(10)
+  })
+
+  it('does not touch a pixel already matching its neighbours', () => {
+    const img = makeImage(3, 3)
+    fill(img, 200, 100, 50)
+    const out = despeckle(img)
+    for (let i = 0; i < out.data.length; i += 4) {
+      expect(out.data[i]).toBe(200)
+    }
+  })
+
+  it('leaves a pixel with a transparent neighbour untouched', () => {
+    const img = makeImage(3, 3)
+    fill(img, 200, 100, 50)
+    setPixel(img, 1, 1, 10, 10, 10) // centre speck
+    setPixel(img, 1, 0, 0, 0, 0, 0) // one neighbour transparent
+    const out = despeckle(img)
+    const centre = (1 * 3 + 1) * 4
+    expect(out.data[centre]).toBe(10) // unanimous check fails, so left alone
   })
 })

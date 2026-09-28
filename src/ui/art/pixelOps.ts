@@ -124,6 +124,32 @@ export function downsampleArea(src: RgbaImage, dstW: number, dstH: number): Rgba
   return out
 }
 
+/**
+ * Nearest-neighbour downsample from src to exactly dstW x dstH: each destination pixel takes the single source
+ * pixel at its cell's centre (no averaging), for a raw sheet slice where a clean 1:1 or exact-block pixel-art source
+ * shouldn't be blurred by area-averaging.
+ */
+export function downsampleNearest(src: RgbaImage, dstW: number, dstH: number): RgbaImage {
+  const out = makeImage(dstW, dstH)
+  for (let dy = 0; dy < dstH; dy++) {
+    const sy0 = Math.floor((dy * src.height) / dstH)
+    const sy1 = Math.max(sy0 + 1, Math.floor(((dy + 1) * src.height) / dstH))
+    const sy = Math.min(src.height - 1, Math.floor((sy0 + sy1) / 2))
+    for (let dx = 0; dx < dstW; dx++) {
+      const sx0 = Math.floor((dx * src.width) / dstW)
+      const sx1 = Math.max(sx0 + 1, Math.floor(((dx + 1) * src.width) / dstW))
+      const sx = Math.min(src.width - 1, Math.floor((sx0 + sx1) / 2))
+      const si = (sy * src.width + sx) * 4
+      const oi = (dy * dstW + dx) * 4
+      out.data[oi] = src.data[si]
+      out.data[oi + 1] = src.data[si + 1]
+      out.data[oi + 2] = src.data[si + 2]
+      out.data[oi + 3] = src.data[si + 3]
+    }
+  }
+  return out
+}
+
 /** Snaps every opaque pixel to the nearest palette colour (OKLab distance), no dithering. Transparent pixels pass through untouched. */
 export function snapToPalette(img: RgbaImage, palette: readonly string[]): RgbaImage {
   const lab = toOklabPalette(palette)
@@ -171,6 +197,56 @@ export function reduceColors(img: RgbaImage, maxColors: number): RgbaImage {
     out.data[i] = r
     out.data[i + 1] = g
     out.data[i + 2] = b
+  }
+  return out
+}
+
+/**
+ * Single-pass despeckle: an opaque pixel whose four orthogonal neighbours are all in-bounds, all opaque, and all one
+ * other colour (a colour different from the pixel itself) takes that colour. Run after reduceColors and before
+ * addOutline, to clear isolated single-pixel colour specks (stray snapped colours surrounded by a flat field) before
+ * they get an outline ring of their own. A pixel on the image edge (missing a neighbour) or whose neighbours are not
+ * unanimous is left untouched; transparent pixels are never touched or counted as neighbours.
+ */
+export function despeckle(img: RgbaImage): RgbaImage {
+  const { width, height, data } = img
+  const out = makeImage(width, height)
+  out.data.set(data)
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = (y * width + x) * 4
+      if (data[i + 3] === 0) continue
+      if (x === 0 || y === 0 || x === width - 1 || y === height - 1) continue
+      const neighbours: [number, number][] = [
+        [x - 1, y],
+        [x + 1, y],
+        [x, y - 1],
+        [x, y + 1],
+      ]
+      let common: string | null = null
+      let unanimous = true
+      for (const [nx, ny] of neighbours) {
+        const ni = (ny * width + nx) * 4
+        if (data[ni + 3] === 0) {
+          unanimous = false
+          break
+        }
+        const hex = rgbToHex(data[ni], data[ni + 1], data[ni + 2])
+        if (common === null) {
+          common = hex
+        } else if (common !== hex) {
+          unanimous = false
+          break
+        }
+      }
+      if (!unanimous || common === null) continue
+      const selfHex = rgbToHex(data[i], data[i + 1], data[i + 2])
+      if (selfHex === common) continue
+      const [r, g, b] = hexToRgb(common)
+      out.data[i] = r
+      out.data[i + 1] = g
+      out.data[i + 2] = b
+    }
   }
   return out
 }

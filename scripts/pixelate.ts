@@ -9,7 +9,9 @@ import { ART_PALETTE } from '../src/ui/art/palette'
 import {
   addOutline,
   alphaBoundingBox,
+  despeckle,
   downsampleArea,
+  downsampleNearest,
   floodTransparentFromEdges,
   padToAspect,
   reduceColors,
@@ -99,10 +101,13 @@ async function processEntry(entry: ManifestEntry): Promise<{ outPath: string; co
   }
 
   const [nativeW, nativeH] = entry.native
-  // Only area-average downsampling is implemented; "nearest" is reserved for a future pixel-perfect sheet slice.
-  working = downsampleArea(working, nativeW, nativeH)
+  working =
+    entry.sample === 'nearest'
+      ? downsampleNearest(working, nativeW, nativeH)
+      : downsampleArea(working, nativeW, nativeH)
   working = snapToPalette(working, ART_PALETTE)
   working = reduceColors(working, entry.colors ?? DEFAULT_COLORS)
+  working = despeckle(working)
   if (entry.outline) {
     working = addOutline(working, OUTLINE_HEX)
   }

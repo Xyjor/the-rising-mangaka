@@ -14,7 +14,7 @@ export const ART_PALETTE: readonly string[] = [
   // Blossom pinks
   '#f29bb4', '#f7b6c8',
   // Golds, oranges, ambers (sunset, lamps, awards)
-  '#e0932e', '#f5b700', '#c9b400', '#ffe47a', '#fff2a8', '#fff1c2', '#e0b25a', '#e39a4a', '#c67d33',
+  '#e0932e', '#f5b700', '#c9b400', '#ffe47a', '#fff2a8', '#fff1c2', '#fff7c2', '#f5f1c9', '#fdfcf7', '#e0b25a', '#e39a4a', '#c67d33',
   // Ochres (muted browns/olives)
   '#7a5a00', '#6f6300',
   // Tatami and woods (greens)
