@@ -37,7 +37,7 @@ const GOLD = '#f5b700'
 const CUP = '#f2efe6'
 const URGENT = '#f7b8b0'
 const SHADOW = 'rgba(40, 24, 16, 0.28)'
-const DAYLIGHT = 'rgba(255, 244, 214, 0.14)'
+const DAYLIGHT = ['rgba(255, 244, 214, 0.14)', 'rgba(255, 244, 214, 0.12)', 'rgba(255, 244, 214, 0.1)', 'rgba(255, 244, 214, 0.08)']
 const VIGNETTE = 'rgba(24, 16, 40, 0.12)'
 const LAMP_POOL = 'rgba(255, 236, 170, 0.14)'
 const OVERLAY = 'rgba(20, 24, 60, 0.28)'
@@ -186,8 +186,10 @@ describe('the story props', () => {
 describe('the light', () => {
   it('lays a daylight shaft on the floor by day, moving with the sun, and none at night', () => {
     const shaft = (t: number) => alone((ctx) => drawAmbient(ctx, sceneSnapshot(), t, t > 0.72 || t < 0.06, false))
-      .filter((c) => c.style === DAYLIGHT)
+      .filter((c) => DAYLIGHT.includes(c.style))
     expect(shaft(0.3).length).toBeGreaterThan(0)
+    // four steps, each wider and fainter than the one above: a broad wedge
+    expect(shaft(0.3).map((c) => [c.w, c.style])).toEqual(DAYLIGHT.map((d, i) => [44 + i * 8, d]))
     expect(shaft(0.9)).toEqual([])
     expect(key(shaft(0.2))).not.toBe(key(shaft(0.5)))
     for (const c of shaft(0.3)) expect(c.y, JSON.stringify(c)).toBeGreaterThanOrEqual(114)

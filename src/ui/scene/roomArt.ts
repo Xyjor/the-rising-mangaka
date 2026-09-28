@@ -48,7 +48,10 @@ const SOFA_SHADE = '#2d566f'
 const SOFA_CUSHION = '#4f86a8'
 const LAMP_SHADE = '#f0ead6'
 const BOOKS = ['#3b6fd6', '#e07b39', '#3fa66c'] as const
-const DAYLIGHT = 'rgba(255, 244, 214, 0.14)'
+/** The daylight shaft's four steps, top to bottom: each one wider and fainter, a broad warm wedge. */
+const DAYLIGHT = [
+  'rgba(255, 244, 214, 0.14)', 'rgba(255, 244, 214, 0.12)', 'rgba(255, 244, 214, 0.1)', 'rgba(255, 244, 214, 0.08)',
+] as const
 const LAMP_POOL = 'rgba(255, 236, 170, 0.14)'
 const MONITOR_GLOW = 'rgba(140, 200, 255, 0.18)'
 const VIGNETTE = 'rgba(24, 16, 40, 0.12)'
@@ -294,7 +297,10 @@ export function drawFanLetters(ctx: CanvasRenderingContext2D, level: Snapshot['f
 export function drawAmbient(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, night: boolean, working: boolean) {
   if (!night && t > 0.12 && t < 0.66) {
     const shift = Math.round(40 - ((t - 0.12) / 0.54) * 80)
-    for (let i = 0; i < 4; i++) rawRect(ctx, 182 + Math.round((shift * (i + 1)) / 4), 114 + i * 16, 44, 16, DAYLIGHT)
+    // four steps (4 fills), each 8 px wider than the last (44 to 68) and grown 4 px each side, fading as it spreads
+    for (let i = 0; i < 4; i++) {
+      rawRect(ctx, 182 - i * 4 + Math.round((shift * (i + 1)) / 4), 114 + i * 16, 44 + i * 8, 16, DAYLIGHT[i])
+    }
   }
   if (night && working) {
     rawRect(ctx, 158, 89, 13, 4, LAMP_POOL)

@@ -56,7 +56,7 @@ const EVERYTHING: Partial<Snapshot> = {
  * paint where neutral used to. `FACES.sleepy` (14x4) runs to 12 fillRect calls (row 0 and row 2 are one run each of
  * plain `S`; row 1 is 5 runs, `S,LL,S,LL,S`; row 3 is 5 runs, `BB,S,M,S,BB`), and `MARKS.sleepy` (3x5, only the `L`
  * cells drawn, `.` skipped) is 5 runs, one per row — 12 + 5 = 17. The three assistants stay neutral (Decision 5:
- * assistants never go sleepy), so nothing else in the scene changes.
+ * assistants never go sleepy), so nothing else in the scene changes. Upgrade 0.5.0 Task 6.1 re-measured it the same way at 1065 (+0): the wider daylight shaft keeps its four steps, and it does not paint at night anyway.
  */
 const FULL_BASELINE = 1065
 
