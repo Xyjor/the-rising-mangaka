@@ -424,6 +424,50 @@ describe('the assistants, the wall clock and the cat (Task 2.5)', () => {
     expect(covers(walk(0), '#e39a4a', 121, 110)).toBe(-1)
   })
 
+  it('overlays the mood face and mark on the seated mangaka when cheer is on, over the base eye fill', () => {
+    // seated (132, 67), overlay at (136, 76): happy row 10 col 1 is L; the base sprite's eye fill at (138, 76) is
+    // painted first, so the overlay's L at (137, 77) must come after it
+    const { ctx, log } = fakeContext()
+    render(ctx, sceneSnapshot({ cheer: true }), 0.3, 0)
+    const eye = covers(log, '#1b1b1b', 138, 76)
+    expect(eye).toBeGreaterThanOrEqual(0)
+    const overlay = covers(log, '#1c1a26', 137, 77)
+    expect(overlay).toBeGreaterThan(eye)
+    // sparkle (happy's mark) at (x + 11, y - 8) = (143, 59), row 0 col 1
+    expect(covers(log, '#f5b700', 144, 59)).toBeGreaterThan(-1)
+  })
+
+  it('shows a sweat mark for a tired seated mangaka, and no more low-stamina !', () => {
+    const { ctx, log } = fakeContext()
+    render(ctx, sceneSnapshot({ stamina: 10 }), 0.3, 0)
+    expect(covers(log, '#8fd3ff', 144, 60)).toBeGreaterThan(-1)
+    expect(covers(log, '#e5484d', 144, 59)).toBe(-1)
+  })
+
+  it('paints no overlay for a neutral mood', () => {
+    const { ctx, log } = fakeContext()
+    render(ctx, sceneSnapshot(), 0.3, 0)
+    const before = covers(log, '#f4cfa5', 137, 77)
+    // nothing else paints at (137, 77) after the base sprite's own fill there
+    const after = coversAny(log, 137, 77)
+    expect(after).toBe(before)
+  })
+
+  it('skips the mood overlay while the mangaka walks, even with cheer on', () => {
+    const table = newActorTable()
+    Object.assign(table.mangaka, { x: 150, y: 81, targetX: 100, targetY: 81, state: 'walking', goal: 'standing', facing: -1, anim: 0 })
+    const { ctx, log } = fakeContext()
+    render(ctx, sceneSnapshot({ cheer: true, actors: table }), 0.3, 0)
+    expect(log.some((c) => c.style === '#1c1a26' && c.x === 154 && c.y === 90)).toBe(false)
+  })
+
+  it('shows a sweat mark on a tired assistant', () => {
+    const { ctx, log } = fakeContext()
+    render(ctx, sceneSnapshot({ assistants: [{ look: 0, stamina: 10 }] }), 0.3, 0)
+    // assistant at (66, 89): mark at (66 + 11, 89 - 8) = (77, 81), row 1 col 1
+    expect(covers(log, '#8fd3ff', 78, 82)).toBeGreaterThan(-1)
+  })
+
   it('keeps the cat clear of the mangaka\'s, the editor\'s and the bed\'s spots', () => {
     type Box = readonly [number, number, number, number]
     const boxes: Box[] = [[132, 155, 67, 98], [170, 193, 81, 112], [198, 221, 85, 116], [216, 245, 106, 119]]

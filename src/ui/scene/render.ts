@@ -1,13 +1,14 @@
 // The studio scene's painter: palettes, sprites and their helpers, the snapshot it reads and `render`, one frame of the
 // 320x180 canvas (room-space literals, offset by paint.ts's OX/OY; the wall and floor in canvas space). Pure drawing: no React, no store, and nothing allocated per frame (tables are built once here).
-import { LOW_STAMINA_THRESHOLD } from '../../sim'
 import type { StudioTierId } from '../../sim'
 import { ASSISTANT_SEAT_X } from './actors'
 import type { Actor, ActorTable } from './actors'
 import {
-  ASSISTANT_DOZE, ASSISTANT_PALS, CAT_SIT, CAT_SLEEP, CAT_WALK, EDITOR_IDLE, EDITOR_WALK, MANGAKA_IDLE, MANGAKA_LIE, MANGAKA_PANIC,
-  MANGAKA_SIT, MANGAKA_WALK, PROP_CONTRACT, PROP_ENVELOPE, PROP_LETTER, PROP_PAL, PROP_TROPHY, drawSprite,
+  ASSISTANT_DOZE, ASSISTANT_PALS, CAT_SIT, CAT_SLEEP, CAT_WALK, EDITOR_IDLE, EDITOR_WALK, FACES, HEAD_DY, MANGAKA_IDLE, MANGAKA_LIE,
+  MANGAKA_PANIC, MANGAKA_SIT, MANGAKA_WALK, MARKS, MARK_PAL, PAL, PROP_CONTRACT, PROP_ENVELOPE, PROP_LETTER, PROP_PAL, PROP_TROPHY, drawSprite,
 } from './sprites'
+import { moodOf } from './mood'
+import type { Mood } from './mood'
 import { BAR_X, paneRect, rawRect, rect, shadow } from './paint'
 import { drawSeasonNight, drawSeasonPane, drawSeasonSill } from './season'
 import type { Season } from './season'
@@ -70,6 +71,16 @@ function glyph(ctx: CanvasRenderingContext2D, ch: string, x: number, y: number, 
   for (let r = 0; r < 5; r++) for (let c = 0; c < 3; c++) if (g[r][c] === '#') ctx.fillRect(x0 + c, y0 + r, 1, 1)
 }
 
+/**
+ * The mood overlay for a head-steady pose: the face (FACES[mood], rows 9-12 of the anchor, at x+4/x+6 flipped,
+ * y+9+headDy) and its mark above the head (MARKS[mood], at x+11, y-8, in MARK_PAL). Nothing when neutral.
+ */
+function drawMood(ctx: CanvasRenderingContext2D, mood: Mood, x: number, y: number, headDy: number, flip: boolean) {
+  if (mood === 'neutral') return
+  drawSprite(ctx, FACES[mood], flip ? x + 6 : x + 4, y + 9 + headDy, 4, PAL, flip)
+  drawSprite(ctx, MARKS[mood], x + 11, y - 8, 5, MARK_PAL)
+}
+
 // ---------- the characters (canvas space, from the actor table) ----------
 
 const PROP_PAPER = '#fdfcf7'
@@ -100,16 +111,30 @@ function drawMangaka(ctx: CanvasRenderingContext2D, s: Snapshot, a: Actor, frame
   switch (a.state) {
     case 'seated': {
       // late on a chapter, the mangaka throws up their hands for 40 frames in every 240
-      const map = working && s.late && frame % 240 < 40
-        ? MANGAKA_PANIC[Math.floor(frame / 8) % 2]
-        : MANGAKA_SIT[working ? Math.floor(frame / 8) % 2 : 0]
+      const panicking = working && s.late && frame % 240 < 40
+      const idx = working ? Math.floor(frame / 8) % 2 : 0
+      const map = panicking ? MANGAKA_PANIC[idx] : MANGAKA_SIT[idx]
       drawSprite(ctx, map, x, y)
-      if (working && s.stamina < LOW_STAMINA_THRESHOLD) glyph(ctx, '!', x + 11, y - 8, '#e5484d')
+      if (!panicking) {
+        const mood = moodOf({
+          home: true, editorHere: s.actors.editor.state === 'standing', cheer: s.cheer, stamina: s.stamina,
+          resting: false, night: false,
+        })
+        drawMood(ctx, mood, x, y, HEAD_DY.sit[idx], false)
+      }
       return
     }
     case 'standing': {
       shadow(ctx, x + 4, y + 30, 16)
-      drawSprite(ctx, MANGAKA_IDLE[Math.floor(frame / 16) % 2], x, y)
+      const idx = Math.floor(frame / 16) % 2
+      drawSprite(ctx, MANGAKA_IDLE[idx], x, y)
+      {
+        const mood = moodOf({
+          home: true, editorHere: s.actors.editor.state === 'standing', cheer: s.cheer, stamina: s.stamina,
+          resting: false, night: false,
+        })
+        drawMood(ctx, mood, x, y, HEAD_DY.idle[idx], false)
+      }
       if (s.phase === 'ready') {
         // the manuscript in the leading hand (row 22)
         rawRect(ctx, x - 8, y + 17, 8, 10, '#fdfcf7'); rawRect(ctx, x - 7, y + 19, 6, 1, '#b8b2a5'); rawRect(ctx, x - 7, y + 21, 6, 1, '#b8b2a5')
@@ -203,6 +228,8 @@ export interface Snapshot extends StoryLook {
   visitorProp: 'none' | 'envelope' | 'letter' | 'contract' | 'trophy'
   /** The running serial's chapter cannot make its deadline (the seated mangaka panics now and then). */
   late: boolean
+  /** Set for CHEER_MS after a fans or level pop fires (mood.ts): a happy mood for the mangaka and the assistants. */
+  cheer: boolean
   /** Every character's place and pose, planned and walked by actors.ts; render only reads it. */
   actors: ActorTable
 }
@@ -294,7 +321,16 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
       if (actor.state === 'sleeping') {
         drawSprite(ctx, ASSISTANT_DOZE, actor.x, actor.y, 32, pal)
         glyph(ctx, 'Z', actor.x + 18, actor.y - 6, '#2f5ecf')
-      } else drawSprite(ctx, MANGAKA_SIT[working ? Math.floor((frame + i * 3) / 8) % 2 : 0], actor.x, actor.y, 32, pal)
+      } else {
+        const idx = working ? Math.floor((frame + i * 3) / 8) % 2 : 0
+        drawSprite(ctx, MANGAKA_SIT[idx], actor.x, actor.y, 32, pal)
+        // assistants only ever go tired or happy (Decision 5): editorHere and resting stay false so surprised and
+        // sleepy never fire here
+        const mood = moodOf({
+          home: true, editorHere: false, cheer: s.cheer, stamina: s.assistants[i].stamina, resting: false, night: false,
+        })
+        drawMood(ctx, mood, actor.x, actor.y, HEAD_DY.sit[idx], false)
+      }
     }
     const dw = 8 + 20 * shown
     shadow(ctx, 62, 132, dw)

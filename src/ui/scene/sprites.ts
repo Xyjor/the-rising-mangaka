@@ -3,6 +3,7 @@
 // colour in PAL (uppercase the base, lowercase its shade; the light comes from the top left). Every 24x32 frame passes
 // `frameRules` (sprites.test.ts). Facing left; drawSprite mirrors a frame to face right.
 import { LOOK_HAIRS, LOOK_HAIRS_SHADE, LOOK_SHIRTS, LOOK_SHIRTS_SHADE } from '../looks'
+import type { Mood } from './mood'
 
 export type SpriteMap = readonly string[]
 
@@ -718,6 +719,51 @@ export const PROP_LETTER: SpriteMap = ['LLLLL', 'LWWWL', 'LlllL', 'LWWWL', 'Llll
 export const PROP_CONTRACT: SpriteMap = ['LLLLL', 'LWWWL', 'LRRRL', 'LWWWL', 'LWWWL', 'LWMWL', 'LLLLL']
 /** A trophy (5x6): the gold cup on its stem and a wooden base. */
 export const PROP_TROPHY: SpriteMap = ['LLLLL', 'LYYYL', '.LYL.', '.LYL.', 'LFFFL', 'LLLLL']
+
+/**
+ * The mood overlay: 14 wide x 4 tall, painted at (x+4, y+9+headDy) over rows 9-12 of a head-steady pose (flipped and
+ * shifted to x+6 when the actor faces right). `neutral` has no overlay, so it is not a key here. Each map fully
+ * repaints its cells (no '.'), so the closed-outline rule (frameRules) does not apply; only width, height and palette
+ * keys are checked.
+ */
+export const FACES: Record<Exclude<Mood, 'neutral'>, SpriteMap> = {
+  happy: [
+    'SSSSSSSSSSSSSS',
+    'SLESSSSSSSLESS',
+    'SSSSSSSSSSSSSS',
+    'BBSSSSMMSSSSBB',
+  ],
+  tired: [
+    'SSSSSSSSSSSSSS',
+    'SEESSSSSSSEESS',
+    'SSSSSSSSSSSSSS',
+    'SSSSSLLLLSSSSS',
+  ],
+  surprised: [
+    'SSEESSSSSSEESS',
+    'SEWESSSSSEWESS',
+    'SSEESSSSSSEESS',
+    'SSSSSSLLSSSSSS',
+  ],
+  sleepy: [
+    'SSSSSSSSSSSSSS',
+    'SLLSSSSSSSLLSS',
+    'SSSSSSSSSSSSSS',
+    'BBSSSSSMSSSSBB',
+  ],
+}
+
+/** The mood marks' own palette: a white highlight, a pale blue sweat drop, gold for the sparkle, the outline. */
+export const MARK_PAL: Record<string, string> = { W: '#f6f6f6', R: '#8fd3ff', Y: '#f5b700', L: '#1c1a26' }
+
+/** The mark above the head at (x+11, y-8), 3 wide x 5 tall, in MARK_PAL: a sweat drop (tired), a sparkle (happy), and
+ * the existing '!'/'z' glyph shapes (surprised/sleepy) recoloured to MARK_PAL's L. */
+export const MARKS: Record<Exclude<Mood, 'neutral'>, SpriteMap> = {
+  tired: ['.W.', 'WRW', 'WRW', '.W.', '...'],
+  happy: ['.Y.', 'YWY', '.Y.', '...', '...'],
+  surprised: ['.L.', '.L.', '.L.', '...', '.L.'],
+  sleepy: ['LLL', '..L', '.L.', 'L..', 'LLL'],
+}
 
 /** Every exported 24x32 frame, for the frame-rules test. */
 export const HUMAN_FRAMES: readonly SpriteMap[] = [

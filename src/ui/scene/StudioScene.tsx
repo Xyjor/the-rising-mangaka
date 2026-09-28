@@ -16,6 +16,7 @@ import { BUBBLE_MS, Bubble } from './Bubble'
 import { sceneToCss, useSceneRect } from './sceneAnchor'
 import { Pops, popsFor } from './Pops'
 import type { PopKind } from './Pops'
+import { CHEER_MS, cheersFor } from './mood'
 import '../../styles/scene.css'
 import type { Actor } from './actors'
 import { NO_EQUIPMENT, SHOWN_TROPHIES, ownedFlags } from './studioArt'
@@ -58,6 +59,11 @@ export function StudioScene({ running }: { running: boolean }) {
   // bubble creation and removal is React state; their positions are written straight to the DOM after each frame
   const [line, setLine] = useState<{ id: number; text: string } | null>(null)
   const [greeting, setGreeting] = useState<string | null>(null)
+  // a happy mood for CHEER_MS after a fans or level pop (mood.ts); the timer is ref-held so it survives re-renders
+  // and is cleared on unmount
+  const [cheer, setCheer] = useState(false)
+  const cheerTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  useEffect(() => () => clearTimeout(cheerTimer.current), [])
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null)
   const frame = useRef(0)
   const reduceMotion = useRef(false)
@@ -105,7 +111,7 @@ export function StudioScene({ running }: { running: boolean }) {
   const snap = useRef<Snapshot>({
     phase, activity, progress, stamina, running, away: !!trip, assistants: [], season,
     tier: 'apartment', owned: NO_EQUIPMENT, volumes: 0, animePoster: false, trophies: 0,
-    visitor: 'none', visitorProp: 'none', late, ...NO_STORY, actors: actors,
+    visitor: 'none', visitorProp: 'none', late, cheer, ...NO_STORY, actors: actors,
   })
   useEffect(() => {
     snap.current = {
@@ -115,7 +121,7 @@ export function StudioScene({ running }: { running: boolean }) {
       // the studio as flags and counts, so render never walks a list per frame
       tier: look.tier, owned: ownedFlags(look.equipment), volumes: look.volumes, animePoster: look.animePoster,
       trophies: Math.min(SHOWN_TROPHIES, look.trophies.length),
-      visitor: reason === 'none' ? 'none' : 'editor', visitorProp: PROP_FOR[reason], late, ...story, actors: actors,
+      visitor: reason === 'none' ? 'none' : 'editor', visitorProp: PROP_FOR[reason], late, cheer, ...story, actors: actors,
     }
     planActors(actors, snap.current)
     // Under reduced motion the loop only repaints once a second, so state changes repaint at once.
@@ -129,7 +135,7 @@ export function StudioScene({ running }: { running: boolean }) {
       lastFrame.current = 0
       lastSnap.current = snap.current
     }
-  }, [actors, advance, placeBubbles, phase, activity, progress, stamina, running, trip, assistants, season, look, reason, late, story])
+  }, [actors, advance, placeBubbles, phase, activity, progress, stamina, running, trip, assistants, season, look, reason, late, cheer, story])
 
   // A new daily line (info, not a toast, today, not from a loaded save) is said by the mangaka, when they are home.
   useEffect(() => {
@@ -166,7 +172,13 @@ export function StudioScene({ running }: { running: boolean }) {
   }, [actors])
   useEffect(() => useStore.subscribe((next, prev) => {
     if (next.windowHidden) return
-    for (const p of popsFor(prev, next, DESK)) getSound().play('pop', { pitch: POP_PITCH[p.kind] })
+    const pops = popsFor(prev, next, DESK)
+    for (const p of pops) getSound().play('pop', { pitch: POP_PITCH[p.kind] })
+    if (cheersFor(pops.map((p) => p.kind))) {
+      setCheer(true)
+      clearTimeout(cheerTimer.current)
+      cheerTimer.current = setTimeout(() => setCheer(false), CHEER_MS)
+    }
   }), [])
 
   // placed at once when a bubble appears or the wrap resizes, then after every painted frame

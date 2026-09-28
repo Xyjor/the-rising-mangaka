@@ -76,6 +76,7 @@ export function sceneSnapshot(over: Partial<Snapshot> = {}): Snapshot {
     visitor: 'none',
     visitorProp: 'none',
     late: false,
+    cheer: false,
     daysLeft: -1,
     serialOn: false,
     posterHue: 0,
