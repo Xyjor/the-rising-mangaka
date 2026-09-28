@@ -315,27 +315,27 @@ export const MANGAKA_SIT: readonly [SpriteMap, SpriteMap] = [
   ],
 ] as const
 
-/** Seated, late on a chapter: fists up over the head, ringed eyes, the mouth open. Frame 1 has the hands a row lower. */
+/** Seated, late on a chapter: fists clutching the sides of the head, ringed eyes, the mouth open. Frame 1 has the fists a row lower. */
 export const MANGAKA_PANIC: readonly [SpriteMap, SpriteMap] = [
   [
     '......LLLLLLLLLL........', // 0
-    '.LLLLLHHHHHHHHHhLLLLL...', // 1
-    '.LSSLHHHHHHHHHHHhLSSL...', // 2
-    '.LSSLHHHHHHHHHHHhLSSL...', // 3
-    '.LLLLHHHHHHHHHHHhLLLL...', // 4
-    '..LHHHHHHHHHHHHHHhhL....', // 5
-    '..LHHHSHHHHSHHHHHhhL....', // 6
-    '..LHSSSSSSSSSSSSSShL....', // 7
-    '..LHSSSSSSSSSSSSSSsL....', // 8
-    '..LHSWWWSSSSSWWWSSsL....', // 9
-    '..LHSWEWSSSSSWEWSSsL....', // 10
-    '..LHSWWWSSSSSWWWSSsL....', // 11
-    '..LSBBSSSLMMLSSSBBsL....', // 12
-    '...LSSSSSSSSSSSSSSsL....', // 13
-    '....LSSSSSSSSSSSSsL.....', // 14
-    '.....LLsssssssssLL......', // 15
-    '......LJJJsssJJjL.......', // 16
-    '.....LJJJJRWRJJjjL......', // 17
+    '....LLHHHHHHHHHhLL......', // 1
+    '...LHHHHHHHHHHHHhhL.....', // 2
+    '..LHHHHHHHHHHHHHHhhL....', // 3
+    'LLLLHHHHHHHHHHHHHhhLLLLL', // 4
+    'LSSLHHHHHHHHHHHHHhhLLSsL', // 5
+    'LSSLHHSHHHHSHHHHHhhLLSsL', // 6
+    'LSSLSSSSSSSSSSSSSShLLSsL', // 7
+    'LSSLSSSSSSSSSSSSSSsLLSsL', // 8
+    'LJLHSWWWSSSSSWWWSSsLLJjL', // 9
+    'LJLHSWEWSSSSSWEWSSsLLJjL', // 10
+    'LJLHSWWWSSSSSWWWSSsLLJjL', // 11
+    'LJLSBBSSSLMMLSSSBBsLLJjL', // 12
+    'LJLLSSSSSSSSSSSSSSsLLJjL', // 13
+    'LJL.LSSSSSSSSSSSSsL.LJjL', // 14
+    'LJL..LLsssssssssLL..LJjL', // 15
+    'LJJJJJLJJJsssJJjLJJJJJjL', // 16
+    'LLLLLLJJJJRWRJJjjLLLLLLL', // 17
     '....LJJJJJRWRJJJjjL.....', // 18
     '....LJJJJJWRWJJJjjL.....', // 19
     '....LJJJJJRWRJJJjjL.....', // 20
@@ -354,22 +354,22 @@ export const MANGAKA_PANIC: readonly [SpriteMap, SpriteMap] = [
   [
     '......LLLLLLLLLL........', // 0
     '....LLHHHHHHHHHhLL......', // 1
-    '.LLLLHHHHHHHHHHHhLLLL...', // 2
-    '.LSSLHHHHHHHHHHHhLSSL...', // 3
-    '.LSSLHHHHHHHHHHHhLSSL...', // 4
-    '.LLLLHHHHHHHHHHHhLLLL...', // 5
-    '..LHHHSHHHHSHHHHHhhL....', // 6
-    '..LHSSSSSSSSSSSSSShL....', // 7
-    '..LHSSSSSSSSSSSSSSsL....', // 8
-    '..LHSWWWSSSSSWWWSSsL....', // 9
-    '..LHSWEWSSSSSWEWSSsL....', // 10
-    '..LHSWWWSSSSSWWWSSsL....', // 11
-    '..LSBBSSSLMMLSSSBBsL....', // 12
-    '...LSSSSSSSSSSSSSSsL....', // 13
-    '....LSSSSSSSSSSSSsL.....', // 14
-    '.....LLsssssssssLL......', // 15
-    '......LJJJsssJJjL.......', // 16
-    '.....LJJJJRWRJJjjL......', // 17
+    '...LHHHHHHHHHHHHhhL.....', // 2
+    '..LHHHHHHHHHHHHHHhhL....', // 3
+    '..LHHHHHHHHHHHHHHhhL....', // 4
+    'LLLLHHHHHHHHHHHHHhhLLLLL', // 5
+    'LSSLHHSHHHHSHHHHHhhLLSsL', // 6
+    'LSSLSSSSSSSSSSSSSShLLSsL', // 7
+    'LSSLSSSSSSSSSSSSSSsLLSsL', // 8
+    'LSSLSWWWSSSSSWWWSSsLLSsL', // 9
+    'LJLHSWEWSSSSSWEWSSsLLJjL', // 10
+    'LJLHSWWWSSSSSWWWSSsLLJjL', // 11
+    'LJLSBBSSSLMMLSSSBBsLLJjL', // 12
+    'LJLLSSSSSSSSSSSSSSsLLJjL', // 13
+    'LJL.LSSSSSSSSSSSSsL.LJjL', // 14
+    'LJL..LLsssssssssLL..LJjL', // 15
+    'LJJJJJLJJJsssJJjLJJJJJjL', // 16
+    'LLLLLLJJJJRWRJJjjLLLLLLL', // 17
     '....LJJJJJRWRJJJjjL.....', // 18
     '....LJJJJJWRWJJJjjL.....', // 19
     '....LJJJJJRWRJJJjjL.....', // 20

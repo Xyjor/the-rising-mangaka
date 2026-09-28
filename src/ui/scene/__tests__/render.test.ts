@@ -235,10 +235,10 @@ describe('the characters, from the actor table', () => {
       render(ctx, sceneSnapshot({ late }), 0.3, frame)
       return log
     }
-    // PANIC[0] row 2 col 2 is the leading hand (SIT's row 2 col 2 is clear)
-    expect(covers(at(true, 0), '#f4cfa5', 134, 69)).toBeGreaterThanOrEqual(0)
-    expect(covers(at(true, 40), '#f4cfa5', 134, 69)).toBe(-1)
-    expect(covers(at(false, 0), '#f4cfa5', 134, 69)).toBe(-1)
+    // PANIC[0] row 5 col 1 is the leading fist (SIT's row 5 col 1 is clear)
+    expect(covers(at(true, 0), '#f4cfa5', 133, 72)).toBeGreaterThanOrEqual(0)
+    expect(covers(at(true, 40), '#f4cfa5', 133, 72)).toBe(-1)
+    expect(covers(at(false, 0), '#f4cfa5', 133, 72)).toBe(-1)
   })
 
   function editorAt(facing: -1 | 1, over: Partial<Actor> = {}): ActorTable {

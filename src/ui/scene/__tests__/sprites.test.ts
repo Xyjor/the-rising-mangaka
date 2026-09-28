@@ -46,7 +46,7 @@ describe('the sprites', () => {
     expect(MANGAKA_IDLE[1][10][6]).toBe('E')
     // the pen hand (row 22 col 0 is the pen's L, so the hand starts at col 1: see the task 1 report)
     expect(MANGAKA_SIT[0][22][1]).toBe('S')
-    expect(MANGAKA_PANIC[0][2][2]).toBe('S')
+    expect(MANGAKA_PANIC[0][5][1]).toBe('S')
     // the bed pose: 30x14, the first hair cell row 2 col 16
     expect(MANGAKA_LIE).toHaveLength(14)
     expect(MANGAKA_LIE.every((row) => row.length === 30)).toBe(true)

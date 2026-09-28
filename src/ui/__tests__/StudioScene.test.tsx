@@ -102,8 +102,8 @@ describe('StudioScene', () => {
     render(<StudioScene running />)
     fake.log.length = 0
     act(() => useStore.setState({ game: late }))
-    // PANIC[0] row 2 col 2, the leading hand, at the seat (132, 67)
-    expect(covers(fake.log, '#f4cfa5', 134, 69)).toBeGreaterThanOrEqual(0)
+    // PANIC[0] row 5 col 1, the leading fist, at the seat (132, 67)
+    expect(covers(fake.log, '#f4cfa5', 133, 72)).toBeGreaterThanOrEqual(0)
     fake.log.length = 0
     act(() => useStore.setState({ game: { ...late, serial: { ...late.serial!, nextDueDay: late.day + 60 } } }))
     expect(fake.log.length).toBeGreaterThan(0)
