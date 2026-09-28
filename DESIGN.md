@@ -353,6 +353,64 @@ corkboard's 2x3 grid -2/-2 (3 cards at half the pages in place of 4), the cat's 
 in the curled sleep frame), the panic pose +0/+0 (nobody is late), the marks' new slot +0/+0 (same runs), and the
 collar and tie +6/+12 (3 more runs per seated frame, two and four seated figures).
 
+### Art
+The live scene and every sprite stay code-drawn `fillRect` (`render.ts`, `roomArt.ts`, `studioArt.ts`, `sprites.ts`):
+nothing generated is ever composited into the canvas at runtime. Generated raster art (upgrade 0.5.0) is a separate,
+smaller thing: static illustrations, shipped as indexed PNGs, that never move or redraw per frame. They exist to give
+a few fixed spots (so far, the title screen) real illustration instead of a code-drawn scene, and they double as
+reference art the hand-painted scene and sprites get redrawn toward, not as a replacement for it.
+
+**Making an asset.** Each asset is generated once with a Hugging Face image Space running Z-Image-Turbo at a fixed
+seed, and recorded as one entry in `art/manifest.json`: id, model, resolution, seed, steps, shift and the exact
+prompt, plus how the pipeline should treat it (`native` size, `sample` mode, whether it needs a `cutout` or an
+`outline`, an optional `colors` cap, and an optional `crop` or sheet `cell` for a multi-pose sheet). The raw generated
+file is committed under `art/raw/<id>.webp` (or the sheet's own name) rather than treated as disposable, because the
+Space's model or sampler can change and a generation is not reproducible from the manifest alone.
+
+`npm run art -- <id> | --all` runs `scripts/pixelate.ts`, which is IO and orchestration only; the pixel math lives in
+`src/ui/art/pixelOps.ts` (plain RGBA buffers, no `sharp` import, so it is unit-tested directly). For each entry it:
+crops the manifest's `crop` rect or slices one cell out of a sprite sheet; for a `cutout` entry, flood-fills
+transparent from the edges (`floodTransparentFromEdges`, matching the corner colour within a tolerance), finds the
+alpha bounding box, and pads it out to the target aspect ratio before cropping to it (`padToAspect`) so the subject
+isn't stretched; downsamples to the manifest's `native` size, either area-averaged (`sample: "area"`, alpha-weighted,
+transparent when under half a block is opaque) or nearest-neighbour (`sample: "nearest"`, for an already-blocky sheet
+crop); snaps every opaque pixel to the nearest `ART_PALETTE` colour in OKLab space (`snapToPalette`); reduces to the
+entry's colour cap, keeping the most-used colours and re-snapping the rest (`reduceColors`); despeckles single-pixel
+colour flecks against a unanimous 4-neighbour field (`despeckle`); optionally adds a 1px outline on transparent
+pixels 4-adjacent to an opaque one (`addOutline`); and writes an indexed PNG to `src/assets/art/<id>.png`, verifying
+afterward that every pixel it wrote is a literal `ART_PALETTE` colour.
+
+**The palette rule.** `ART_PALETTE` (`src/ui/art/palette.ts`) is a fixed, deduplicated list of lowercase hex colours,
+and every one of them must already appear literally somewhere in `src/ui/scene/*.ts` or `src/styles/tokens.css`
+(checked by `src/ui/__tests__/art.test.ts`) — a generated illustration can only use colours the hand-painted scene or
+the design tokens already use, so it reads as part of the same world rather than importing its own palette.
+
+**Budgets** (also `art.test.ts`, run against the committed PNGs, not regenerated): every manifest id needs both a raw
+source and a generated PNG, with no orphan PNGs left under `src/assets/art`; every PNG's IHDR size must match its
+manifest `native` size, its colour type must be indexed (PNG colour type 3), and every PLTE entry must be in
+`ART_PALETTE`; and every PNG must fit its size cap (16 KB for `title/hero`, 4 KB for any other entry, 100 KB total
+across every generated asset).
+
+**Mounting in the UI.** `src/ui/art/registry.ts` globs every generated PNG in eagerly (`import.meta.glob`, `eager:
+true`) so each one becomes a real bundled asset URL, never inlined as base64, and exposes a typed `art(id, w, h)`
+lookup that throws at module load — not render time — if an id has no generated PNG yet. A later task can add its
+own typed records here (for example a `Record<GenreId, ArtRef>`) built on the same helper. `PixelArt.tsx` renders an
+`ArtRef` as an `<img>` at an integer `scale`, undecorated (`loading="lazy"`, `decoding="async"`, not draggable) and
+crisp in every browser; its `alt` defaults to `''` (decorative) except where the image carries real meaning, such as
+the title hero.
+
+**The title hero** (`TitleScreen.tsx`) renders `TITLE_ART` (manifest id `title/hero`, native 320x180) directly rather
+than through `PixelArt`, with a real `alt` describing the scene, filling the `.title-screen.has-hero` background.
+`app.css`'s `.title-screen.has-hero::before` lays a scrim over it so the card text stays legible: a left-to-right
+gradient from `--title-scrim` to `--title-scrim-clear` on wide layouts (the card sits over the scrim, the art shows
+through past it), and a flat `--title-scrim` fill below the breakpoint where the card stacks below the art instead.
+`.has-hero` only applies when the hero image is present, so a title screen without one keeps its plain background.
+
+Generated art is excluded from Vite's asset inlining (`vite.config.ts`'s `assetsInlineLimit`, false for any path
+under `/assets/art/`), so `PixelArt.tsx`'s `<img src>` is always a real, cacheable URL rather than a base64 data URI;
+on desktop it loads under the CSP's `img-src 'self'` (`src-tauri/tauri.conf.json`), which only a same-origin bundled
+URL satisfies.
+
 ## Systems beyond the slice (implemented)
 
 ### Serialisation
@@ -838,3 +896,21 @@ studio scene and restyled every panel. These decisions came out of that pass:
   voice's filter frequency, not a note, so it is exempt by construction rather than by exception.
 - Balance bands are unchanged: no sim formula or constant moved in this pass, so `balance.test.ts` and
   `npm run balance` still read the seeds 1-20 numbers already recorded above.
+
+**2026-09-28, the illustrated upgrade.** The 0.5.0 upgrade adds a hybrid art pipeline (generated static illustrations
+alongside the untouched code-drawn scene and sprites) and a handful of visual polish decisions:
+
+- Art is hybrid, not a replacement: the live scene and sprites stay code-drawn `fillRect`, and generated raster art
+  (Z-Image-Turbo, via `scripts/pixelate.ts`, see "Art" above) ships only as static illustrations, doubling as
+  reference for hand-painted redraws rather than being composited into the canvas at runtime.
+- Stepped pixel corners (`base.css`, `--step`) are cut with `clip-path`, and the same clip-path also carries the
+  box's own hard drop shadow around the step via `--pf-x`/`--pf-y`, which must always match that element's own
+  box-shadow offset so the shadow keeps the stepped silhouette instead of being clipped away with the corner.
+- The status card's dark theme is its own fixed token set (`--hud-dark`, `--hud-dark-ink`, `--hud-dark-muted`,
+  `--hud-dark-warn`), independent of the page's light/dark theme, each gated at 4.5:1 contrast against `--hud-dark`
+  by `scripts/contrast.ts`.
+- Positive money reads in `--gold-text`; the accent colour is reserved for negative money, so a red amount always
+  means money going out.
+- The scene redraw (Task 6) moved the fillRect baselines from 659/1065 to 673/1079 (`render.test.ts`,
+  `studioArt.test.ts`; see "The studio in the scene" above for the item-by-item accounting), and `roomArt.test.ts`
+  caps every tier's room-and-front-row fill count at 84.
