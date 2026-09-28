@@ -4,6 +4,8 @@
 // `Record<GenreId, ArtRef>` for genre art) built with the `art()` helper below, which throws at module load if a
 // referenced id has no generated PNG — a missing asset fails immediately, not at render time.
 
+import type { BadgeId } from '../../sim/badges'
+
 /** A generated pixel-art asset: its manifest id, the bundled URL, and its native (unscaled) pixel size. */
 export interface ArtRef {
   id: string
@@ -31,6 +33,9 @@ export function art(id: string, w: number, h: number): ArtRef {
   }
   return { id, src, w, h }
 }
+
+/** Each badge's tile art, once generated. Missing art is the normal case: the tile falls back to an icon. */
+export const BADGE_ART: Partial<Record<BadgeId, ArtRef>> = {}
 
 /** The title screen's key art (art/manifest.json entry "title/hero", native 320x180). */
 export const TITLE_ART: ArtRef = art('title/hero', 320, 180)

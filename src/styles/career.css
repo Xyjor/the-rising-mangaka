@@ -46,3 +46,17 @@
   border: 2px solid var(--line-strong); border-radius: var(--radius-s); background: var(--panel);
 }
 .year-award svg { flex: none; margin-top: 2px; color: var(--gold); }
+
+/* The badge gallery: earned tiles in full, earlier-career tiles dimmed, locked tiles plain. */
+.badge-grid {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px;
+}
+.badge-tile {
+  display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px;
+  border-radius: var(--radius-s); border: 2px solid var(--line-strong); background: var(--panel);
+}
+.badge-tile.earned { border-color: var(--gold); background: var(--gold-soft); }
+.badge-tile.earlier { color: var(--ink-2); border-style: dashed; }
+.badge-tile.locked { color: var(--ink-2); }
+.badge-tile .badge-art { display: grid; place-items: center; width: 32px; height: 32px; flex: none; }

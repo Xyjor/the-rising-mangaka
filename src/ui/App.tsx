@@ -11,6 +11,7 @@ import { TopRight } from './hud/TopRight'
 import { TabBanner } from './TabBanner'
 import { Toasts } from './Toasts'
 import { TitleScreen } from './TitleScreen'
+import { BadgesModal } from './panels/BadgesModal'
 import { CareerModal } from './panels/CareerModal'
 import { HistoryModal } from './panels/HistoryModal'
 import { LogModal } from './panels/LogModal'
@@ -81,6 +82,7 @@ function useHotkeys() {
         case 'a': st.openModal('staff'); break
         case 't': st.openModal('trips'); break
         case 'l': st.openModal('log'); break
+        case 'g': st.openModal('badges'); break
         case 'd': st.toggleDesk(); break
         case 'w': if (!trip && phase === 'drawing') st.setActivity('work'); break
         case 'r': if (canPickActivity) st.setActivity('rest'); break
@@ -141,6 +143,7 @@ export function App() {
       {free && modal === 'trips' && <TripsModal />}
       {free && modal === 'series' && <SeriesModal />}
       {free && modal === 'career' && <CareerModal />}
+      {free && modal === 'badges' && <BadgesModal />}
       {free && modal === 'studio' && <StudioModal />}
       {free && modal === 'year' && <YearModal />}
       {free && modal === 'log' && <LogModal />}

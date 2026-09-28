@@ -22,7 +22,7 @@ export type Speed = 0 | 1 | 2 | 3
 export type RunSpeed = Exclude<Speed, 0>
 export type Modal =
   | 'none' | 'wizard' | 'submit' | 'stats' | 'notebook' | 'history' | 'settings' | 'staff' | 'trips' | 'series'
-  | 'career' | 'studio' | 'year' | 'log'
+  | 'career' | 'studio' | 'year' | 'log' | 'badges'
 export type ThemeMode = 'auto' | 'light' | 'dark'
 
 export interface Toast { id: number; kind: LogKind; text: string }

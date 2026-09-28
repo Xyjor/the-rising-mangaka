@@ -18,10 +18,12 @@ describe('Rail', () => {
     render(<Rail />)
     const buttons = within(screen.getByRole('navigation', { name: 'Studio menus' })).getAllByRole('button') as HTMLButtonElement[]
     expect(buttons.map((b) => b.textContent)).toEqual(
-      ['Notebook', 'Stats', 'Staff', 'Studio', 'Trips', 'Series', 'History', 'Career'])
+      ['Notebook', 'Stats', 'Staff', 'Studio', 'Trips', 'Series', 'History', 'Career', 'Badges'])
     expect(buttons[5].disabled).toBe(true)
     fireEvent.click(buttons[0])
     expect(useStore.getState().modal).toBe('notebook')
+    fireEvent.click(screen.getByTitle('Badges (G)'))
+    expect(useStore.getState().modal).toBe('badges')
   })
 
   it('badges discoveries, skill points and staff', () => {
