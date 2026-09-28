@@ -324,14 +324,17 @@ show; each seated assistant's page is drawn after the desk, on its top, with one
 
 The scene's fillRect budget is measured, not guessed: the one-assistant reference frame is a baseline of 659 calls
 (`render.test.ts`), and the bare full scene (`BARE_FULL`: three assistants, looks 0-2 at stamina 80, in winter,
-otherwise the reference scene, at night, t 0.9, frame 100) a baseline of 1048 (`studioArt.test.ts`; the full scene
-with every piece of equipment, the loft, the editor, a contract and every story prop measures 1371, inside that
-ceiling); every render must stay under 1.5x its own baseline (988.5 and 1572), so a new sprite or a new studio piece fails its test the moment it pushes the frame
+otherwise the reference scene, at night, t 0.9, frame 100) a baseline of 1065 (`studioArt.test.ts`; the full scene
+with every piece of equipment, the loft, the editor, a contract and every story prop stays well inside that
+ceiling); every render must stay under 1.5x its own baseline (988.5 and 1597.5), so a new sprite or a new studio piece fails its test the moment it pushes the frame
 past budget. Upgrade 0.4.0's chibi cast (Task 6) moved both baselines up from 649 and 1025: the redrawn `MANGAKA_SIT`
 frames (used by both the mangaka and every seated assistant) cost 5 (frame 0) or 8 (frame 1) more fillRect runs each
 than the old sit frames, purely from the wider chibi head and torso; nothing else in the redesign (the face overlay,
 the marks, the idle cycles, the outfit palettes) adds a single fillRect to either reference scene, since both render
-at a neutral mood with no overlay drawn.
+at a neutral mood with no overlay drawn. The final whole-branch review's fix made the sleepy mood reachable (working
+late at night, not the old dead `resting && night` check): `BARE_FULL`'s mangaka is exactly that (seated, working,
+t 0.9), so its baseline moved again, from 1048 to 1065 (+17: the sleepy face overlay and its mark, `studioArt.test.ts`
+does the fillRect-by-fillRect count); the one-assistant reference frame stays daytime (t 0.3) and is unaffected.
 
 ## Systems beyond the slice (implemented)
 

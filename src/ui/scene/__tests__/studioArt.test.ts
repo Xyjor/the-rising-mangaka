@@ -50,9 +50,15 @@ const EVERYTHING: Partial<Snapshot> = {
  * (`floor(100/8)%2` for the mangaka, `floor((100+i*3)/8)%2` for i 0 and 1), the third assistant lands on index 1
  * (`floor((100+2*3)/8)%2 = floor(106/8)%2 = 1`) — 5 + 5 + 5 + 8 = 23. The cat is asleep (`CAT_SLEEP`, unchanged) and
  * every mood is neutral (stamina 80 on everyone, no editor, no cheer), so `drawMood` adds nothing. The full scene
- * must stay under 1.5 times this.
+ * must stay under 1.5 times this. The final whole-branch review's fix (sleepy = working late at night, not the dead
+ * `resting && night` check) re-measured it the same way at 1065 (+17): `BARE_FULL`'s mangaka is seated, working
+ * (`phase: 'drawing'`, `running: true`), at night (t 0.9) — exactly `lateNight` — so the sleepy face and mark now
+ * paint where neutral used to. `FACES.sleepy` (14x4) runs to 12 fillRect calls (row 0 and row 2 are one run each of
+ * plain `S`; row 1 is 5 runs, `S,LL,S,LL,S`; row 3 is 5 runs, `BB,S,M,S,BB`), and `MARKS.sleepy` (3x5, only the `L`
+ * cells drawn, `.` skipped) is 5 runs, one per row — 12 + 5 = 17. The three assistants stay neutral (Decision 5:
+ * assistants never go sleepy), so nothing else in the scene changes.
  */
-const FULL_BASELINE = 1048
+const FULL_BASELINE = 1065
 
 function paint(over: Partial<Snapshot> = {}, t = 0.3, frame = 100): FillCall[] {
   const { ctx, log } = fakeContext()
@@ -157,13 +163,13 @@ describe('the studio in the scene', () => {
     expect(key(paint({ trophies: 2 }))).not.toBe(key(paint({ trophies: 1 })))
   })
 
-  it('paints the scene with no studio look in its measured 1048 fills', () => {
+  it('paints the scene with no studio look in its measured 1065 fills', () => {
     expect(paint(BARE_FULL, 0.9, 100)).toHaveLength(FULL_BASELINE)
   })
 
   it('keeps the full scene inside the canvas, free of magenta and under 1.5 times its own baseline', () => {
     const budget = FULL_BASELINE * 1.5
-    expect(budget).toBe(1572)
+    expect(budget).toBe(1597.5)
     for (const [t, frame, visiting] of [[0.9, 100, 0], [0.9, 0, 0], [0.3, 100, 0], [0.9, 100, 1]]) {
       const log = paint(visiting ? { ...EVERYTHING, visitor: 'editor', visitorProp: 'contract' } : EVERYTHING, t, frame)
       expect(log.some((c) => c.style === '#f0f'), `t ${t} frame ${frame}`).toBe(false)
