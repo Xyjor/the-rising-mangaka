@@ -486,18 +486,23 @@ export const MANGAKA_SIT: readonly [SpriteMap, SpriteMap] = [
   ],
 ] as const
 
-/** Seated, late on a chapter: fists clutching the sides of the head, ringed eyes, the mouth open. Frame 1 has the fists a row lower. */
+/**
+ * Seated, late on a chapter: both hands clamped on top of the head (the hands meet the hair at rows 1-3, the forearms
+ * run down and out over the hair's edge, the elbows out at cols 0-3 and 20-23), ringed eyes, the mouth open. This
+ * replaces the earlier ruling's fists beside the head (rows 5-8): with the arms raised and the elbows out, the hands
+ * on top read as hands, not ears. Frame 1 presses them a row lower (rows 2-3).
+ */
 export const MANGAKA_PANIC: readonly [SpriteMap, SpriteMap] = [
   [
-    '......LLLLLLLLLL........', // 0
-    '....LLHHHHHHHHHhLL......', // 1
-    '...LHHHHHHHHHHHHhhL.....', // 2
-    '..LHHHHHHHHHHHHHHhhL....', // 3
-    'LLLLHHHHHHHHHHHHHhhLLLLL', // 4
-    'LSSLHHHHHHHHHHHHHhhLLSsL', // 5
-    'LSSLHHSHHHHSHHHHHhhLLSsL', // 6
-    'LSSLSSSSSSSSSSSSSShLLSsL', // 7
-    'LSSLSSSSSSSSSSSSSSsLLSsL', // 8
+    '..LLLLLLLLLLLLLLLLLL....', // 0
+    '..LSSLHHHHHHHHHHLSsL....', // 1
+    '.LSSSLHHHHHHHHHHhLSsL...', // 2
+    '.LJJLHHHHHHHHHHHHhLJjL..', // 3
+    'LJJLHHHHHHHHHHHHHhhLJjL.', // 4
+    'LJJLHHHHHHHHHHHHHhhLLJjL', // 5
+    'LJJLHHSHHHHSHHHHHhhLLJjL', // 6
+    'LJJLSSSSSSSSSSSSSShLLJjL', // 7
+    'LJJLSSSSSSSSSSSSSSsLLJjL', // 8
     'LJLHSWWWSSSSSWWWSSsLLJjL', // 9
     'LJLHSWEWSSSSSWEWSSsLLJjL', // 10
     'LJLHSWWWSSSSSWWWSSsLLJjL', // 11
@@ -524,15 +529,15 @@ export const MANGAKA_PANIC: readonly [SpriteMap, SpriteMap] = [
   ],
   [
     '......LLLLLLLLLL........', // 0
-    '....LLHHHHHHHHHhLL......', // 1
-    '...LHHHHHHHHHHHHhhL.....', // 2
-    '..LHHHHHHHHHHHHHHhhL....', // 3
-    '..LHHHHHHHHHHHHHHhhL....', // 4
-    'LLLLHHHHHHHHHHHHHhhLLLLL', // 5
-    'LSSLHHSHHHHSHHHHHhhLLSsL', // 6
-    'LSSLSSSSSSSSSSSSSShLLSsL', // 7
-    'LSSLSSSSSSSSSSSSSSsLLSsL', // 8
-    'LSSLSWWWSSSSSWWWSSsLLSsL', // 9
+    '..LLLLHHHHHHHHHhLLLL....', // 1
+    '..LSSLHHHHHHHHHHhLSsL...', // 2
+    '.LSSSLHHHHHHHHHHHhLSsL..', // 3
+    'LJJLHHHHHHHHHHHHHhhLJjL.', // 4
+    'LJJLHHHHHHHHHHHHHhhLLJjL', // 5
+    'LJJLHHSHHHHSHHHHHhhLLJjL', // 6
+    'LJJLSSSSSSSSSSSSSShLLJjL', // 7
+    'LJJLSSSSSSSSSSSSSSsLLJjL', // 8
+    'LJLHSWWWSSSSSWWWSSsLLJjL', // 9
     'LJLHSWEWSSSSSWEWSSsLLJjL', // 10
     'LJLHSWWWSSSSSWWWSSsLLJjL', // 11
     'LJLSBBSSSLMMLSSSBBsLLJjL', // 12

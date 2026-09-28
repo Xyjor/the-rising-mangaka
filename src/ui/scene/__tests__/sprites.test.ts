@@ -50,7 +50,11 @@ describe('the sprites', () => {
     expect(MANGAKA_IDLE[1][10][6]).toBe('E')
     // the pen hand (row 22 col 0 is the pen's L, so the hand starts at col 1: see the task 1 report)
     expect(MANGAKA_SIT[0][22][1]).toBe('S')
-    expect(MANGAKA_PANIC[0][5][1]).toBe('S')
+    // panic: both hands on top of the head, meeting the hair at rows 1-3, the raised arms' elbows out at cols 0 and 23
+    expect([MANGAKA_PANIC[0][1][3], MANGAKA_PANIC[0][1][17], MANGAKA_PANIC[0][1][6]]).toEqual(['S', 'S', 'H'])
+    expect([MANGAKA_PANIC[1][2][3], MANGAKA_PANIC[1][3][19], MANGAKA_PANIC[1][1][3]]).toEqual(['S', 'S', 'L'])
+    expect([MANGAKA_PANIC[0][6][1], MANGAKA_PANIC[0][6][22], MANGAKA_PANIC[0][6][0]]).toEqual(['J', 'j', 'L'])
+    for (const f of MANGAKA_PANIC) for (let r = 4; r <= 15; r++) expect(f[r].slice(0, 3), `row ${r}`).not.toContain('S')
     // the bed pose: 30x14, the first hair cell row 2 col 16
     expect(MANGAKA_LIE).toHaveLength(14)
     expect(MANGAKA_LIE.every((row) => row.length === 30)).toBe(true)
