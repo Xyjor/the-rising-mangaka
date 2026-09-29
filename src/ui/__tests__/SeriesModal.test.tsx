@@ -10,6 +10,7 @@ import type { ChapterResult, GameState } from '../../sim'
 import { DRAFT, KIDS_OFFER, drawUntilReady, withStats } from '../../test/fixtures'
 import { useStore } from '../../state/store'
 import { SeriesModal } from '../panels/SeriesModal'
+import { MAGAZINE_ART } from '../art/registry'
 
 /** A strong one-shot, submitted to Weekly Bolt and its offer waiting. */
 function strongOneShot(): GameState {
@@ -130,8 +131,6 @@ describe('SeriesModal series tabs', () => {
     expect(screen.queryByRole('tablist')).toBeNull()
   })
 })
-
-import { MAGAZINE_ART } from '../art/registry'
 
 describe('SeriesModal art', () => {
   it('heads the series with its magazine cover', () => {

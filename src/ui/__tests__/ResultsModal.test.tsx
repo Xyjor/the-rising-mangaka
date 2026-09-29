@@ -13,6 +13,7 @@ import type { FakeSound } from '../../test/fakeSound'
 import { useStore } from '../../state/store'
 import { ResultsModal } from '../panels/ResultsModal'
 import { revealClock } from '../panels/useReveal'
+import { EDITOR_ART, RIVAL_ART } from '../art/registry'
 
 /**
  * The reveal runs on a frozen clock in every test here: time stands still at mount until a test calls `advanceTo`
@@ -451,8 +452,6 @@ describe('ResultsModal reveal', () => {
     expect(sound.ducks).toEqual([0.3, 1])
   })
 })
-
-import { EDITOR_ART, RIVAL_ART } from '../art/registry'
 
 describe('ResultsModal art', () => {
   it('puts the editor beside the comment and the rival beside their line', () => {

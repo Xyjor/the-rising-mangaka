@@ -7,6 +7,7 @@ import type { PollResult } from '../../sim'
 import { withPendingResult } from '../../test/fixtures'
 import { useStore } from '../../state/store'
 import { CareerModal } from '../panels/CareerModal'
+import { RIVAL_ART } from '../art/registry'
 
 describe('CareerModal rival section', () => {
   it('names the rival, their series and magazine, their usual scores and the head-to-head record', () => {
@@ -30,8 +31,6 @@ describe('CareerModal rival section', () => {
     expect(screen.getByRole('region', { name: 'Rival' }).textContent).toContain('Head to head: 0 wins, 0 losses.')
   })
 })
-
-import { RIVAL_ART } from '../art/registry'
 
 describe('CareerModal art', () => {
   it('shows the rival portrait', () => {

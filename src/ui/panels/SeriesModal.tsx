@@ -65,10 +65,10 @@ function SeriesDetail({ ser }: { ser: Serial }) {
         <div className="row" style={{ gap: 12 }}>
           <PixelArt art={MAGAZINE_ART[mag.id]} className="cover-art" />
           <div>
-          <div className="display series-title" style={{ lineHeight: 1 }}>{ser.title}</div>
-          <div className="small muted">
-            {genreById(ser.genre).name}, {themeById(ser.theme).name}, for {audienceById(ser.audience).name}. In {mag.name} since year {started.year}, month {started.month}.
-          </div>
+            <div className="display series-title" style={{ lineHeight: 1 }}>{ser.title}</div>
+            <div className="small muted">
+              {genreById(ser.genre).name}, {themeById(ser.theme).name}, for {audienceById(ser.audience).name}. In {mag.name} since year {started.year}, month {started.month}.
+            </div>
           </div>
         </div>
         {statusChip}

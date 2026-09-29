@@ -10,6 +10,7 @@ import { YearReviewCard } from '../YearReviewCard'
 import { CareerModal } from '../panels/CareerModal'
 import { DeskTray } from '../hud/DeskTray'
 import { YearModal } from '../panels/YearModal'
+import { AWARD_ART, RIVAL_ART } from '../art/registry'
 
 const CARD = 'Year 1 in review: 2 awards, 1 near miss.'
 
@@ -179,8 +180,6 @@ describe('CareerModal awards', () => {
     expect(screen.queryByRole('region', { name: 'Past years' })).toBeNull()
   })
 })
-
-import { AWARD_ART, RIVAL_ART } from '../art/registry'
 
 describe('award and rival art', () => {
   it('shows each award won on the card, in the review and in the career, and the rival in the review', () => {

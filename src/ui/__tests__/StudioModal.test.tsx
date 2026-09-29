@@ -9,6 +9,7 @@ import { App } from '../App'
 import { money } from '../format'
 import { StatsModal } from '../panels/StatsModal'
 import { StudioModal } from '../panels/StudioModal'
+import { EQUIPMENT_ART_ICON } from '../art/registry'
 
 // Money is set from the price helpers, so a new price scale leaves these tests standing.
 
@@ -115,8 +116,6 @@ describe('StatsModal equipment', () => {
     expect(screen.getByText('No equipment yet. The Studio sells gear that helps you draw and rest.')).toBeTruthy()
   })
 })
-
-import { EQUIPMENT_ART_ICON } from '../art/registry'
 
 describe('StudioModal art', () => {
   it('draws every piece of equipment on its row', () => {

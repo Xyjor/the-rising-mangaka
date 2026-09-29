@@ -8,6 +8,7 @@ import { withReadyOneShot } from '../../test/fixtures'
 import { useStore } from '../../state/store'
 import { SubmitModal } from '../panels/SubmitModal'
 import { MAG_TONE } from '../looks'
+import { MAGAZINE_ART } from '../art/registry'
 
 const KIDS_DRAFT: ProjectDraft = { title: 'Blade Club', genre: 'action', theme: 'samurai', audience: 'kids' }
 const FOOTNOTE =
@@ -127,8 +128,6 @@ describe('SubmitModal magazine covers', () => {
     }
   })
 })
-
-import { MAGAZINE_ART } from '../art/registry'
 
 describe('SubmitModal art', () => {
   it('draws each magazine cover in its strip', () => {

@@ -9,6 +9,7 @@ import { useStore } from '../../state/store'
 import { StatusCard } from '../hud/StatusCard'
 import { OfferModal } from '../panels/OfferModal'
 import { SeriesModal } from '../panels/SeriesModal'
+import { EDITOR_ART, MAGAZINE_ART } from '../art/registry'
 
 const OFFER = { magazineId: 'kids-comic', title: 'Magic Club', genre: 'fantasy', theme: 'magic', audience: 'kids' } as const
 const LATE = 'You will miss issues at this pace: hire help first.'
@@ -128,8 +129,6 @@ describe('series: the chapter rhythm and missed issues', () => {
     )).toBeTruthy()
   })
 })
-
-import { EDITOR_ART, MAGAZINE_ART } from '../art/registry'
 
 describe('OfferModal art', () => {
   it('shows the cover and the editor beside their pitch', () => {
