@@ -54,6 +54,8 @@ function parsePng(path: string): {
   palette: string[]
   bytes: number
 } {
+  // PLTE entries made fully transparent by tRNS are never drawn (the encoder picks their RGB freely), so they are
+  // left out of the returned palette.
   const buf = readFileSync(path)
   const sig = buf.subarray(0, 8)
   const expectedSig = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
@@ -64,6 +66,7 @@ function parsePng(path: string): {
   let height = 0
   let colorType = -1
   let palette: string[] = []
+  const transparent = new Set<number>()
 
   while (offset < buf.length) {
     const length = buf.readUInt32BE(offset)
@@ -81,12 +84,14 @@ function parsePng(path: string): {
         const b = buf.readUInt8(dataStart + i + 2)
         palette.push(`#${[r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('')}`)
       }
+    } else if (type === 'tRNS' && colorType === 3) {
+      for (let i = 0; i < length; i++) if (buf.readUInt8(dataStart + i) === 0) transparent.add(i)
     }
     offset = dataStart + length + 4 // skip data + CRC
     if (type === 'IEND') break
   }
 
-  return { width, height, colorType, palette, bytes: buf.length }
+  return { width, height, colorType, palette: palette.filter((_, i) => !transparent.has(i)), bytes: buf.length }
 }
 
 describe('art manifest', () => {
@@ -135,6 +140,7 @@ describe('generated PNGs', () => {
       expect(png.width, `${entry.id} width`).toBe(entry.native[0])
       expect(png.height, `${entry.id} height`).toBe(entry.native[1])
       expect(png.colorType, `${entry.id} colour type`).toBe(3)
+      expect(png.palette.length, `${entry.id} colour cap`).toBeLessThanOrEqual(entry.colors ?? 16)
       for (const hex of png.palette) {
         expect(palette.has(hex), `${entry.id}: PLTE colour ${hex} not in ART_PALETTE`).toBe(true)
       }

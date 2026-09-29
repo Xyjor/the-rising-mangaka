@@ -5,6 +5,7 @@ import {
   despeckle,
   downsampleArea,
   downsampleNearest,
+  findBlobs,
   floodTransparentFromEdges,
   makeImage,
   nearestPaletteIndex,
@@ -331,5 +332,38 @@ describe('despeckle', () => {
     const out = despeckle(img)
     const centre = (1 * 3 + 1) * 4
     expect(out.data[centre]).toBe(10) // unanimous check fails, so left alone
+  })
+})
+
+describe('findBlobs', () => {
+  function sheet() {
+    const img = makeImage(40, 20)
+    fill(img, 200, 200, 200)
+    for (let y = 2; y < 8; y++) for (let x = 2; x < 8; x++) setPixel(img, x, y, 10, 10, 10)
+    // a detached sparkle 2px right of the first object
+    setPixel(img, 10, 3, 250, 220, 0)
+    for (let y = 5; y < 15; y++) for (let x = 25; x < 35; x++) setPixel(img, x, y, 200, 0, 0)
+    // a lone speck far from anything
+    setPixel(img, 18, 18, 0, 0, 0)
+    return img
+  }
+
+  it('finds each object, merging blobs within the gap and dropping tiny specks', () => {
+    const boxes = findBlobs(sheet(), { tolerance: 24, mergeGap: 3, minArea: 4 })
+    expect(boxes).toEqual([
+      { x: 2, y: 2, width: 9, height: 6 },
+      { x: 25, y: 5, width: 10, height: 10 },
+    ])
+  })
+
+  it('keeps a far sparkle separate when the gap is small', () => {
+    const boxes = findBlobs(sheet(), { tolerance: 24, mergeGap: 1, minArea: 1 })
+    expect(boxes).toHaveLength(4)
+  })
+
+  it('returns nothing for a flat background', () => {
+    const img = makeImage(5, 5)
+    fill(img, 200, 200, 200)
+    expect(findBlobs(img, { tolerance: 24, mergeGap: 2, minArea: 1 })).toEqual([])
   })
 })
