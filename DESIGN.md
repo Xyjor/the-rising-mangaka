@@ -410,6 +410,33 @@ gradient from `--title-scrim` to `--title-scrim-clear` on wide layouts (the card
 through past it), and a flat `--title-scrim` fill below the breakpoint where the card stacks below the art instead.
 `.has-hero` only applies when the hero image is present, so a title screen without one keeps its plain background.
 
+**Sheets (batch 1, 0.8.0).** Sets of like things are generated together, one generation per group, so a set shares
+one style: `art/raw/sheets/<group>.webp` holds seven sheets (people, genres, themes-a, themes-b, magazines, equipment,
+awards) on a flat light grey background. Each entry names its sheet (`sheet: { src: "sheets/<group>" }`, no grid) and
+an explicit `crop: [x, y, w, h]` in sheet pixels, and repeats its sheet's model, seed, resolution and prompt. The crops
+were measured once with `npm run art -- --measure sheets/<group> [mergeGap] [minArea]`, which prints the bounding boxes
+of `pixelOps.ts`'s `findBlobs` (non-background 4-connected blobs, background being the corner colour within the flood
+tolerance, blobs within `mergeGap` px merged so a detached sparkle stays with its object, specks under `minArea`
+dropped); the committed numbers are then hand-checked (the people sheet's busts touch at the shoulders, so their crops
+are 300 px squares from the head boxes; the awards sheet is measured inside its white divider lines), so regeneration
+never depends on the heuristic. Icons and portraits are 32x32 cutouts with an outline, magazine covers 36x48
+rectangles (a 3:4 window centred on each cover), 16 colours each; an outline takes one of those 16 slots and a cutout's
+PNG gets one more palette entry for transparency (never drawn, so `art.test.ts` ignores fully transparent entries).
+
+| Records (`registry.ts`) | Ids | Mounted in |
+|---|---|---|
+| `GENRE_ART` (Partial) | `genre/<GenreId>` | the new-manga wizard's genre cards, 2x |
+| `THEME_ART` | `theme/<ThemeId>` | the wizard's theme cards, 2x |
+| `MAGAZINE_ART` | `magazine/<MagazineId>` | Submit's cover strip 2x, the Offer hero 2x, the Series header 1x |
+| `EDITOR_ART` (by magazine) | `editor/<MagazineId>` | beside the editor's words in Offer and Results, 2x |
+| `RIVAL_ART` | `rival/rival` | Results' rival line 1x, the year review and Career, 2x |
+| `EQUIPMENT_ART_ICON` | `equipment/<EquipmentId>` | Studio's equipment rows, 2x (1x at 640 px and below) |
+| `AWARD_ART` | `award/<AwardId>` | the year review 2x, its desk card and Career 1x |
+
+Slice of life has no icon yet (the genres sheet drew drama as a tear drop and a rose in its place; drama uses the
+rose), so its wizard card shows no art. Cutouts sit in `.art-frame` (a `--paper-2` tile with a border) so they keep
+their contrast in dark mode; covers carry their own border.
+
 Generated art is excluded from Vite's asset inlining (`vite.config.ts`'s `assetsInlineLimit`, false for any path
 under `/assets/art/`), so `PixelArt.tsx`'s `<img src>` is always a real, cacheable URL rather than a base64 data URI;
 on desktop it loads under the CSP's `img-src 'self'` (`src-tauri/tauri.conf.json`), which only a same-origin bundled
