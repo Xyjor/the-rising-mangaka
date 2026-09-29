@@ -179,3 +179,20 @@ describe('CareerModal awards', () => {
     expect(screen.queryByRole('region', { name: 'Past years' })).toBeNull()
   })
 })
+
+import { AWARD_ART, RIVAL_ART } from '../art/registry'
+
+describe('award and rival art', () => {
+  it('shows each award won on the card, in the review and in the career, and the rival in the review', () => {
+    useStore.setState({ game: reviewed(), modal: 'year' })
+    const card = render(<YearReviewCard />)
+    expect(card.container.querySelector(`img[src="${AWARD_ART.critics.src}"]`)).not.toBeNull()
+    card.unmount()
+    const year = render(<YearModal />)
+    expect(year.container.querySelector(`.year-award img[src="${AWARD_ART.rookie.src}"]`)).not.toBeNull()
+    expect(year.container.querySelector(`.art-line img[src="${RIVAL_ART.src}"]`)).not.toBeNull()
+    year.unmount()
+    const career = render(<CareerModal />)
+    expect(career.container.querySelector(`.year-award img[src="${AWARD_ART.critics.src}"]`)).not.toBeNull()
+  })
+})

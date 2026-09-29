@@ -130,3 +130,14 @@ describe('SeriesModal series tabs', () => {
     expect(screen.queryByRole('tablist')).toBeNull()
   })
 })
+
+import { MAGAZINE_ART } from '../art/registry'
+
+describe('SeriesModal art', () => {
+  it('heads the series with its magazine cover', () => {
+    const game = serialWithResults(1)
+    useStore.setState({ game, readOnly: false })
+    const { container } = render(<SeriesModal />)
+    expect(container.querySelector(`img[src="${MAGAZINE_ART[game.serial!.magazineId].src}"]`)).not.toBeNull()
+  })
+})

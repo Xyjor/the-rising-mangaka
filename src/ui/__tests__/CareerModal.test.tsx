@@ -30,3 +30,13 @@ describe('CareerModal rival section', () => {
     expect(screen.getByRole('region', { name: 'Rival' }).textContent).toContain('Head to head: 0 wins, 0 losses.')
   })
 })
+
+import { RIVAL_ART } from '../art/registry'
+
+describe('CareerModal art', () => {
+  it('shows the rival portrait', () => {
+    useStore.setState({ game: createGame('Rin', 1), readOnly: false })
+    const { container } = render(<CareerModal />)
+    expect(container.querySelector(`.career-rival img[src="${RIVAL_ART.src}"]`)).not.toBeNull()
+  })
+})

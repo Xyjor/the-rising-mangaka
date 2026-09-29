@@ -93,9 +93,7 @@
   display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 6px 8px; margin: -4px -6px 2px;
   background: var(--mag-soft); border: 2px solid var(--line-strong); border-radius: var(--radius-s);
 }
-.mag-cover::before {
-  content: ''; flex: none; width: 10px; height: 14px; background: var(--mag); border: 2px solid var(--line-strong);
-}
+.mag-cover .mag-art { flex: none; border: 2px solid var(--line-strong); background: var(--mag); }
 .mag-cover[data-tone='blue'] { --mag: var(--blue); --mag-soft: var(--blue-soft); }
 .mag-cover[data-tone='gold'] { --mag: var(--gold); --mag-soft: var(--gold-soft); }
 .mag-cover[data-tone='green'] { --mag: var(--green); --mag-soft: var(--green-soft); }
@@ -280,6 +278,12 @@
 .place .btn, .place > .chip { grid-column: 2; grid-row: 1 / span 3; }
 /* Trips: a postcard of the place leads each card. */
 .place.has-thumb { grid-template-columns: 32px minmax(0, 1fr) auto; }
+.place.has-art { grid-template-columns: auto minmax(0, 1fr) auto; }
+.place.has-art > .place-art { grid-column: 1; grid-row: 1 / span 3; align-self: start; }
+.place.has-art > :not(.place-art):not(.btn) { grid-column: 2; }
+.place.has-art .btn { grid-column: 3; }
+/* On phones the equipment art drops to 1x so the name and the buy button keep their room. */
+@media (max-width: 640px) { .place.has-art > .place-art img { width: 32px; height: 32px; } }
 .place.has-thumb > .postcard { grid-column: 1; grid-row: 1 / span 3; align-self: start; }
 .place.has-thumb > :not(.postcard):not(.btn) { grid-column: 2; }
 .place.has-thumb .btn { grid-column: 3; }
@@ -362,6 +366,13 @@
 .log-list li[data-kind='event'] .dot { background: var(--gold); }
 
 /* ---------- offer ---------- */
+/* Generated art beside text: an editor's portrait by their speech, the rival by their line, a cover by the offer. */
+.editor-says { display: flex; align-items: flex-start; gap: 10px; }
+.editor-says > .speech { flex: 1; min-width: 0; }
+.art-line { display: flex; align-items: center; gap: 8px; }
+.offer-hero-row { display: flex; align-items: center; gap: 12px; }
+.offer-hero-row > .offer-hero { flex: 1; min-width: 0; }
+.cover-art { flex: none; border: 2px solid var(--line-strong); }
 .offer-hero {
   padding: 18px; border-radius: var(--radius-s); border: 3px solid var(--line-strong);
   background: var(--blue-soft); display: flex; flex-direction: column; gap: 6px;

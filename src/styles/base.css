@@ -304,6 +304,7 @@ p { margin: 0; }
 .choice[aria-pressed='true'] { border-color: var(--accent); background: var(--accent-soft); box-shadow: 3px 3px 0 var(--accent); }
 .choice:focus-visible { outline: 3px solid var(--blue); outline-offset: -5px; }
 .choice .name { font-weight: 800; }
+.choice .choice-art { align-self: flex-start; line-height: 0; }
 .choice .blurb { font-size: 12px; color: var(--ink-2); }
 .choice .hint { margin-top: 4px; font-size: 12px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 
@@ -345,7 +346,7 @@ p { margin: 0; }
   image-rendering: pixelated;
 }
 .art-frame {
-  display: inline-block; background: var(--paper-2); border: 2px solid var(--line-strong);
+  display: inline-block; line-height: 0; background: var(--paper-2); border: 2px solid var(--line-strong);
 }
 
 @media (prefers-reduced-motion: reduce) {

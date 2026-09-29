@@ -12,6 +12,8 @@ import { compact, money } from '../format'
 import { payWhy, rivalLine } from '../labels'
 import { prefersReducedMotion } from '../motion'
 import { TIER_JINGLE, barPitch, countUp, revealCues, revealPlan } from './reveal'
+import { PixelArt } from '../art/PixelArt'
+import { EDITOR_ART, RIVAL_ART } from '../art/registry'
 import { useRevealClock } from './useReveal'
 
 const ITEMS: { key: keyof ScoreBreakdown; label: string; tone: string }[] = [
@@ -173,11 +175,19 @@ export function ResultsModal() {
               </div>
             </div>
           </div>
-          {rival && <p className="small" style={spoiler}>{rival}</p>}
+          {rival && (
+            <p className="small art-line" style={spoiler}>
+              <span className="art-frame"><PixelArt art={RIVAL_ART} /></span>
+              <span>{rival}</span>
+            </p>
+          )}
 
-          <div className="speech pixel-bubble">
-            {r.editorComment}
-            <div className="tiny muted" style={{ marginTop: 6 }}>{mag.editor} ({mag.persona}), editor at {mag.name}</div>
+          <div className="editor-says">
+            <span className="art-frame"><PixelArt art={EDITOR_ART[mag.id]} scale={2} /></span>
+            <div className="speech pixel-bubble">
+              {r.editorComment}
+              <div className="tiny muted" style={{ marginTop: 6 }}>{mag.editor} ({mag.persona}), editor at {mag.name}</div>
+            </div>
           </div>
         </div>
 

@@ -5,6 +5,8 @@ import { Modal } from '../components'
 import { money, plural } from '../format'
 import { rivalCareerLine, yearCareerLine } from '../labels'
 import '../../styles/career.css'
+import { PixelArt } from '../art/PixelArt'
+import { AWARD_ART, RIVAL_ART } from '../art/registry'
 
 /** The career so far: the rival, the awards won and every past year, then the milestone ladder. */
 export function CareerModal() {
@@ -17,7 +19,10 @@ export function CareerModal() {
     <Modal title="Career" sub={`${done.length} of ${MILESTONES.length} goals reached`} onClose={closeModal} narrow>
       <section className="card flat career-rival" aria-labelledby="career-rival">
         <div className="lbl" id="career-rival">Rival</div>
-        <p className="small">{rivalCareerLine(game.rival, rivalRecord(game))}</p>
+        <p className="small art-line">
+          <span className="art-frame"><PixelArt art={RIVAL_ART} scale={2} /></span>
+          <span>{rivalCareerLine(game.rival, rivalRecord(game))}</span>
+        </p>
       </section>
       <section className="card flat career-section" aria-labelledby="career-awards">
         <div className="lbl" id="career-awards">Awards</div>
@@ -25,7 +30,8 @@ export function CareerModal() {
           <ul className="year-list plain small">
             {game.awards.map((a) => (
               <li key={`${a.id}-${a.year}`} className="year-award">
-                <Icon name="trophy" size={16} />{awardById(a.id).name}, year {a.year}
+                <span className="art-frame"><PixelArt art={AWARD_ART[a.id]} /></span>
+                <span>{awardById(a.id).name}, year {a.year}</span>
               </li>
             ))}
           </ul>

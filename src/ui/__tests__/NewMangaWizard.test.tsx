@@ -47,3 +47,14 @@ describe('NewMangaWizard', () => {
     expect(wrap!.querySelector('.know.card.flat')).not.toBeNull()
   })
 })
+
+import { GENRE_ART, THEME_ART } from '../art/registry'
+
+describe('NewMangaWizard art', () => {
+  it('puts each genre and theme icon on its choice card', () => {
+    render(<NewMangaWizard />)
+    expect(document.querySelector(`.choice img[src="${GENRE_ART.action!.src}"]`)).not.toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: /Action/ }))
+    expect(document.querySelector(`.choice img[src="${THEME_ART.samurai.src}"]`)).not.toBeNull()
+  })
+})

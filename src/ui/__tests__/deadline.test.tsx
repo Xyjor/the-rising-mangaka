@@ -128,3 +128,14 @@ describe('series: the chapter rhythm and missed issues', () => {
     )).toBeTruthy()
   })
 })
+
+import { EDITOR_ART, MAGAZINE_ART } from '../art/registry'
+
+describe('OfferModal art', () => {
+  it('shows the cover and the editor beside their pitch', () => {
+    useStore.setState({ game: offerFrom('kids-comic') })
+    const { container } = render(<OfferModal />)
+    expect(container.querySelector(`.offer-hero-row img[src="${MAGAZINE_ART['kids-comic'].src}"]`)).not.toBeNull()
+    expect(container.querySelector(`.editor-says img[src="${EDITOR_ART['kids-comic'].src}"]`)).not.toBeNull()
+  })
+})

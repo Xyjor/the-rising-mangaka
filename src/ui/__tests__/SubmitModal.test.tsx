@@ -127,3 +127,12 @@ describe('SubmitModal magazine covers', () => {
     }
   })
 })
+
+import { MAGAZINE_ART } from '../art/registry'
+
+describe('SubmitModal art', () => {
+  it('draws each magazine cover in its strip', () => {
+    const { container } = render(<SubmitModal />)
+    for (const m of MAGAZINES) expect(container.querySelector(`.mag-cover img[src="${MAGAZINE_ART[m.id].src}"]`), m.id).not.toBeNull()
+  })
+})

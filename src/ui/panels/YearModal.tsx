@@ -1,11 +1,12 @@
 import { useEffect } from 'react'
 import { AWARDS, awardById } from '../../sim'
 import { useStore } from '../../state/store'
-import { Icon } from '../Icon'
 import { Modal, Reward } from '../components'
 import { compact } from '../format'
 import { awardRule, nearMissText, prizeText, rivalYearLine, yearGain, yearLevels, yearSummary } from '../labels'
 import '../../styles/career.css'
+import { PixelArt } from '../art/PixelArt'
+import { AWARD_ART, RIVAL_ART } from '../art/registry'
 
 /**
  * The latest year review: the year in numbers, the awards won with their prizes and what won them, the near misses,
@@ -48,7 +49,7 @@ export function YearModal() {
               const a = awardById(id)
               return (
                 <li key={id} className="year-award">
-                  <Icon name="trophy" size={16} />
+                  <span className="art-frame"><PixelArt art={AWARD_ART[id]} scale={2} /></span>
                   <span><b>{a.name}</b>: {prizeText(a)}. <span className="muted">Won for {awardRule(a)}.</span></span>
                 </li>
               )
@@ -77,7 +78,10 @@ export function YearModal() {
 
       <section className="year-section" aria-labelledby="year-rival">
         <div className="lbl" id="year-rival">Rival</div>
-        <p className="small">{rivalYearLine(r, temper)}</p>
+        <p className="small art-line">
+          <span className="art-frame"><PixelArt art={RIVAL_ART} scale={2} /></span>
+          <span>{rivalYearLine(r, temper)}</span>
+        </p>
       </section>
     </Modal>
   )

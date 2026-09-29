@@ -115,3 +115,12 @@ describe('StatsModal equipment', () => {
     expect(screen.getByText('No equipment yet. The Studio sells gear that helps you draw and rest.')).toBeTruthy()
   })
 })
+
+import { EQUIPMENT_ART_ICON } from '../art/registry'
+
+describe('StudioModal art', () => {
+  it('draws every piece of equipment on its row', () => {
+    const { container } = render(<StudioModal />)
+    for (const [id, ref] of Object.entries(EQUIPMENT_ART_ICON)) expect(container.querySelector(`.place-art img[src="${ref.src}"]`), id).not.toBeNull()
+  })
+})
