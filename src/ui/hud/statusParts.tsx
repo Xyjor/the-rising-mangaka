@@ -126,7 +126,7 @@ export function TripCard() {
     <div className="col" style={{ gap: 10 }}>
       <div className="row between wrap">
         <span className="row" style={{ gap: 8 }}>
-          <span className="postcard has-art" data-place={place.id} aria-hidden="true"><PixelArt art={PLACE_ART[place.id]} /></span>
+          <span className="postcard" data-place={place.id} aria-hidden="true"><PixelArt art={PLACE_ART[place.id]} /></span>
           <span className="title">{place.name}</span>
         </span>
         <span className="chip green">Away</span>

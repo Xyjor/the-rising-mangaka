@@ -440,15 +440,16 @@ PNG gets one more palette entry for transparency (never drawn, so `art.test.ts` 
 | `TIER_ART_THUMB` (96x54) | `tier/<StudioTierId>` | Studio's tier rows, 1x |
 
 **Sheets (batch 2, 0.8.0), a second host.** The remaining 51 assets came from twelve sheets generated on
-Higgsfield with its `z_image` model (the same Z-Image family), `art/raw/sheets/<group>.png`, because the Hugging Face
+Higgsfield with its `z_image` model (the same Z-Image family), `art/raw/sheets/<group>.png` (prompts verbatim in the manifest), because the Hugging Face
 Space's quota ran out. Higgsfield exposes no seed, so these entries carry `source: "higgsfield:z_image"`, `seed: null`
 and the Higgsfield `job` id instead (batch 1 and the hero carry `source: "hf-space:mcp-tools/Z-Image-Turbo"` and their
 seed); the job id is the only handle back to the generation, which is one more reason the raw sheet is committed. A
 sheet `src` with an extension is read as given, otherwise `.webp`. The model did not always follow the grid, so cells
 were picked by eye and measured with `--measure`. Icons, merch, badges and the anime emblems are 32x32 cutouts; places
 (64x40), events and studio tiers (96x54) are scene crops (`cutout: false`) taken inside each panel's drawn dark border
-(so it does not double with `.art-frame`) as the largest centred window of the target aspect, so the wide rival
-challenge loses its outer figures and the cover's lightbox is trimmed top and bottom. Slice of life's teacup completes
+(so it does not double with `.art-frame`) inside each scene's own drawn content, so no sheet grey survives at the
+edges; scenes the model drew on grey (letter, cold, raise, reprint, interview, the signing) are cropped tight around
+the subject instead, and the rival challenge's window is set off-centre to keep both facing figures' faces. Slice of life's teacup completes
 `GENRE_ART`. Cutouts sit in `.art-frame` (a `--paper-2` tile with a border) so they keep
 their contrast in dark mode; covers carry their own border.
 

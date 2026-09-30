@@ -21,7 +21,7 @@ export function TripsModal() {
             const canAfford = game.player.money >= pl.cost
             return (
               <div className="place has-thumb" key={pl.id}>
-                <span className="postcard has-art" data-place={pl.id} aria-hidden="true"><PixelArt art={PLACE_ART[pl.id]} /></span>
+                <span className="postcard" data-place={pl.id} aria-hidden="true"><PixelArt art={PLACE_ART[pl.id]} /></span>
                 <div className="name">{pl.name}</div>
                 <button className="btn sm primary" disabled={busy || !canAfford} onClick={() => startTrip(pl.id)}>
                   {busy ? 'Away' : canAfford ? `Go, ${money(pl.cost)}` : `Need ${money(pl.cost - game.player.money)} more`}
