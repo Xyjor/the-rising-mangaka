@@ -425,16 +425,31 @@ PNG gets one more palette entry for transparency (never drawn, so `art.test.ts` 
 
 | Records (`registry.ts`) | Ids | Mounted in |
 |---|---|---|
-| `GENRE_ART` (Partial) | `genre/<GenreId>` | the new-manga wizard's genre cards, 2x |
+| `GENRE_ART` | `genre/<GenreId>` | the new-manga wizard's genre cards, 2x |
 | `THEME_ART` | `theme/<ThemeId>` | the wizard's theme cards, 2x |
 | `MAGAZINE_ART` | `magazine/<MagazineId>` | Submit's cover strip 2x, the Offer hero 2x, the Series header 1x |
 | `EDITOR_ART` (by magazine) | `editor/<MagazineId>` | beside the editor's words in Offer and Results, 2x |
 | `RIVAL_ART` | `rival/rival` | Results' rival line 1x, the year review and Career, 2x |
 | `EQUIPMENT_ART_ICON` | `equipment/<EquipmentId>` | Studio's equipment rows, 2x (1x at 640 px and below) |
 | `AWARD_ART` | `award/<AwardId>` | the year review 2x, its desk card and Career 1x |
+| `BADGE_ART`, `BADGE_LOCKED` | `badge/<BadgeId>`, `badge/locked` | the badge gallery's tiles 1x (every not-yet-earned badge, secret or not, shows the keyhole) |
+| `MERCH_ART`, `MERCH_LICENCE_ART` | `merch/<MerchItemId>`, `merch/licence` | the Goods section's rows and its header, 1x |
+| `PLACE_ART` (64x40) | `place/<PlaceId>` | Trips' postcards and the status card's trip card (the signing included), 1x |
+| `EVENT_ART` (96x54) | `event/<EventId>` | the event desk card's header, 2x (1x at 640 px and below) |
+| `ANIME_ART` | `anime/<AnimeStudioId>` | the anime offer card's studio columns, 1x (32x32: the round emblems read better square than at 48x32) |
+| `TIER_ART_THUMB` (96x54) | `tier/<StudioTierId>` | Studio's tier rows, 1x |
 
-Slice of life has no icon yet (the genres sheet drew drama as a tear drop and a rose in its place; drama uses the
-rose), so its wizard card shows no art. Cutouts sit in `.art-frame` (a `--paper-2` tile with a border) so they keep
+**Sheets (batch 2, 0.8.0), a second host.** The remaining 51 assets came from twelve sheets generated on
+Higgsfield with its `z_image` model (the same Z-Image family), `art/raw/sheets/<group>.png`, because the Hugging Face
+Space's quota ran out. Higgsfield exposes no seed, so these entries carry `source: "higgsfield:z_image"`, `seed: null`
+and the Higgsfield `job` id instead (batch 1 and the hero carry `source: "hf-space:mcp-tools/Z-Image-Turbo"` and their
+seed); the job id is the only handle back to the generation, which is one more reason the raw sheet is committed. A
+sheet `src` with an extension is read as given, otherwise `.webp`. The model did not always follow the grid, so cells
+were picked by eye and measured with `--measure`. Icons, merch, badges and the anime emblems are 32x32 cutouts; places
+(64x40), events and studio tiers (96x54) are scene crops (`cutout: false`) taken inside each panel's drawn dark border
+(so it does not double with `.art-frame`) as the largest centred window of the target aspect, so the wide rival
+challenge loses its outer figures and the cover's lightbox is trimmed top and bottom. Slice of life's teacup completes
+`GENRE_ART`. Cutouts sit in `.art-frame` (a `--paper-2` tile with a border) so they keep
 their contrast in dark mode; covers carry their own border.
 
 Generated art is excluded from Vite's asset inlining (`vite.config.ts`'s `assetsInlineLimit`, false for any path

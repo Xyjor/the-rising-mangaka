@@ -123,7 +123,7 @@ canvas space; `story.ts` `storyLook`, the story props' five snapshot inputs read
   or `src/styles/tokens.css`), `pixelOps.ts` (the pure pixel math `scripts/pixelate.ts` runs), `registry.ts` (typed
   `ArtRef` lookups over the PNGs in `src/assets/art/`, eagerly globbed by Vite) and `PixelArt.tsx` (the `<img>`
   wrapper every component uses to mount one). `art/manifest.json` and `art/raw/` at the repo root hold each asset's
-  generation recipe and committed raw source; see DESIGN.md's "Art" section.
+  generation recipe and committed raw source (two hosts: a Hugging Face Space with seeds, Higgsfield `z_image` with job ids); see DESIGN.md's "Art" section.
 - `src/assets/art/` — generated indexed PNGs, one per `art/manifest.json` entry, written by `npm run art` and never
   edited by hand; never base64-inlined (`vite.config.ts`'s `assetsInlineLimit`).
 - `src/platform/` — where the game runs, and the only place that imports `@tauri-apps/*`. `env.ts` `isDesktop()`
