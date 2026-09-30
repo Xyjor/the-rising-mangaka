@@ -1,4 +1,6 @@
 // @vitest-environment happy-dom
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it } from 'vitest'
 import '../../test/dom'
@@ -66,6 +68,17 @@ describe('StudioModal', () => {
     fireEvent.click(button('Studio flat', 'Stay here'))
     expect(useStore.getState().game!.studio.tier).toBe('apartment')
     expect(button('Studio flat', `Move in, ${money(moveInCost('flat'))}`)).toBeTruthy()
+  })
+
+  it('sizes the tier and trip thumb column to its art, never a fixed 32px track', () => {
+    render(<StudioModal />)
+    const loft = screen.getByRole('group', { name: 'Studio loft' })
+    expect(loft.classList.contains('has-thumb') && loft.classList.contains('tier-row')).toBe(true)
+    expect(loft.firstElementChild?.classList.contains('postcard')).toBe(true)
+    const css = readFileSync(join(__dirname, '..', '..', 'styles', 'app.css'), 'utf8')
+    expect(css).toContain('.place.has-thumb { grid-template-columns: auto minmax(0, 1fr) auto; }')
+    expect(css).not.toMatch(/\.place\.has-thumb \{ grid-template-columns: 32px/)
+    expect(css).toMatch(/\.postcard \{[^}]*width: fit-content/)
   })
 
   it('lists every piece of equipment with its effect and a button that says what it takes', () => {

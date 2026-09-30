@@ -277,7 +277,7 @@
 .place .effect { font-size: 13px; font-weight: 800; color: var(--blue-text); }
 .place .btn, .place > .chip { grid-column: 2; grid-row: 1 / span 3; }
 /* Trips: a postcard of the place leads each card. */
-.place.has-thumb { grid-template-columns: 32px minmax(0, 1fr) auto; }
+.place.has-thumb { grid-template-columns: auto minmax(0, 1fr) auto; }
 .place.has-art { grid-template-columns: auto minmax(0, 1fr) auto; }
 .place.has-art > .place-art { grid-column: 1; grid-row: 1 / span 3; align-self: start; }
 .place.has-art > :not(.place-art):not(.btn) { grid-column: 2; }
@@ -285,17 +285,29 @@
 /* On phones the equipment art drops to 1x so the name and the buy button keep their room. */
 @media (max-width: 640px) { .place.has-art > .place-art img { width: 32px; height: 32px; } }
 .place.has-thumb > .postcard { grid-column: 1; grid-row: 1 / span 3; align-self: start; }
-.place.has-thumb > :not(.postcard):not(.btn) { grid-column: 2; }
+.place.has-thumb > :not(.postcard):not(.btn):not(.row) { grid-column: 2; }
 .place.has-thumb .btn { grid-column: 3; }
 .postcard {
-  display: block; line-height: 0; border: 2px solid var(--line-strong); background-color: var(--paper-2);
+  display: block; width: fit-content; flex: none; line-height: 0; border: 2px solid var(--line-strong);
+  background-color: var(--paper-2);
+}
+/* On phones a studio tier's 96x54 thumb (integer scales only) stacks above its text, the button beside the text. */
+@media (max-width: 640px) {
+  .place.has-thumb.tier-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .place.has-thumb.tier-row > .postcard { grid-column: 1 / -1; grid-row: 1; }
+  .place.has-thumb.tier-row > :not(.postcard):not(.btn):not(.row) { grid-column: 1; }
+  .place.has-thumb.tier-row > .btn { grid-column: 2; grid-row: 2 / span 3; }
 }
 /* An armed ConfirmRow (moving studio) takes the button's cell. */
 .place > .row { grid-column: 2; grid-row: 1 / span 3; }
+.place.has-thumb > .row { grid-column: 3; }
 @media (max-width: 640px), (min-width: 900px) {
   /* On a phone, and in the Studio panel's two columns, the armed confirm is too wide for that cell: it takes a line of
      its own under the name, and the lines after it span the card as well, so auto-placement cannot pair them up in a squeezed column. */
-  .place > .row, .place > .row ~ * { grid-column: 1 / -1; grid-row: auto; }
+  .place > .row, .place > .row ~ *,
+  .place.has-thumb > .row, .place.has-thumb.tier-row > .row,
+  .place.has-thumb > .row ~ :not(.postcard):not(.btn):not(.row),
+  .place.has-thumb.tier-row > .row ~ :not(.postcard):not(.btn):not(.row) { grid-column: 1 / -1; grid-row: auto; }
 }
 /* Long labels ("Move to a bigger studio for another desk") wrap instead of overflowing a narrow card or phone. */
 .place .btn, .person .btn { white-space: normal; text-align: center; }
