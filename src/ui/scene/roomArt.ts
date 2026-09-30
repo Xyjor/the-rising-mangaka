@@ -1,4 +1,5 @@
-// The room around the studio, all in canvas space (`rawRect`): each tier's walls and floor (`TIER_ROOM`: the
+// The room around the studio, all in canvas space (`rawRect`): each tier's walls and floor (`TIER_ROOM`, painted by
+// `drawRoomShell` whenever the tier has no generated room image ready: the
 // apartment's tatami and wooden pillars, the flat's teal wallpaper, wainscot and honey planks, the loft's brick accent
 // and pale concrete), the front row of props on the floor (`TIER_FRONT`, drawn after the actors so they pass behind
 // it), the story props that picture the game (the corkboard, the calendar, the coffee cups, the serial's cover, the
@@ -167,6 +168,14 @@ export const TIER_ROOM: Record<StudioTierId, RoomArt> = {
   apartment: apartmentRoom,
   flat: flatRoom,
   loft: loftRoom,
+}
+
+/**
+ * The room shell, code-drawn: the tier's walls, beams, floor and trim across the whole canvas. render paints it first
+ * whenever the tier has no room image ready (sceneArt.ts), and skips it for one.
+ */
+export function drawRoomShell(ctx: CanvasRenderingContext2D, tier: StudioTierId, night: boolean) {
+  TIER_ROOM[tier](ctx, night)
 }
 
 // ---------- the front row ----------

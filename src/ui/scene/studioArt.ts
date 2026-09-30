@@ -10,6 +10,7 @@
 import type { EquipmentId, StudioTierId } from '../../sim'
 import { rawRect, rect } from './paint'
 import type { Snapshot } from './render'
+import type { Fallback, Footprint } from './sceneArt'
 
 /** One flag per piece of equipment: studioLook's owned list as flags, set when it changes, never walked per frame. */
 export type Owned = Record<EquipmentId, boolean>
@@ -89,6 +90,10 @@ const SPINES = [RED, BLUE, GOLD, GREEN, VIOLET, ORANGE] as const
 
 // ---------- the tiers ----------
 
+/** The front door's frame in the right wall (canvas x 258-274, y 56-113): the plain door's and the doorway's footprint. */
+export const DOOR_FOOTPRINT: Footprint = { x: 258, y: 56, w: 17, h: 58 }
+export const DOORWAY_FOOTPRINT: Footprint = DOOR_FOOTPRINT
+
 /** The apartment's plain front door in the right wall (canvas x 258-274, y 56-113): two panels and a brass knob. */
 function plainDoor(ctx: CanvasRenderingContext2D) {
   rawRect(ctx, 258, 56, 17, 58, WOOD_DARK)
@@ -129,15 +134,32 @@ function floorPlant(ctx: CanvasRenderingContext2D, frame: number) {
   rect(ctx, 174, 99, 9, 7, POT)
 }
 
+/** Which door a tier has: its prop id (a generated sprite, when one is ready) and the code-drawn piece. */
+export interface TierDoor {
+  id: 'door' | 'doorway'
+  draw: Fallback
+}
+const PLAIN_DOOR: TierDoor = { id: 'door', draw: plainDoor }
+const DOORWAY: TierDoor = { id: 'doorway', draw: doorway }
+
 /**
- * Each tier's room, drawn after the bed and before the sleeping mangaka and the Zz: the apartment's plain door, the
- * flat's and the loft's lit doorway (and the loft's plants). The doorway's warm spill at night is in `drawStudioLights`.
+ * Each tier's door, drawn after the bed and before the sleeping mangaka and the Zz (render passes it to `drawProp` at
+ * `DOOR_FOOTPRINT`): the apartment's plain door, the flat's and the loft's lit doorway. The doorway's warm spill at
+ * night is in `drawStudioLights`.
  */
+export const TIER_DOOR: Record<StudioTierId, TierDoor> = {
+  apartment: PLAIN_DOOR,
+  flat: DOORWAY,
+  loft: DOORWAY,
+}
+
+const nothing: Art = () => {}
+
+/** The rest of each tier's room, drawn right after its door: the loft's plants. */
 export const TIER_ART: Record<StudioTierId, Art> = {
-  apartment: plainDoor,
-  flat: doorway,
+  apartment: nothing,
+  flat: nothing,
   loft: (ctx, _s, frame) => {
-    doorway(ctx)
     sillPlant(ctx)
     floorPlant(ctx, frame)
   },
@@ -147,6 +169,9 @@ export const TIER_ART: Record<StudioTierId, Art> = {
 const LIT_DOORWAY: Record<StudioTierId, boolean> = { apartment: false, flat: true, loft: true }
 
 // ---------- the margins: the kitchenette and the entrance ----------
+
+/** The kitchenette's footprint on the left wall, canvas x 2-61, y 56-113 (the fridge's top to the counter's foot). */
+export const KITCHENETTE_FOOTPRINT: Footprint = { x: 2, y: 56, w: 60, h: 58 }
 
 /** The kitchenette on the left wall (canvas x 2-61, y 56-113): a fridge, a cup shelf, a counter and a kettle. 17 fills. */
 export function drawKitchenette(ctx: CanvasRenderingContext2D) {

@@ -9,9 +9,15 @@ import type { FillCall } from '../../../test/fakeCanvas'
 import { render } from '../render'
 import type { Snapshot } from '../render'
 import {
-  EQUIPMENT_ART, TIER_ART, drawAnimePoster, drawEntrance, drawKitchenette, drawStudioLights, drawTrophies, drawVolumes,
-  ownedFlags,
+  EQUIPMENT_ART, TIER_ART, TIER_DOOR, drawAnimePoster, drawEntrance, drawKitchenette, drawStudioLights, drawTrophies,
+  drawVolumes, ownedFlags,
 } from '../studioArt'
+
+/** The tier's piece of the room as render paints it with no generated art: its door (`TIER_DOOR`), then `TIER_ART`. */
+function tierRoom(tier: StudioTierId, ctx: CanvasRenderingContext2D, s: Snapshot, frame: number, night: boolean) {
+  TIER_DOOR[tier].draw(ctx)
+  TIER_ART[tier](ctx, s, frame, night)
+}
 
 const NONE: Record<EquipmentId, boolean> = {
   coffee: false, lamp: false, shelf: false, chair: false, 'drafting-table': false, tablet: false,
@@ -240,8 +246,10 @@ describe('the studio art', () => {
   it('has art for every piece of equipment and every tier, and the apartment paints its plain front door', () => {
     expect(Object.keys(EQUIPMENT_ART).sort()).toEqual(['chair', 'coffee', 'drafting-table', 'lamp', 'shelf', 'tablet'])
     expect(Object.keys(TIER_ART).sort()).toEqual(['apartment', 'flat', 'loft'])
+    expect(Object.keys(TIER_DOOR).sort()).toEqual(['apartment', 'flat', 'loft'])
+    expect([TIER_DOOR.apartment.id, TIER_DOOR.flat.id, TIER_DOOR.loft.id]).toEqual(['door', 'doorway', 'doorway'])
     for (const [frame, night] of CALLS) {
-      const door = alone((ctx) => TIER_ART.apartment(ctx, FULL, frame, night))
+      const door = alone((ctx) => tierRoom('apartment', ctx, FULL, frame, night))
       expect(door).toHaveLength(5)
       expectInside(door, [DOORWAY], `apartment frame ${frame} night ${night}`)
       expect(door.some((c) => c.style === DOOR_LIGHT)).toBe(false)
@@ -278,7 +286,7 @@ describe('the studio art', () => {
   it('keeps the doorway and the loft\'s two plants inside their regions', () => {
     for (const tier of ['flat', 'loft'] as const) {
       for (const [frame, night] of CALLS) {
-        const log = alone((ctx) => TIER_ART[tier](ctx, FULL, frame, night))
+        const log = alone((ctx) => tierRoom(tier, ctx, FULL, frame, night))
         expectInside(log, TIER_REGION[tier], `${tier} frame ${frame} night ${night}`)
         // something in every region: the doorway, and in the loft the sill plant and the floor plant too
         for (const box of TIER_REGION[tier]) expect(log.some((c) => inBox(c, box)), `${tier} ${box.join(' ')}`).toBe(true)
@@ -297,8 +305,8 @@ describe('the studio art', () => {
   it('keeps off the hero at the desk (but for the chair behind and the table in front) and at the standing spot', () => {
     const pieces: [string, FillCall[]][] = [
       ...EQUIPMENT_IDS.map((id): [string, FillCall[]] => [id, alone((ctx) => EQUIPMENT_ART[id](ctx, FULL, 100, true))]),
-      ['flat', alone((ctx) => TIER_ART.flat(ctx, FULL, 100, true))],
-      ['loft', alone((ctx) => TIER_ART.loft(ctx, FULL, 100, true))],
+      ['flat', alone((ctx) => tierRoom('flat', ctx, FULL, 100, true))],
+      ['loft', alone((ctx) => tierRoom('loft', ctx, FULL, 100, true))],
       ['volumes', alone((ctx) => drawVolumes(ctx, 24))],
       ['anime poster', alone((ctx) => drawAnimePoster(ctx))],
       ['trophies', alone((ctx) => drawTrophies(ctx, 4))],
@@ -382,7 +390,7 @@ describe('the studio\'s draw order', () => {
     const sill = [
       ...alone((ctx) => EQUIPMENT_ART.coffee(ctx, FULL, 100, true)),
       ...alone((ctx) => drawTrophies(ctx, 4)),
-      ...alone((ctx) => TIER_ART.loft(ctx, FULL, 100, true)).filter((c) => inBox(c, SILL_PLANT)),
+      ...alone((ctx) => tierRoom('loft', ctx, FULL, 100, true)).filter((c) => inBox(c, SILL_PLANT)),
     ]
     for (const i of at(log, sill)) expect(i).toBeGreaterThan(snow)
   })
@@ -415,11 +423,11 @@ describe('the studio\'s draw order', () => {
     const log = paint(EVERYTHING, 0.3, 100)
     const bed = log.findIndex((c) => c.style === '#6d4c33' && c.x === 192 && c.y === 102 && c.w === 58 && c.h === 26)
     expect(bed).toBeGreaterThan(-1)
-    const plant = alone((ctx) => TIER_ART.loft(ctx, FULL, 100, false)).filter((c) => inBox(c, FLOOR_PLANT))
+    const plant = alone((ctx) => tierRoom('loft', ctx, FULL, 100, false)).filter((c) => inBox(c, FLOOR_PLANT))
     for (const i of at(log, plant)) expect(i).toBeGreaterThan(bed)
     // a rest day in the drawing phase: the mangaka sleeps, and at frame 100 three Zs rise from x 234
     const resting = paint({ tier: 'flat', activity: 'rest' }, 0.3, 100)
-    const doorway = at(resting, alone((ctx) => TIER_ART.flat(ctx, FULL, 100, false)))
+    const doorway = at(resting, alone((ctx) => tierRoom('flat', ctx, FULL, 100, false)))
     for (const i of doorway) expect(i).toBeGreaterThan(-1)
     const zz = resting.flatMap((c, i) => (c.style === '#2f5ecf' && c.x >= 234 ? [i] : []))
     expect(zz.length).toBeGreaterThan(0)
@@ -427,7 +435,7 @@ describe('the studio\'s draw order', () => {
   })
 
   it('sways the top leaf of the loft floor plant every 30 frames, inside the plant', () => {
-    const leaf = (frame: number) => alone((ctx) => TIER_ART.loft(ctx, FULL, frame, false))
+    const leaf = (frame: number) => alone((ctx) => tierRoom('loft', ctx, FULL, frame, false))
       .filter((c) => c.style === '#5fbf6a' && c.y === 116 && c.w === 3 && c.h === 3)
     expect(leaf(0)).toEqual([{ style: '#5fbf6a', x: 240, y: 116, w: 3, h: 3 }])
     expect(leaf(30)).toEqual([{ style: '#5fbf6a', x: 241, y: 116, w: 3, h: 3 }])
