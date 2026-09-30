@@ -73,12 +73,16 @@ describe('StudioModal', () => {
   it('sizes the tier and trip thumb column to its art, never a fixed 32px track', () => {
     render(<StudioModal />)
     const loft = screen.getByRole('group', { name: 'Studio loft' })
-    expect(loft.classList.contains('has-thumb') && loft.classList.contains('tier-row')).toBe(true)
+    expect(loft.classList.contains('has-thumb')).toBe(true)
     expect(loft.firstElementChild?.classList.contains('postcard')).toBe(true)
     const css = readFileSync(join(__dirname, '..', '..', 'styles', 'app.css'), 'utf8')
     expect(css).toContain('.place.has-thumb { grid-template-columns: auto minmax(0, 1fr) auto; }')
     expect(css).not.toMatch(/\.place\.has-thumb \{ grid-template-columns: 32px/)
     expect(css).toMatch(/\.postcard \{[^}]*width: fit-content/)
+    // at phone width every thumb row (trips and tiers alike) stacks the thumb on its own first row
+    const phone = css.slice(css.indexOf('@media (max-width: 640px) {'))
+    expect(phone).toContain('.place.has-thumb { grid-template-columns: minmax(0, 1fr) auto; }')
+    expect(phone).toContain('.place.has-thumb > .postcard { grid-column: 1 / -1; grid-row: 1; }')
   })
 
   it('lists every piece of equipment with its effect and a button that says what it takes', () => {
