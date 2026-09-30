@@ -8,6 +8,9 @@ import { describe, expect, it } from 'vitest'
 import { ART_PALETTE, ART_PALETTE_BASE, ART_PALETTE_SCENE } from '../art/palette'
 import * as registry from '../art/registry'
 import type { ArtRef } from '../art/registry'
+import { PROP_FOOTPRINT } from '../scene/render'
+import { PROP_MAX_W, PROP_SPRITE, fitSprite } from '../scene/sceneArt'
+import type { ScenePropId } from '../scene/sceneArt'
 
 const ROOT = join(__dirname, '..', '..', '..')
 const MANIFEST_PATH = join(ROOT, 'art', 'manifest.json')
@@ -23,6 +26,11 @@ interface ManifestEntry {
   native: [number, number]
   colors?: number
   palette?: 'base' | 'scene'
+  lightness?: number
+  cutout: boolean
+  outline: boolean
+  crop?: [number, number, number, number]
+  seam?: { src: number; dst: number }
   sheet?: { src: string }
 }
 
@@ -125,6 +133,47 @@ describe('art manifest', () => {
     for (const entry of manifest) {
       expect(statSync(rawPathFor(entry)).isFile(), `raw source for ${entry.id}`).toBe(true)
       expect(statSync(pngPathFor(entry.id)).isFile(), `generated PNG for ${entry.id}`).toBe(true)
+    }
+  })
+
+  it("makes every tier's room shell a 320x180 scene-palette image of at most 32 colours, its seam landing on row 114", () => {
+    const rooms = manifest.filter((e) => e.id.startsWith('room/'))
+    expect(rooms.map((e) => e.id).sort()).toEqual(['room/apartment', 'room/flat', 'room/loft'])
+    for (const e of rooms) {
+      expect(e.native, e.id).toEqual([320, 180])
+      expect(e.cutout, e.id).toBe(false)
+      expect(e.palette, e.id).toBe('scene')
+      expect(e.colors, e.id).toBe(32)
+      expect(e.seam, `${e.id} seam`).toBeDefined()
+      const { src, dst } = e.seam!
+      expect(dst, `${e.id} seam dst`).toBe(114)
+      // the first floor row, measured in the raw image (after its crop): a whole row that leaves wall above it
+      const height = e.crop ? e.crop[3] : parsePng(rawPathFor(e)).height
+      expect(Number.isInteger(src) && src > 0 && src < height, `${e.id} seam src ${src} of ${height}`).toBe(true)
+      if (e.crop) {
+        const raw = parsePng(rawPathFor(e))
+        expect(e.crop[0] + e.crop[2] <= raw.width && e.crop[1] + e.crop[3] <= raw.height, `${e.id} crop`).toBe(true)
+      }
+    }
+    // only a room shell is seam-remapped; a lightness weight, where set, is in (0, 1]
+    for (const e of manifest) {
+      if (!e.id.startsWith('room/')) expect(e.seam, `${e.id} seam`).toBeUndefined()
+      if (e.lightness !== undefined) expect(e.lightness > 0 && e.lightness <= 1, `${e.id} lightness`).toBe(true)
+    }
+  })
+
+  it("sizes every structural prop sprite by its footprint height and its crop's aspect (PROP_SPRITE), a 16-colour outlined cutout", () => {
+    const props = manifest.filter((e) => e.id.startsWith('prop/'))
+    expect(props.map((e) => e.id.slice(5)).sort()).toEqual(Object.keys(PROP_SPRITE).sort())
+    for (const e of props) {
+      const id = e.id.slice(5) as ScenePropId
+      expect(e.cutout && e.outline, e.id).toBe(true)
+      expect(e.palette, e.id).toBe('scene')
+      expect(e.colors, e.id).toBe(16)
+      expect(e.crop, `${e.id} crop`).toBeDefined()
+      const [, , cw, ch] = e.crop!
+      expect(e.native, e.id).toEqual([...PROP_SPRITE[id]])
+      expect(fitSprite(cw / ch, PROP_FOOTPRINT[id], PROP_MAX_W[id]), e.id).toEqual([...PROP_SPRITE[id]])
     }
   })
 

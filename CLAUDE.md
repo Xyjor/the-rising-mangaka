@@ -95,7 +95,8 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   window pane; `render.ts` holds the palettes, string-map sprites and `render`, one frame painted from a `Snapshot`
   with nothing allocated per frame (`Snapshot.late` turns the seated mangaka to the panic frames); `sceneArt.ts`
   `SceneArt` (render's last argument, default `NO_ART`): generated room shells and structural-prop sprites drawn with
-  `drawImage` (`ready`, `drawProp`, at render.ts's `PROP_FOOTPRINT`), each falling back to its code-drawn piece
+  `drawImage` (`ready`, `drawProp`; a sprite keeps its aspect at `PROP_SPRITE`, placed by `placeSprite` at render.ts's
+  `PROP_BOX`, the fallback inside `PROP_FOOTPRINT`), each falling back to its code-drawn piece
   (`drawRoomShell`, the window frame, `TIER_DOOR`, ...) while missing or loading; `sceneImages.ts` builds them once from
   the registry's `ROOM_ART`/`SCENE_PROP_ART` (render.ts never imports the registry) and `StudioScene` repaints on a
   load; characters stay string maps; `sprites.ts` the
@@ -117,7 +118,8 @@ canvas space; `story.ts` `storyLook`, the story props' five snapshot inputs read
   and `Pops.tsx` the DOM speech bubbles and floating money/fans/xp numbers, styled by `scene.css`;
   `StudioScene.tsx` is the component and its 24 fps frame loop (reading `studioLook` through `useShallow`, lighting
   from the presentation clock, playing the `knock` and `pop` cues); every render is checked against a hand-measured
-  fillRect baseline (`render.test.ts` 673, `studioArt.test.ts` 1079) and must stay under 1.5x it),
+  fillRect baseline (`render.test.ts` 673, `studioArt.test.ts` 1079; with every scene image ready, 546 and 953)
+  and must stay under 1.5x it),
   `components.tsx` (Bar, Pips, Modal, RankChart), `format.ts` (money/compact/plural formatters), `Icon.tsx`
   (inline SVG icon set), `SaveFileSection.tsx` and `useSaveFile.ts` (export and load, in Settings and on the
   title screen), and
@@ -125,7 +127,8 @@ canvas space; `story.ts` `storyLook`, the story props' five snapshot inputs read
   and starts over, or in a tab that does not own the save, reloads). Tests live in `src/ui/__tests__` and
   `src/ui/scene/__tests__`; see the UI-test docblock rule under Commands above.
 - `src/ui/art/` — the generated-art layer: `palette.ts` (`ART_PALETTE_BASE`, frozen, the default snap so old assets regenerate byte for byte; `ART_PALETTE_SCENE` for manifest `"palette": "scene"` entries; `ART_PALETTE` their union, every colour also literal in `src/ui/scene/*.ts`
-  or `src/styles/tokens.css`), `pixelOps.ts` (the pure pixel math `scripts/pixelate.ts` runs), `registry.ts` (typed
+  or `src/styles/tokens.css`), `pixelOps.ts` (the pure pixel math `scripts/pixelate.ts` runs; a room shell's manifest
+  `seam` lands its wall/floor line on canvas row 114 via `remapSeam`, and `lightness` keeps a shaded wall's hue in the snap), `registry.ts` (typed
   `ArtRef` lookups over the PNGs in `src/assets/art/`, eagerly globbed by Vite) and `PixelArt.tsx` (the `<img>`
   wrapper every component uses to mount one). `art/manifest.json` and `art/raw/` at the repo root hold each asset's
   generation recipe and committed raw source (two hosts: a Hugging Face Space with seeds, Higgsfield `z_image` with job ids); see DESIGN.md's "Art" section.

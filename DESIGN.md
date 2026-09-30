@@ -356,6 +356,11 @@ are the apartment), the cherry past the pane +6/+0 (the reference scene is sprin
 corkboard's 2x3 grid -2/-2 (3 cards at half the pages in place of 4), the cat's cushion +4/+4 (its chest patch is not
 in the curled sleep frame), the panic pose +0/+0 (nobody is late), the marks' new slot +0/+0 (same runs), and the
 collar and tie +6/+12 (3 more runs per seated frame, two and four seated figures).
+With every generated scene image ready (0.9.0 R2, `fakeSceneArt`), the same two scenes have their own baselines,
+since the images leave fewer fills and 673's budget would hide growth: 546 (`render.test.ts`: 673 less what the
+apartment's room and six props replace, the shell 61, the kitchenette 17, the window frame 1, the bookshelf 34, the
+stock poster 4, the bed 5 and the plain door 5) and 953 (`studioArt.test.ts`: 1079 less the same 127, plus the room
+image's night dim), each with a 1.5x budget (819 and 1429.5) that every tier, season and the full scene stay under.
 
 ### Art
 The live scene is code-drawn `fillRect` (`render.ts`, `roomArt.ts`, `studioArt.ts`, `sprites.ts`), and since 0.9.0 it
@@ -380,8 +385,9 @@ transparent from the edges (`floodTransparentFromEdges`, matching the corner col
 alpha bounding box, and pads it out to the target aspect ratio before cropping to it (`padToAspect`) so the subject
 isn't stretched; downsamples to the manifest's `native` size, either area-averaged (`sample: "area"`, alpha-weighted,
 transparent when under half a block is opaque) or nearest-neighbour (`sample: "nearest"`, for an already-blocky sheet
-crop); snaps every opaque pixel to the nearest `ART_PALETTE` colour in OKLab space (`snapToPalette`); reduces to the
-entry's colour cap, keeping the most-used colours and re-snapping the rest (`reduceColors`); despeckles single-pixel
+crop), or, for a room shell with a `seam`, remaps it (`remapSeam`, below); snaps every opaque pixel to the nearest
+`ART_PALETTE` colour in OKLab space (`snapToPalette`); reduces to the entry's colour cap, keeping the most-used colours
+and re-snapping the rest (`reduceColors`); despeckles single-pixel
 colour flecks against a unanimous 4-neighbour field (`despeckle`); optionally adds a 1px outline on transparent
 pixels 4-adjacent to an opaque one (`addOutline`); and writes an indexed PNG to `src/assets/art/<id>.png`, verifying
 afterward that every pixel it wrote is a literal `ART_PALETTE` colour.
@@ -422,25 +428,60 @@ season layer and every later piece paint over it as before, and the night overla
 `drawProp(ctx, art, id, x, y, w, h, fallback)` draws a ready prop image at its footprint, else runs the code-drawn
 piece, at that piece's own place in the draw order; the pane's sky, the bars, the sill, the volumes and the
 reference shelf, the serial's cover and the anime poster stay code-drawn over or instead of them. The footprints are
-constants beside the pieces they replace, canvas space, collected in `render.ts`'s `PROP_FOOTPRINT` (a sprite is
-generated at this size):
+constants beside the pieces they replace, canvas space, collected in `render.ts`'s `PROP_FOOTPRINT`; a fallback keeps
+painting inside its footprint.
 
-| Prop | Constant | x, y, w, h |
-|---|---|---|
-| `window` | `WINDOW_FOOTPRINT` (render.ts) | 180, 46, 48, 36 |
-| `door`, `doorway` | `DOOR_FOOTPRINT`, `DOORWAY_FOOTPRINT` (studioArt.ts) | 258, 56, 17, 58 |
-| `kitchenette` | `KITCHENETTE_FOOTPRINT` (studioArt.ts) | 2, 56, 60, 58 |
-| `bookshelf` | `BOOKSHELF_FOOTPRINT` (render.ts) | 72, 54, 34, 58 |
-| `bed` | `BED_FOOTPRINT` (render.ts) | 192, 102, 58, 26 |
-| `poster` | `POSTER_FOOTPRINT` (render.ts) | 116, 50, 22, 28 |
+**The placement rule (0.9.0 R2).** A prop sprite keeps its generated aspect ratio: its native size is the largest that
+fits the footprint's height, its width following from the aspect of its manifest crop (`sceneArt.ts` `fitSprite`),
+and it is placed bottom-aligned on the footprint's bottom row and centred across it, a half pixel of slack rounding
+left (`placeSprite`). It may be wider than the old footprint only where that wall is free; where a full-height sprite
+would hide something drawn before it, `PROP_MAX_W` caps its width and the height follows. The one conflict is the
+bed and the doors: at full height the door would be 38 px and the doorway 46 px wide, over the bed's end (the doors are
+drawn after the bed), so the bed stays inside its old 58 px (58x23) and both doors are capped at 33 px, the widest
+that stays centred on the door frame and clear of the bed (x 192-249) and the coat rack (x 283). The sizes are
+`PROP_SPRITE` (the manifest `native`, checked against `fitSprite` of each crop by art.test) and the boxes
+`render.ts`'s `PROP_BOX`, which `drawProp` draws the image into:
+
+| Prop | Footprint (fallback) | Sprite | Box (image) x, y, w, h |
+|---|---|---|---|
+| `window` | 180, 46, 48, 36 (`WINDOW_FOOTPRINT`) | 48x36 | 180, 46, 48, 36 |
+| `door` | 258, 56, 17, 58 (`DOOR_FOOTPRINT`) | 33x50 (capped) | 250, 64, 33, 50 |
+| `doorway` | 258, 56, 17, 58 (`DOORWAY_FOOTPRINT`) | 33x41 (capped) | 250, 73, 33, 41 |
+| `kitchenette` | 2, 56, 60, 58 (`KITCHENETTE_FOOTPRINT`) | 58x58 | 3, 56, 58, 58 |
+| `bookshelf` | 72, 54, 34, 58 (`BOOKSHELF_FOOTPRINT`) | 50x58 | 64, 54, 50, 58 |
+| `bed` | 192, 102, 58, 26 (`BED_FOOTPRINT`) | 58x23 (capped) | 192, 105, 58, 23 |
+| `poster` | 116, 50, 22, 28 (`POSTER_FOOTPRINT`) | 22x28 | 116, 50, 22, 28 |
+
+The bookshelf's wider box reaches under the reference shelf (x 107-114), which is drawn after it and stays in front.
+The window sprite is a frame only: the pane's sky, the bars and the sill paint over its middle. The door sprite is the
+apartment's, the noren doorway the flat's and the loft's; the poster sprite is an empty frame in the stock poster's
+place. The prop sprites are 16-colour outlined cutouts cropped from one Higgsfield sheet (`props/structural.png`, job
+ea96bb2b; the window-over-bed object split into the window's top half and the bed's bottom half).
+
+**The room shells (0.9.0 R2)** are three Higgsfield generations (`rooms/<tier>.png`), 320x180, `cutout: false`,
+32 colours, the scene palette, area-sampled (the cleaner of the two: nearest sampling at a 6x reduction keeps the
+generations' fine noise as speckle, where area averaging leaves flat, cel-like areas and straight edges). Their
+wall/floor seams landed at 76-87% of the height, not the scene's 63%, and a crop that fixes that discards most of the
+image, so the pipeline remaps them: a manifest `seam: { src, dst: 114 }` (src, the first floor row of the raw image
+after its crop, measured from row brightness) resamples the wall rows into canvas rows 0-113 and the floor rows into
+114-179, each side on its own, piecewise-linear vertically and area-averaged (`pixelOps.ts` `remapSeam`), so no row
+mixes wall and floor and the seam lands exactly on row 114. The apartment is cropped to x 196-1813 (its angled side
+walls trimmed to the two pillars; seam 882), the flat to x 135-2047 (its left corner; seam 1008), the loft uncropped
+(seam 1002, the floor below the steel baseboard). The generations are softly lit (a light pool, dark corners), and a
+plain OKLab snap turns those mid-tones grey (the flat's dusty teal fell to the palette's greys, the apartment's
+plaster ringed in blue-grey), so a manifest `lightness` weight (0-1, absent is 1, the plain distance) scales the
+lightness term of the snap and the colour cap's re-snap (`nearestPaletteIndex`): below 1 a pixel keeps its hue and
+chroma at the cost of its lightness, and the lighting flattens to a few steps. Apartment 0.1, flat 0.03, loft 0.25;
+every earlier entry has none, so it regenerates byte for byte. At night the `ROOM_NIGHT_DIM` fill and the night
+overlay leave the flat a slate teal and the loft a warm grey-pink, both still reading as their rooms.
 
 `sceneImages.ts` builds one `HTMLImageElement` per ref in the registry's `ROOM_ART` and `SCENE_PROP_ART` records
-(`Partial`: a piece left out keeps its code-drawn look), once, behind a module-level memo; `StudioScene` passes the
+(full records since R2; any image still loading keeps its piece code-drawn), once, behind a module-level memo; `StudioScene` passes the
 result to `render`, and each image's load clears the loop's last-painted snapshot so the next step repaints it.
 `render.ts` never imports the registry. In tests, `fakeCanvas.ts` records each `drawImage` in `images` (with `at`, the
 fill log's length at the call, for order checks) and `fakeImage(id, w, h)` makes an image `ready` accepts; the fill
 `log` stays fillRect-only, so the 673/1079 baselines measure what is still code-drawn (with `NO_ART` they are
-unchanged). `ART_PALETTE_SCENE` (for `"palette": "scene"` entries) holds the room shells' day colours (the plasters, the tatami, the planks, the concrete, the
+unchanged), and `fakeSceneArt()` readies every image at once for the 546/953 art baselines. `ART_PALETTE_SCENE` (for `"palette": "scene"` entries) holds the room shells' day colours (the plasters, the tatami, the planks, the concrete, the
 woods, the brick, the rugs and the flat's teal wallpaper), so a generated shell snaps to the drawn room's colours.
 
 **The title hero** (`TitleScreen.tsx`) renders `TITLE_ART` (manifest id `title/hero`, native 320x180) directly rather
@@ -478,6 +519,8 @@ PNG gets one more palette entry for transparency (never drawn, so `art.test.ts` 
 | `EVENT_ART` (96x54) | `event/<EventId>` | the event desk card's header, 2x (1x at 640 px and below) |
 | `ANIME_ART` | `anime/<AnimeStudioId>` | the anime offer card's studio columns, 1x (32x32: the round emblems read better square than at 48x32) |
 | `TIER_ART_THUMB` (96x54) | `tier/<StudioTierId>` | Studio's tier rows, 1x |
+| `ROOM_ART` (320x180) | `room/<StudioTierId>` | the live scene's room shell, drawn by `render` (0.9.0, see "Scene images") |
+| `SCENE_PROP_ART` (`PROP_SPRITE`) | `prop/<ScenePropId>` | the live scene's structural props, at `PROP_BOX` (0.9.0) |
 
 **Sheets (batch 2, 0.8.0), a second host.** The remaining 51 assets came from twelve sheets generated on
 Higgsfield with its `z_image` model (the same Z-Image family), `art/raw/sheets/<group>.png` (prompts verbatim in the manifest), because the Hugging Face
@@ -1162,3 +1205,17 @@ scene. Task R1 laid the plumbing, with no art yet:
   illustrations regenerate byte for byte (checked by hand on title/hero, genre/action, event/letter, badge/locked and
   place/library: identical on the base, all five different on the scene palette). A `room/*` PNG may be up to 12 KB
   and the art total cap rises from 100 KB to 160 KB.
+
+Task R2 put the art in (three room shells, seven prop sprites):
+
+- Room shells align their wall/floor seam by a piecewise vertical remap in the pipeline (manifest `seam`, source row
+  to canvas row 114), not by tight crops, which would discard most of each image; the wall and floor textures stretch
+  a little vertically.
+- A per-entry `lightness` weight on the palette snap keeps a shaded wall's hue (a plain snap greyed the flat's teal);
+  absent means 1, so every earlier illustration regenerates unchanged.
+- Prop sprites keep their generated aspect, sized to the footprint's height, bottom-aligned and centred
+  (`PROP_SPRITE`, `PROP_BOX`); a prop may be wider than its old footprint where the wall is free. The bed stays inside
+  its old 58 px so the door and the doorway can be 33 px wide without covering it (at full height they would be 38
+  and 46 px); the fallbacks keep their old footprints.
+- New fill baselines with every image ready: 546 (`render.test.ts`) and 953 (`studioArt.test.ts`), each with its own
+  1.5x budget, beside the unchanged 673/1079.
