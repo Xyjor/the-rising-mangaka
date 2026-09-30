@@ -4,7 +4,7 @@
 import { describe, expect, it } from 'vitest'
 import { EQUIPMENT_IDS } from '../../../sim'
 import type { EquipmentId, StudioTierId } from '../../../sim'
-import { covers, fakeContext, sceneSnapshot } from '../../../test/fakeCanvas'
+import { covers, fakeContext, fakeSceneArt, sceneSnapshot } from '../../../test/fakeCanvas'
 import type { FillCall } from '../../../test/fakeCanvas'
 import { render } from '../render'
 import type { Snapshot } from '../render'
@@ -65,6 +65,15 @@ const EVERYTHING: Partial<Snapshot> = {
  * assistants never go sleepy), so nothing else in the scene changes. Upgrade 0.5.0 Task 6.1 re-measured it the same way at 1065 (+0): the wider daylight shaft keeps its four steps, and it does not paint at night anyway.
  */
 const FULL_BASELINE = 1079
+
+/**
+ * fillRect calls for `BARE_FULL` at night, t 0.9, frame 100, with every generated image ready (`fakeSceneArt`),
+ * measured the same way (0.9.0 R2): 953. By hand, the 1079 less the fills the apartment's images replace (the shell 61,
+ * the kitchenette 17, the window frame 1, the bookshelf 34, the stock poster 4, the bed 5, the plain door 5: 127), plus
+ * the room image's night dim (1): 1079 - 127 + 1 = 953. The full scene with the art ready must stay under 1.5 times
+ * this (its own budget, 1429.5).
+ */
+const FULL_ART_BASELINE = 953
 
 function paint(over: Partial<Snapshot> = {}, t = 0.3, frame = 100): FillCall[] {
   const { ctx, log } = fakeContext()
@@ -185,6 +194,23 @@ describe('the studio in the scene', () => {
       }
       // the studio art is really there, and the whole scene stays within its budget
       expect(log.length, `t ${t} frame ${frame}`).toBeGreaterThan(FULL_BASELINE)
+      expect(log.length, `t ${t} frame ${frame}`).toBeLessThan(budget)
+    }
+  })
+
+  it('keeps the full scene with every generated image ready under 1.5 times its own measured baseline', () => {
+    const art = fakeSceneArt()
+    const bare = fakeContext()
+    render(bare.ctx, sceneSnapshot(BARE_FULL), 0.9, 100, art)
+    expect(bare.log).toHaveLength(FULL_ART_BASELINE)
+    const budget = FULL_ART_BASELINE * 1.5
+    expect(budget).toBe(1429.5)
+    for (const [t, frame, visiting] of [[0.9, 100, 0], [0.9, 0, 0], [0.3, 100, 0], [0.9, 100, 1]]) {
+      const { ctx, log, images } = fakeContext()
+      render(ctx, sceneSnapshot(visiting ? { ...EVERYTHING, visitor: 'editor', visitorProp: 'contract' } : EVERYTHING), t, frame, art)
+      // the loft: its room, the doorway and four more props (the anime poster hides the stock one)
+      expect(images.map((i) => i.id), `t ${t} frame ${frame}`).toEqual(['room/loft', 'kitchenette', 'window', 'bookshelf', 'bed', 'doorway'])
+      expect(log.length, `t ${t} frame ${frame}`).toBeGreaterThan(FULL_ART_BASELINE)
       expect(log.length, `t ${t} frame ${frame}`).toBeLessThan(budget)
     }
   })

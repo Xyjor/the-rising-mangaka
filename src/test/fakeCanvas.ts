@@ -5,10 +5,12 @@
  * length when it was called, so a test can order an image against the fills around it); `log` stays fillRect-only, so
  * the fill budgets keep measuring what is still code-drawn. Only `fillStyle`, `fillRect`, `drawImage` and
  * `imageSmoothingEnabled` exist, so a render that reaches for anything else throws. `fakeImage` makes an image the
- * scene's `ready` accepts. `sceneSnapshot` is the scene's reference state (see its doc); pass `over` to change any field.
+ * scene's `ready` accepts; `fakeSceneArt` is every room and prop image ready at once. `sceneSnapshot` is the scene's
+ * reference state (see its doc); pass `over` to change any field.
  */
 import { newActorTable, planActors, settleActors } from '../ui/scene/actors'
 import type { Snapshot } from '../ui/scene/render'
+import type { SceneArt } from '../ui/scene/sceneArt'
 
 export interface FillCall {
   style: string
@@ -51,6 +53,18 @@ export interface FakeImage {
 export function fakeImage(id: string, w: number, h: number): CanvasImageSource & FakeImage {
   const img: FakeImage = { id, complete: true, naturalWidth: w, naturalHeight: h, width: w, height: h }
   return img as unknown as CanvasImageSource & FakeImage
+}
+
+/** Every scene image ready (each tier's room, every prop), each tagged with its own id: the `*_ART` baselines' art. */
+export function fakeSceneArt(): SceneArt {
+  const img = (id: string) => fakeImage(id, 1, 1)
+  return {
+    room: { apartment: img('room/apartment'), flat: img('room/flat'), loft: img('room/loft') },
+    prop: {
+      window: img('window'), door: img('door'), doorway: img('doorway'), kitchenette: img('kitchenette'),
+      bookshelf: img('bookshelf'), bed: img('bed'), poster: img('poster'),
+    },
+  }
 }
 
 /** Index of the LAST fill of `style` covering pixel (x, y), or -1. */

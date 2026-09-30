@@ -25,7 +25,7 @@ import type { Owned } from './studioArt'
 import {
   TIER_FRONT, drawAmbient, drawCalendar, drawCorkboard, drawCups, drawFanLetters, drawRoomShell, drawSeriesPoster,
 } from './roomArt'
-import { NO_ART, ROOM_NIGHT_DIM, drawProp, ready } from './sceneArt'
+import { NO_ART, PROP_SPRITE, ROOM_NIGHT_DIM, drawProp, placeSprite, ready } from './sceneArt'
 import type { Fallback, Footprint, SceneArt, ScenePropId } from './sceneArt'
 import type { StoryLook } from './story'
 
@@ -249,7 +249,7 @@ function bed(ctx: CanvasRenderingContext2D) {
   rect(ctx, 130, 74, 40, 2, '#a83c3c')
 }
 
-/** Every structural prop's footprint, for the tests and the art pipeline (a generated sprite is made at this size). */
+/** Every structural prop's footprint: the box its code-drawn fallback paints in, and the base its sprite is sized and placed on. */
 export const PROP_FOOTPRINT: Record<ScenePropId, Footprint> = {
   window: WINDOW_FOOTPRINT,
   door: DOOR_FOOTPRINT,
@@ -260,10 +260,24 @@ export const PROP_FOOTPRINT: Record<ScenePropId, Footprint> = {
   poster: POSTER_FOOTPRINT,
 }
 
-/** `drawProp` at the prop's own footprint. */
+/**
+ * Where each prop's generated sprite lands (canvas space): its native size (sceneArt.ts `PROP_SPRITE`) bottom-aligned
+ * and centred on its footprint (`placeSprite`). The code-drawn fallback keeps painting inside `PROP_FOOTPRINT`.
+ */
+export const PROP_BOX: Record<ScenePropId, Footprint> = {
+  window: placeSprite(WINDOW_FOOTPRINT, ...PROP_SPRITE.window),
+  door: placeSprite(DOOR_FOOTPRINT, ...PROP_SPRITE.door),
+  doorway: placeSprite(DOORWAY_FOOTPRINT, ...PROP_SPRITE.doorway),
+  kitchenette: placeSprite(KITCHENETTE_FOOTPRINT, ...PROP_SPRITE.kitchenette),
+  bookshelf: placeSprite(BOOKSHELF_FOOTPRINT, ...PROP_SPRITE.bookshelf),
+  bed: placeSprite(BED_FOOTPRINT, ...PROP_SPRITE.bed),
+  poster: placeSprite(POSTER_FOOTPRINT, ...PROP_SPRITE.poster),
+}
+
+/** `drawProp` at the prop's sprite box (its image) or its footprint (its fallback fills, which carry their own coordinates). */
 function prop(ctx: CanvasRenderingContext2D, art: SceneArt, id: ScenePropId, fallback: Fallback) {
-  const f = PROP_FOOTPRINT[id]
-  drawProp(ctx, art, id, f.x, f.y, f.w, f.h, fallback)
+  const b = PROP_BOX[id]
+  drawProp(ctx, art, id, b.x, b.y, b.w, b.h, fallback)
 }
 
 // ---------- sky ----------

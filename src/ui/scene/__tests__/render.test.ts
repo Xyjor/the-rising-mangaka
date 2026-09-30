@@ -1,13 +1,13 @@
 // The scene's render is a pure function of (snapshot, time of day, frame) onto a 2D context: no DOM needed, so this
 // runs in the default node environment against the recording context from src/test/fakeCanvas.ts.
 import { describe, expect, it } from 'vitest'
-import { covers, coversAny, fakeContext, fakeImage, sceneSnapshot } from '../../../test/fakeCanvas'
+import { covers, coversAny, fakeContext, fakeImage, fakeSceneArt, sceneSnapshot } from '../../../test/fakeCanvas'
 import type { FillCall } from '../../../test/fakeCanvas'
 import type { StudioTierId } from '../../../sim'
-import { H, PROP_FOOTPRINT, SKY_LUT, W, render, skyColor } from '../render'
+import { H, PROP_BOX, PROP_FOOTPRINT, SKY_LUT, W, render, skyColor } from '../render'
 import type { Snapshot } from '../render'
 import { drawRoomShell } from '../roomArt'
-import { NO_ART, ROOM_NIGHT_DIM, ready } from '../sceneArt'
+import { NO_ART, PROP_SPRITE, ROOM_NIGHT_DIM, fitSprite, placeSprite, ready } from '../sceneArt'
 import type { SceneArt, ScenePropId } from '../sceneArt'
 import type { Season } from '../season'
 import { newActorTable } from '../actors'
@@ -31,6 +31,16 @@ import type { Actor, ActorTable } from '../actors'
  */
 const BASELINE_FILLS = 673
 const BUDGET = BASELINE_FILLS * 1.5
+
+/**
+ * fillRect calls for the same reference scene with every generated image ready (`fakeSceneArt`: the apartment's room
+ * image and its six props, 7 drawImage calls), measured the same way (0.9.0 R2): 546. By hand, the 673 less what the
+ * images replace: the apartment's shell 61, the kitchenette 17, the window frame 1, the bookshelf 34, the stock poster
+ * 4, the bed 5 and the plain door 5 (673 - 127 = 546). The night dim adds 1 at night. Every scene with the art ready
+ * must stay under 1.5 times this (its own budget: the images leave fewer fills, so 673's budget would hide growth).
+ */
+const ART_BASELINE_FILLS = 546
+const ART_BUDGET = ART_BASELINE_FILLS * 1.5
 
 describe('render', () => {
   it('paints every pixel from a palette (an unknown sprite key would paint magenta)', () => {
@@ -60,6 +70,23 @@ describe('render', () => {
       render(ctx, sceneSnapshot({ tier }), 0.3, 100)
       expect(log[0], tier).toMatchObject({ x: 0, y: 0, w: 320, h: 114 })
       expect(log.some((c) => c.x === 0 && c.y === 114 && c.w === 320 && c.h === 66), tier).toBe(true)
+    }
+  })
+
+  it('stays under 1.5 times its own measured baseline with every generated image ready, in every tier and season', () => {
+    expect(ART_BUDGET).toBe(819)
+    const ref = fakeContext()
+    render(ref.ctx, sceneSnapshot(), 0.3, 100, fakeSceneArt())
+    expect(ref.log).toHaveLength(ART_BASELINE_FILLS)
+    expect(ref.images.map((i) => i.id)).toEqual(['room/apartment', 'kitchenette', 'window', 'bookshelf', 'poster', 'bed', 'door'])
+    for (const tier of ['apartment', 'flat', 'loft'] as StudioTierId[]) {
+      for (const season of ['spring', 'summer', 'autumn', 'winter'] as Season[]) {
+        for (const t of [0.3, 0.9]) {
+          const { ctx, log } = fakeContext()
+          render(ctx, sceneSnapshot({ tier, season }), t, 100, fakeSceneArt())
+          expect(log.length, `${tier} ${season} t ${t}`).toBeLessThan(ART_BUDGET)
+        }
+      }
     }
   })
 
@@ -681,13 +708,58 @@ describe('scene art (0.9.0 R1): generated images with the code-drawn look as the
     })
   })
 
+  it("sizes a prop sprite by its footprint's height and its own aspect, shrinking it only to a maximum width", () => {
+    const fp = { x: 10, y: 20, w: 10, h: 20 }
+    expect(fitSprite(0.5, fp)).toEqual([10, 20])
+    expect(fitSprite(2, fp)).toEqual([40, 20])
+    expect(fitSprite(0.65, fp)).toEqual([13, 20])
+    expect(fitSprite(2, fp, 30)).toEqual([30, 15])
+    expect(fitSprite(2, fp, 50)).toEqual([40, 20])
+  })
+
+  it('places a prop sprite bottom-aligned on its footprint and centred across it (a half pixel rounds left)', () => {
+    const fp = { x: 10, y: 20, w: 10, h: 20 }
+    expect(placeSprite(fp, 10, 20)).toEqual(fp)
+    expect(placeSprite(fp, 40, 20)).toEqual({ x: -5, y: 20, w: 40, h: 20 })
+    expect(placeSprite(fp, 10, 15)).toEqual({ x: 10, y: 25, w: 10, h: 15 })
+    expect(placeSprite(fp, 13, 20)).toEqual({ x: 8, y: 20, w: 13, h: 20 })
+    expect(placeSprite(fp, 7, 20)).toEqual({ x: 11, y: 20, w: 7, h: 20 })
+  })
+
+  it("places each generated sprite by that rule: its box from PROP_SPRITE on PROP_FOOTPRINT, clear of what it must not hide", () => {
+    for (const id of Object.keys(PROP_FOOTPRINT) as ScenePropId[]) {
+      expect(PROP_BOX[id], id).toEqual(placeSprite(PROP_FOOTPRINT[id], ...PROP_SPRITE[id]))
+    }
+    expect(PROP_BOX).toEqual({
+      window: { x: 180, y: 46, w: 48, h: 36 },
+      door: { x: 250, y: 64, w: 33, h: 50 },
+      doorway: { x: 250, y: 73, w: 33, h: 41 },
+      kitchenette: { x: 3, y: 56, w: 58, h: 58 },
+      bookshelf: { x: 64, y: 54, w: 50, h: 58 },
+      bed: { x: 192, y: 105, w: 58, h: 23 },
+      poster: { x: 116, y: 50, w: 22, h: 28 },
+    })
+    const right = (b: { x: number; w: number }) => b.x + b.w
+    // the door and the doorway are drawn after the bed: they stop short of it (the coat rack at x 283 is drawn after them)
+    expect(PROP_BOX.door.x).toBeGreaterThanOrEqual(right(PROP_BOX.bed))
+    expect(PROP_BOX.doorway.x).toBeGreaterThanOrEqual(right(PROP_BOX.bed))
+    expect(right(PROP_BOX.door)).toBeLessThanOrEqual(283)
+    // the bookshelf is drawn after the kitchenette, and clear of it; the poster clear of the corkboard (x 140)
+    expect(PROP_BOX.bookshelf.x).toBeGreaterThanOrEqual(right(PROP_BOX.kitchenette))
+    expect(right(PROP_BOX.poster)).toBeLessThanOrEqual(140)
+    // every sprite stands on its footprint's bottom row
+    for (const id of Object.keys(PROP_BOX) as ScenePropId[]) {
+      expect(PROP_BOX[id].y + PROP_BOX[id].h, id).toBe(PROP_FOOTPRINT[id].y + PROP_FOOTPRINT[id].h)
+    }
+  })
+
   /** Each prop and a scene that shows it: the door is the apartment's, the doorway the flat's and the loft's. */
   const CASES: [ScenePropId, Partial<Snapshot>][] = [
     ['window', {}], ['door', {}], ['doorway', { tier: 'flat' }], ['doorway', { tier: 'loft' }], ['kitchenette', {}],
     ['bookshelf', {}], ['bed', {}], ['poster', {}],
   ]
 
-  it("draws each ready prop at its footprint, in its fallback's place in the draw order, skipping its fallback fills", () => {
+  it("draws each ready prop at its sprite's box, in its fallback's place in the draw order, skipping its fallback fills (all inside the old footprint)", () => {
     for (const t of [0.3, 0.9]) {
       for (const [id, over] of CASES) {
         const label = `${id} ${over.tier ?? 'apartment'} t ${t}`
@@ -696,7 +768,7 @@ describe('scene art (0.9.0 R1): generated images with the code-drawn look as the
         const box = PROP_FOOTPRINT[id]
         expect(art.images, label).toHaveLength(1)
         const { at } = art.images[0]
-        expect(art.images[0], label).toEqual({ id, ...box, at })
+        expect(art.images[0], label).toEqual({ id, ...PROP_BOX[id], at })
         const skipped = plain.log.length - art.log.length
         expect(skipped, label).toBeGreaterThan(0)
         // the same fills in the same order before and after; the skipped block lies inside the footprint
