@@ -395,3 +395,86 @@ export function addOutline(img: RgbaImage, outlineHex: string): RgbaImage {
   }
   return out
 }
+
+export interface Box {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+/**
+ * Finds the bounding boxes of the objects on a flat-background sheet. Background is any pixel within `tolerance` of
+ * the top-left corner's colour; the rest is labelled into 4-connected blobs. Blobs whose boxes are at most `mergeGap`
+ * px apart merge (so a detached sparkle stays with its object), then merged boxes covering fewer than `minArea`
+ * foreground pixels are dropped as specks. Sorted top-to-bottom, then left-to-right. Used by `pixelate --measure` to
+ * derive the crops committed to art/manifest.json.
+ */
+export function findBlobs(img: RgbaImage, opts: { tolerance: number; mergeGap: number; minArea: number }): Box[] {
+  const { width, height, data } = img
+  const cr = data[0]
+  const cg = data[1]
+  const cb = data[2]
+  const fg = new Uint8Array(width * height)
+  for (let p = 0; p < width * height; p++) {
+    const i = p * 4
+    fg[p] = data[i + 3] > 0 && rgbDist(data[i], data[i + 1], data[i + 2], cr, cg, cb) > opts.tolerance ? 1 : 0
+  }
+  const seen = new Uint8Array(width * height)
+  let blobs: { x0: number; y0: number; x1: number; y1: number; area: number }[] = []
+  for (let start = 0; start < width * height; start++) {
+    if (!fg[start] || seen[start]) continue
+    const b = { x0: width, y0: height, x1: -1, y1: -1, area: 0 }
+    const stack = [start]
+    seen[start] = 1
+    while (stack.length > 0) {
+      const p = stack.pop() as number
+      const x = p % width
+      const y = (p - x) / width
+      b.area++
+      if (x < b.x0) b.x0 = x
+      if (x > b.x1) b.x1 = x
+      if (y < b.y0) b.y0 = y
+      if (y > b.y1) b.y1 = y
+      const visit = (q: number) => {
+        if (fg[q] && !seen[q]) {
+          seen[q] = 1
+          stack.push(q)
+        }
+      }
+      if (x > 0) visit(p - 1)
+      if (x < width - 1) visit(p + 1)
+      if (y > 0) visit(p - width)
+      if (y < height - 1) visit(p + width)
+    }
+    blobs.push(b)
+  }
+  let merged = true
+  while (merged) {
+    merged = false
+    outer: for (let i = 0; i < blobs.length; i++) {
+      for (let j = i + 1; j < blobs.length; j++) {
+        const a = blobs[i]
+        const c = blobs[j]
+        const gapX = Math.max(0, Math.max(a.x0, c.x0) - Math.min(a.x1, c.x1) - 1)
+        const gapY = Math.max(0, Math.max(a.y0, c.y0) - Math.min(a.y1, c.y1) - 1)
+        if (Math.max(gapX, gapY) <= opts.mergeGap) {
+          blobs[i] = {
+            x0: Math.min(a.x0, c.x0),
+            y0: Math.min(a.y0, c.y0),
+            x1: Math.max(a.x1, c.x1),
+            y1: Math.max(a.y1, c.y1),
+            area: a.area + c.area,
+          }
+          blobs = blobs.filter((_, k) => k !== j)
+          merged = true
+          break outer
+        }
+      }
+    }
+  }
+  return blobs
+    .filter((b) => b.area >= opts.minArea)
+    .sort((a, b) => a.y0 - b.y0 || a.x0 - b.x0)
+    .map((b) => ({ x: b.x0, y: b.y0, width: b.x1 - b.x0 + 1, height: b.y1 - b.y0 + 1 }))
+}

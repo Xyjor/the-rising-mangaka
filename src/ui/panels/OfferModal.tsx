@@ -5,6 +5,8 @@ import {
 import { useStore } from '../../state/store'
 import { Modal, Reward } from '../components'
 import { money, plural } from '../format'
+import { PixelArt } from '../art/PixelArt'
+import { EDITOR_ART, MAGAZINE_ART } from '../art/registry'
 import { comboLabel, rivalWord } from '../labels'
 
 export function OfferModal() {
@@ -37,13 +39,19 @@ export function OfferModal() {
           {mag.name} offers to serialise {offer.title} at {money(mag.pageRate)} a page at a score of {PAY_FULL_RATE_SCORE}, {mag.circulation}k readers, {mag.entrants} rival series.
         </p>
         <p className="small muted">Editor: {mag.editor}, {mag.persona}. {mag.personaLine}</p>
-        <div className="offer-hero">
-          <span className="small muted">{mag.name} wants to run</span>
-          <span className="t">{offer.title}</span>
-          <span className="small muted">{comboLabel(offer.genre, offer.theme, offer.audience)}</span>
+        <div className="offer-hero-row">
+          <PixelArt art={MAGAZINE_ART[mag.id]} scale={2} className="cover-art" />
+          <div className="offer-hero">
+            <span className="small muted">{mag.name} wants to run</span>
+            <span className="t">{offer.title}</span>
+            <span className="small muted">{comboLabel(offer.genre, offer.theme, offer.audience)}</span>
+          </div>
         </div>
-        <div className="speech pixel-bubble">
-          Readers loved it. Give me {CHAPTER_PAGES} pages every {plural(mag.chapterDays, 'day')}, keep the polls healthy, and we release a volume every {VOLUME_EVERY_CHAPTERS} chapters. The first {SERIAL_GRACE_CHAPTERS} chapters are guaranteed; after that, {SERIAL_WARNINGS_TO_CANCEL} weak chapters or missed issues in a row and I have to cancel. Deal?
+        <div className="editor-says">
+          <span className="art-frame"><PixelArt art={EDITOR_ART[mag.id]} scale={2} /></span>
+          <div className="speech pixel-bubble">
+            Readers loved it. Give me {CHAPTER_PAGES} pages every {plural(mag.chapterDays, 'day')}, keep the polls healthy, and we release a volume every {VOLUME_EVERY_CHAPTERS} chapters. The first {SERIAL_GRACE_CHAPTERS} chapters are guaranteed; after that, {SERIAL_WARNINGS_TO_CANCEL} weak chapters or missed issues in a row and I have to cancel. Deal?
+          </div>
         </div>
         <div className="terms">
           <Reward value={money(mag.pageRate)} label={`a page at a score of ${PAY_FULL_RATE_SCORE}`} />

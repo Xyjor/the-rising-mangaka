@@ -7,6 +7,7 @@ import { useStore } from '../../state/store'
 import { DRAFT, drawUntilReady } from '../../test/fixtures'
 import { StatusCard } from '../hud/StatusCard'
 import { COACH } from '../hud/statusText'
+import { PLACE_ART } from '../art/registry'
 
 beforeEach(() => {
   useStore.setState({ game: createGame('Rin', 1), tutorialStep: 0, readOnly: false, modal: 'none' })
@@ -56,6 +57,7 @@ describe('StatusCard', () => {
     useStore.setState({ game: startTrip({ ...g, player: { ...g.player, money: 100000 } }, 'library') })
     render(<StatusCard />)
     expect(region().getByText('Away')).toBeTruthy()
+    expect(document.querySelector(`.postcard img[src="${PLACE_ART.library.src}"]`)).not.toBeNull()
     expect(region().getByRole('progressbar', { name: 'Trip progress' })).toBeTruthy()
     expect(screen.queryByRole('note')).toBeNull()
   })

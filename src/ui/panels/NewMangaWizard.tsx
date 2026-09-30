@@ -6,6 +6,8 @@ import {
 import type { AudienceId, GenreId, ThemeId } from '../../sim'
 import { useStore } from '../../state/store'
 import { Icon } from '../Icon'
+import { GENRE_ART, THEME_ART } from '../art/registry'
+import { ArtTile } from '../art/ArtTile'
 import { Modal, Pips, RatingText } from '../components'
 
 const STEPS = ['Genre', 'Theme', 'Audience', 'Title'] as const
@@ -98,6 +100,7 @@ export function NewMangaWizard() {
           <div className="choice-grid">
             {GENRES.map((g) => (
               <button key={g.id} className="choice" aria-pressed={genre === g.id} onClick={() => { setGenre(g.id); setStep(1) }}>
+                <ArtTile art={GENRE_ART[g.id]} fallback="sun" scale={2} className="choice-art" />
                 <span className="name">{g.name}</span>
                 <span className="blurb">{g.blurb}</span>
               </button>
@@ -113,6 +116,7 @@ export function NewMangaWizard() {
               const stale = genre ? stalenessCount(game, genre, t.id) : 0
               return (
                 <button key={t.id} className="choice" aria-pressed={theme === t.id} onClick={() => { setTheme(t.id); setStep(2) }}>
+                  <ArtTile art={THEME_ART[t.id]} fallback="sparkle" scale={2} className="choice-art" />
                   <span className="name">{t.name}</span>
                   <span className="blurb">{t.blurb}</span>
                   <span className="hint">

@@ -13,6 +13,7 @@ import type { FakeSound } from '../../test/fakeSound'
 import { useStore } from '../../state/store'
 import { ResultsModal } from '../panels/ResultsModal'
 import { revealClock } from '../panels/useReveal'
+import { EDITOR_ART, RIVAL_ART } from '../art/registry'
 
 /**
  * The reveal runs on a frozen clock in every test here: time stands still at mount until a test calls `advanceTo`
@@ -324,7 +325,7 @@ describe('ResultsModal reveal', () => {
   it('keeps the rival line, the pay line and the offer line hidden until the stamp', () => {
     useStore.setState({ game: withRival(12, { name: 'Natsume Kujo', score: 51, rank: 4 }) })
     const { container } = render(<Harness />)
-    const rival = screen.getByText('Natsume Kujo placed #4 with 51. You finished behind. Natsume: "Was that your best? Try harder."')
+    const rival = screen.getByText('Natsume Kujo placed #4 with 51. You finished behind. Natsume: "Was that your best? Try harder."').closest('p') as HTMLElement
     const pay = screen.getByText((text) => text.includes('scaled by your score'))
     const offer = screen.getByText((text) => text.startsWith('Rank 12 of 13, score 45: no serial offer this time.'))
     expect([rival, pay, offer].map((el) => el.style.visibility)).toEqual(['hidden', 'hidden', 'hidden'])
@@ -449,5 +450,15 @@ describe('ResultsModal reveal', () => {
     expect(useStore.getState().game!.pendingResult).toBeNull()
     expect(sound.stops).toEqual(['drumroll'])
     expect(sound.ducks).toEqual([0.3, 1])
+  })
+})
+
+describe('ResultsModal art', () => {
+  it('puts the editor beside the comment and the rival beside their line', () => {
+    const game = withRival(2, { name: 'Natsume Kujo', score: 51, rank: 4 })
+    useStore.setState({ game })
+    const { container } = render(<Harness />)
+    expect(container.querySelector(`.editor-says img[src="${EDITOR_ART[game.pendingResult!.magazineId].src}"]`)).not.toBeNull()
+    expect(container.querySelector(`.art-line img[src="${RIVAL_ART.src}"]`)).not.toBeNull()
   })
 })

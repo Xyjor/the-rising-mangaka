@@ -5,6 +5,8 @@ import { useStore } from '../../state/store'
 import { ConfirmRow } from '../ConfirmRow'
 import { Modal } from '../components'
 import { money } from '../format'
+import { PixelArt } from '../art/PixelArt'
+import { EQUIPMENT_ART_ICON, TIER_ART_THUMB } from '../art/registry'
 
 function deskText(desks: number): string {
   return desks === 1 ? '1 desk for an assistant' : `${desks} desks for assistants`
@@ -36,7 +38,8 @@ function TierRow({ game, tier, index }: { game: GameState; tier: StudioTier; ind
   }
   const rent = tier.rent ? `Rent ${money(tier.rent)} a week.` : 'No rent.'
   return (
-    <div className="place" role="group" aria-label={tier.name}>
+    <div className="place has-thumb" role="group" aria-label={tier.name}>
+      <span className="postcard" aria-hidden="true"><PixelArt art={TIER_ART_THUMB[tier.id]} /></span>
       <div className="name">{tier.name}</div>
       {action}
       {/* The next tier's button names its move-in cost; any tier after it states it here. */}
@@ -61,7 +64,8 @@ function EquipmentRow({ game, item }: { game: GameState; item: Equipment }) {
       ? `Needs a ${studioTierById(item.needsTier!).name.toLowerCase()}`
       : short > 0 ? `Need ${money(short)} more` : `Buy, ${money(price)}`
   return (
-    <div className="place" role="group" aria-label={item.name}>
+    <div className="place has-art" role="group" aria-label={item.name}>
+      <span className="art-frame place-art"><PixelArt art={EQUIPMENT_ART_ICON[item.id]} scale={2} /></span>
       <div className="name">{item.name}</div>
       <button className={`btn sm ${buyable ? 'primary' : ''}`} disabled={!buyable} onClick={() => buyEquipment(item.id)}>
         {label}

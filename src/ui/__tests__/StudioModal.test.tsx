@@ -1,4 +1,6 @@
 // @vitest-environment happy-dom
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it } from 'vitest'
 import '../../test/dom'
@@ -9,6 +11,7 @@ import { App } from '../App'
 import { money } from '../format'
 import { StatsModal } from '../panels/StatsModal'
 import { StudioModal } from '../panels/StudioModal'
+import { EQUIPMENT_ART_ICON, TIER_ART_THUMB } from '../art/registry'
 
 // Money is set from the price helpers, so a new price scale leaves these tests standing.
 
@@ -32,6 +35,7 @@ describe('StudioModal', () => {
   it('marks the current studio and says what the next one costs and needs', () => {
     render(<StudioModal />)
     expect(row('Apartment').getByText('You are here')).toBeTruthy()
+    expect(screen.getByRole('group', { name: 'Studio loft' }).querySelector(`.postcard img[src="${TIER_ART_THUMB.loft.src}"]`)).not.toBeNull()
     expect(row('Apartment').getByText('No rent.')).toBeTruthy()
     expect(row('Apartment').getByText('1 desk for an assistant')).toBeTruthy()
     expect(row('Studio flat').getByText('2 desks for assistants')).toBeTruthy()
@@ -64,6 +68,21 @@ describe('StudioModal', () => {
     fireEvent.click(button('Studio flat', 'Stay here'))
     expect(useStore.getState().game!.studio.tier).toBe('apartment')
     expect(button('Studio flat', `Move in, ${money(moveInCost('flat'))}`)).toBeTruthy()
+  })
+
+  it('sizes the tier and trip thumb column to its art, never a fixed 32px track', () => {
+    render(<StudioModal />)
+    const loft = screen.getByRole('group', { name: 'Studio loft' })
+    expect(loft.classList.contains('has-thumb')).toBe(true)
+    expect(loft.firstElementChild?.classList.contains('postcard')).toBe(true)
+    const css = readFileSync(join(__dirname, '..', '..', 'styles', 'app.css'), 'utf8')
+    expect(css).toContain('.place.has-thumb { grid-template-columns: auto minmax(0, 1fr) auto; }')
+    expect(css).not.toMatch(/\.place\.has-thumb \{ grid-template-columns: 32px/)
+    expect(css).toMatch(/\.postcard \{[^}]*width: fit-content/)
+    // at phone width every thumb row (trips and tiers alike) stacks the thumb on its own first row
+    const phone = css.slice(css.indexOf('@media (max-width: 640px) {'))
+    expect(phone).toContain('.place.has-thumb { grid-template-columns: minmax(0, 1fr) auto; }')
+    expect(phone).toContain('.place.has-thumb > .postcard { grid-column: 1 / -1; grid-row: 1; }')
   })
 
   it('lists every piece of equipment with its effect and a button that says what it takes', () => {
@@ -113,5 +132,12 @@ describe('StatsModal equipment', () => {
   it('says where to buy equipment when the studio has none', () => {
     render(<StatsModal />)
     expect(screen.getByText('No equipment yet. The Studio sells gear that helps you draw and rest.')).toBeTruthy()
+  })
+})
+
+describe('StudioModal art', () => {
+  it('draws every piece of equipment on its row', () => {
+    const { container } = render(<StudioModal />)
+    for (const [id, ref] of Object.entries(EQUIPMENT_ART_ICON)) expect(container.querySelector(`.place-art img[src="${ref.src}"]`), id).not.toBeNull()
   })
 })

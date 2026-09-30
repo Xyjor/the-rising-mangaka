@@ -2,6 +2,8 @@ import { unreadReview } from '../sim'
 import { useStore } from '../state/store'
 import { Icon } from './Icon'
 import { yearSummary } from './labels'
+import { PixelArt } from './art/PixelArt'
+import { AWARD_ART } from './art/registry'
 import '../styles/cards.css'
 
 /**
@@ -19,6 +21,11 @@ export function YearReviewCard() {
         <Icon name="trophy" />
         <b id="year-review-title">Year {review.year} in review: {yearSummary(review)}.</b>
       </div>
+      {review.awards.length > 0 && (
+        <div className="row" style={{ gap: 6 }}>
+          {review.awards.map((id) => <span key={id} className="art-frame"><PixelArt art={AWARD_ART[id]} /></span>)}
+        </div>
+      )}
       <button className="btn sm block" onClick={() => openModal('year')}>Read the year review</button>
     </section>
   )

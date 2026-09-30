@@ -5,6 +5,8 @@ import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { ART_PALETTE } from '../art/palette'
+import * as registry from '../art/registry'
+import type { ArtRef } from '../art/registry'
 
 const ROOT = join(__dirname, '..', '..', '..')
 const MANIFEST_PATH = join(ROOT, 'art', 'manifest.json')
@@ -14,6 +16,9 @@ const TOKENS_PATH = join(ROOT, 'src', 'styles', 'tokens.css')
 
 interface ManifestEntry {
   id: string
+  source: string
+  seed: number | null
+  job?: string
   native: [number, number]
   colors?: number
   sheet?: { src: string }
@@ -29,7 +34,7 @@ function pngPathFor(id: string): string {
 
 function rawPathFor(entry: ManifestEntry): string {
   const src = entry.sheet ? entry.sheet.src : entry.id
-  return join(ROOT, 'art', 'raw', `${src}.webp`)
+  return join(ROOT, 'art', 'raw', /\.(png|webp)$/.test(src) ? src : `${src}.webp`)
 }
 
 function listPngsUnder(dir: string, prefix = ''): string[] {
@@ -54,6 +59,8 @@ function parsePng(path: string): {
   palette: string[]
   bytes: number
 } {
+  // PLTE entries made fully transparent by tRNS are never drawn (the encoder picks their RGB freely), so they are
+  // left out of the returned palette.
   const buf = readFileSync(path)
   const sig = buf.subarray(0, 8)
   const expectedSig = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
@@ -64,6 +71,7 @@ function parsePng(path: string): {
   let height = 0
   let colorType = -1
   let palette: string[] = []
+  const transparent = new Set<number>()
 
   while (offset < buf.length) {
     const length = buf.readUInt32BE(offset)
@@ -81,12 +89,14 @@ function parsePng(path: string): {
         const b = buf.readUInt8(dataStart + i + 2)
         palette.push(`#${[r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('')}`)
       }
+    } else if (type === 'tRNS' && colorType === 3) {
+      for (let i = 0; i < length; i++) if (buf.readUInt8(dataStart + i) === 0) transparent.add(i)
     }
     offset = dataStart + length + 4 // skip data + CRC
     if (type === 'IEND') break
   }
 
-  return { width, height, colorType, palette, bytes: buf.length }
+  return { width, height, colorType, palette: palette.filter((_, i) => !transparent.has(i)), bytes: buf.length }
 }
 
 describe('art manifest', () => {
@@ -95,6 +105,18 @@ describe('art manifest', () => {
   it('has unique ids', () => {
     const ids = manifest.map((e) => e.id)
     expect(new Set(ids).size).toBe(ids.length)
+  })
+
+  it('names its host: a Hugging Face Space with a seed, or a Higgsfield job id instead of a seed', () => {
+    for (const entry of manifest) {
+      if (entry.source === 'hf-space:mcp-tools/Z-Image-Turbo') {
+        expect(typeof entry.seed, `${entry.id} seed`).toBe('number')
+      } else {
+        expect(entry.source, `${entry.id} source`).toBe('higgsfield:z_image')
+        expect(entry.seed, `${entry.id} seed`).toBeNull()
+        expect(entry.job, `${entry.id} job`).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/)
+      }
+    }
   })
 
   it('has a raw source and a generated PNG for every entry', () => {
@@ -135,6 +157,7 @@ describe('generated PNGs', () => {
       expect(png.width, `${entry.id} width`).toBe(entry.native[0])
       expect(png.height, `${entry.id} height`).toBe(entry.native[1])
       expect(png.colorType, `${entry.id} colour type`).toBe(3)
+      expect(png.palette.length, `${entry.id} colour cap`).toBeLessThanOrEqual(entry.colors ?? 16)
       for (const hex of png.palette) {
         expect(palette.has(hex), `${entry.id}: PLTE colour ${hex} not in ART_PALETTE`).toBe(true)
       }
@@ -150,5 +173,21 @@ describe('generated PNGs', () => {
       expect(bytes, `${entry.id} size`).toBeLessThanOrEqual(cap)
     }
     expect(total).toBeLessThanOrEqual(100 * 1024)
+  })
+  it("gives every registry ArtRef its manifest entry's native size", () => {
+    const byId = new Map(loadManifest().map((e) => [e.id, e]))
+    const refs: ArtRef[] = []
+    const isRef = (v: unknown): v is ArtRef =>
+      typeof v === 'object' && v !== null && typeof (v as ArtRef).id === 'string' && typeof (v as ArtRef).w === 'number'
+    for (const value of Object.values(registry)) {
+      if (isRef(value)) refs.push(value)
+      else if (typeof value === 'object' && value !== null) refs.push(...Object.values(value).filter(isRef))
+    }
+    expect(refs.length).toBeGreaterThan(50)
+    for (const ref of refs) {
+      const entry = byId.get(ref.id)
+      expect(entry, `${ref.id} has a manifest entry`).toBeDefined()
+      expect([ref.w, ref.h], `${ref.id} size`).toEqual(entry!.native)
+    }
   })
 })

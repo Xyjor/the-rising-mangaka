@@ -88,7 +88,7 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
 - `src/ui/` — React 19 components. `App.tsx` (shell, clock, hotkeys), `hud/` (the corner overlays and rail:
   `TopLeft`, `TopRight`, `Rail`, `StatusCard`, `statusParts`, `DeskTray`), `hooks/` (`useClockLoop`, `useRolledNumber`,
   `useArrival`, the editor's walk-in delay before a pending card mounts), `panels/*` (modals, including `LogModal`, `BadgesModal`
-  (the badge gallery, rail button Badges and G; tile art from `art/registry.ts` `BADGE_ART`, an icon until it lands), the
+  (the badge gallery, rail button Badges and G; earned tiles use `BADGE_ART`, the rest `BADGE_LOCKED`), the
   desk panel), `scene/` (pixel-art canvas, 320×180: two coordinate spaces meet in `paint.ts` (room space, the old
   192×108 layout, offset by `OX 64, OY 36` into canvas space by `rect`; `rawRect` for the wall, floor, kitchenette,
   entrance and door, drawn straight in canvas space) and its `PANE_X/Y/W/H`/`BAR_X` and `paneRect` clipped to the
@@ -123,7 +123,7 @@ canvas space; `story.ts` `storyLook`, the story props' five snapshot inputs read
   or `src/styles/tokens.css`), `pixelOps.ts` (the pure pixel math `scripts/pixelate.ts` runs), `registry.ts` (typed
   `ArtRef` lookups over the PNGs in `src/assets/art/`, eagerly globbed by Vite) and `PixelArt.tsx` (the `<img>`
   wrapper every component uses to mount one). `art/manifest.json` and `art/raw/` at the repo root hold each asset's
-  generation recipe and committed raw source; see DESIGN.md's "Art" section.
+  generation recipe and committed raw source (two hosts: a Hugging Face Space with seeds, Higgsfield `z_image` with job ids); see DESIGN.md's "Art" section.
 - `src/assets/art/` — generated indexed PNGs, one per `art/manifest.json` entry, written by `npm run art` and never
   edited by hand; never base64-inlined (`vite.config.ts`'s `assetsInlineLimit`).
 - `src/platform/` — where the game runs, and the only place that imports `@tauri-apps/*`. `env.ts` `isDesktop()`

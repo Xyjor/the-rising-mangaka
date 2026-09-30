@@ -12,6 +12,7 @@ import {
   despeckle,
   downsampleArea,
   downsampleNearest,
+  findBlobs,
   floodTransparentFromEdges,
   padToAspect,
   reduceColors,
@@ -27,16 +28,21 @@ const DEFAULT_COLORS = 16
 
 interface SheetSpec {
   src: string
-  cols: number
-  rows: number
-  cell: [number, number]
+  /** An equal grid over the sheet; omit all three to take the whole sheet (then `crop` picks the object). */
+  cols?: number
+  rows?: number
+  cell?: [number, number]
 }
 
 interface ManifestEntry {
   id: string
+  /** where it was generated: `hf-space:mcp-tools/Z-Image-Turbo` or `higgsfield:z_image` */
+  source: string
   model: string
   resolution: string
-  seed: number
+  /** null for a Higgsfield generation (no seed exposed; `job` identifies it instead) */
+  seed: number | null
+  job?: string
   steps: number
   shift: number
   prompt: string
@@ -48,6 +54,11 @@ interface ManifestEntry {
   colors?: number
   crop?: [number, number, number, number]
   sheet?: SheetSpec
+}
+
+/** A raw source path: `name` as given when it carries an extension (the Higgsfield sheets are .png), else `.webp`. */
+function rawPath(name: string): string {
+  return join(ROOT, 'art', 'raw', /\.(png|webp)$/.test(name) ? name : `${name}.webp`)
 }
 
 function loadManifest(): ManifestEntry[] {
@@ -73,15 +84,14 @@ function sliceRegion(img: RgbaImage, x: number, y: number, w: number, h: number)
 async function processEntry(entry: ManifestEntry): Promise<{ outPath: string; colours: number; bytes: number }> {
   let raw: RgbaImage
   if (entry.sheet) {
-    const sheetPath = join(ROOT, 'art', 'raw', `${entry.sheet.src}.webp`)
+    const sheetPath = rawPath(entry.sheet.src)
     const sheetImg = await loadRgba(sheetPath)
-    const cellW = Math.floor(sheetImg.width / entry.sheet.cols)
-    const cellH = Math.floor(sheetImg.height / entry.sheet.rows)
-    const [col, row] = entry.sheet.cell
-    raw = sliceRegion(sheetImg, col * cellW, row * cellH, cellW, cellH)
+    const { cols = 1, rows = 1, cell = [0, 0] } = entry.sheet
+    const cellW = Math.floor(sheetImg.width / cols)
+    const cellH = Math.floor(sheetImg.height / rows)
+    raw = sliceRegion(sheetImg, cell[0] * cellW, cell[1] * cellH, cellW, cellH)
   } else {
-    const rawPath = join(ROOT, 'art', 'raw', `${entry.id}.webp`)
-    raw = await loadRgba(rawPath)
+    raw = await loadRgba(rawPath(entry.id))
   }
 
   let working = raw
@@ -106,7 +116,8 @@ async function processEntry(entry: ManifestEntry): Promise<{ outPath: string; co
       ? downsampleNearest(working, nativeW, nativeH)
       : downsampleArea(working, nativeW, nativeH)
   working = snapToPalette(working, ART_PALETTE)
-  working = reduceColors(working, entry.colors ?? DEFAULT_COLORS)
+  // The outline colour counts toward the cap, so leave it a slot.
+  working = reduceColors(working, (entry.colors ?? DEFAULT_COLORS) - (entry.outline ? 1 : 0))
   working = despeckle(working)
   if (entry.outline) {
     working = addOutline(working, OUTLINE_HEX)
@@ -115,7 +126,8 @@ async function processEntry(entry: ManifestEntry): Promise<{ outPath: string; co
   const outPath = join(ROOT, 'src', 'assets', 'art', `${entry.id}.png`)
   mkdirSync(dirname(outPath), { recursive: true })
 
-  const paletteCount = entry.colors ?? DEFAULT_COLORS
+  // One more slot than the colour cap for the transparent entry, so the encoder never re-quantises opaque colours.
+  const paletteCount = Math.min(256, (entry.colors ?? DEFAULT_COLORS) + (entry.cutout ? 1 : 0))
   const buffer = await sharp(Buffer.from(working.data.buffer, working.data.byteOffset, working.data.length), {
     raw: { width: working.width, height: working.height, channels: 4 },
   })
@@ -143,8 +155,20 @@ async function processEntry(entry: ManifestEntry): Promise<{ outPath: string; co
   return { outPath, colours: usedColours.size, bytes: buffer.length }
 }
 
+/** `--measure <sheet> [mergeGap] [minArea]`: prints each object's bounding box on a raw sheet, for committing as crops. */
+async function measure(sheet: string, mergeGap: number, minArea: number) {
+  const img = await loadRgba(rawPath(sheet))
+  const boxes = findBlobs(img, { tolerance: FLOOD_TOLERANCE, mergeGap, minArea })
+  console.log(`${sheet} (${img.width}x${img.height}): ${boxes.length} objects`)
+  for (const b of boxes) console.log(JSON.stringify([b.x, b.y, b.width, b.height]))
+}
+
 async function main() {
   const args = process.argv.slice(2)
+  if (args[0] === '--measure') {
+    await measure(args[1], Number(args[2] ?? 12), Number(args[3] ?? 400))
+    return
+  }
   const manifest = loadManifest()
   const ids = args.includes('--all') ? manifest.map((e) => e.id) : args.filter((a) => !a.startsWith('--'))
 

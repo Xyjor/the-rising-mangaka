@@ -9,6 +9,8 @@ import { Icon } from '../Icon'
 import { Metric, Modal, Pips, RatingText } from '../components'
 import { money } from '../format'
 import { MAG_TONE } from '../looks'
+import { MAGAZINE_ART } from '../art/registry'
+import { PixelArt } from '../art/PixelArt'
 import { beatLabel, comboLabel, firstName, likelyLine, offerLabel, rivalWord } from '../labels'
 
 export function SubmitModal() {
@@ -66,6 +68,7 @@ export function SubmitModal() {
             return (
               <button key={m.id} className="mag" aria-pressed={choice === m.id} onClick={() => setChoice(m.id)}>
                 <span className="mag-cover" data-tone={MAG_TONE[m.id]}>
+                  <PixelArt art={MAGAZINE_ART[m.id]} scale={2} className="mag-art" />
                   <span className="name">{m.name}</span>
                   <span className="mag-chips">
                     <span className="chip">{audienceById(m.audience).name}</span>

@@ -8,6 +8,7 @@ import { useStore } from '../../state/store'
 import { EventCard } from '../EventCard'
 import { DeskTray } from '../hud/DeskTray'
 import { TripsModal } from '../panels/TripsModal'
+import { EVENT_ART, PLACE_ART } from '../art/registry'
 
 const KIDS_OFFER = { magazineId: 'kids-comic', title: 'Magic Club', genre: 'fantasy', theme: 'magic', audience: 'kids' } as const
 
@@ -106,9 +107,10 @@ describe('event-only trips', () => {
     expect(screen.getByText('Mountain Retreat')).toBeTruthy()
     expect(screen.getByText('Full stamina, max stamina +5 (never above 150)')).toBeTruthy()
     expect(screen.queryByText('Book Signing')).toBeNull()
+    expect(document.querySelector(`.postcard[data-place="library"] img[src="${PLACE_ART.library.src}"]`)).not.toBeNull()
   })
 
-  it('shows the new events with their numbers on the buttons, the icon standing in for missing art', () => {
+  it('shows the new events with their numbers on the buttons, and its scene at 2x', () => {
     const base = acceptOffer({ ...createGame('Rin', 1), pendingOffer: KIDS_OFFER })
     const sold = { ...base, serial: { ...base.serial!, totalCopies: 12_000, volumes: 3 } }
     const game: GameState = { ...sold, event: { id: 'signing', day: 0, expiresDay: 7, serialId: sold.serial!.id } }
@@ -117,7 +119,8 @@ describe('event-only trips', () => {
     const card = screen.getByRole('region', { name: 'A bookshop wants a signing' })
     expect(card.textContent).toContain('It pays round(average copies a volume × 0.2) × ¥2.')
     expect(screen.getByRole('button', { name: 'Sign for a day: 1-day trip, +¥1,600 on return' })).toBeTruthy()
-    expect(card.querySelector('svg')).not.toBeNull()
+    const img = card.querySelector(`.event-art img[src="${EVENT_ART.signing.src}"]`)
+    expect(img?.getAttribute('width')).toBe('192')
   })
 
   it('names the challenge stakes before the choice', () => {

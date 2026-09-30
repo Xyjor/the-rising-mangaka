@@ -10,6 +10,7 @@ import { YearReviewCard } from '../YearReviewCard'
 import { CareerModal } from '../panels/CareerModal'
 import { DeskTray } from '../hud/DeskTray'
 import { YearModal } from '../panels/YearModal'
+import { AWARD_ART, RIVAL_ART } from '../art/registry'
 
 const CARD = 'Year 1 in review: 2 awards, 1 near miss.'
 
@@ -177,5 +178,20 @@ describe('CareerModal awards', () => {
       'No awards yet. Awards are handed out when year 1 ends.',
     )
     expect(screen.queryByRole('region', { name: 'Past years' })).toBeNull()
+  })
+})
+
+describe('award and rival art', () => {
+  it('shows each award won on the card, in the review and in the career, and the rival in the review', () => {
+    useStore.setState({ game: reviewed(), modal: 'year' })
+    const card = render(<YearReviewCard />)
+    expect(card.container.querySelector(`img[src="${AWARD_ART.critics.src}"]`)).not.toBeNull()
+    card.unmount()
+    const year = render(<YearModal />)
+    expect(year.container.querySelector(`.year-award img[src="${AWARD_ART.rookie.src}"]`)).not.toBeNull()
+    expect(year.container.querySelector(`.art-line img[src="${RIVAL_ART.src}"]`)).not.toBeNull()
+    year.unmount()
+    const career = render(<CareerModal />)
+    expect(career.container.querySelector(`.year-award img[src="${AWARD_ART.critics.src}"]`)).not.toBeNull()
   })
 })

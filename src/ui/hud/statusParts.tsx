@@ -4,6 +4,8 @@ import {
   JOB_PAY_PER_DAY, LOW_STAMINA_THRESHOLD, VOLUME_EVERY_CHAPTERS, chapterDeadline, expectedPagesToday, getPhase, placeById } from '../../sim'
 import { useStore } from '../../state/store'
 import { useShallow } from 'zustand/react/shallow'
+import { PixelArt } from '../art/PixelArt'
+import { PLACE_ART } from '../art/registry'
 import { ConfirmRow } from '../ConfirmRow'
 import { Icon } from '../Icon'
 import { Metric, WarningPips } from '../components'
@@ -123,7 +125,10 @@ export function TripCard() {
   return (
     <div className="col" style={{ gap: 10 }}>
       <div className="row between wrap">
-        <div className="title">{place.name}</div>
+        <span className="row" style={{ gap: 8 }}>
+          <span className="postcard" data-place={place.id} aria-hidden="true"><PixelArt art={PLACE_ART[place.id]} /></span>
+          <span className="title">{place.name}</span>
+        </span>
         <span className="chip green">Away</span>
       </div>
       <p className="small muted">{place.blurb} You are resting while away, and no pages get drawn.</p>

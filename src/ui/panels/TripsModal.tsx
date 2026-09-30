@@ -19,12 +19,9 @@ export function TripsModal() {
         <div className="place-list">
           {PLACES.filter((pl) => !pl.eventOnly).map((pl) => {
             const canAfford = game.player.money >= pl.cost
-            const art = PLACE_ART[pl.id]
             return (
               <div className="place has-thumb" key={pl.id}>
-                {art
-                  ? <span className="postcard" aria-hidden="true"><PixelArt art={art} /></span>
-                  : <span className="postcard" data-place={pl.id} aria-hidden="true" />}
+                <span className="postcard" data-place={pl.id} aria-hidden="true"><PixelArt art={PLACE_ART[pl.id]} /></span>
                 <div className="name">{pl.name}</div>
                 <button className="btn sm primary" disabled={busy || !canAfford} onClick={() => startTrip(pl.id)}>
                   {busy ? 'Away' : canAfford ? `Go, ${money(pl.cost)}` : `Need ${money(pl.cost - game.player.money)} more`}

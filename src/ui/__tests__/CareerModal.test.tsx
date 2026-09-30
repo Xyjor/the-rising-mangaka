@@ -7,6 +7,7 @@ import type { PollResult } from '../../sim'
 import { withPendingResult } from '../../test/fixtures'
 import { useStore } from '../../state/store'
 import { CareerModal } from '../panels/CareerModal'
+import { RIVAL_ART } from '../art/registry'
 
 describe('CareerModal rival section', () => {
   it('names the rival, their series and magazine, their usual scores and the head-to-head record', () => {
@@ -28,5 +29,13 @@ describe('CareerModal rival section', () => {
     useStore.setState({ game: createGame('Rin', 1), readOnly: false })
     render(<CareerModal />)
     expect(screen.getByRole('region', { name: 'Rival' }).textContent).toContain('Head to head: 0 wins, 0 losses.')
+  })
+})
+
+describe('CareerModal art', () => {
+  it('shows the rival portrait', () => {
+    useStore.setState({ game: createGame('Rin', 1), readOnly: false })
+    const { container } = render(<CareerModal />)
+    expect(container.querySelector(`.career-rival img[src="${RIVAL_ART.src}"]`)).not.toBeNull()
   })
 })

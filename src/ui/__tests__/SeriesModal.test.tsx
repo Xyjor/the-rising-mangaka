@@ -10,6 +10,7 @@ import type { ChapterResult, GameState } from '../../sim'
 import { DRAFT, KIDS_OFFER, drawUntilReady, withStats } from '../../test/fixtures'
 import { useStore } from '../../state/store'
 import { SeriesModal } from '../panels/SeriesModal'
+import { MAGAZINE_ART } from '../art/registry'
 
 /** A strong one-shot, submitted to Weekly Bolt and its offer waiting. */
 function strongOneShot(): GameState {
@@ -128,5 +129,14 @@ describe('SeriesModal series tabs', () => {
     useStore.setState({ game: acceptOffer({ ...createGame('Rin', 1), pendingOffer: KIDS_OFFER }), readOnly: false })
     render(<SeriesModal />)
     expect(screen.queryByRole('tablist')).toBeNull()
+  })
+})
+
+describe('SeriesModal art', () => {
+  it('heads the series with its magazine cover', () => {
+    const game = serialWithResults(1)
+    useStore.setState({ game, readOnly: false })
+    const { container } = render(<SeriesModal />)
+    expect(container.querySelector(`img[src="${MAGAZINE_ART[game.serial!.magazineId].src}"]`)).not.toBeNull()
   })
 })

@@ -8,6 +8,7 @@ import { withReadyOneShot } from '../../test/fixtures'
 import { useStore } from '../../state/store'
 import { SubmitModal } from '../panels/SubmitModal'
 import { MAG_TONE } from '../looks'
+import { MAGAZINE_ART } from '../art/registry'
 
 const KIDS_DRAFT: ProjectDraft = { title: 'Blade Club', genre: 'action', theme: 'samurai', audience: 'kids' }
 const FOOTNOTE =
@@ -125,5 +126,12 @@ describe('SubmitModal magazine covers', () => {
       const b = screen.getByRole('button', { name: new RegExp(m.name.replace(/[!?]/g, '.')) })
       expect(b.textContent).toContain(`Editor: ${m.editor}, ${m.persona}. ${m.personaLine}`)
     }
+  })
+})
+
+describe('SubmitModal art', () => {
+  it('draws each magazine cover in its strip', () => {
+    const { container } = render(<SubmitModal />)
+    for (const m of MAGAZINES) expect(container.querySelector(`.mag-cover img[src="${MAGAZINE_ART[m.id].src}"]`), m.id).not.toBeNull()
   })
 })

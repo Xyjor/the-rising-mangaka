@@ -1,6 +1,7 @@
 [
   {
     "id": "title/hero",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
     "model": "Z-Image-Turbo",
     "resolution": "1280x720 ( 16:9 )",
     "seed": 103706,
@@ -8,10 +9,2612 @@
     "shift": 3,
     "prompt": "16-bit pixel art title screen key art for a cozy manga career game. A young chibi manga artist in a grey hoodie standing on a Tokyo apartment rooftop at golden hour, holding a manuscript page up to the sky, pen tucked behind ear, an orange cat beside them. Behind: soft city skyline, cherry blossom petals drifting, a large glowing sun. Empty sky area in the upper third reserved for a logo. Warm saturated palette of cream, coral red, indigo and gold, crisp pixels, limited palette, no text, no letters.",
     "preamble": "none",
-    "native": [320, 180],
+    "native": [
+      320,
+      180
+    ],
     "sample": "area",
     "cutout": false,
     "outline": false,
     "colors": 32
+  },
+  {
+    "id": "editor/weekly-bolt",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
+    "model": "Z-Image-Turbo",
+    "resolution": "1680x720 ( 21:9 )",
+    "seed": 30150,
+    "steps": 8,
+    "shift": 3,
+    "prompt": "Pixel art character portrait sheet, five bust portraits in one row on a flat light grey background, same 16-bit chibi style, same framing, same size, evenly spaced, lighting from top left, thick dark outlines, facing three-quarter left: 1) a sharp male manga editor with slicked hair, glasses, navy suit, red tie; 2) a gentle female editor with a soft bob haircut, pink cardigan, pearl earrings; 3) a stern older male editor with grey stubble, black turtleneck; 4) a cheerful young female editor with twin buns, yellow hoodie, headphones around neck; 5) a smug young rival manga artist with spiky silver hair, black leather jacket, red shirt. Limited palette, crisp pixels, no text, no letters.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/people"
+    },
+    "crop": [
+      79,
+      160,
+      300,
+      300
+    ]
+  },
+  {
+    "id": "editor/monthly-petal",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
+    "model": "Z-Image-Turbo",
+    "resolution": "1680x720 ( 21:9 )",
+    "seed": 30150,
+    "steps": 8,
+    "shift": 3,
+    "prompt": "Pixel art character portrait sheet, five bust portraits in one row on a flat light grey background, same 16-bit chibi style, same framing, same size, evenly spaced, lighting from top left, thick dark outlines, facing three-quarter left: 1) a sharp male manga editor with slicked hair, glasses, navy suit, red tie; 2) a gentle female editor with a soft bob haircut, pink cardigan, pearl earrings; 3) a stern older male editor with grey stubble, black turtleneck; 4) a cheerful young female editor with twin buns, yellow hoodie, headphones around neck; 5) a smug young rival manga artist with spiky silver hair, black leather jacket, red shirt. Limited palette, crisp pixels, no text, no letters.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/people"
+    },
+    "crop": [
+      401,
+      160,
+      298,
+      300
+    ]
+  },
+  {
+    "id": "editor/ultra-seinen",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
+    "model": "Z-Image-Turbo",
+    "resolution": "1680x720 ( 21:9 )",
+    "seed": 30150,
+    "steps": 8,
+    "shift": 3,
+    "prompt": "Pixel art character portrait sheet, five bust portraits in one row on a flat light grey background, same 16-bit chibi style, same framing, same size, evenly spaced, lighting from top left, thick dark outlines, facing three-quarter left: 1) a sharp male manga editor with slicked hair, glasses, navy suit, red tie; 2) a gentle female editor with a soft bob haircut, pink cardigan, pearl earrings; 3) a stern older male editor with grey stubble, black turtleneck; 4) a cheerful young female editor with twin buns, yellow hoodie, headphones around neck; 5) a smug young rival manga artist with spiky silver hair, black leather jacket, red shirt. Limited palette, crisp pixels, no text, no letters.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/people"
+    },
+    "crop": [
+      700,
+      160,
+      298,
+      300
+    ]
+  },
+  {
+    "id": "editor/kids-comic",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
+    "model": "Z-Image-Turbo",
+    "resolution": "1680x720 ( 21:9 )",
+    "seed": 30150,
+    "steps": 8,
+    "shift": 3,
+    "prompt": "Pixel art character portrait sheet, five bust portraits in one row on a flat light grey background, same 16-bit chibi style, same framing, same size, evenly spaced, lighting from top left, thick dark outlines, facing three-quarter left: 1) a sharp male manga editor with slicked hair, glasses, navy suit, red tie; 2) a gentle female editor with a soft bob haircut, pink cardigan, pearl earrings; 3) a stern older male editor with grey stubble, black turtleneck; 4) a cheerful young female editor with twin buns, yellow hoodie, headphones around neck; 5) a smug young rival manga artist with spiky silver hair, black leather jacket, red shirt. Limited palette, crisp pixels, no text, no letters.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/people"
+    },
+    "crop": [
+      999,
+      160,
+      300,
+      300
+    ]
+  },
+  {
+    "id": "rival/rival",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
+    "model": "Z-Image-Turbo",
+    "resolution": "1680x720 ( 21:9 )",
+    "seed": 30150,
+    "steps": 8,
+    "shift": 3,
+    "prompt": "Pixel art character portrait sheet, five bust portraits in one row on a flat light grey background, same 16-bit chibi style, same framing, same size, evenly spaced, lighting from top left, thick dark outlines, facing three-quarter left: 1) a sharp male manga editor with slicked hair, glasses, navy suit, red tie; 2) a gentle female editor with a soft bob haircut, pink cardigan, pearl earrings; 3) a stern older male editor with grey stubble, black turtleneck; 4) a cheerful young female editor with twin buns, yellow hoodie, headphones around neck; 5) a smug young rival manga artist with spiky silver hair, black leather jacket, red shirt. Limited palette, crisp pixels, no text, no letters.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/people"
+    },
+    "crop": [
+      1310,
+      160,
+      300,
+      300
+    ]
+  },
+  {
+    "id": "genre/action",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
+    "model": "Z-Image-Turbo",
+    "resolution": "1680x720 ( 21:9 )",
+    "seed": 1010,
+    "steps": 8,
+    "shift": 3,
+    "prompt": "Pixel art icon sheet, ten square icons in a 5 by 2 grid on a flat light grey background, evenly spaced, same size, same 16-bit style, thick dark outlines, lighting from top left, each a single object centred: row 1: a clenched fist with speed lines (action), a pink heart with a ribbon (romance), a laughing mask (comedy), a grinning skull with a candle (horror), a soccer ball (sports); row 2: a sword crossed with a magic staff (fantasy), a magnifying glass over a footprint (mystery), a flying saucer (sci-fi), a steaming teacup with a flower (slice of life), a single tear drop and a rose (drama). Limited palette, crisp pixels, no text, no letters.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/genres"
+    },
+    "crop": [
+      64,
+      112,
+      262,
+      172
+    ]
+  },
+  {
+    "id": "genre/romance",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
+    "model": "Z-Image-Turbo",
+    "resolution": "1680x720 ( 21:9 )",
+    "seed": 1010,
+    "steps": 8,
+    "shift": 3,
+    "prompt": "Pixel art icon sheet, ten square icons in a 5 by 2 grid on a flat light grey background, evenly spaced, same size, same 16-bit style, thick dark outlines, lighting from top left, each a single object centred: row 1: a clenched fist with speed lines (action), a pink heart with a ribbon (romance), a laughing mask (comedy), a grinning skull with a candle (horror), a soccer ball (sports); row 2: a sword crossed with a magic staff (fantasy), a magnifying glass over a footprint (mystery), a flying saucer (sci-fi), a steaming teacup with a flower (slice of life), a single tear drop and a rose (drama). Limited palette, crisp pixels, no text, no letters.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/genres"
+    },
+    "crop": [
+      416,
+      100,
+      231,
+      218
+    ]
+  },
+  {
+    "id": "genre/comedy",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
+    "model": "Z-Image-Turbo",
+    "resolution": "1680x720 ( 21:9 )",
+    "seed": 1010,
+    "steps": 8,
+    "shift": 3,
+    "prompt": "Pixel art icon sheet, ten square icons in a 5 by 2 grid on a flat light grey background, evenly spaced, same size, same 16-bit style, thick dark outlines, lighting from top left, each a single object centred: row 1: a clenched fist with speed lines (action), a pink heart with a ribbon (romance), a laughing mask (comedy), a grinning skull with a candle (horror), a soccer ball (sports); row 2: a sword crossed with a magic staff (fantasy), a magnifying glass over a footprint (mystery), a flying saucer (sci-fi), a steaming teacup with a flower (slice of life), a single tear drop and a rose (drama). Limited palette, crisp pixels, no text, no letters.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/genres"
+    },
+    "crop": [
+      756,
+      102,
+      217,
+      214
+    ]
+  },
+  {
+    "id": "genre/horror",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
+    "model": "Z-Image-Turbo",
+    "resolution": "1680x720 ( 21:9 )",
+    "seed": 1010,
+    "steps": 8,
+    "shift": 3,
+    "prompt": "Pixel art icon sheet, ten square icons in a 5 by 2 grid on a flat light grey background, evenly spaced, same size, same 16-bit style, thick dark outlines, lighting from top left, each a single object centred: row 1: a clenched fist with speed lines (action), a pink heart with a ribbon (romance), a laughing mask (comedy), a grinning skull with a candle (horror), a soccer ball (sports); row 2: a sword crossed with a magic staff (fantasy), a magnifying glass over a footprint (mystery), a flying saucer (sci-fi), a steaming teacup with a flower (slice of life), a single tear drop and a rose (drama). Limited palette, crisp pixels, no text, no letters.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/genres"
+    },
+    "crop": [
+      1070,
+      92,
+      213,
+      223
+    ]
+  },
+  {
+    "id": "genre/sports",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
+    "model": "Z-Image-Turbo",
+    "resolution": "1680x720 ( 21:9 )",
+    "seed": 1010,
+    "steps": 8,
+    "shift": 3,
+    "prompt": "Pixel art icon sheet, ten square icons in a 5 by 2 grid on a flat light grey background, evenly spaced, same size, same 16-bit style, thick dark outlines, lighting from top left, each a single object centred: row 1: a clenched fist with speed lines (action), a pink heart with a ribbon (romance), a laughing mask (comedy), a grinning skull with a candle (horror), a soccer ball (sports); row 2: a sword crossed with a magic staff (fantasy), a magnifying glass over a footprint (mystery), a flying saucer (sci-fi), a steaming teacup with a flower (slice of life), a single tear drop and a rose (drama). Limited palette, crisp pixels, no text, no letters.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/genres"
+    },
+    "crop": [
+      1398,
+      94,
+      220,
+      219
+    ]
+  },
+  {
+    "id": "genre/fantasy",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
+    "model": "Z-Image-Turbo",
+    "resolution": "1680x720 ( 21:9 )",
+    "seed": 1010,
+    "steps": 8,
+    "shift": 3,
+    "prompt": "Pixel art icon sheet, ten square icons in a 5 by 2 grid on a flat light grey background, evenly spaced, same size, same 16-bit style, thick dark outlines, lighting from top left, each a single object centred: row 1: a clenched fist with speed lines (action), a pink heart with a ribbon (romance), a laughing mask (comedy), a grinning skull with a candle (horror), a soccer ball (sports); row 2: a sword crossed with a magic staff (fantasy), a magnifying glass over a footprint (mystery), a flying saucer (sci-fi), a steaming teacup with a flower (slice of life), a single tear drop and a rose (drama). Limited palette, crisp pixels, no text, no letters.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/genres"
+    },
+    "crop": [
+      93,
+      416,
+      217,
+      225
+    ]
+  },
+  {
+    "id": "genre/mystery",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
+    "model": "Z-Image-Turbo",
+    "resolution": "1680x720 ( 21:9 )",
+    "seed": 1010,
+    "steps": 8,
+    "shift": 3,
+    "prompt": "Pixel art icon sheet, ten square icons in a 5 by 2 grid on a flat light grey background, evenly spaced, same size, same 16-bit style, thick dark outlines, lighting from top left, each a single object centred: row 1: a clenched fist with speed lines (action), a pink heart with a ribbon (romance), a laughing mask (comedy), a grinning skull with a candle (horror), a soccer ball (sports); row 2: a sword crossed with a magic staff (fantasy), a magnifying glass over a footprint (mystery), a flying saucer (sci-fi), a steaming teacup with a flower (slice of life), a single tear drop and a rose (drama). Limited palette, crisp pixels, no text, no letters.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/genres"
+    },
+    "crop": [
+      416,
+      422,
+      207,
+      215
+    ]
+  },
+  {
+    "id": "genre/scifi",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
+    "model": "Z-Image-Turbo",
+    "resolution": "1680x720 ( 21:9 )",
+    "seed": 1010,
+    "steps": 8,
+    "shift": 3,
+    "prompt": "Pixel art icon sheet, ten square icons in a 5 by 2 grid on a flat light grey background, evenly spaced, same size, same 16-bit style, thick dark outlines, lighting from top left, each a single object centred: row 1: a clenched fist with speed lines (action), a pink heart with a ribbon (romance), a laughing mask (comedy), a grinning skull with a candle (horror), a soccer ball (sports); row 2: a sword crossed with a magic staff (fantasy), a magnifying glass over a footprint (mystery), a flying saucer (sci-fi), a steaming teacup with a flower (slice of life), a single tear drop and a rose (drama). Limited palette, crisp pixels, no text, no letters.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/genres"
+    },
+    "crop": [
+      738,
+      421,
+      251,
+      217
+    ]
+  },
+  {
+    "id": "genre/drama",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
+    "model": "Z-Image-Turbo",
+    "resolution": "1680x720 ( 21:9 )",
+    "seed": 1010,
+    "steps": 8,
+    "shift": 3,
+    "prompt": "Pixel art icon sheet, ten square icons in a 5 by 2 grid on a flat light grey background, evenly spaced, same size, same 16-bit style, thick dark outlines, lighting from top left, each a single object centred: row 1: a clenched fist with speed lines (action), a pink heart with a ribbon (romance), a laughing mask (comedy), a grinning skull with a candle (horror), a soccer ball (sports); row 2: a sword crossed with a magic staff (fantasy), a magnifying glass over a footprint (mystery), a flying saucer (sci-fi), a steaming teacup with a flower (slice of life), a single tear drop and a rose (drama). Limited palette, crisp pixels, no text, no letters.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/genres"
+    },
+    "crop": [
+      1419,
+      421,
+      163,
+      217
+    ]
+  },
+  {
+    "id": "theme/school",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
+    "model": "Z-Image-Turbo",
+    "resolution": "1536x1024 ( 3:2 )",
+    "seed": 1213,
+    "steps": 8,
+    "shift": 3,
+    "prompt": "Pixel art icon sheet, six square icons in a 3 by 2 grid on a flat light grey background, evenly spaced, same size, same 16-bit style, thick dark outlines, lighting from top left, each a single separate object centred: row 1: a brown school satchel backpack, a black pirate flag with a skull, a four-pointed steel ninja throwing star; row 2: a white chef hat above a frying pan, an orange electric guitar, a friendly round robot head with antenna. Limited palette, crisp pixels, no text, no letters.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/themes-a"
+    },
+    "crop": [
+      110,
+      90,
+      369,
+      370
+    ]
+  },
+  {
+    "id": "theme/pirates",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
+    "model": "Z-Image-Turbo",
+    "resolution": "1536x1024 ( 3:2 )",
+    "seed": 1213,
+    "steps": 8,
+    "shift": 3,
+    "prompt": "Pixel art icon sheet, six square icons in a 3 by 2 grid on a flat light grey background, evenly spaced, same size, same 16-bit style, thick dark outlines, lighting from top left, each a single separate object centred: row 1: a brown school satchel backpack, a black pirate flag with a skull, a four-pointed steel ninja throwing star; row 2: a white chef hat above a frying pan, an orange electric guitar, a friendly round robot head with antenna. Limited palette, crisp pixels, no text, no letters.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/themes-a"
+    },
+    "crop": [
+      626,
+      92,
+      332,
+      367
+    ]
+  },
+  {
+    "id": "theme/ninja",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
+    "model": "Z-Image-Turbo",
+    "resolution": "1536x1024 ( 3:2 )",
+    "seed": 1213,
+    "steps": 8,
+    "shift": 3,
+    "prompt": "Pixel art icon sheet, six square icons in a 3 by 2 grid on a flat light grey background, evenly spaced, same size, same 16-bit style, thick dark outlines, lighting from top left, each a single separate object centred: row 1: a brown school satchel backpack, a black pirate flag with a skull, a four-pointed steel ninja throwing star; row 2: a white chef hat above a frying pan, an orange electric guitar, a friendly round robot head with antenna. Limited palette, crisp pixels, no text, no letters.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/themes-a"
+    },
+    "crop": [
+      1093,
+      111,
+      352,
+      345
+    ]
+  },
+  {
+    "id": "theme/cooking",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
+    "model": "Z-Image-Turbo",
+    "resolution": "1536x1024 ( 3:2 )",
+    "seed": 1213,
+    "steps": 8,
+    "shift": 3,
+    "prompt": "Pixel art icon sheet, six square icons in a 3 by 2 grid on a flat light grey background, evenly spaced, same size, same 16-bit style, thick dark outlines, lighting from top left, each a single separate object centred: row 1: a brown school satchel backpack, a black pirate flag with a skull, a four-pointed steel ninja throwing star; row 2: a white chef hat above a frying pan, an orange electric guitar, a friendly round robot head with antenna. Limited palette, crisp pixels, no text, no letters.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/themes-a"
+    },
+    "crop": [
+      95,
+      573,
+      367,
+      364
+    ]
+  },
+  {
+    "id": "theme/music",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
+    "model": "Z-Image-Turbo",
+    "resolution": "1536x1024 ( 3:2 )",
+    "seed": 1213,
+    "steps": 8,
+    "shift": 3,
+    "prompt": "Pixel art icon sheet, six square icons in a 3 by 2 grid on a flat light grey background, evenly spaced, same size, same 16-bit style, thick dark outlines, lighting from top left, each a single separate object centred: row 1: a brown school satchel backpack, a black pirate flag with a skull, a four-pointed steel ninja throwing star; row 2: a white chef hat above a frying pan, an orange electric guitar, a friendly round robot head with antenna. Limited palette, crisp pixels, no text, no letters.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/themes-a"
+    },
+    "crop": [
+      614,
+      574,
+      359,
+      375
+    ]
+  },
+  {
+    "id": "theme/robots",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
+    "model": "Z-Image-Turbo",
+    "resolution": "1536x1024 ( 3:2 )",
+    "seed": 1213,
+    "steps": 8,
+    "shift": 3,
+    "prompt": "Pixel art icon sheet, six square icons in a 3 by 2 grid on a flat light grey background, evenly spaced, same size, same 16-bit style, thick dark outlines, lighting from top left, each a single separate object centred: row 1: a brown school satchel backpack, a black pirate flag with a skull, a four-pointed steel ninja throwing star; row 2: a white chef hat above a frying pan, an orange electric guitar, a friendly round robot head with antenna. Limited palette, crisp pixels, no text, no letters.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/themes-a"
+    },
+    "crop": [
+      1098,
+      586,
+      342,
+      351
+    ]
+  },
+  {
+    "id": "theme/vampires",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
+    "model": "Z-Image-Turbo",
+    "resolution": "1536x1024 ( 3:2 )",
+    "seed": 1214,
+    "steps": 8,
+    "shift": 3,
+    "prompt": "Pixel art icon sheet, six square icons in a 3 by 2 grid on a flat light grey background, evenly spaced, same size, same 16-bit style, thick dark outlines, lighting from top left, each a single separate object centred: row 1: white vampire fangs with a small red drop and a bat, a brown detective deerstalker hat with a pipe, a ringed orange planet with a small star; row 2: a silver microphone with pink sparkles, a samurai katana in its sheath, a purple crystal ball with golden magic sparkles. Limited palette, crisp pixels, no text, no letters.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/themes-b"
+    },
+    "crop": [
+      79,
+      192,
+      402,
+      209
+    ]
+  },
+  {
+    "id": "theme/detective",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
+    "model": "Z-Image-Turbo",
+    "resolution": "1536x1024 ( 3:2 )",
+    "seed": 1214,
+    "steps": 8,
+    "shift": 3,
+    "prompt": "Pixel art icon sheet, six square icons in a 3 by 2 grid on a flat light grey background, evenly spaced, same size, same 16-bit style, thick dark outlines, lighting from top left, each a single separate object centred: row 1: white vampire fangs with a small red drop and a bat, a brown detective deerstalker hat with a pipe, a ringed orange planet with a small star; row 2: a silver microphone with pink sparkles, a samurai katana in its sheath, a purple crystal ball with golden magic sparkles. Limited palette, crisp pixels, no text, no letters.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/themes-b"
+    },
+    "crop": [
+      591,
+      112,
+      362,
+      332
+    ]
+  },
+  {
+    "id": "theme/space",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
+    "model": "Z-Image-Turbo",
+    "resolution": "1536x1024 ( 3:2 )",
+    "seed": 1214,
+    "steps": 8,
+    "shift": 3,
+    "prompt": "Pixel art icon sheet, six square icons in a 3 by 2 grid on a flat light grey background, evenly spaced, same size, same 16-bit style, thick dark outlines, lighting from top left, each a single separate object centred: row 1: white vampire fangs with a small red drop and a bat, a brown detective deerstalker hat with a pipe, a ringed orange planet with a small star; row 2: a silver microphone with pink sparkles, a samurai katana in its sheath, a purple crystal ball with golden magic sparkles. Limited palette, crisp pixels, no text, no letters.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/themes-b"
+    },
+    "crop": [
+      1081,
+      128,
+      384,
+      286
+    ]
+  },
+  {
+    "id": "theme/idols",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
+    "model": "Z-Image-Turbo",
+    "resolution": "1536x1024 ( 3:2 )",
+    "seed": 1214,
+    "steps": 8,
+    "shift": 3,
+    "prompt": "Pixel art icon sheet, six square icons in a 3 by 2 grid on a flat light grey background, evenly spaced, same size, same 16-bit style, thick dark outlines, lighting from top left, each a single separate object centred: row 1: white vampire fangs with a small red drop and a bat, a brown detective deerstalker hat with a pipe, a ringed orange planet with a small star; row 2: a silver microphone with pink sparkles, a samurai katana in its sheath, a purple crystal ball with golden magic sparkles. Limited palette, crisp pixels, no text, no letters.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/themes-b"
+    },
+    "crop": [
+      128,
+      615,
+      301,
+      286
+    ]
+  },
+  {
+    "id": "theme/samurai",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
+    "model": "Z-Image-Turbo",
+    "resolution": "1536x1024 ( 3:2 )",
+    "seed": 1214,
+    "steps": 8,
+    "shift": 3,
+    "prompt": "Pixel art icon sheet, six square icons in a 3 by 2 grid on a flat light grey background, evenly spaced, same size, same 16-bit style, thick dark outlines, lighting from top left, each a single separate object centred: row 1: white vampire fangs with a small red drop and a bat, a brown detective deerstalker hat with a pipe, a ringed orange planet with a small star; row 2: a silver microphone with pink sparkles, a samurai katana in its sheath, a purple crystal ball with golden magic sparkles. Limited palette, crisp pixels, no text, no letters.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/themes-b"
+    },
+    "crop": [
+      603,
+      610,
+      334,
+      309
+    ]
+  },
+  {
+    "id": "theme/magic",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
+    "model": "Z-Image-Turbo",
+    "resolution": "1536x1024 ( 3:2 )",
+    "seed": 1214,
+    "steps": 8,
+    "shift": 3,
+    "prompt": "Pixel art icon sheet, six square icons in a 3 by 2 grid on a flat light grey background, evenly spaced, same size, same 16-bit style, thick dark outlines, lighting from top left, each a single separate object centred: row 1: white vampire fangs with a small red drop and a bat, a brown detective deerstalker hat with a pipe, a ringed orange planet with a small star; row 2: a silver microphone with pink sparkles, a samurai katana in its sheath, a purple crystal ball with golden magic sparkles. Limited palette, crisp pixels, no text, no letters.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/themes-b"
+    },
+    "crop": [
+      1134,
+      612,
+      263,
+      306
+    ]
+  },
+  {
+    "id": "magazine/weekly-bolt",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
+    "model": "Z-Image-Turbo",
+    "resolution": "1680x720 ( 21:9 )",
+    "seed": 2024,
+    "steps": 8,
+    "shift": 3,
+    "prompt": "Four manga magazine covers side by side on a flat light grey background, same size, portrait shape, evenly spaced, pixel art 16-bit style, each cover has a blank solid colour band at the top with no writing: 1) red cover with a shonen hero leaping with a lightning bolt; 2) pink cover with a shojo girl among flowers and sparkles; 3) dark indigo cover with a brooding swordsman in rain; 4) bright yellow cover with a cheerful kid and a small robot friend. Thick dark outlines, crisp pixels, limited palette, no text, no letters, no logos.",
+    "preamble": "none",
+    "native": [
+      36,
+      48
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/magazines"
+    },
+    "crop": [
+      83,
+      142,
+      323,
+      431
+    ]
+  },
+  {
+    "id": "magazine/monthly-petal",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
+    "model": "Z-Image-Turbo",
+    "resolution": "1680x720 ( 21:9 )",
+    "seed": 2024,
+    "steps": 8,
+    "shift": 3,
+    "prompt": "Four manga magazine covers side by side on a flat light grey background, same size, portrait shape, evenly spaced, pixel art 16-bit style, each cover has a blank solid colour band at the top with no writing: 1) red cover with a shonen hero leaping with a lightning bolt; 2) pink cover with a shojo girl among flowers and sparkles; 3) dark indigo cover with a brooding swordsman in rain; 4) bright yellow cover with a cheerful kid and a small robot friend. Thick dark outlines, crisp pixels, limited palette, no text, no letters, no logos.",
+    "preamble": "none",
+    "native": [
+      36,
+      48
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/magazines"
+    },
+    "crop": [
+      453,
+      141,
+      327,
+      436
+    ]
+  },
+  {
+    "id": "magazine/ultra-seinen",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
+    "model": "Z-Image-Turbo",
+    "resolution": "1680x720 ( 21:9 )",
+    "seed": 2024,
+    "steps": 8,
+    "shift": 3,
+    "prompt": "Four manga magazine covers side by side on a flat light grey background, same size, portrait shape, evenly spaced, pixel art 16-bit style, each cover has a blank solid colour band at the top with no writing: 1) red cover with a shonen hero leaping with a lightning bolt; 2) pink cover with a shojo girl among flowers and sparkles; 3) dark indigo cover with a brooding swordsman in rain; 4) bright yellow cover with a cheerful kid and a small robot friend. Thick dark outlines, crisp pixels, limited palette, no text, no letters, no logos.",
+    "preamble": "none",
+    "native": [
+      36,
+      48
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/magazines"
+    },
+    "crop": [
+      830,
+      131,
+      342,
+      456
+    ]
+  },
+  {
+    "id": "magazine/kids-comic",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
+    "model": "Z-Image-Turbo",
+    "resolution": "1680x720 ( 21:9 )",
+    "seed": 2024,
+    "steps": 8,
+    "shift": 3,
+    "prompt": "Four manga magazine covers side by side on a flat light grey background, same size, portrait shape, evenly spaced, pixel art 16-bit style, each cover has a blank solid colour band at the top with no writing: 1) red cover with a shonen hero leaping with a lightning bolt; 2) pink cover with a shojo girl among flowers and sparkles; 3) dark indigo cover with a brooding swordsman in rain; 4) bright yellow cover with a cheerful kid and a small robot friend. Thick dark outlines, crisp pixels, limited palette, no text, no letters, no logos.",
+    "preamble": "none",
+    "native": [
+      36,
+      48
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/magazines"
+    },
+    "crop": [
+      1223,
+      131,
+      341,
+      455
+    ]
+  },
+  {
+    "id": "equipment/coffee",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
+    "model": "Z-Image-Turbo",
+    "resolution": "1680x720 ( 21:9 )",
+    "seed": 3030,
+    "steps": 8,
+    "shift": 3,
+    "prompt": "Pixel art icon sheet, ten square icons in a 5 by 2 grid on a flat light grey background, evenly spaced, same size, same 16-bit style, thick dark outlines, lighting from top left, each a single separate object centred: row 1: an espresso coffee machine, a bright daylight desk lamp, a small bookshelf of reference books, a tall black ergonomic office chair, a slanted wooden drafting table; row 2: a black pen tablet with stylus, a bronze rookie medal with ribbon, a silver readers' choice trophy cup with a heart, a critics' award plaque with a star, a golden fountain pen trophy on a pedestal. Limited palette, crisp pixels, no text, no letters.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/equipment"
+    },
+    "crop": [
+      68,
+      80,
+      228,
+      243
+    ]
+  },
+  {
+    "id": "equipment/lamp",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
+    "model": "Z-Image-Turbo",
+    "resolution": "1680x720 ( 21:9 )",
+    "seed": 3030,
+    "steps": 8,
+    "shift": 3,
+    "prompt": "Pixel art icon sheet, ten square icons in a 5 by 2 grid on a flat light grey background, evenly spaced, same size, same 16-bit style, thick dark outlines, lighting from top left, each a single separate object centred: row 1: an espresso coffee machine, a bright daylight desk lamp, a small bookshelf of reference books, a tall black ergonomic office chair, a slanted wooden drafting table; row 2: a black pen tablet with stylus, a bronze rookie medal with ribbon, a silver readers' choice trophy cup with a heart, a critics' award plaque with a star, a golden fountain pen trophy on a pedestal. Limited palette, crisp pixels, no text, no letters.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/equipment"
+    },
+    "crop": [
+      399,
+      87,
+      193,
+      238
+    ]
+  },
+  {
+    "id": "equipment/shelf",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
+    "model": "Z-Image-Turbo",
+    "resolution": "1680x720 ( 21:9 )",
+    "seed": 3030,
+    "steps": 8,
+    "shift": 3,
+    "prompt": "Pixel art icon sheet, ten square icons in a 5 by 2 grid on a flat light grey background, evenly spaced, same size, same 16-bit style, thick dark outlines, lighting from top left, each a single separate object centred: row 1: an espresso coffee machine, a bright daylight desk lamp, a small bookshelf of reference books, a tall black ergonomic office chair, a slanted wooden drafting table; row 2: a black pen tablet with stylus, a bronze rookie medal with ribbon, a silver readers' choice trophy cup with a heart, a critics' award plaque with a star, a golden fountain pen trophy on a pedestal. Limited palette, crisp pixels, no text, no letters.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/equipment"
+    },
+    "crop": [
+      717,
+      118,
+      214,
+      206
+    ]
+  },
+  {
+    "id": "equipment/chair",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
+    "model": "Z-Image-Turbo",
+    "resolution": "1680x720 ( 21:9 )",
+    "seed": 3030,
+    "steps": 8,
+    "shift": 3,
+    "prompt": "Pixel art icon sheet, ten square icons in a 5 by 2 grid on a flat light grey background, evenly spaced, same size, same 16-bit style, thick dark outlines, lighting from top left, each a single separate object centred: row 1: an espresso coffee machine, a bright daylight desk lamp, a small bookshelf of reference books, a tall black ergonomic office chair, a slanted wooden drafting table; row 2: a black pen tablet with stylus, a bronze rookie medal with ribbon, a silver readers' choice trophy cup with a heart, a critics' award plaque with a star, a golden fountain pen trophy on a pedestal. Limited palette, crisp pixels, no text, no letters.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/equipment"
+    },
+    "crop": [
+      1070,
+      86,
+      174,
+      239
+    ]
+  },
+  {
+    "id": "equipment/drafting-table",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
+    "model": "Z-Image-Turbo",
+    "resolution": "1680x720 ( 21:9 )",
+    "seed": 3030,
+    "steps": 8,
+    "shift": 3,
+    "prompt": "Pixel art icon sheet, ten square icons in a 5 by 2 grid on a flat light grey background, evenly spaced, same size, same 16-bit style, thick dark outlines, lighting from top left, each a single separate object centred: row 1: an espresso coffee machine, a bright daylight desk lamp, a small bookshelf of reference books, a tall black ergonomic office chair, a slanted wooden drafting table; row 2: a black pen tablet with stylus, a bronze rookie medal with ribbon, a silver readers' choice trophy cup with a heart, a critics' award plaque with a star, a golden fountain pen trophy on a pedestal. Limited palette, crisp pixels, no text, no letters.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/equipment"
+    },
+    "crop": [
+      1360,
+      156,
+      263,
+      168
+    ]
+  },
+  {
+    "id": "equipment/tablet",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
+    "model": "Z-Image-Turbo",
+    "resolution": "1680x720 ( 21:9 )",
+    "seed": 3030,
+    "steps": 8,
+    "shift": 3,
+    "prompt": "Pixel art icon sheet, ten square icons in a 5 by 2 grid on a flat light grey background, evenly spaced, same size, same 16-bit style, thick dark outlines, lighting from top left, each a single separate object centred: row 1: an espresso coffee machine, a bright daylight desk lamp, a small bookshelf of reference books, a tall black ergonomic office chair, a slanted wooden drafting table; row 2: a black pen tablet with stylus, a bronze rookie medal with ribbon, a silver readers' choice trophy cup with a heart, a critics' award plaque with a star, a golden fountain pen trophy on a pedestal. Limited palette, crisp pixels, no text, no letters.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/equipment"
+    },
+    "crop": [
+      68,
+      459,
+      229,
+      171
+    ]
+  },
+  {
+    "id": "award/rookie",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
+    "model": "Z-Image-Turbo",
+    "resolution": "1024x1024 ( 1:1 )",
+    "seed": 4040,
+    "steps": 8,
+    "shift": 3,
+    "prompt": "Pixel art icon sheet, four square award icons in a 2 by 2 grid on a flat light grey background, evenly spaced, same size, same 16-bit style, thick dark outlines, lighting from top left, each a single separate object centred: a bronze rookie medal on a red ribbon; a silver trophy cup with a pink heart; a crystal star award on a black base; a golden fountain pen standing upright on a marble pedestal with laurel leaves. Limited palette, crisp pixels, no text, no letters.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/awards"
+    },
+    "crop": [
+      136,
+      79,
+      251,
+      377
+    ]
+  },
+  {
+    "id": "award/readers",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
+    "model": "Z-Image-Turbo",
+    "resolution": "1024x1024 ( 1:1 )",
+    "seed": 4040,
+    "steps": 8,
+    "shift": 3,
+    "prompt": "Pixel art icon sheet, four square award icons in a 2 by 2 grid on a flat light grey background, evenly spaced, same size, same 16-bit style, thick dark outlines, lighting from top left, each a single separate object centred: a bronze rookie medal on a red ribbon; a silver trophy cup with a pink heart; a crystal star award on a black base; a golden fountain pen standing upright on a marble pedestal with laurel leaves. Limited palette, crisp pixels, no text, no letters.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/awards"
+    },
+    "crop": [
+      600,
+      88,
+      328,
+      358
+    ]
+  },
+  {
+    "id": "award/critics",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
+    "model": "Z-Image-Turbo",
+    "resolution": "1024x1024 ( 1:1 )",
+    "seed": 4040,
+    "steps": 8,
+    "shift": 3,
+    "prompt": "Pixel art icon sheet, four square award icons in a 2 by 2 grid on a flat light grey background, evenly spaced, same size, same 16-bit style, thick dark outlines, lighting from top left, each a single separate object centred: a bronze rookie medal on a red ribbon; a silver trophy cup with a pink heart; a crystal star award on a black base; a golden fountain pen standing upright on a marble pedestal with laurel leaves. Limited palette, crisp pixels, no text, no letters.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/awards"
+    },
+    "crop": [
+      124,
+      586,
+      274,
+      365
+    ]
+  },
+  {
+    "id": "award/golden-pen",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
+    "model": "Z-Image-Turbo",
+    "resolution": "1024x1024 ( 1:1 )",
+    "seed": 4040,
+    "steps": 8,
+    "shift": 3,
+    "prompt": "Pixel art icon sheet, four square award icons in a 2 by 2 grid on a flat light grey background, evenly spaced, same size, same 16-bit style, thick dark outlines, lighting from top left, each a single separate object centred: a bronze rookie medal on a red ribbon; a silver trophy cup with a pink heart; a crystal star award on a black base; a golden fountain pen standing upright on a marble pedestal with laurel leaves. Limited palette, crisp pixels, no text, no letters.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/awards"
+    },
+    "crop": [
+      601,
+      573,
+      324,
+      377
+    ]
+  },
+  {
+    "id": "genre/slice",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x2048",
+    "seed": null,
+    "job": "5048eeb0-ef27-4efa-b041-99ecfea7a71d",
+    "steps": null,
+    "shift": null,
+    "prompt": "16-bit pixel art icon, a single steaming teacup on a saucer with a small cherry blossom beside it, centred on a flat light grey background, thick dark outlines, lighting from top left, limited palette, crisp pixels, no text, no letters.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/slice.png"
+    },
+    "crop": [
+      326,
+      252,
+      1322,
+      1240
+    ]
+  },
+  {
+    "id": "badge/all-nighter",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "253432a7-ba84-41a6-ad74-119ad697a225",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 8 pixel art achievement badges in a 4 by 2 grid on a flat light grey background, evenly spaced, same size, each a round medal with a thick dark outline and a coloured rim, 16-bit style, lighting from top left: row 1: a sleepy crescent moon over an ink pen (purple rim), a torn manuscript page (grey rim), an alarm clock with an exclamation mark (red rim), a steaming bowl of ramen (orange rim); row 2: a first place ribbon rosette (gold rim), a golden fountain pen (gold rim), four small trophies together (gold rim), two crossed pens facing off (blue rim). Crisp pixels, limited palette, no text, no letters, no numbers.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/badges-a.png"
+    },
+    "crop": [
+      78,
+      159,
+      386,
+      387
+    ]
+  },
+  {
+    "id": "badge/cancelled",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "253432a7-ba84-41a6-ad74-119ad697a225",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 8 pixel art achievement badges in a 4 by 2 grid on a flat light grey background, evenly spaced, same size, each a round medal with a thick dark outline and a coloured rim, 16-bit style, lighting from top left: row 1: a sleepy crescent moon over an ink pen (purple rim), a torn manuscript page (grey rim), an alarm clock with an exclamation mark (red rim), a steaming bowl of ramen (orange rim); row 2: a first place ribbon rosette (gold rim), a golden fountain pen (gold rim), four small trophies together (gold rim), two crossed pens facing off (blue rim). Crisp pixels, limited palette, no text, no letters, no numbers.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/badges-a.png"
+    },
+    "crop": [
+      525,
+      154,
+      399,
+      392
+    ]
+  },
+  {
+    "id": "badge/ramen-budget",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "253432a7-ba84-41a6-ad74-119ad697a225",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 8 pixel art achievement badges in a 4 by 2 grid on a flat light grey background, evenly spaced, same size, each a round medal with a thick dark outline and a coloured rim, 16-bit style, lighting from top left: row 1: a sleepy crescent moon over an ink pen (purple rim), a torn manuscript page (grey rim), an alarm clock with an exclamation mark (red rim), a steaming bowl of ramen (orange rim); row 2: a first place ribbon rosette (gold rim), a golden fountain pen (gold rim), four small trophies together (gold rim), two crossed pens facing off (blue rim). Crisp pixels, limited palette, no text, no letters, no numbers.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/badges-a.png"
+    },
+    "crop": [
+      1122,
+      153,
+      403,
+      394
+    ]
+  },
+  {
+    "id": "badge/stop-presses",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "253432a7-ba84-41a6-ad74-119ad697a225",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 8 pixel art achievement badges in a 4 by 2 grid on a flat light grey background, evenly spaced, same size, each a round medal with a thick dark outline and a coloured rim, 16-bit style, lighting from top left: row 1: a sleepy crescent moon over an ink pen (purple rim), a torn manuscript page (grey rim), an alarm clock with an exclamation mark (red rim), a steaming bowl of ramen (orange rim); row 2: a first place ribbon rosette (gold rim), a golden fountain pen (gold rim), four small trophies together (gold rim), two crossed pens facing off (blue rim). Crisp pixels, limited palette, no text, no letters, no numbers.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/badges-a.png"
+    },
+    "crop": [
+      1591,
+      155,
+      396,
+      393
+    ]
+  },
+  {
+    "id": "badge/first-place",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "253432a7-ba84-41a6-ad74-119ad697a225",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 8 pixel art achievement badges in a 4 by 2 grid on a flat light grey background, evenly spaced, same size, each a round medal with a thick dark outline and a coloured rim, 16-bit style, lighting from top left: row 1: a sleepy crescent moon over an ink pen (purple rim), a torn manuscript page (grey rim), an alarm clock with an exclamation mark (red rim), a steaming bowl of ramen (orange rim); row 2: a first place ribbon rosette (gold rim), a golden fountain pen (gold rim), four small trophies together (gold rim), two crossed pens facing off (blue rim). Crisp pixels, limited palette, no text, no letters, no numbers.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/badges-a.png"
+    },
+    "crop": [
+      82,
+      668,
+      374,
+      410
+    ]
+  },
+  {
+    "id": "badge/golden-pen",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "253432a7-ba84-41a6-ad74-119ad697a225",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 8 pixel art achievement badges in a 4 by 2 grid on a flat light grey background, evenly spaced, same size, each a round medal with a thick dark outline and a coloured rim, 16-bit style, lighting from top left: row 1: a sleepy crescent moon over an ink pen (purple rim), a torn manuscript page (grey rim), an alarm clock with an exclamation mark (red rim), a steaming bowl of ramen (orange rim); row 2: a first place ribbon rosette (gold rim), a golden fountain pen (gold rim), four small trophies together (gold rim), two crossed pens facing off (blue rim). Crisp pixels, limited palette, no text, no letters, no numbers.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/badges-a.png"
+    },
+    "crop": [
+      552,
+      668,
+      194,
+      391
+    ]
+  },
+  {
+    "id": "badge/grand-slam",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "253432a7-ba84-41a6-ad74-119ad697a225",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 8 pixel art achievement badges in a 4 by 2 grid on a flat light grey background, evenly spaced, same size, each a round medal with a thick dark outline and a coloured rim, 16-bit style, lighting from top left: row 1: a sleepy crescent moon over an ink pen (purple rim), a torn manuscript page (grey rim), an alarm clock with an exclamation mark (red rim), a steaming bowl of ramen (orange rim); row 2: a first place ribbon rosette (gold rim), a golden fountain pen (gold rim), four small trophies together (gold rim), two crossed pens facing off (blue rim). Crisp pixels, limited palette, no text, no letters, no numbers.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/badges-a.png"
+    },
+    "crop": [
+      737,
+      689,
+      370,
+      358
+    ]
+  },
+  {
+    "id": "badge/rival-10",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "253432a7-ba84-41a6-ad74-119ad697a225",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 8 pixel art achievement badges in a 4 by 2 grid on a flat light grey background, evenly spaced, same size, each a round medal with a thick dark outline and a coloured rim, 16-bit style, lighting from top left: row 1: a sleepy crescent moon over an ink pen (purple rim), a torn manuscript page (grey rim), an alarm clock with an exclamation mark (red rim), a steaming bowl of ramen (orange rim); row 2: a first place ribbon rosette (gold rim), a golden fountain pen (gold rim), four small trophies together (gold rim), two crossed pens facing off (blue rim). Crisp pixels, limited palette, no text, no letters, no numbers.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/badges-a.png"
+    },
+    "crop": [
+      1149,
+      672,
+      383,
+      377
+    ]
+  },
+  {
+    "id": "badge/perfect-pair",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "ee92b18e-43b9-4af6-9443-3c2cbf7b6a9a",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 8 pixel art achievement badges in a 4 by 2 grid on a flat light grey background, evenly spaced, same size, each a round medal with a thick dark outline and a coloured rim, 16-bit style, lighting from top left: row 1: two puzzle pieces fitting together (green rim), a film clapperboard (teal rim), a price tag crossed out with a heart (grey rim), a cozy attic window with stars (indigo rim); row 2: a toolbox of drawing tools (brown rim), a tall stack of paper pages (gold rim), a pile of gold coins (gold rim), an open box of plush toys (pink rim). Crisp pixels, limited palette, no text, no letters, no numbers.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/badges-b.png"
+    },
+    "crop": [
+      82,
+      85,
+      424,
+      489
+    ]
+  },
+  {
+    "id": "badge/anime-signed",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "ee92b18e-43b9-4af6-9443-3c2cbf7b6a9a",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 8 pixel art achievement badges in a 4 by 2 grid on a flat light grey background, evenly spaced, same size, each a round medal with a thick dark outline and a coloured rim, 16-bit style, lighting from top left: row 1: two puzzle pieces fitting together (green rim), a film clapperboard (teal rim), a price tag crossed out with a heart (grey rim), a cozy attic window with stars (indigo rim); row 2: a toolbox of drawing tools (brown rim), a tall stack of paper pages (gold rim), a pile of gold coins (gold rim), an open box of plush toys (pink rim). Crisp pixels, limited palette, no text, no letters, no numbers.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/badges-b.png"
+    },
+    "crop": [
+      585,
+      85,
+      422,
+      489
+    ]
+  },
+  {
+    "id": "badge/anime-declined",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "ee92b18e-43b9-4af6-9443-3c2cbf7b6a9a",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 8 pixel art achievement badges in a 4 by 2 grid on a flat light grey background, evenly spaced, same size, each a round medal with a thick dark outline and a coloured rim, 16-bit style, lighting from top left: row 1: two puzzle pieces fitting together (green rim), a film clapperboard (teal rim), a price tag crossed out with a heart (grey rim), a cozy attic window with stars (indigo rim); row 2: a toolbox of drawing tools (brown rim), a tall stack of paper pages (gold rim), a pile of gold coins (gold rim), an open box of plush toys (pink rim). Crisp pixels, limited palette, no text, no letters, no numbers.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/badges-b.png"
+    },
+    "crop": [
+      1083,
+      84,
+      425,
+      489
+    ]
+  },
+  {
+    "id": "badge/the-loft",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "ee92b18e-43b9-4af6-9443-3c2cbf7b6a9a",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 8 pixel art achievement badges in a 4 by 2 grid on a flat light grey background, evenly spaced, same size, each a round medal with a thick dark outline and a coloured rim, 16-bit style, lighting from top left: row 1: two puzzle pieces fitting together (green rim), a film clapperboard (teal rim), a price tag crossed out with a heart (grey rim), a cozy attic window with stars (indigo rim); row 2: a toolbox of drawing tools (brown rim), a tall stack of paper pages (gold rim), a pile of gold coins (gold rim), an open box of plush toys (pink rim). Crisp pixels, limited palette, no text, no letters, no numbers.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/badges-b.png"
+    },
+    "crop": [
+      1585,
+      87,
+      420,
+      487
+    ]
+  },
+  {
+    "id": "badge/fully-equipped",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "ee92b18e-43b9-4af6-9443-3c2cbf7b6a9a",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 8 pixel art achievement badges in a 4 by 2 grid on a flat light grey background, evenly spaced, same size, each a round medal with a thick dark outline and a coloured rim, 16-bit style, lighting from top left: row 1: two puzzle pieces fitting together (green rim), a film clapperboard (teal rim), a price tag crossed out with a heart (grey rim), a cozy attic window with stars (indigo rim); row 2: a toolbox of drawing tools (brown rim), a tall stack of paper pages (gold rim), a pile of gold coins (gold rim), an open box of plush toys (pink rim). Crisp pixels, limited palette, no text, no letters, no numbers.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/badges-b.png"
+    },
+    "crop": [
+      81,
+      663,
+      424,
+      415
+    ]
+  },
+  {
+    "id": "badge/millionaire",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "ee92b18e-43b9-4af6-9443-3c2cbf7b6a9a",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 8 pixel art achievement badges in a 4 by 2 grid on a flat light grey background, evenly spaced, same size, each a round medal with a thick dark outline and a coloured rim, 16-bit style, lighting from top left: row 1: two puzzle pieces fitting together (green rim), a film clapperboard (teal rim), a price tag crossed out with a heart (grey rim), a cozy attic window with stars (indigo rim); row 2: a toolbox of drawing tools (brown rim), a tall stack of paper pages (gold rim), a pile of gold coins (gold rim), an open box of plush toys (pink rim). Crisp pixels, limited palette, no text, no letters, no numbers.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/badges-b.png"
+    },
+    "crop": [
+      584,
+      662,
+      423,
+      415
+    ]
+  },
+  {
+    "id": "badge/century",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "7c9261ed-2f5e-48be-a788-7b917c25d9b8",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 3 pixel art illustrations in one row on a flat light grey background, evenly spaced, same size, 16-bit style, thick dark outlines: 1) a small landscape scene of a manga artist inking a blank magazine cover drawing of a hero on a glowing lightbox, the cover is pure illustration with no writing; 2) a round achievement badge medal with a gold rim showing a tall stack of paper pages; 3) a round achievement badge medal with a grey rim showing a dark keyhole silhouette. Crisp pixels, limited palette, no text, no letters, no numbers.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/extras.png"
+    },
+    "crop": [
+      680,
+      339,
+      546,
+      555
+    ]
+  },
+  {
+    "id": "badge/locked",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "7c9261ed-2f5e-48be-a788-7b917c25d9b8",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 3 pixel art illustrations in one row on a flat light grey background, evenly spaced, same size, 16-bit style, thick dark outlines: 1) a small landscape scene of a manga artist inking a blank magazine cover drawing of a hero on a glowing lightbox, the cover is pure illustration with no writing; 2) a round achievement badge medal with a gold rim showing a tall stack of paper pages; 3) a round achievement badge medal with a grey rim showing a dark keyhole silhouette. Crisp pixels, limited palette, no text, no letters, no numbers.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/extras.png"
+    },
+    "crop": [
+      1334,
+      340,
+      598,
+      594
+    ]
+  },
+  {
+    "id": "event/cover",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "7c9261ed-2f5e-48be-a788-7b917c25d9b8",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 3 pixel art illustrations in one row on a flat light grey background, evenly spaced, same size, 16-bit style, thick dark outlines: 1) a small landscape scene of a manga artist inking a blank magazine cover drawing of a hero on a glowing lightbox, the cover is pure illustration with no writing; 2) a round achievement badge medal with a gold rim showing a tall stack of paper pages; 3) a round achievement badge medal with a grey rim showing a dark keyhole silhouette. Crisp pixels, limited palette, no text, no letters, no numbers.",
+    "preamble": "none",
+    "native": [
+      96,
+      54
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/extras.png"
+    },
+    "crop": [
+      140,
+      640,
+      400,
+      225
+    ]
+  },
+  {
+    "id": "merch/keychain",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "0155aacc-3562-402b-bbbe-0384640134ed",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 6 pixel art merchandise icons in a 3 by 2 grid on a flat light grey background, evenly spaced, same size, 16-bit style, thick dark outlines, lighting from top left, each a single object centred: an acrylic keychain of a chibi manga hero, a rolled-up anime poster, a round cute plush toy, a thick hardcover artbook, a painted action figure on a base, a small cardboard shipping box with a heart sticker. Crisp pixels, limited palette, no text, no letters.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/merch.png"
+    },
+    "crop": [
+      152,
+      78,
+      251,
+      496
+    ]
+  },
+  {
+    "id": "merch/poster",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "0155aacc-3562-402b-bbbe-0384640134ed",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 6 pixel art merchandise icons in a 3 by 2 grid on a flat light grey background, evenly spaced, same size, 16-bit style, thick dark outlines, lighting from top left, each a single object centred: an acrylic keychain of a chibi manga hero, a rolled-up anime poster, a round cute plush toy, a thick hardcover artbook, a painted action figure on a base, a small cardboard shipping box with a heart sticker. Crisp pixels, limited palette, no text, no letters.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/merch.png"
+    },
+    "crop": [
+      561,
+      108,
+      399,
+      452
+    ]
+  },
+  {
+    "id": "merch/plush",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "0155aacc-3562-402b-bbbe-0384640134ed",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 6 pixel art merchandise icons in a 3 by 2 grid on a flat light grey background, evenly spaced, same size, 16-bit style, thick dark outlines, lighting from top left, each a single object centred: an acrylic keychain of a chibi manga hero, a rolled-up anime poster, a round cute plush toy, a thick hardcover artbook, a painted action figure on a base, a small cardboard shipping box with a heart sticker. Crisp pixels, limited palette, no text, no letters.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/merch.png"
+    },
+    "crop": [
+      1110,
+      153,
+      339,
+      361
+    ]
+  },
+  {
+    "id": "merch/artbook",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "0155aacc-3562-402b-bbbe-0384640134ed",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 6 pixel art merchandise icons in a 3 by 2 grid on a flat light grey background, evenly spaced, same size, 16-bit style, thick dark outlines, lighting from top left, each a single object centred: an acrylic keychain of a chibi manga hero, a rolled-up anime poster, a round cute plush toy, a thick hardcover artbook, a painted action figure on a base, a small cardboard shipping box with a heart sticker. Crisp pixels, limited palette, no text, no letters.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/merch.png"
+    },
+    "crop": [
+      103,
+      659,
+      307,
+      407
+    ]
+  },
+  {
+    "id": "merch/figure",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "0155aacc-3562-402b-bbbe-0384640134ed",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 6 pixel art merchandise icons in a 3 by 2 grid on a flat light grey background, evenly spaced, same size, 16-bit style, thick dark outlines, lighting from top left, each a single object centred: an acrylic keychain of a chibi manga hero, a rolled-up anime poster, a round cute plush toy, a thick hardcover artbook, a painted action figure on a base, a small cardboard shipping box with a heart sticker. Crisp pixels, limited palette, no text, no letters.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/merch.png"
+    },
+    "crop": [
+      645,
+      660,
+      246,
+      408
+    ]
+  },
+  {
+    "id": "merch/licence",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "0155aacc-3562-402b-bbbe-0384640134ed",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 6 pixel art merchandise icons in a 3 by 2 grid on a flat light grey background, evenly spaced, same size, 16-bit style, thick dark outlines, lighting from top left, each a single object centred: an acrylic keychain of a chibi manga hero, a rolled-up anime poster, a round cute plush toy, a thick hardcover artbook, a painted action figure on a base, a small cardboard shipping box with a heart sticker. Crisp pixels, limited palette, no text, no letters.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/merch.png"
+    },
+    "crop": [
+      1095,
+      725,
+      359,
+      336
+    ]
+  },
+  {
+    "id": "place/library",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "d8fd006b-6e60-46dc-8b75-af81335669bc",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 4 small pixel art scene illustrations in a 2 by 2 grid, each a separate landscape rectangle with a thin dark border on a flat light grey background, same size, 16-bit SNES style, warm palette: 1) a quiet city library with tall bookshelves and reading tables; 2) a street booth where readers fill in survey cards; 3) a life drawing class with easels around a model on a stool; 4) a writing workshop around a big table with notebooks. Crisp pixels, no text, no letters, no signs.",
+    "preamble": "none",
+    "native": [
+      64,
+      40
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/places-a.png"
+    },
+    "crop": [
+      92,
+      123,
+      547,
+      342
+    ]
+  },
+  {
+    "id": "place/survey",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "d8fd006b-6e60-46dc-8b75-af81335669bc",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 4 small pixel art scene illustrations in a 2 by 2 grid, each a separate landscape rectangle with a thin dark border on a flat light grey background, same size, 16-bit SNES style, warm palette: 1) a quiet city library with tall bookshelves and reading tables; 2) a street booth where readers fill in survey cards; 3) a life drawing class with easels around a model on a stool; 4) a writing workshop around a big table with notebooks. Crisp pixels, no text, no letters, no signs.",
+    "preamble": "none",
+    "native": [
+      64,
+      40
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/places-a.png"
+    },
+    "crop": [
+      784,
+      127,
+      533,
+      333
+    ]
+  },
+  {
+    "id": "place/art-class",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "d8fd006b-6e60-46dc-8b75-af81335669bc",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 4 small pixel art scene illustrations in a 2 by 2 grid, each a separate landscape rectangle with a thin dark border on a flat light grey background, same size, 16-bit SNES style, warm palette: 1) a quiet city library with tall bookshelves and reading tables; 2) a street booth where readers fill in survey cards; 3) a life drawing class with easels around a model on a stool; 4) a writing workshop around a big table with notebooks. Crisp pixels, no text, no letters, no signs.",
+    "preamble": "none",
+    "native": [
+      64,
+      40
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/places-a.png"
+    },
+    "crop": [
+      92,
+      682,
+      546,
+      341
+    ]
+  },
+  {
+    "id": "place/writing-workshop",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "d8fd006b-6e60-46dc-8b75-af81335669bc",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 4 small pixel art scene illustrations in a 2 by 2 grid, each a separate landscape rectangle with a thin dark border on a flat light grey background, same size, 16-bit SNES style, warm palette: 1) a quiet city library with tall bookshelves and reading tables; 2) a street booth where readers fill in survey cards; 3) a life drawing class with easels around a model on a stool; 4) a writing workshop around a big table with notebooks. Crisp pixels, no text, no letters, no signs.",
+    "preamble": "none",
+    "native": [
+      64,
+      40
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/places-a.png"
+    },
+    "crop": [
+      784,
+      686,
+      533,
+      333
+    ]
+  },
+  {
+    "id": "place/editing-seminar",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "e240a4e7-f7dd-442e-b091-a46903253e97",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 4 small pixel art scene illustrations in a 2 by 2 grid, each a separate landscape rectangle with a thin dark border on a flat light grey background, same size, 16-bit SNES style, warm palette: 1) an editing seminar with a lecturer at a whiteboard of comic panels; 2) a steaming outdoor hot spring among rocks and maple trees; 3) a busy comic convention hall with booths and blank banners; 4) a masterclass with a veteran manga artist demonstrating at a drafting table. Crisp pixels, no text, no letters, no signs.",
+    "preamble": "none",
+    "native": [
+      64,
+      40
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/places-b.png"
+    },
+    "crop": [
+      139,
+      89,
+      704,
+      440
+    ]
+  },
+  {
+    "id": "place/hot-spring",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "e240a4e7-f7dd-442e-b091-a46903253e97",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 4 small pixel art scene illustrations in a 2 by 2 grid, each a separate landscape rectangle with a thin dark border on a flat light grey background, same size, 16-bit SNES style, warm palette: 1) an editing seminar with a lecturer at a whiteboard of comic panels; 2) a steaming outdoor hot spring among rocks and maple trees; 3) a busy comic convention hall with booths and blank banners; 4) a masterclass with a veteran manga artist demonstrating at a drafting table. Crisp pixels, no text, no letters, no signs.",
+    "preamble": "none",
+    "native": [
+      64,
+      40
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/places-b.png"
+    },
+    "crop": [
+      1162,
+      89,
+      714,
+      446
+    ]
+  },
+  {
+    "id": "place/convention",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "e240a4e7-f7dd-442e-b091-a46903253e97",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 4 small pixel art scene illustrations in a 2 by 2 grid, each a separate landscape rectangle with a thin dark border on a flat light grey background, same size, 16-bit SNES style, warm palette: 1) an editing seminar with a lecturer at a whiteboard of comic panels; 2) a steaming outdoor hot spring among rocks and maple trees; 3) a busy comic convention hall with booths and blank banners; 4) a masterclass with a veteran manga artist demonstrating at a drafting table. Crisp pixels, no text, no letters, no signs.",
+    "preamble": "none",
+    "native": [
+      64,
+      40
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/places-b.png"
+    },
+    "crop": [
+      187,
+      654,
+      682,
+      426
+    ]
+  },
+  {
+    "id": "place/masterclass",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "e240a4e7-f7dd-442e-b091-a46903253e97",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 4 small pixel art scene illustrations in a 2 by 2 grid, each a separate landscape rectangle with a thin dark border on a flat light grey background, same size, 16-bit SNES style, warm palette: 1) an editing seminar with a lecturer at a whiteboard of comic panels; 2) a steaming outdoor hot spring among rocks and maple trees; 3) a busy comic convention hall with booths and blank banners; 4) a masterclass with a veteran manga artist demonstrating at a drafting table. Crisp pixels, no text, no letters, no signs.",
+    "preamble": "none",
+    "native": [
+      64,
+      40
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/places-b.png"
+    },
+    "crop": [
+      1195,
+      654,
+      683,
+      427
+    ]
+  },
+  {
+    "id": "place/manga-museum",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "7bd088dc-e815-4af0-8cc9-e946a1969f3d",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 4 small pixel art scene illustrations in a 2 by 2 grid, each a separate landscape rectangle with a thin dark border on a flat light grey background, same size, 16-bit SNES style, warm palette: 1) a manga museum gallery with framed original pages on the walls; 2) a mountain retreat cabin among pine trees at sunrise; 3) a book signing table with a queue of fans holding books; 4) a cozy empty studio desk at night with a lamp. Crisp pixels, no text, no letters, no signs.",
+    "preamble": "none",
+    "native": [
+      64,
+      40
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/places-c.png"
+    },
+    "crop": [
+      168,
+      140,
+      661,
+      413
+    ]
+  },
+  {
+    "id": "place/mountain-retreat",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "7bd088dc-e815-4af0-8cc9-e946a1969f3d",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 4 small pixel art scene illustrations in a 2 by 2 grid, each a separate landscape rectangle with a thin dark border on a flat light grey background, same size, 16-bit SNES style, warm palette: 1) a manga museum gallery with framed original pages on the walls; 2) a mountain retreat cabin among pine trees at sunrise; 3) a book signing table with a queue of fans holding books; 4) a cozy empty studio desk at night with a lamp. Crisp pixels, no text, no letters, no signs.",
+    "preamble": "none",
+    "native": [
+      64,
+      40
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/places-c.png"
+    },
+    "crop": [
+      1164,
+      140,
+      664,
+      415
+    ]
+  },
+  {
+    "id": "place/signing",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "7bd088dc-e815-4af0-8cc9-e946a1969f3d",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 4 small pixel art scene illustrations in a 2 by 2 grid, each a separate landscape rectangle with a thin dark border on a flat light grey background, same size, 16-bit SNES style, warm palette: 1) a manga museum gallery with framed original pages on the walls; 2) a mountain retreat cabin among pine trees at sunrise; 3) a book signing table with a queue of fans holding books; 4) a cozy empty studio desk at night with a lamp. Crisp pixels, no text, no letters, no signs.",
+    "preamble": "none",
+    "native": [
+      64,
+      40
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/places-c.png"
+    },
+    "crop": [
+      202,
+      675,
+      594,
+      371
+    ]
+  },
+  {
+    "id": "event/letter",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "b65c34a2-4a59-4438-9a2a-9d27027d03bf",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 4 small pixel art event illustrations in a 2 by 2 grid, each a separate landscape rectangle with a thin dark border on a flat light grey background, same size, 16-bit SNES style, warm palette: 1) a hand holding a pastel fan letter with a heart seal; 2) a chibi manga artist in bed with a cold, thermometer and tissues; 3) a crowded comic convention booth; 4) an editor handing over an envelope of money with a smile. Crisp pixels, no text, no letters, no signs.",
+    "preamble": "none",
+    "native": [
+      96,
+      54
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/events-a.png"
+    },
+    "crop": [
+      157,
+      102,
+      686,
+      386
+    ]
+  },
+  {
+    "id": "event/cold",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "b65c34a2-4a59-4438-9a2a-9d27027d03bf",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 4 small pixel art event illustrations in a 2 by 2 grid, each a separate landscape rectangle with a thin dark border on a flat light grey background, same size, 16-bit SNES style, warm palette: 1) a hand holding a pastel fan letter with a heart seal; 2) a chibi manga artist in bed with a cold, thermometer and tissues; 3) a crowded comic convention booth; 4) an editor handing over an envelope of money with a smile. Crisp pixels, no text, no letters, no signs.",
+    "preamble": "none",
+    "native": [
+      96,
+      54
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/events-a.png"
+    },
+    "crop": [
+      1152,
+      88,
+      738,
+      415
+    ]
+  },
+  {
+    "id": "event/convention",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "b65c34a2-4a59-4438-9a2a-9d27027d03bf",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 4 small pixel art event illustrations in a 2 by 2 grid, each a separate landscape rectangle with a thin dark border on a flat light grey background, same size, 16-bit SNES style, warm palette: 1) a hand holding a pastel fan letter with a heart seal; 2) a chibi manga artist in bed with a cold, thermometer and tissues; 3) a crowded comic convention booth; 4) an editor handing over an envelope of money with a smile. Crisp pixels, no text, no letters, no signs.",
+    "preamble": "none",
+    "native": [
+      96,
+      54
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/events-a.png"
+    },
+    "crop": [
+      162,
+      632,
+      761,
+      428
+    ]
+  },
+  {
+    "id": "event/raise",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "b65c34a2-4a59-4438-9a2a-9d27027d03bf",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 4 small pixel art event illustrations in a 2 by 2 grid, each a separate landscape rectangle with a thin dark border on a flat light grey background, same size, 16-bit SNES style, warm palette: 1) a hand holding a pastel fan letter with a heart seal; 2) a chibi manga artist in bed with a cold, thermometer and tissues; 3) a crowded comic convention booth; 4) an editor handing over an envelope of money with a smile. Crisp pixels, no text, no letters, no signs.",
+    "preamble": "none",
+    "native": [
+      96,
+      54
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/events-a.png"
+    },
+    "crop": [
+      1144,
+      700,
+      533,
+      300
+    ]
+  },
+  {
+    "id": "event/reprint",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "82f2d8a7-7b22-417f-933f-67c9710e359a",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 4 small pixel art event illustrations in a 2 by 2 grid, each a separate landscape rectangle with a thin dark border on a flat light grey background, same size, 16-bit SNES style, warm palette: 1) a printing press rolling out stacks of manga volumes; 2) a workshop where young artists learn at desks; 3) a magazine interview with a microphone and a notepad on a table; 4) a signing table with a queue of happy fans. Crisp pixels, no text, no letters, no signs.",
+    "preamble": "none",
+    "native": [
+      96,
+      54
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/events-b.png"
+    },
+    "crop": [
+      110,
+      180,
+      390,
+      219
+    ]
+  },
+  {
+    "id": "event/workshop",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "82f2d8a7-7b22-417f-933f-67c9710e359a",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 4 small pixel art event illustrations in a 2 by 2 grid, each a separate landscape rectangle with a thin dark border on a flat light grey background, same size, 16-bit SNES style, warm palette: 1) a printing press rolling out stacks of manga volumes; 2) a workshop where young artists learn at desks; 3) a magazine interview with a microphone and a notepad on a table; 4) a signing table with a queue of happy fans. Crisp pixels, no text, no letters, no signs.",
+    "preamble": "none",
+    "native": [
+      96,
+      54
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/events-b.png"
+    },
+    "crop": [
+      733,
+      139,
+      556,
+      313
+    ]
+  },
+  {
+    "id": "event/interview",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "82f2d8a7-7b22-417f-933f-67c9710e359a",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 4 small pixel art event illustrations in a 2 by 2 grid, each a separate landscape rectangle with a thin dark border on a flat light grey background, same size, 16-bit SNES style, warm palette: 1) a printing press rolling out stacks of manga volumes; 2) a workshop where young artists learn at desks; 3) a magazine interview with a microphone and a notepad on a table; 4) a signing table with a queue of happy fans. Crisp pixels, no text, no letters, no signs.",
+    "preamble": "none",
+    "native": [
+      96,
+      54
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/events-b.png"
+    },
+    "crop": [
+      102,
+      761,
+      495,
+      278
+    ]
+  },
+  {
+    "id": "event/signing",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "82f2d8a7-7b22-417f-933f-67c9710e359a",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 4 small pixel art event illustrations in a 2 by 2 grid, each a separate landscape rectangle with a thin dark border on a flat light grey background, same size, 16-bit SNES style, warm palette: 1) a printing press rolling out stacks of manga volumes; 2) a workshop where young artists learn at desks; 3) a magazine interview with a microphone and a notepad on a table; 4) a signing table with a queue of happy fans. Crisp pixels, no text, no letters, no signs.",
+    "preamble": "none",
+    "native": [
+      96,
+      54
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/events-b.png"
+    },
+    "crop": [
+      764,
+      784,
+      496,
+      279
+    ]
+  },
+  {
+    "id": "event/editor-dinner",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "de668544-cd26-48c2-99ce-cc9b58ec5f61",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 4 small pixel art event illustrations in a 2 by 2 grid, each a separate landscape rectangle with a thin dark border on a flat light grey background, same size, 16-bit SNES style, warm palette: 1) a dinner table at a restaurant with an editor raising a glass; 2) a manga magazine cover being designed on a lightbox; 3) a tired assistant with a fever resting at a desk; 4) two rival manga artists facing off with pens drawn under dramatic light. Crisp pixels, no text, no letters, no signs.",
+    "preamble": "none",
+    "native": [
+      96,
+      54
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/events-c.png"
+    },
+    "crop": [
+      100,
+      153,
+      549,
+      309
+    ]
+  },
+  {
+    "id": "event/assistant-sick",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "de668544-cd26-48c2-99ce-cc9b58ec5f61",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 4 small pixel art event illustrations in a 2 by 2 grid, each a separate landscape rectangle with a thin dark border on a flat light grey background, same size, 16-bit SNES style, warm palette: 1) a dinner table at a restaurant with an editor raising a glass; 2) a manga magazine cover being designed on a lightbox; 3) a tired assistant with a fever resting at a desk; 4) two rival manga artists facing off with pens drawn under dramatic light. Crisp pixels, no text, no letters, no signs.",
+    "preamble": "none",
+    "native": [
+      96,
+      54
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/events-c.png"
+    },
+    "crop": [
+      100,
+      694,
+      549,
+      309
+    ]
+  },
+  {
+    "id": "event/rival-challenge",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "de668544-cd26-48c2-99ce-cc9b58ec5f61",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 4 small pixel art event illustrations in a 2 by 2 grid, each a separate landscape rectangle with a thin dark border on a flat light grey background, same size, 16-bit SNES style, warm palette: 1) a dinner table at a restaurant with an editor raising a glass; 2) a manga magazine cover being designed on a lightbox; 3) a tired assistant with a fever resting at a desk; 4) two rival manga artists facing off with pens drawn under dramatic light. Crisp pixels, no text, no letters, no signs.",
+    "preamble": "none",
+    "native": [
+      96,
+      54
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/events-c.png"
+    },
+    "crop": [
+      855,
+      650,
+      711,
+      400
+    ]
+  },
+  {
+    "id": "anime/kumo",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "4d9f8cdc-89f2-4f69-8ec9-acf99f9e3b55",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 5 pixel art illustrations in one row on a flat light grey background, evenly spaced, same height, 16-bit SNES style, warm palette, thin dark borders: 1) an anime studio emblem, a round badge with a smiling white cloud; 2) an anime studio emblem, a round badge with a shooting star; 3) a small six-mat tatami apartment room; 4) a studio flat with wooden floor and a noren curtain doorway; 5) a bright loft studio with concrete floor, brick wall and big windows. Crisp pixels, no text, no letters, no logos with words.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/studios.png"
+    },
+    "crop": [
+      121,
+      119,
+      440,
+      432
+    ]
+  },
+  {
+    "id": "anime/hoshi",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "4d9f8cdc-89f2-4f69-8ec9-acf99f9e3b55",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 5 pixel art illustrations in one row on a flat light grey background, evenly spaced, same height, 16-bit SNES style, warm palette, thin dark borders: 1) an anime studio emblem, a round badge with a smiling white cloud; 2) an anime studio emblem, a round badge with a shooting star; 3) a small six-mat tatami apartment room; 4) a studio flat with wooden floor and a noren curtain doorway; 5) a bright loft studio with concrete floor, brick wall and big windows. Crisp pixels, no text, no letters, no logos with words.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/studios.png"
+    },
+    "crop": [
+      711,
+      129,
+      432,
+      421
+    ]
+  },
+  {
+    "id": "tier/apartment",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "4d9f8cdc-89f2-4f69-8ec9-acf99f9e3b55",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 5 pixel art illustrations in one row on a flat light grey background, evenly spaced, same height, 16-bit SNES style, warm palette, thin dark borders: 1) an anime studio emblem, a round badge with a smiling white cloud; 2) an anime studio emblem, a round badge with a shooting star; 3) a small six-mat tatami apartment room; 4) a studio flat with wooden floor and a noren curtain doorway; 5) a bright loft studio with concrete floor, brick wall and big windows. Crisp pixels, no text, no letters, no logos with words.",
+    "preamble": "none",
+    "native": [
+      96,
+      54
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/studios.png"
+    },
+    "crop": [
+      1355,
+      264,
+      461,
+      259
+    ]
+  },
+  {
+    "id": "tier/flat",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "4d9f8cdc-89f2-4f69-8ec9-acf99f9e3b55",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 5 pixel art illustrations in one row on a flat light grey background, evenly spaced, same height, 16-bit SNES style, warm palette, thin dark borders: 1) an anime studio emblem, a round badge with a smiling white cloud; 2) an anime studio emblem, a round badge with a shooting star; 3) a small six-mat tatami apartment room; 4) a studio flat with wooden floor and a noren curtain doorway; 5) a bright loft studio with concrete floor, brick wall and big windows. Crisp pixels, no text, no letters, no logos with words.",
+    "preamble": "none",
+    "native": [
+      96,
+      54
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/studios.png"
+    },
+    "crop": [
+      729,
+      747,
+      427,
+      240
+    ]
+  },
+  {
+    "id": "tier/loft",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "4d9f8cdc-89f2-4f69-8ec9-acf99f9e3b55",
+    "steps": null,
+    "shift": null,
+    "prompt": "Sprite sheet of 5 pixel art illustrations in one row on a flat light grey background, evenly spaced, same height, 16-bit SNES style, warm palette, thin dark borders: 1) an anime studio emblem, a round badge with a smiling white cloud; 2) an anime studio emblem, a round badge with a shooting star; 3) a small six-mat tatami apartment room; 4) a studio flat with wooden floor and a noren curtain doorway; 5) a bright loft studio with concrete floor, brick wall and big windows. Crisp pixels, no text, no letters, no logos with words.",
+    "preamble": "none",
+    "native": [
+      96,
+      54
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/studios.png"
+    },
+    "crop": [
+      1328,
+      753,
+      407,
+      229
+    ]
   }
 ]

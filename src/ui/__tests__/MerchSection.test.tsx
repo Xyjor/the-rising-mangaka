@@ -7,6 +7,7 @@ import { withMerchSerial } from '../../test/fixtures'
 import { useStore } from '../../state/store'
 import { CareerModal } from '../panels/CareerModal'
 import { SeriesModal } from '../panels/SeriesModal'
+import { MERCH_ART, MERCH_LICENCE_ART } from '../art/registry'
 
 function row(item: string): HTMLElement {
   return document.querySelector(`.merch-row[data-item="${item}"]`) as HTMLElement
@@ -26,6 +27,8 @@ describe('Series panel goods', () => {
     const k = row('keychain')
     expect(k.textContent).toContain('About ¥8,560 back over 4 weeks if popularity holds (net +¥2,260).')
     expect(k.querySelector('.merch-net.neg')).toBeNull()
+    expect(k.querySelector(`.merch-art img[src="${MERCH_ART.keychain.src}"]`)).not.toBeNull()
+    expect(document.querySelector(`.merch-head img[src="${MERCH_LICENCE_ART.src}"]`)).not.toBeNull()
     expect(within(k).getByRole('button', { name: 'Order a run for ¥6,300' })).toHaveProperty('disabled', false)
   })
 

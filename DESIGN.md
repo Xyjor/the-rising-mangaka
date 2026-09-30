@@ -410,6 +410,49 @@ gradient from `--title-scrim` to `--title-scrim-clear` on wide layouts (the card
 through past it), and a flat `--title-scrim` fill below the breakpoint where the card stacks below the art instead.
 `.has-hero` only applies when the hero image is present, so a title screen without one keeps its plain background.
 
+**Sheets (batch 1, 0.8.0).** Sets of like things are generated together, one generation per group, so a set shares
+one style: `art/raw/sheets/<group>.webp` holds seven sheets (people, genres, themes-a, themes-b, magazines, equipment,
+awards) on a flat light grey background. Each entry names its sheet (`sheet: { src: "sheets/<group>" }`, no grid) and
+an explicit `crop: [x, y, w, h]` in sheet pixels, and repeats its sheet's model, seed, resolution and prompt. The crops
+were measured once with `npm run art -- --measure sheets/<group> [mergeGap] [minArea]`, which prints the bounding boxes
+of `pixelOps.ts`'s `findBlobs` (non-background 4-connected blobs, background being the corner colour within the flood
+tolerance, blobs within `mergeGap` px merged so a detached sparkle stays with its object, specks under `minArea`
+dropped); the committed numbers are then hand-checked (the people sheet's busts touch at the shoulders, so their crops
+are 300 px squares from the head boxes; the awards sheet is measured inside its white divider lines), so regeneration
+never depends on the heuristic. Icons and portraits are 32x32 cutouts with an outline, magazine covers 36x48
+rectangles (a 3:4 window centred on each cover), 16 colours each; an outline takes one of those 16 slots and a cutout's
+PNG gets one more palette entry for transparency (never drawn, so `art.test.ts` ignores fully transparent entries).
+
+| Records (`registry.ts`) | Ids | Mounted in |
+|---|---|---|
+| `GENRE_ART` | `genre/<GenreId>` | the new-manga wizard's genre cards, 2x |
+| `THEME_ART` | `theme/<ThemeId>` | the wizard's theme cards, 2x |
+| `MAGAZINE_ART` | `magazine/<MagazineId>` | Submit's cover strip 2x, the Offer hero 2x, the Series header 1x |
+| `EDITOR_ART` (by magazine) | `editor/<MagazineId>` | beside the editor's words in Offer and Results, 2x |
+| `RIVAL_ART` | `rival/rival` | Results' rival line 1x, the year review and Career, 2x |
+| `EQUIPMENT_ART_ICON` | `equipment/<EquipmentId>` | Studio's equipment rows, 2x (1x at 640 px and below) |
+| `AWARD_ART` | `award/<AwardId>` | the year review 2x, its desk card and Career 1x |
+| `BADGE_ART`, `BADGE_LOCKED` | `badge/<BadgeId>`, `badge/locked` | the badge gallery's tiles 1x (every not-yet-earned badge, secret or not, shows the keyhole) |
+| `MERCH_ART`, `MERCH_LICENCE_ART` | `merch/<MerchItemId>`, `merch/licence` | the Goods section's rows and its header, 1x |
+| `PLACE_ART` (64x40) | `place/<PlaceId>` | Trips' postcards and the status card's trip card (the signing included), 1x |
+| `EVENT_ART` (96x54) | `event/<EventId>` | the event desk card's header, 2x (1x at 640 px and below) |
+| `ANIME_ART` | `anime/<AnimeStudioId>` | the anime offer card's studio columns, 1x (32x32: the round emblems read better square than at 48x32) |
+| `TIER_ART_THUMB` (96x54) | `tier/<StudioTierId>` | Studio's tier rows, 1x |
+
+**Sheets (batch 2, 0.8.0), a second host.** The remaining 51 assets came from twelve sheets generated on
+Higgsfield with its `z_image` model (the same Z-Image family), `art/raw/sheets/<group>.png` (prompts verbatim in the manifest), because the Hugging Face
+Space's quota ran out. Higgsfield exposes no seed, so these entries carry `source: "higgsfield:z_image"`, `seed: null`
+and the Higgsfield `job` id instead (batch 1 and the hero carry `source: "hf-space:mcp-tools/Z-Image-Turbo"` and their
+seed); the job id is the only handle back to the generation, which is one more reason the raw sheet is committed. A
+sheet `src` with an extension is read as given, otherwise `.webp`. The model did not always follow the grid, so cells
+were picked by eye and measured with `--measure`. Icons, merch, badges and the anime emblems are 32x32 cutouts; places
+(64x40), events and studio tiers (96x54) are scene crops (`cutout: false`) taken inside each panel's drawn dark border
+(so it does not double with `.art-frame`) inside each scene's own drawn content, so no sheet grey survives at the
+edges; scenes the model drew on grey (letter, cold, raise, reprint, interview, the signing) are cropped tight around
+the subject instead, and the rival challenge's window is set off-centre to keep both facing figures' faces. Slice of life's teacup completes
+`GENRE_ART`. Cutouts sit in `.art-frame` (a `--paper-2` tile with a border) so they keep
+their contrast in dark mode; covers carry their own border.
+
 Generated art is excluded from Vite's asset inlining (`vite.config.ts`'s `assetsInlineLimit`, false for any path
 under `/assets/art/`), so `PixelArt.tsx`'s `<img src>` is always a real, cacheable URL rather than a base64 data URI;
 on desktop it loads under the CSP's `img-src 'self'` (`src-tauri/tauri.conf.json`), which only a same-origin bundled

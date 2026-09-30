@@ -5,6 +5,7 @@ import '../../test/dom'
 import { createGame } from '../../sim'
 import { useStore } from '../../state/store'
 import { NewMangaWizard } from '../panels/NewMangaWizard'
+import { GENRE_ART, THEME_ART } from '../art/registry'
 
 beforeEach(() => {
   useStore.setState({ game: createGame('Rin', 1), tutorialStep: -1, readOnly: false })
@@ -45,5 +46,22 @@ describe('NewMangaWizard', () => {
     expect(wrap).not.toBeNull()
     expect(wrap!.querySelector('input')).not.toBeNull()
     expect(wrap!.querySelector('.know.card.flat')).not.toBeNull()
+  })
+})
+
+describe('NewMangaWizard art', () => {
+  it('puts each genre and theme icon on its choice card', () => {
+    render(<NewMangaWizard />)
+    expect(document.querySelector(`.choice img[src="${GENRE_ART.action!.src}"]`)).not.toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: /Action/ }))
+    expect(document.querySelector(`.choice img[src="${THEME_ART.samurai.src}"]`)).not.toBeNull()
+  })
+  it('gives every genre card, slice of life included, its art tile', () => {
+    render(<NewMangaWizard />)
+    const tiles = [...document.querySelectorAll('.choice .choice-art')]
+    expect(tiles).toHaveLength(10)
+    expect(document.querySelector('.art-fallback')).toBeNull()
+    const slice = screen.getByRole('button', { name: /Slice of Life/ })
+    expect(slice.querySelector(`.choice-art img[src="${GENRE_ART.slice.src}"]`)).not.toBeNull()
   })
 })

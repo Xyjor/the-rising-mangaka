@@ -10,6 +10,8 @@ import { MerchSection } from './MerchSection'
 import { Metric, Modal, RankChart, Reward, WarningPips } from '../components'
 import { bestRank, compact, money, plural } from '../format'
 import { GRACE_TEXT, animeStatusLine, inGrace, warningText } from '../labels'
+import { PixelArt } from '../art/PixelArt'
+import { MAGAZINE_ART } from '../art/registry'
 
 export function SeriesModal() {
   const game = useStore((s) => s.game)!
@@ -60,10 +62,13 @@ function SeriesDetail({ ser }: { ser: Serial }) {
   return (
     <div className="col" style={{ gap: 16 }}>
       <div className="row between wrap">
-        <div>
-          <div className="display series-title" style={{ lineHeight: 1 }}>{ser.title}</div>
-          <div className="small muted">
-            {genreById(ser.genre).name}, {themeById(ser.theme).name}, for {audienceById(ser.audience).name}. In {mag.name} since year {started.year}, month {started.month}.
+        <div className="row" style={{ gap: 12 }}>
+          <PixelArt art={MAGAZINE_ART[mag.id]} className="cover-art" />
+          <div>
+            <div className="display series-title" style={{ lineHeight: 1 }}>{ser.title}</div>
+            <div className="small muted">
+              {genreById(ser.genre).name}, {themeById(ser.theme).name}, for {audienceById(ser.audience).name}. In {mag.name} since year {started.year}, month {started.month}.
+            </div>
           </div>
         </div>
         {statusChip}
