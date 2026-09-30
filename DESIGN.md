@@ -189,7 +189,7 @@ Two coordinate spaces meet in `paint.ts`: room space is the original 192x108 lay
 studio-art literal), offset by `OX 64, OY 36` into canvas space by `rect`; `rawRect` paints straight in canvas space
 for the wall, the floor, the kitchenette, the entrance and the door, none of which existed in the old room. The wall
 band runs canvas y 0-113 and the floor y 114-179, painted per tier by `roomArt.ts`'s `TIER_ROOM` (see "The room"
-below). The kitchenette sits on the left wall at canvas x 2-61, y 56-113. The front door is a fixed frame on the right
+below), or by the tier's generated room shell once one is loaded (see "Art", "Scene images"). The kitchenette sits on the left wall at canvas x 2-61, y 56-113. The front door is a fixed frame on the right
 wall, canvas x 258-274, y 56-113: a plain two-panel door in the apartment, a lit indigo-noren doorway in the flat and
 the loft, spilling warm light at night. Beside it, the entrance holds a doormat and a coat rack (the mangaka's coat
 hangs there only while they are out). The whole scene is drawn for a phone's `object-fit: cover` crop of canvas x
@@ -358,11 +358,13 @@ in the curled sleep frame), the panic pose +0/+0 (nobody is late), the marks' ne
 collar and tie +6/+12 (3 more runs per seated frame, two and four seated figures).
 
 ### Art
-The live scene and every sprite stay code-drawn `fillRect` (`render.ts`, `roomArt.ts`, `studioArt.ts`, `sprites.ts`):
-nothing generated is ever composited into the canvas at runtime. Generated raster art (upgrade 0.5.0) is a separate,
-smaller thing: static illustrations, shipped as indexed PNGs, that never move or redraw per frame. They exist to give
-a few fixed spots (so far, the title screen) real illustration instead of a code-drawn scene, and they double as
-reference art the hand-painted scene and sprites get redrawn toward, not as a replacement for it.
+The live scene is code-drawn `fillRect` (`render.ts`, `roomArt.ts`, `studioArt.ts`, `sprites.ts`), and since 0.9.0 it
+may also draw generated images with `drawImage`: each tier's room shell (walls, beams and floor, no furniture) and the
+structural props, as sprites at the footprints of the code-drawn pieces they replace (see "Scene images" below).
+Every image has a code-drawn fallback, painted while it is missing or still loading, so a frame is never blank; the
+characters stay string-map sprites. Elsewhere, generated raster art (upgrade 0.5.0) is static illustrations, shipped
+as indexed PNGs, that never move or redraw per frame: they give fixed spots (the title screen, the panels) real
+illustration, and double as reference art the hand-painted sprites get redrawn toward.
 
 **Making an asset.** Each asset is generated once with a Hugging Face image Space running Z-Image-Turbo at a fixed
 seed, and recorded as one entry in `art/manifest.json`: id, model, resolution, seed, steps, shift and the exact
@@ -392,8 +394,8 @@ the design tokens already use, so it reads as part of the same world rather than
 **Budgets** (also `art.test.ts`, run against the committed PNGs, not regenerated): every manifest id needs both a raw
 source and a generated PNG, with no orphan PNGs left under `src/assets/art`; every PNG's IHDR size must match its
 manifest `native` size, its colour type must be indexed (PNG colour type 3), and every PLTE entry must be in
-`ART_PALETTE`; and every PNG must fit its size cap (16 KB for `title/hero`, 4 KB for any other entry, 100 KB total
-across every generated asset).
+`ART_PALETTE`; and every PNG must fit its size cap (16 KB for `title/hero`, 12 KB for a `room/*` shell, 4 KB for any
+other entry, 160 KB total across every generated asset; the room cap and the total were raised from 100 KB in 0.9.0).
 
 **Mounting in the UI.** `src/ui/art/registry.ts` globs every generated PNG in eagerly (`import.meta.glob`, `eager:
 true`) so each one becomes a real bundled asset URL, never inlined as base64, and exposes a typed `art(id, w, h)`
@@ -402,6 +404,38 @@ own typed records here (for example a `Record<GenreId, ArtRef>`) built on the sa
 `ArtRef` as an `<img>` at an integer `scale`, undecorated (`loading="lazy"`, `decoding="async"`, not draggable) and
 crisp in every browser; its `alt` defaults to `''` (decorative) except where the image carries real meaning, such as
 the title hero.
+
+**Scene images (0.9.0).** `render(ctx, s, t, frame, art = NO_ART)` takes a `SceneArt` (`src/ui/scene/sceneArt.ts`):
+`room`, one image or null per tier, and `prop`, one per structural prop (`ScenePropId`: `window`, the window's frame;
+`door`, the apartment's plain front door; `doorway`, the flat's and the loft's lit doorway; `kitchenette`;
+`bookshelf`; `bed`; `poster`, the stock poster, shown while no serial or anime takes its place). `ready(img)` is true
+only for a loaded image (an `<img>` `complete` with a natural width; anything else with a width). A ready room image
+is drawn first at 0,0,320,180 in place of `drawRoomShell` (`roomArt.ts`, the `TIER_ROOM` pass), then, at night, one
+`ROOM_NIGHT_DIM` fill (`rgba(20,24,60,0.25)`) over the canvas, since one image serves day and night; the sky, the
+season layer and every later piece paint over it as before, and the night overlay and lights stay on top.
+`drawProp(ctx, art, id, x, y, w, h, fallback)` draws a ready prop image at its footprint, else runs the code-drawn
+piece, at that piece's own place in the draw order; the pane's sky, the bars, the sill, the volumes and the
+reference shelf, the serial's cover and the anime poster stay code-drawn over or instead of them. The footprints are
+constants beside the pieces they replace, canvas space, collected in `render.ts`'s `PROP_FOOTPRINT` (a sprite is
+generated at this size):
+
+| Prop | Constant | x, y, w, h |
+|---|---|---|
+| `window` | `WINDOW_FOOTPRINT` (render.ts) | 180, 46, 48, 36 |
+| `door`, `doorway` | `DOOR_FOOTPRINT`, `DOORWAY_FOOTPRINT` (studioArt.ts) | 258, 56, 17, 58 |
+| `kitchenette` | `KITCHENETTE_FOOTPRINT` (studioArt.ts) | 2, 56, 60, 58 |
+| `bookshelf` | `BOOKSHELF_FOOTPRINT` (render.ts) | 72, 54, 34, 58 |
+| `bed` | `BED_FOOTPRINT` (render.ts) | 192, 102, 58, 26 |
+| `poster` | `POSTER_FOOTPRINT` (render.ts) | 116, 50, 22, 28 |
+
+`sceneImages.ts` builds one `HTMLImageElement` per ref in the registry's `ROOM_ART` and `SCENE_PROP_ART` records
+(`Partial`: a piece left out keeps its code-drawn look), once, behind a module-level memo; `StudioScene` passes the
+result to `render`, and each image's load clears the loop's last-painted snapshot so the next step repaints it.
+`render.ts` never imports the registry. In tests, `fakeCanvas.ts` records each `drawImage` in `images` (with `at`, the
+fill log's length at the call, for order checks) and `fakeImage(id, w, h)` makes an image `ready` accepts; the fill
+`log` stays fillRect-only, so the 673/1079 baselines measure what is still code-drawn (with `NO_ART` they are
+unchanged). `ART_PALETTE` holds the room shells' day colours (the plasters, the tatami, the planks, the concrete, the
+woods, the brick, the rugs and the flat's teal wallpaper), so a generated shell snaps to the drawn room's colours.
 
 **The title hero** (`TitleScreen.tsx`) renders `TITLE_ART` (manifest id `title/hero`, native 320x180) directly rather
 than through `PixelArt`, with a real `alt` describing the scene, filling the `.title-screen.has-hero` background.
@@ -1071,7 +1105,8 @@ alongside the untouched code-drawn scene and sprites) and a handful of visual po
 
 - Art is hybrid, not a replacement: the live scene and sprites stay code-drawn `fillRect`, and generated raster art
   (Z-Image-Turbo, via `scripts/pixelate.ts`, see "Art" above) ships only as static illustrations, doubling as
-  reference for hand-painted redraws rather than being composited into the canvas at runtime.
+  reference for hand-painted redraws rather than being composited into the canvas at runtime. (Reversed for the
+  scene's room shells and structural props by 2026-09-30, scene art.)
 - Stepped pixel corners (`base.css`, `--step`) are cut with `clip-path`, and the same clip-path also carries the
   box's own hard drop shadow around the step via `--pf-x`/`--pf-y`, which must always match that element's own
   box-shadow offset so the shadow keeps the stepped silhouette instead of being clipped away with the corner.
@@ -1096,3 +1131,25 @@ alongside the untouched code-drawn scene and sprites) and a handful of visual po
 - A sick assistant kept working loses 5 max stamina, never below 40 (the card says so), and which assistant falls ill
   is a hash of the roll's day and event seed, drawing no extra RNG.
 - The sensible bot skips a goods run whose `merchForecast` net is zero or less (carried from Task M).
+
+**2026-09-30, scene art.** Release 0.9.0 (plan: `docs/plans/2026-09-30-scene-art.md`) lets generated art into the live
+scene. Task R1 laid the plumbing, with no art yet:
+
+- The scene may draw generated images with `drawImage`: each tier's room shell and the structural props' sprites.
+  Every image has a code-drawn fallback, used while it is missing or still loading (a frame is never blank), and the
+  characters stay string-map sprites. This replaces the 2026-09-28 rule that nothing generated is composited into the
+  canvas.
+- `render` takes the images as a `SceneArt` (`sceneArt.ts`, last argument, default `NO_ART`, today's scene exactly);
+  `sceneImages.ts` builds them once from the registry's `ROOM_ART` and `SCENE_PROP_ART` and `StudioScene` repaints on
+  each load. `render.ts` never imports the registry.
+- Night keeps the scene's own overlay; a room image gets one extra `rgba(20,24,60,0.25)` fill right after it (the
+  code-drawn shells have night colours, one image serves both), and no night-variant images are made.
+- Each prop's image lands at the footprint of the piece it replaces, measured from the code (see "Scene images"), in
+  that piece's place in the draw order; no actor spot moves. The prop ids use the code's terms: `door` (the
+  apartment's plain door) and `poster` (the stock poster) where the plan said `door-apartment` and `poster-frame`.
+  To give the door its own draw site, `studioArt.ts`'s `TIER_DOOR` now holds each tier's door and `TIER_ART` only
+  what follows it (the loft's plants).
+- The fill budgets measure what is still code-drawn: `fakeCanvas.ts` logs `drawImage` apart (`images`), and the
+  673/1079 baselines are unchanged with `NO_ART`.
+- `ART_PALETTE` gains the room shells' day colours from `roomArt.ts` and `studioArt.ts`; a `room/*` PNG may be up to
+  12 KB and the art total cap rises from 100 KB to 160 KB.

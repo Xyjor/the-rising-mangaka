@@ -144,6 +144,26 @@ describe('generated PNGs', () => {
   const tokensText = readFileSync(TOKENS_PATH, 'utf8')
   const allowedText = sceneText + '\n' + tokensText
 
+  it('keeps ART_PALETTE lowercase #rrggbb with no duplicates', () => {
+    for (const hex of ART_PALETTE) expect(hex).toMatch(/^#[0-9a-f]{6}$/)
+    expect(new Set(ART_PALETTE).size).toBe(ART_PALETTE.length)
+  })
+
+  it("holds the room shells' day colours (roomArt.ts, studioArt.ts), so a generated shell can match the drawn one", () => {
+    const ROOM_COLOURS = [
+      // the apartment: sand plaster and its streaks, the wood molding, beam and pillars, the baseboard, the tatami
+      '#e6d3a8', '#ecdcb6', '#9c7550', '#c9b48a', '#b88d62', '#7a5a3e', '#cdbd7c', '#bfae6c', '#3d4a3a', '#a8984f',
+      // the flat: teal wallpaper and its stripes, the wainscot and its rail, the dark wood frame, honey planks, the rug
+      '#8fb5ac', '#9dc2b9', '#8a5f3a', '#b98a5c', '#a0764c', '#6e4a2c', '#c8894e', '#a86d3a', '#b04a3f', '#e0b25a',
+      // the loft: pale plaster and its molding, brick and mortar, the frame, the steel baseboard, concrete, the rug
+      '#dcd8cf', '#a9a59c', '#b5574a', '#d9b7a5', '#6b4a32', '#4a4a55', '#bdb8ae', '#cbc7bf', '#a9a49a', '#3f4f7a',
+      '#8aa0c8',
+      // every room's switch and outlet; the woods of the window frame, the sill and the bookshelf
+      '#f0ead6', '#b8b2a5', '#5a4634', '#4a3828', '#6d4c33', '#8b6543', '#5a3d28',
+    ]
+    for (const hex of ROOM_COLOURS) expect(ART_PALETTE, hex).toContain(hex)
+  })
+
   it('every ART_PALETTE colour appears literally in scene sources or tokens.css', () => {
     for (const hex of ART_PALETTE) {
       expect(allowedText.includes(hex), `${hex} missing from scene/*.ts or tokens.css`).toBe(true)
@@ -164,15 +184,15 @@ describe('generated PNGs', () => {
     }
   })
 
-  it('stays within the byte-size caps: 16 KB for title/hero, 4 KB each other entry, 100 KB total', () => {
+  it('stays within the byte-size caps: 16 KB for title/hero, 12 KB for a room/* shell, 4 KB each other entry, 160 KB total', () => {
     let total = 0
     for (const entry of manifest) {
       const bytes = statSync(pngPathFor(entry.id)).size
       total += bytes
-      const cap = entry.id === 'title/hero' ? 16 * 1024 : 4 * 1024
+      const cap = entry.id === 'title/hero' ? 16 * 1024 : entry.id.startsWith('room/') ? 12 * 1024 : 4 * 1024
       expect(bytes, `${entry.id} size`).toBeLessThanOrEqual(cap)
     }
-    expect(total).toBeLessThanOrEqual(100 * 1024)
+    expect(total).toBeLessThanOrEqual(160 * 1024)
   })
   it("gives every registry ArtRef its manifest entry's native size", () => {
     const byId = new Map(loadManifest().map((e) => [e.id, e]))

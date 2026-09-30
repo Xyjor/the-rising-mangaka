@@ -27,4 +27,13 @@ export const ART_PALETTE: readonly string[] = [
   '#6a3fd9', '#7c4dff', '#b9a2ff', '#ece4ff',
   // Greys
   '#66666f', '#5c5a62', '#77757e', '#8a8a96',
+  // The room shells (0.9.0, roomArt.ts and studioArt.ts, day colours: at night the scene dims the image instead).
+  // The apartment's plaster, woods and tatami
+  '#e6d3a8', '#ecdcb6', '#9c7550', '#c9b48a', '#b88d62', '#7a5a3e', '#cdbd7c', '#bfae6c', '#3d4a3a', '#a8984f',
+  // The flat's teal wallpaper, wainscot, frame, planks and rug
+  '#8fb5ac', '#9dc2b9', '#8a5f3a', '#b98a5c', '#a0764c', '#6e4a2c', '#c8894e', '#a86d3a', '#b04a3f',
+  // The loft's plaster, brick, frame, steel, concrete and rug
+  '#dcd8cf', '#b5574a', '#d9b7a5', '#6b4a32', '#4a4a55', '#bdb8ae', '#a9a49a', '#3f4f7a',
+  // Switches and outlets; the window frame, the sill and the bookshelf's woods
+  '#f0ead6', '#b8b2a5', '#5a4634', '#4a3828', '#6d4c33', '#8b6543', '#5a3d28',
 ] as const
