@@ -2677,9 +2677,9 @@
     },
     "lightness": 0.03,
     "crop": [
-      135,
+      230,
       0,
-      1913,
+      1818,
       1152
     ],
     "seam": {
@@ -2764,7 +2764,7 @@
     "sample": "area",
     "cutout": true,
     "outline": true,
-    "colors": 16,
+    "colors": 24,
     "palette": "scene",
     "sheet": {
       "src": "props/structural.png"

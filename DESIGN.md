@@ -453,9 +453,14 @@ that stays centred on the door frame and clear of the bed (x 192-249) and the co
 | `poster` | 116, 50, 22, 28 (`POSTER_FOOTPRINT`) | 22x28 | 116, 50, 22, 28 |
 
 The bookshelf's wider box reaches under the reference shelf (x 107-114), which is drawn after it and stays in front.
+Once the door's or the doorway's image is ready, two code-drawn pieces follow it (`drawEntrance`, `drawStudioLights`,
+told by render whether it is ready; same fill counts): the doormat spans the sprite (x 250-282, its dark inner strip
+2 px in), and the doorway's night halo and spill light the noren sprite's opening (halo 255,87,23,27 taking in the
+noren's hem, spill 256,92,21,22) instead of the old frame (258,66,17,48 and 260,71,13,43, kept for the fallback).
+`studioArt.ts` holds `DOOR_BOX`/`DOORWAY_BOX`, which `PROP_BOX` reuses.
 The window sprite is a frame only: the pane's sky, the bars and the sill paint over its middle. The door sprite is the
 apartment's, the noren doorway the flat's and the loft's; the poster sprite is an empty frame in the stock poster's
-place. The prop sprites are 16-colour outlined cutouts cropped from one Higgsfield sheet (`props/structural.png`, job
+place. The prop sprites are 16-colour outlined cutouts (the bookshelf 24, so its book spines keep their colours) cropped from one Higgsfield sheet (`props/structural.png`, job
 ea96bb2b; the window-over-bed object split into the window's top half and the bed's bottom half).
 
 **The room shells (0.9.0 R2)** are three Higgsfield generations (`rooms/<tier>.png`), 320x180, `cutout: false`,
@@ -466,7 +471,7 @@ image, so the pipeline remaps them: a manifest `seam: { src, dst: 114 }` (src, t
 after its crop, measured from row brightness) resamples the wall rows into canvas rows 0-113 and the floor rows into
 114-179, each side on its own, piecewise-linear vertically and area-averaged (`pixelOps.ts` `remapSeam`), so no row
 mixes wall and floor and the seam lands exactly on row 114. The apartment is cropped to x 196-1813 (its angled side
-walls trimmed to the two pillars; seam 882), the flat to x 135-2047 (its left corner; seam 1008), the loft uncropped
+walls trimmed to the two pillars; seam 882), the flat to x 230-2047 (its dark left corner; seam 1008), the loft uncropped
 (seam 1002, the floor below the steel baseboard). The generations are softly lit (a light pool, dark corners), and a
 plain OKLab snap turns those mid-tones grey (the flat's dusty teal fell to the palette's greys, the apartment's
 plaster ringed in blue-grey), so a manifest `lightness` weight (0-1, absent is 1, the plain distance) scales the

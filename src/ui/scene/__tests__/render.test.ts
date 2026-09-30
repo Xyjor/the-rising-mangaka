@@ -744,6 +744,7 @@ describe('scene art (0.9.0 R1): generated images with the code-drawn look as the
     expect(PROP_BOX.door.x).toBeGreaterThanOrEqual(right(PROP_BOX.bed))
     expect(PROP_BOX.doorway.x).toBeGreaterThanOrEqual(right(PROP_BOX.bed))
     expect(right(PROP_BOX.door)).toBeLessThanOrEqual(283)
+    expect(right(PROP_BOX.doorway)).toBeLessThanOrEqual(283)
     // the bookshelf is drawn after the kitchenette, and clear of it; the poster clear of the corkboard (x 140)
     expect(PROP_BOX.bookshelf.x).toBeGreaterThanOrEqual(right(PROP_BOX.kitchenette))
     expect(right(PROP_BOX.poster)).toBeLessThanOrEqual(140)
@@ -773,7 +774,13 @@ describe('scene art (0.9.0 R1): generated images with the code-drawn look as the
         expect(skipped, label).toBeGreaterThan(0)
         // the same fills in the same order before and after; the skipped block lies inside the footprint
         expect(art.log.slice(0, at), label).toEqual(plain.log.slice(0, at))
-        expect(art.log.slice(at), label).toEqual(plain.log.slice(at + skipped))
+        // a ready door or doorway also moves the doormat and the doorway's night light onto its sprite (same fill counts;
+        // studioArt.test checks where they go), so those are compared by style only
+        const moved = (c: FillCall) => (id === 'door' || id === 'doorway') && (
+          (c.style === '#c94b4b' && c.y === 114 && c.h === 3) || (c.style === '#a83c3c' && c.y === 115 && c.h === 1) ||
+          c.style === 'rgba(255,214,150,0.12)' || c.style === 'rgba(255,214,150,0.35)')
+        const sameFill = (c: FillCall) => (moved(c) ? { style: c.style } : c)
+        expect(art.log.slice(at).map(sameFill), label).toEqual(plain.log.slice(at + skipped).map(sameFill))
         for (const c of plain.log.slice(at, at + skipped)) {
           const inside = c.x >= box.x && c.y >= box.y && c.x + c.w <= box.x + box.w && c.y + c.h <= box.y + box.h
           expect(inside, `${label} ${JSON.stringify(c)}`).toBe(true)

@@ -162,14 +162,15 @@ describe('art manifest', () => {
     }
   })
 
-  it("sizes every structural prop sprite by its footprint height and its crop's aspect (PROP_SPRITE), a 16-colour outlined cutout", () => {
+  it("sizes every structural prop sprite by its footprint height and its crop's aspect (PROP_SPRITE), a 16-colour outlined cutout (the bookshelf 24)", () => {
     const props = manifest.filter((e) => e.id.startsWith('prop/'))
     expect(props.map((e) => e.id.slice(5)).sort()).toEqual(Object.keys(PROP_SPRITE).sort())
     for (const e of props) {
       const id = e.id.slice(5) as ScenePropId
       expect(e.cutout && e.outline, e.id).toBe(true)
       expect(e.palette, e.id).toBe('scene')
-      expect(e.colors, e.id).toBe(16)
+      // the bookshelf keeps 24 so its book spines keep their colours
+      expect(e.colors, e.id).toBe(id === 'bookshelf' ? 24 : 16)
       expect(e.crop, `${e.id} crop`).toBeDefined()
       const [, , cw, ch] = e.crop!
       expect(e.native, e.id).toEqual([...PROP_SPRITE[id]])

@@ -18,7 +18,8 @@ import { BAR_X, paneRect, rawRect, rect, shadow } from './paint'
 import { drawSeasonNight, drawSeasonPane, drawSeasonSill, drawSeasonWall } from './season'
 import type { Season } from './season'
 import {
-  DOORWAY_FOOTPRINT, DOOR_FOOTPRINT, EQUIPMENT_ART, KITCHENETTE_FOOTPRINT, TIER_ART, TIER_DOOR, drawAnimePoster,
+  DOORWAY_BOX, DOORWAY_FOOTPRINT, DOOR_BOX, DOOR_FOOTPRINT, EQUIPMENT_ART, KITCHENETTE_FOOTPRINT, TIER_ART, TIER_DOOR,
+  drawAnimePoster,
   drawEntrance, drawKitchenette, drawStudioLights, drawTrophies, drawVolumes,
 } from './studioArt'
 import type { Owned } from './studioArt'
@@ -266,8 +267,8 @@ export const PROP_FOOTPRINT: Record<ScenePropId, Footprint> = {
  */
 export const PROP_BOX: Record<ScenePropId, Footprint> = {
   window: placeSprite(WINDOW_FOOTPRINT, ...PROP_SPRITE.window),
-  door: placeSprite(DOOR_FOOTPRINT, ...PROP_SPRITE.door),
-  doorway: placeSprite(DOORWAY_FOOTPRINT, ...PROP_SPRITE.doorway),
+  door: DOOR_BOX,
+  doorway: DOORWAY_BOX,
   kitchenette: placeSprite(KITCHENETTE_FOOTPRINT, ...PROP_SPRITE.kitchenette),
   bookshelf: placeSprite(BOOKSHELF_FOOTPRINT, ...PROP_SPRITE.bookshelf),
   bed: placeSprite(BED_FOOTPRINT, ...PROP_SPRITE.bed),
@@ -423,7 +424,7 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
   const door = TIER_DOOR[s.tier]
   prop(ctx, art, door.id, door.draw)
   TIER_ART[s.tier](ctx, s, frame, night)
-  drawEntrance(ctx, absent)
+  drawEntrance(ctx, absent, ready(art.prop[door.id]))
   drawFanLetters(ctx, s.fanLevel)
 
   // the assistants (front left, only when staff exists): their stools, each one seated or dozing, then the desk, then
@@ -528,6 +529,6 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
     drawSeasonNight(ctx, s.season, frame)
   }
   // the arm lamp (at night or while working) and the doorway's spill (at night), after the overlay so they glow
-  drawStudioLights(ctx, s, night, working)
+  drawStudioLights(ctx, s, night, working, ready(art.prop.doorway))
   drawAmbient(ctx, s, t, night, working)
 }

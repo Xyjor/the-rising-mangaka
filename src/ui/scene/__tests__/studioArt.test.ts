@@ -6,7 +6,7 @@ import { EQUIPMENT_IDS } from '../../../sim'
 import type { EquipmentId, StudioTierId } from '../../../sim'
 import { covers, fakeContext, fakeSceneArt, sceneSnapshot } from '../../../test/fakeCanvas'
 import type { FillCall } from '../../../test/fakeCanvas'
-import { render } from '../render'
+import { PROP_BOX, render } from '../render'
 import type { Snapshot } from '../render'
 import {
   EQUIPMENT_ART, TIER_ART, TIER_DOOR, drawAnimePoster, drawEntrance, drawKitchenette, drawStudioLights, drawTrophies,
@@ -397,6 +397,38 @@ describe('the studio art', () => {
     for (const tier of ['flat', 'loft'] as const) expectInside(lights(tier, true), [DOORWAY], `${tier} at night`)
     expect(lights('flat', false)).toEqual([])
     expect(lights('apartment', true)).toEqual([])
+  })
+
+  it("keys the doorway's night halo and spill to the doorway sprite once its image is ready, else keeps the old rects", () => {
+    const halo = 'rgba(255,214,150,0.12)'
+    const spill = 'rgba(255,214,150,0.35)'
+    const [bx, by, bw, bh] = [PROP_BOX.doorway.x, PROP_BOX.doorway.y, PROP_BOX.doorway.w, PROP_BOX.doorway.h]
+    const sprite: Box = [bx, bx + bw - 1, by, by + bh - 1]
+    for (const tier of ['flat', 'loft'] as const) {
+      const plain = paint({ tier }, 0.9)
+      expect(plain, tier).toContainEqual({ style: halo, x: 258, y: 66, w: 17, h: 48 })
+      expect(plain, tier).toContainEqual({ style: spill, x: 260, y: 71, w: 13, h: 43 })
+      const { ctx, log } = fakeContext()
+      render(ctx, sceneSnapshot({ tier }), 0.9, 100, fakeSceneArt())
+      const lit = log.filter((c) => c.style === halo || c.style === spill)
+      expect(lit.map((c) => c.style), tier).toEqual([halo, spill])
+      for (const c of lit) expect(inBox(c, sprite), `${tier} ${JSON.stringify(c)}`).toBe(true)
+      // the halo takes in the noren's hem, the spill only the opening below it
+      expect(lit[0], tier).toEqual({ style: halo, x: 255, y: 87, w: 23, h: 27 })
+      expect(lit[1], tier).toEqual({ style: spill, x: 256, y: 92, w: 21, h: 22 })
+    }
+  })
+
+  it('widens the doormat across the door sprite once its image is ready, and keeps the old mat without it', () => {
+    const mat = (c: FillCall) => c.y === 114 && c.h === 3
+    expect(paint({}).filter(mat)).toEqual([{ style: '#c94b4b', x: 257, y: 114, w: 19, h: 3 }])
+    for (const tier of ['apartment', 'flat', 'loft'] as const) {
+      const { ctx, log } = fakeContext()
+      render(ctx, sceneSnapshot({ tier }), 0.3, 100, fakeSceneArt())
+      const box = PROP_BOX[TIER_DOOR[tier].id]
+      expect(log.filter(mat), tier).toEqual([{ style: '#c94b4b', x: box.x, y: 114, w: box.w, h: 3 }])
+      expect(log, tier).toContainEqual({ style: '#a83c3c', x: box.x + 2, y: 115, w: box.w - 4, h: 1 })
+    }
   })
 
   it('turns the owned list into one flag per piece of equipment', () => {

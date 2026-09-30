@@ -10,6 +10,7 @@
 import type { EquipmentId, StudioTierId } from '../../sim'
 import { rawRect, rect } from './paint'
 import type { Snapshot } from './render'
+import { PROP_SPRITE, placeSprite } from './sceneArt'
 import type { Fallback, Footprint } from './sceneArt'
 
 /** One flag per piece of equipment: studioLook's owned list as flags, set when it changes, never walked per frame. */
@@ -93,6 +94,10 @@ const SPINES = [RED, BLUE, GOLD, GREEN, VIOLET, ORANGE] as const
 /** The front door's frame in the right wall (canvas x 258-274, y 56-113): the plain door's and the doorway's footprint. */
 export const DOOR_FOOTPRINT: Footprint = { x: 258, y: 56, w: 17, h: 58 }
 export const DOORWAY_FOOTPRINT: Footprint = DOOR_FOOTPRINT
+
+/** Where the door's and the doorway's generated sprites land (render.ts `PROP_BOX` reads these): canvas x 250-282. */
+export const DOOR_BOX: Footprint = placeSprite(DOOR_FOOTPRINT, ...PROP_SPRITE.door)
+export const DOORWAY_BOX: Footprint = placeSprite(DOORWAY_FOOTPRINT, ...PROP_SPRITE.doorway)
 
 /** The apartment's plain front door in the right wall (canvas x 258-274, y 56-113): two panels and a brass knob. */
 function plainDoor(ctx: CanvasRenderingContext2D) {
@@ -192,9 +197,15 @@ export function drawKitchenette(ctx: CanvasRenderingContext2D) {
  * The entrance by the door (canvas x 257-290, y 70-116): a doormat and a coat rack, the mangaka's coat on it only while
  * they are in (away or at a job, it goes with them).
  */
-export function drawEntrance(ctx: CanvasRenderingContext2D, absent: boolean) {
-  rawRect(ctx, 257, 114, 19, 3, BRICK)
-  rawRect(ctx, 259, 115, 15, 1, MAT_DARK)
+export function drawEntrance(ctx: CanvasRenderingContext2D, absent: boolean, doorImage = false) {
+  if (doorImage) {
+    // the generated door (or doorway) is wider than the drawn one: the mat spans its box, the door and the doorway alike
+    rawRect(ctx, DOOR_BOX.x, 114, DOOR_BOX.w, 3, BRICK)
+    rawRect(ctx, DOOR_BOX.x + 2, 115, DOOR_BOX.w - 4, 1, MAT_DARK)
+  } else {
+    rawRect(ctx, 257, 114, 19, 3, BRICK)
+    rawRect(ctx, 259, 115, 15, 1, MAT_DARK)
+  }
   rawRect(ctx, 286, 70, 1, 44, WOOD_DARK)
   rawRect(ctx, 283, 72, 7, 1, WOOD_DARK)
   rawRect(ctx, 283, 112, 7, 2, WOOD_DARK)
@@ -322,14 +333,22 @@ export function drawTrophies(ctx: CanvasRenderingContext2D, trophies: number) {
  * The studio's lights, drawn last so they glow through the night overlay: the arm lamp's bulb and its glow at night or
  * while the mangaka works, and the doorway's warm spill at night.
  */
-export function drawStudioLights(ctx: CanvasRenderingContext2D, s: Snapshot, night: boolean, working: boolean) {
+export function drawStudioLights(
+  ctx: CanvasRenderingContext2D, s: Snapshot, night: boolean, working: boolean, doorwayImage = false,
+) {
   if (s.owned.lamp && (night || working)) {
     rect(ctx, 94, 47, 4, 1, BULB_ON)
     rect(ctx, 93, 48, 6, 4, LAMP_GLOW)
     rect(ctx, 92, 52, 8, 10, LAMP_GLOW)
   }
   if (night && LIT_DOORWAY[s.tier]) {
-    rawRect(ctx, 258, 66, 17, 48, DOOR_HALO)
-    rawRect(ctx, 260, 71, 13, 43, DOOR_SPILL)
+    if (doorwayImage) {
+      // the noren sprite's opening (its cols 6-26, rows 19-39); the halo also takes in the noren's hem (rows 14-18)
+      rawRect(ctx, DOORWAY_BOX.x + 5, DOORWAY_BOX.y + 14, 23, DOORWAY_BOX.h - 14, DOOR_HALO)
+      rawRect(ctx, DOORWAY_BOX.x + 6, DOORWAY_BOX.y + 19, 21, DOORWAY_BOX.h - 19, DOOR_SPILL)
+    } else {
+      rawRect(ctx, 258, 66, 17, 48, DOOR_HALO)
+      rawRect(ctx, 260, 71, 13, 43, DOOR_SPILL)
+    }
   }
 }
