@@ -14,6 +14,9 @@ const TOKENS_PATH = join(ROOT, 'src', 'styles', 'tokens.css')
 
 interface ManifestEntry {
   id: string
+  source: string
+  seed: number | null
+  job?: string
   native: [number, number]
   colors?: number
   sheet?: { src: string }
@@ -29,7 +32,7 @@ function pngPathFor(id: string): string {
 
 function rawPathFor(entry: ManifestEntry): string {
   const src = entry.sheet ? entry.sheet.src : entry.id
-  return join(ROOT, 'art', 'raw', `${src}.webp`)
+  return join(ROOT, 'art', 'raw', /\.(png|webp)$/.test(src) ? src : `${src}.webp`)
 }
 
 function listPngsUnder(dir: string, prefix = ''): string[] {
@@ -100,6 +103,18 @@ describe('art manifest', () => {
   it('has unique ids', () => {
     const ids = manifest.map((e) => e.id)
     expect(new Set(ids).size).toBe(ids.length)
+  })
+
+  it('names its host: a Hugging Face Space with a seed, or a Higgsfield job id instead of a seed', () => {
+    for (const entry of manifest) {
+      if (entry.source === 'hf-space:mcp-tools/Z-Image-Turbo') {
+        expect(typeof entry.seed, `${entry.id} seed`).toBe('number')
+      } else {
+        expect(entry.source, `${entry.id} source`).toBe('higgsfield:z_image')
+        expect(entry.seed, `${entry.id} seed`).toBeNull()
+        expect(entry.job, `${entry.id} job`).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/)
+      }
+    }
   })
 
   it('has a raw source and a generated PNG for every entry', () => {

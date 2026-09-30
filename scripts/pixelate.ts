@@ -36,9 +36,13 @@ interface SheetSpec {
 
 interface ManifestEntry {
   id: string
+  /** where it was generated: `hf-space:mcp-tools/Z-Image-Turbo` or `higgsfield:z_image` */
+  source: string
   model: string
   resolution: string
-  seed: number
+  /** null for a Higgsfield generation (no seed exposed; `job` identifies it instead) */
+  seed: number | null
+  job?: string
   steps: number
   shift: number
   prompt: string
@@ -50,6 +54,11 @@ interface ManifestEntry {
   colors?: number
   crop?: [number, number, number, number]
   sheet?: SheetSpec
+}
+
+/** A raw source path: `name` as given when it carries an extension (the Higgsfield sheets are .png), else `.webp`. */
+function rawPath(name: string): string {
+  return join(ROOT, 'art', 'raw', /\.(png|webp)$/.test(name) ? name : `${name}.webp`)
 }
 
 function loadManifest(): ManifestEntry[] {
@@ -75,15 +84,14 @@ function sliceRegion(img: RgbaImage, x: number, y: number, w: number, h: number)
 async function processEntry(entry: ManifestEntry): Promise<{ outPath: string; colours: number; bytes: number }> {
   let raw: RgbaImage
   if (entry.sheet) {
-    const sheetPath = join(ROOT, 'art', 'raw', `${entry.sheet.src}.webp`)
+    const sheetPath = rawPath(entry.sheet.src)
     const sheetImg = await loadRgba(sheetPath)
     const { cols = 1, rows = 1, cell = [0, 0] } = entry.sheet
     const cellW = Math.floor(sheetImg.width / cols)
     const cellH = Math.floor(sheetImg.height / rows)
     raw = sliceRegion(sheetImg, cell[0] * cellW, cell[1] * cellH, cellW, cellH)
   } else {
-    const rawPath = join(ROOT, 'art', 'raw', `${entry.id}.webp`)
-    raw = await loadRgba(rawPath)
+    raw = await loadRgba(rawPath(entry.id))
   }
 
   let working = raw
@@ -149,7 +157,7 @@ async function processEntry(entry: ManifestEntry): Promise<{ outPath: string; co
 
 /** `--measure <sheet> [mergeGap] [minArea]`: prints each object's bounding box on a raw sheet, for committing as crops. */
 async function measure(sheet: string, mergeGap: number, minArea: number) {
-  const img = await loadRgba(join(ROOT, 'art', 'raw', `${sheet}.webp`))
+  const img = await loadRgba(rawPath(sheet))
   const boxes = findBlobs(img, { tolerance: FLOOD_TOLERANCE, mergeGap, minArea })
   console.log(`${sheet} (${img.width}x${img.height}): ${boxes.length} objects`)
   for (const b of boxes) console.log(JSON.stringify([b.x, b.y, b.width, b.height]))

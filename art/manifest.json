@@ -1,6 +1,7 @@
 [
   {
     "id": "title/hero",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
     "model": "Z-Image-Turbo",
     "resolution": "1280x720 ( 16:9 )",
     "seed": 103706,
@@ -19,6 +20,7 @@
   },
   {
     "id": "editor/weekly-bolt",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
     "model": "Z-Image-Turbo",
     "resolution": "1680x720 ( 21:9 )",
     "seed": 30150,
@@ -46,6 +48,7 @@
   },
   {
     "id": "editor/monthly-petal",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
     "model": "Z-Image-Turbo",
     "resolution": "1680x720 ( 21:9 )",
     "seed": 30150,
@@ -73,6 +76,7 @@
   },
   {
     "id": "editor/ultra-seinen",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
     "model": "Z-Image-Turbo",
     "resolution": "1680x720 ( 21:9 )",
     "seed": 30150,
@@ -100,6 +104,7 @@
   },
   {
     "id": "editor/kids-comic",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
     "model": "Z-Image-Turbo",
     "resolution": "1680x720 ( 21:9 )",
     "seed": 30150,
@@ -127,6 +132,7 @@
   },
   {
     "id": "rival/rival",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
     "model": "Z-Image-Turbo",
     "resolution": "1680x720 ( 21:9 )",
     "seed": 30150,
@@ -154,6 +160,7 @@
   },
   {
     "id": "genre/action",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
     "model": "Z-Image-Turbo",
     "resolution": "1680x720 ( 21:9 )",
     "seed": 1010,
@@ -181,6 +188,7 @@
   },
   {
     "id": "genre/romance",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
     "model": "Z-Image-Turbo",
     "resolution": "1680x720 ( 21:9 )",
     "seed": 1010,
@@ -208,6 +216,7 @@
   },
   {
     "id": "genre/comedy",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
     "model": "Z-Image-Turbo",
     "resolution": "1680x720 ( 21:9 )",
     "seed": 1010,
@@ -235,6 +244,7 @@
   },
   {
     "id": "genre/horror",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
     "model": "Z-Image-Turbo",
     "resolution": "1680x720 ( 21:9 )",
     "seed": 1010,
@@ -262,6 +272,7 @@
   },
   {
     "id": "genre/sports",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
     "model": "Z-Image-Turbo",
     "resolution": "1680x720 ( 21:9 )",
     "seed": 1010,
@@ -289,6 +300,7 @@
   },
   {
     "id": "genre/fantasy",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
     "model": "Z-Image-Turbo",
     "resolution": "1680x720 ( 21:9 )",
     "seed": 1010,
@@ -316,6 +328,7 @@
   },
   {
     "id": "genre/mystery",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
     "model": "Z-Image-Turbo",
     "resolution": "1680x720 ( 21:9 )",
     "seed": 1010,
@@ -343,6 +356,7 @@
   },
   {
     "id": "genre/scifi",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
     "model": "Z-Image-Turbo",
     "resolution": "1680x720 ( 21:9 )",
     "seed": 1010,
@@ -370,6 +384,7 @@
   },
   {
     "id": "genre/drama",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
     "model": "Z-Image-Turbo",
     "resolution": "1680x720 ( 21:9 )",
     "seed": 1010,
@@ -397,6 +412,7 @@
   },
   {
     "id": "theme/school",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
     "model": "Z-Image-Turbo",
     "resolution": "1536x1024 ( 3:2 )",
     "seed": 1213,
@@ -424,6 +440,7 @@
   },
   {
     "id": "theme/pirates",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
     "model": "Z-Image-Turbo",
     "resolution": "1536x1024 ( 3:2 )",
     "seed": 1213,
@@ -451,6 +468,7 @@
   },
   {
     "id": "theme/ninja",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
     "model": "Z-Image-Turbo",
     "resolution": "1536x1024 ( 3:2 )",
     "seed": 1213,
@@ -478,6 +496,7 @@
   },
   {
     "id": "theme/cooking",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
     "model": "Z-Image-Turbo",
     "resolution": "1536x1024 ( 3:2 )",
     "seed": 1213,
@@ -505,6 +524,7 @@
   },
   {
     "id": "theme/music",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
     "model": "Z-Image-Turbo",
     "resolution": "1536x1024 ( 3:2 )",
     "seed": 1213,
@@ -532,6 +552,7 @@
   },
   {
     "id": "theme/robots",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
     "model": "Z-Image-Turbo",
     "resolution": "1536x1024 ( 3:2 )",
     "seed": 1213,
@@ -559,6 +580,7 @@
   },
   {
     "id": "theme/vampires",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
     "model": "Z-Image-Turbo",
     "resolution": "1536x1024 ( 3:2 )",
     "seed": 1214,
@@ -586,6 +608,7 @@
   },
   {
     "id": "theme/detective",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
     "model": "Z-Image-Turbo",
     "resolution": "1536x1024 ( 3:2 )",
     "seed": 1214,
@@ -613,6 +636,7 @@
   },
   {
     "id": "theme/space",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
     "model": "Z-Image-Turbo",
     "resolution": "1536x1024 ( 3:2 )",
     "seed": 1214,
@@ -640,6 +664,7 @@
   },
   {
     "id": "theme/idols",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
     "model": "Z-Image-Turbo",
     "resolution": "1536x1024 ( 3:2 )",
     "seed": 1214,
@@ -667,6 +692,7 @@
   },
   {
     "id": "theme/samurai",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
     "model": "Z-Image-Turbo",
     "resolution": "1536x1024 ( 3:2 )",
     "seed": 1214,
@@ -694,6 +720,7 @@
   },
   {
     "id": "theme/magic",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
     "model": "Z-Image-Turbo",
     "resolution": "1536x1024 ( 3:2 )",
     "seed": 1214,
@@ -721,6 +748,7 @@
   },
   {
     "id": "magazine/weekly-bolt",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
     "model": "Z-Image-Turbo",
     "resolution": "1680x720 ( 21:9 )",
     "seed": 2024,
@@ -748,6 +776,7 @@
   },
   {
     "id": "magazine/monthly-petal",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
     "model": "Z-Image-Turbo",
     "resolution": "1680x720 ( 21:9 )",
     "seed": 2024,
@@ -775,6 +804,7 @@
   },
   {
     "id": "magazine/ultra-seinen",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
     "model": "Z-Image-Turbo",
     "resolution": "1680x720 ( 21:9 )",
     "seed": 2024,
@@ -802,6 +832,7 @@
   },
   {
     "id": "magazine/kids-comic",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
     "model": "Z-Image-Turbo",
     "resolution": "1680x720 ( 21:9 )",
     "seed": 2024,
@@ -829,6 +860,7 @@
   },
   {
     "id": "equipment/coffee",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
     "model": "Z-Image-Turbo",
     "resolution": "1680x720 ( 21:9 )",
     "seed": 3030,
@@ -856,6 +888,7 @@
   },
   {
     "id": "equipment/lamp",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
     "model": "Z-Image-Turbo",
     "resolution": "1680x720 ( 21:9 )",
     "seed": 3030,
@@ -883,6 +916,7 @@
   },
   {
     "id": "equipment/shelf",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
     "model": "Z-Image-Turbo",
     "resolution": "1680x720 ( 21:9 )",
     "seed": 3030,
@@ -910,6 +944,7 @@
   },
   {
     "id": "equipment/chair",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
     "model": "Z-Image-Turbo",
     "resolution": "1680x720 ( 21:9 )",
     "seed": 3030,
@@ -937,6 +972,7 @@
   },
   {
     "id": "equipment/drafting-table",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
     "model": "Z-Image-Turbo",
     "resolution": "1680x720 ( 21:9 )",
     "seed": 3030,
@@ -964,6 +1000,7 @@
   },
   {
     "id": "equipment/tablet",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
     "model": "Z-Image-Turbo",
     "resolution": "1680x720 ( 21:9 )",
     "seed": 3030,
@@ -991,6 +1028,7 @@
   },
   {
     "id": "award/rookie",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
     "model": "Z-Image-Turbo",
     "resolution": "1024x1024 ( 1:1 )",
     "seed": 4040,
@@ -1018,6 +1056,7 @@
   },
   {
     "id": "award/readers",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
     "model": "Z-Image-Turbo",
     "resolution": "1024x1024 ( 1:1 )",
     "seed": 4040,
@@ -1045,6 +1084,7 @@
   },
   {
     "id": "award/critics",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
     "model": "Z-Image-Turbo",
     "resolution": "1024x1024 ( 1:1 )",
     "seed": 4040,
@@ -1072,6 +1112,7 @@
   },
   {
     "id": "award/golden-pen",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
     "model": "Z-Image-Turbo",
     "resolution": "1024x1024 ( 1:1 )",
     "seed": 4040,
@@ -1095,6 +1136,1485 @@
       573,
       324,
       377
+    ]
+  },
+  {
+    "id": "genre/slice",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x2048",
+    "seed": null,
+    "job": "5048eeb0-ef27-4efa-b041-99ecfea7a71d",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job 5048eeb0-ef27-4efa-b041-99ecfea7a71d. Sheet: a steaming teacup on a saucer with a cherry blossom, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/slice.png"
+    },
+    "crop": [
+      326,
+      252,
+      1322,
+      1240
+    ]
+  },
+  {
+    "id": "badge/all-nighter",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "253432a7-ba84-41a6-ad74-119ad697a225",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job 253432a7-ba84-41a6-ad74-119ad697a225. Sheet: eight round badge medals: moon and pen, manuscript page, clock with ramen bowl, gold exclamation mark, number one rosette, gold pen, trophies, crossed pens, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/badges-a.png"
+    },
+    "crop": [
+      78,
+      159,
+      386,
+      387
+    ]
+  },
+  {
+    "id": "badge/cancelled",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "253432a7-ba84-41a6-ad74-119ad697a225",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job 253432a7-ba84-41a6-ad74-119ad697a225. Sheet: eight round badge medals: moon and pen, manuscript page, clock with ramen bowl, gold exclamation mark, number one rosette, gold pen, trophies, crossed pens, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/badges-a.png"
+    },
+    "crop": [
+      525,
+      154,
+      399,
+      392
+    ]
+  },
+  {
+    "id": "badge/ramen-budget",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "253432a7-ba84-41a6-ad74-119ad697a225",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job 253432a7-ba84-41a6-ad74-119ad697a225. Sheet: eight round badge medals: moon and pen, manuscript page, clock with ramen bowl, gold exclamation mark, number one rosette, gold pen, trophies, crossed pens, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/badges-a.png"
+    },
+    "crop": [
+      1122,
+      153,
+      403,
+      394
+    ]
+  },
+  {
+    "id": "badge/stop-presses",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "253432a7-ba84-41a6-ad74-119ad697a225",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job 253432a7-ba84-41a6-ad74-119ad697a225. Sheet: eight round badge medals: moon and pen, manuscript page, clock with ramen bowl, gold exclamation mark, number one rosette, gold pen, trophies, crossed pens, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/badges-a.png"
+    },
+    "crop": [
+      1591,
+      155,
+      396,
+      393
+    ]
+  },
+  {
+    "id": "badge/first-place",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "253432a7-ba84-41a6-ad74-119ad697a225",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job 253432a7-ba84-41a6-ad74-119ad697a225. Sheet: eight round badge medals: moon and pen, manuscript page, clock with ramen bowl, gold exclamation mark, number one rosette, gold pen, trophies, crossed pens, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/badges-a.png"
+    },
+    "crop": [
+      82,
+      668,
+      374,
+      410
+    ]
+  },
+  {
+    "id": "badge/golden-pen",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "253432a7-ba84-41a6-ad74-119ad697a225",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job 253432a7-ba84-41a6-ad74-119ad697a225. Sheet: eight round badge medals: moon and pen, manuscript page, clock with ramen bowl, gold exclamation mark, number one rosette, gold pen, trophies, crossed pens, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/badges-a.png"
+    },
+    "crop": [
+      552,
+      668,
+      194,
+      391
+    ]
+  },
+  {
+    "id": "badge/grand-slam",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "253432a7-ba84-41a6-ad74-119ad697a225",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job 253432a7-ba84-41a6-ad74-119ad697a225. Sheet: eight round badge medals: moon and pen, manuscript page, clock with ramen bowl, gold exclamation mark, number one rosette, gold pen, trophies, crossed pens, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/badges-a.png"
+    },
+    "crop": [
+      737,
+      689,
+      370,
+      358
+    ]
+  },
+  {
+    "id": "badge/rival-10",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "253432a7-ba84-41a6-ad74-119ad697a225",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job 253432a7-ba84-41a6-ad74-119ad697a225. Sheet: eight round badge medals: moon and pen, manuscript page, clock with ramen bowl, gold exclamation mark, number one rosette, gold pen, trophies, crossed pens, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/badges-a.png"
+    },
+    "crop": [
+      1149,
+      672,
+      383,
+      377
+    ]
+  },
+  {
+    "id": "badge/perfect-pair",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "ee92b18e-43b9-4af6-9443-3c2cbf7b6a9a",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job ee92b18e-43b9-4af6-9443-3c2cbf7b6a9a. Sheet: seven pendant badge medals: puzzle, clapperboard, crossed-out house, starry window, toolbox, pages and coins, plush box, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/badges-b.png"
+    },
+    "crop": [
+      82,
+      85,
+      424,
+      489
+    ]
+  },
+  {
+    "id": "badge/anime-signed",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "ee92b18e-43b9-4af6-9443-3c2cbf7b6a9a",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job ee92b18e-43b9-4af6-9443-3c2cbf7b6a9a. Sheet: seven pendant badge medals: puzzle, clapperboard, crossed-out house, starry window, toolbox, pages and coins, plush box, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/badges-b.png"
+    },
+    "crop": [
+      585,
+      85,
+      422,
+      489
+    ]
+  },
+  {
+    "id": "badge/anime-declined",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "ee92b18e-43b9-4af6-9443-3c2cbf7b6a9a",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job ee92b18e-43b9-4af6-9443-3c2cbf7b6a9a. Sheet: seven pendant badge medals: puzzle, clapperboard, crossed-out house, starry window, toolbox, pages and coins, plush box, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/badges-b.png"
+    },
+    "crop": [
+      1083,
+      84,
+      425,
+      489
+    ]
+  },
+  {
+    "id": "badge/the-loft",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "ee92b18e-43b9-4af6-9443-3c2cbf7b6a9a",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job ee92b18e-43b9-4af6-9443-3c2cbf7b6a9a. Sheet: seven pendant badge medals: puzzle, clapperboard, crossed-out house, starry window, toolbox, pages and coins, plush box, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/badges-b.png"
+    },
+    "crop": [
+      1585,
+      87,
+      420,
+      487
+    ]
+  },
+  {
+    "id": "badge/fully-equipped",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "ee92b18e-43b9-4af6-9443-3c2cbf7b6a9a",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job ee92b18e-43b9-4af6-9443-3c2cbf7b6a9a. Sheet: seven pendant badge medals: puzzle, clapperboard, crossed-out house, starry window, toolbox, pages and coins, plush box, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/badges-b.png"
+    },
+    "crop": [
+      81,
+      663,
+      424,
+      415
+    ]
+  },
+  {
+    "id": "badge/millionaire",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "ee92b18e-43b9-4af6-9443-3c2cbf7b6a9a",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job ee92b18e-43b9-4af6-9443-3c2cbf7b6a9a. Sheet: seven pendant badge medals: puzzle, clapperboard, crossed-out house, starry window, toolbox, pages and coins, plush box, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/badges-b.png"
+    },
+    "crop": [
+      584,
+      662,
+      423,
+      415
+    ]
+  },
+  {
+    "id": "badge/century",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "7c9261ed-2f5e-48be-a788-7b917c25d9b8",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job 7c9261ed-2f5e-48be-a788-7b917c25d9b8. Sheet: an artist at a lightbox, a page-stack medal, a keyhole medal, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/extras.png"
+    },
+    "crop": [
+      680,
+      339,
+      546,
+      555
+    ]
+  },
+  {
+    "id": "badge/locked",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "7c9261ed-2f5e-48be-a788-7b917c25d9b8",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job 7c9261ed-2f5e-48be-a788-7b917c25d9b8. Sheet: an artist at a lightbox, a page-stack medal, a keyhole medal, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/extras.png"
+    },
+    "crop": [
+      1334,
+      340,
+      598,
+      594
+    ]
+  },
+  {
+    "id": "event/cover",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "7c9261ed-2f5e-48be-a788-7b917c25d9b8",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job 7c9261ed-2f5e-48be-a788-7b917c25d9b8. Sheet: an artist at a lightbox, a page-stack medal, a keyhole medal, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      96,
+      54
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/extras.png"
+    },
+    "crop": [
+      0,
+      445,
+      680,
+      383
+    ]
+  },
+  {
+    "id": "merch/keychain",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "0155aacc-3562-402b-bbbe-0384640134ed",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job 0155aacc-3562-402b-bbbe-0384640134ed. Sheet: manga goods: keychain, poster, plush, artbook, figure, shipping boxes, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/merch.png"
+    },
+    "crop": [
+      152,
+      78,
+      251,
+      496
+    ]
+  },
+  {
+    "id": "merch/poster",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "0155aacc-3562-402b-bbbe-0384640134ed",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job 0155aacc-3562-402b-bbbe-0384640134ed. Sheet: manga goods: keychain, poster, plush, artbook, figure, shipping boxes, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/merch.png"
+    },
+    "crop": [
+      561,
+      108,
+      399,
+      452
+    ]
+  },
+  {
+    "id": "merch/plush",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "0155aacc-3562-402b-bbbe-0384640134ed",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job 0155aacc-3562-402b-bbbe-0384640134ed. Sheet: manga goods: keychain, poster, plush, artbook, figure, shipping boxes, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/merch.png"
+    },
+    "crop": [
+      1110,
+      153,
+      339,
+      361
+    ]
+  },
+  {
+    "id": "merch/artbook",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "0155aacc-3562-402b-bbbe-0384640134ed",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job 0155aacc-3562-402b-bbbe-0384640134ed. Sheet: manga goods: keychain, poster, plush, artbook, figure, shipping boxes, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/merch.png"
+    },
+    "crop": [
+      103,
+      659,
+      307,
+      407
+    ]
+  },
+  {
+    "id": "merch/figure",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "0155aacc-3562-402b-bbbe-0384640134ed",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job 0155aacc-3562-402b-bbbe-0384640134ed. Sheet: manga goods: keychain, poster, plush, artbook, figure, shipping boxes, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/merch.png"
+    },
+    "crop": [
+      645,
+      660,
+      246,
+      408
+    ]
+  },
+  {
+    "id": "merch/licence",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "0155aacc-3562-402b-bbbe-0384640134ed",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job 0155aacc-3562-402b-bbbe-0384640134ed. Sheet: manga goods: keychain, poster, plush, artbook, figure, shipping boxes, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/merch.png"
+    },
+    "crop": [
+      1095,
+      725,
+      359,
+      336
+    ]
+  },
+  {
+    "id": "place/library",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "d8fd006b-6e60-46dc-8b75-af81335669bc",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job d8fd006b-6e60-46dc-8b75-af81335669bc. Sheet: six framed trip scenes: library, survey booth, study, easels, workshop tables, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      64,
+      40
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/places-a.png"
+    },
+    "crop": [
+      92,
+      123,
+      547,
+      342
+    ]
+  },
+  {
+    "id": "place/survey",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "d8fd006b-6e60-46dc-8b75-af81335669bc",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job d8fd006b-6e60-46dc-8b75-af81335669bc. Sheet: six framed trip scenes: library, survey booth, study, easels, workshop tables, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      64,
+      40
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/places-a.png"
+    },
+    "crop": [
+      784,
+      127,
+      533,
+      333
+    ]
+  },
+  {
+    "id": "place/art-class",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "d8fd006b-6e60-46dc-8b75-af81335669bc",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job d8fd006b-6e60-46dc-8b75-af81335669bc. Sheet: six framed trip scenes: library, survey booth, study, easels, workshop tables, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      64,
+      40
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/places-a.png"
+    },
+    "crop": [
+      92,
+      682,
+      546,
+      341
+    ]
+  },
+  {
+    "id": "place/writing-workshop",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "d8fd006b-6e60-46dc-8b75-af81335669bc",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job d8fd006b-6e60-46dc-8b75-af81335669bc. Sheet: six framed trip scenes: library, survey booth, study, easels, workshop tables, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      64,
+      40
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/places-a.png"
+    },
+    "crop": [
+      784,
+      686,
+      533,
+      333
+    ]
+  },
+  {
+    "id": "place/editing-seminar",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "e240a4e7-f7dd-442e-b091-a46903253e97",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job e240a4e7-f7dd-442e-b091-a46903253e97. Sheet: four framed trip scenes: editing seminar, hot spring, comic convention hall, masterclass, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      64,
+      40
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/places-b.png"
+    },
+    "crop": [
+      139,
+      89,
+      704,
+      440
+    ]
+  },
+  {
+    "id": "place/hot-spring",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "e240a4e7-f7dd-442e-b091-a46903253e97",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job e240a4e7-f7dd-442e-b091-a46903253e97. Sheet: four framed trip scenes: editing seminar, hot spring, comic convention hall, masterclass, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      64,
+      40
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/places-b.png"
+    },
+    "crop": [
+      1162,
+      89,
+      714,
+      446
+    ]
+  },
+  {
+    "id": "place/convention",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "e240a4e7-f7dd-442e-b091-a46903253e97",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job e240a4e7-f7dd-442e-b091-a46903253e97. Sheet: four framed trip scenes: editing seminar, hot spring, comic convention hall, masterclass, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      64,
+      40
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/places-b.png"
+    },
+    "crop": [
+      187,
+      654,
+      682,
+      426
+    ]
+  },
+  {
+    "id": "place/masterclass",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "e240a4e7-f7dd-442e-b091-a46903253e97",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job e240a4e7-f7dd-442e-b091-a46903253e97. Sheet: four framed trip scenes: editing seminar, hot spring, comic convention hall, masterclass, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      64,
+      40
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/places-b.png"
+    },
+    "crop": [
+      1195,
+      654,
+      683,
+      427
+    ]
+  },
+  {
+    "id": "place/manga-museum",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "7bd088dc-e815-4af0-8cc9-e946a1969f3d",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job 7bd088dc-e815-4af0-8cc9-e946a1969f3d. Sheet: four framed trip scenes: manga museum, mountain retreat, book signing, night desk, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      64,
+      40
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/places-c.png"
+    },
+    "crop": [
+      168,
+      140,
+      661,
+      413
+    ]
+  },
+  {
+    "id": "place/mountain-retreat",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "7bd088dc-e815-4af0-8cc9-e946a1969f3d",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job 7bd088dc-e815-4af0-8cc9-e946a1969f3d. Sheet: four framed trip scenes: manga museum, mountain retreat, book signing, night desk, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      64,
+      40
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/places-c.png"
+    },
+    "crop": [
+      1164,
+      140,
+      664,
+      415
+    ]
+  },
+  {
+    "id": "place/signing",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "7bd088dc-e815-4af0-8cc9-e946a1969f3d",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job 7bd088dc-e815-4af0-8cc9-e946a1969f3d. Sheet: four framed trip scenes: manga museum, mountain retreat, book signing, night desk, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      64,
+      40
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/places-c.png"
+    },
+    "crop": [
+      202,
+      675,
+      594,
+      371
+    ]
+  },
+  {
+    "id": "event/letter",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "b65c34a2-4a59-4438-9a2a-9d27027d03bf",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job b65c34a2-4a59-4438-9a2a-9d27027d03bf. Sheet: four framed event scenes: fan letter, a cold in bed, convention booth, a raise, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      96,
+      54
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/events-a.png"
+    },
+    "crop": [
+      163,
+      82,
+      759,
+      427
+    ]
+  },
+  {
+    "id": "event/cold",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "b65c34a2-4a59-4438-9a2a-9d27027d03bf",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job b65c34a2-4a59-4438-9a2a-9d27027d03bf. Sheet: four framed event scenes: fan letter, a cold in bed, convention booth, a raise, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      96,
+      54
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/events-a.png"
+    },
+    "crop": [
+      1147,
+      82,
+      759,
+      427
+    ]
+  },
+  {
+    "id": "event/convention",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "b65c34a2-4a59-4438-9a2a-9d27027d03bf",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job b65c34a2-4a59-4438-9a2a-9d27027d03bf. Sheet: four framed event scenes: fan letter, a cold in bed, convention booth, a raise, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      96,
+      54
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/events-a.png"
+    },
+    "crop": [
+      162,
+      632,
+      761,
+      428
+    ]
+  },
+  {
+    "id": "event/raise",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "b65c34a2-4a59-4438-9a2a-9d27027d03bf",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job b65c34a2-4a59-4438-9a2a-9d27027d03bf. Sheet: four framed event scenes: fan letter, a cold in bed, convention booth, a raise, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      96,
+      54
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/events-a.png"
+    },
+    "crop": [
+      1146,
+      632,
+      761,
+      428
+    ]
+  },
+  {
+    "id": "event/reprint",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "82f2d8a7-7b22-417f-933f-67c9710e359a",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job 82f2d8a7-7b22-417f-933f-67c9710e359a. Sheet: six framed event scenes: printing press, workshop, panels, interview, signing table, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      96,
+      54
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/events-b.png"
+    },
+    "crop": [
+      96,
+      152,
+      508,
+      286
+    ]
+  },
+  {
+    "id": "event/workshop",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "82f2d8a7-7b22-417f-933f-67c9710e359a",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job 82f2d8a7-7b22-417f-933f-67c9710e359a. Sheet: six framed event scenes: printing press, workshop, panels, interview, signing table, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      96,
+      54
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/events-b.png"
+    },
+    "crop": [
+      733,
+      139,
+      556,
+      313
+    ]
+  },
+  {
+    "id": "event/interview",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "82f2d8a7-7b22-417f-933f-67c9710e359a",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job 82f2d8a7-7b22-417f-933f-67c9710e359a. Sheet: six framed event scenes: printing press, workshop, panels, interview, signing table, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      96,
+      54
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/events-b.png"
+    },
+    "crop": [
+      96,
+      708,
+      509,
+      286
+    ]
+  },
+  {
+    "id": "event/signing",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "82f2d8a7-7b22-417f-933f-67c9710e359a",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job 82f2d8a7-7b22-417f-933f-67c9710e359a. Sheet: six framed event scenes: printing press, workshop, panels, interview, signing table, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      96,
+      54
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/events-b.png"
+    },
+    "crop": [
+      732,
+      695,
+      557,
+      313
+    ]
+  },
+  {
+    "id": "event/editor-dinner",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "de668544-cd26-48c2-99ce-cc9b58ec5f61",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job de668544-cd26-48c2-99ce-cc9b58ec5f61. Sheet: framed event scenes: editor dinner, magazine cover, tired at the desk, a rival challenge, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      96,
+      54
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/events-c.png"
+    },
+    "crop": [
+      102,
+      154,
+      545,
+      307
+    ]
+  },
+  {
+    "id": "event/assistant-sick",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "de668544-cd26-48c2-99ce-cc9b58ec5f61",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job de668544-cd26-48c2-99ce-cc9b58ec5f61. Sheet: framed event scenes: editor dinner, magazine cover, tired at the desk, a rival challenge, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      96,
+      54
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/events-c.png"
+    },
+    "crop": [
+      102,
+      695,
+      545,
+      307
+    ]
+  },
+  {
+    "id": "event/rival-challenge",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "de668544-cd26-48c2-99ce-cc9b58ec5f61",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job de668544-cd26-48c2-99ce-cc9b58ec5f61. Sheet: framed event scenes: editor dinner, magazine cover, tired at the desk, a rival challenge, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      96,
+      54
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/events-c.png"
+    },
+    "crop": [
+      1031,
+      650,
+      704,
+      396
+    ]
+  },
+  {
+    "id": "anime/kumo",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "4d9f8cdc-89f2-4f69-8ec9-acf99f9e3b55",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job 4d9f8cdc-89f2-4f69-8ec9-acf99f9e3b55. Sheet: two anime studio emblems (cloud, star) and room thumbnails: tatami room, wood rooms, brick loft, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/studios.png"
+    },
+    "crop": [
+      121,
+      119,
+      440,
+      432
+    ]
+  },
+  {
+    "id": "anime/hoshi",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "4d9f8cdc-89f2-4f69-8ec9-acf99f9e3b55",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job 4d9f8cdc-89f2-4f69-8ec9-acf99f9e3b55. Sheet: two anime studio emblems (cloud, star) and room thumbnails: tatami room, wood rooms, brick loft, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      32,
+      32
+    ],
+    "sample": "area",
+    "cutout": true,
+    "outline": true,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/studios.png"
+    },
+    "crop": [
+      711,
+      129,
+      432,
+      421
+    ]
+  },
+  {
+    "id": "tier/apartment",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "4d9f8cdc-89f2-4f69-8ec9-acf99f9e3b55",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job 4d9f8cdc-89f2-4f69-8ec9-acf99f9e3b55. Sheet: two anime studio emblems (cloud, star) and room thumbnails: tatami room, wood rooms, brick loft, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      96,
+      54
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/studios.png"
+    },
+    "crop": [
+      1349,
+      234,
+      497,
+      280
+    ]
+  },
+  {
+    "id": "tier/flat",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "4d9f8cdc-89f2-4f69-8ec9-acf99f9e3b55",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job 4d9f8cdc-89f2-4f69-8ec9-acf99f9e3b55. Sheet: two anime studio emblems (cloud, star) and room thumbnails: tatami room, wood rooms, brick loft, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      96,
+      54
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/studios.png"
+    },
+    "crop": [
+      734,
+      750,
+      418,
+      235
+    ]
+  },
+  {
+    "id": "tier/loft",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "resolution": "2048x1152",
+    "seed": null,
+    "job": "4d9f8cdc-89f2-4f69-8ec9-acf99f9e3b55",
+    "steps": null,
+    "shift": null,
+    "prompt": "Not recorded here; the exact prompt stays on Higgsfield job 4d9f8cdc-89f2-4f69-8ec9-acf99f9e3b55. Sheet: two anime studio emblems (cloud, star) and room thumbnails: tatami room, wood rooms, brick loft, 16-bit pixel art, flat light grey background.",
+    "preamble": "none",
+    "native": [
+      96,
+      54
+    ],
+    "sample": "area",
+    "cutout": false,
+    "outline": false,
+    "colors": 16,
+    "sheet": {
+      "src": "sheets/studios.png"
+    },
+    "crop": [
+      1332,
+      756,
+      398,
+      224
     ]
   }
 ]
