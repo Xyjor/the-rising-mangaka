@@ -7,6 +7,7 @@ import type { BadgeId } from '../../sim/badges'
 import type {
   AnimeStudioId, AwardId, EquipmentId, EventId, GenreId, MagazineId, MerchItemId, PlaceId, StudioTierId, ThemeId,
 } from '../../sim/types'
+import type { ScenePropId } from '../scene/sceneArt'
 
 /** A generated pixel-art asset: its manifest id, the bundled URL, and its native (unscaled) pixel size. */
 export interface ArtRef {
@@ -192,3 +193,17 @@ export const TIER_ART_THUMB: Record<StudioTierId, ArtRef> = {
   flat: scene('tier/flat'),
   loft: scene('tier/loft'),
 }
+
+// ---------- the live scene (0.9.0): drawn into the canvas by render through src/ui/scene/sceneImages.ts ----------
+
+/**
+ * Each tier's room shell, 320x180 (walls, beams, floor; no furniture). A tier left out keeps its code-drawn shell
+ * (`drawRoomShell`), so this fills in one entry at a time.
+ */
+export const ROOM_ART: Partial<Record<StudioTierId, ArtRef>> = {}
+
+/**
+ * Each structural prop's sprite, at its footprint's size (render.ts `PROP_FOOTPRINT`). A prop left out keeps its
+ * code-drawn piece.
+ */
+export const SCENE_PROP_ART: Partial<Record<ScenePropId, ArtRef>> = {}
