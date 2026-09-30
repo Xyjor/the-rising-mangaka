@@ -39,7 +39,7 @@ function TierRow({ game, tier, index }: { game: GameState; tier: StudioTier; ind
   const rent = tier.rent ? `Rent ${money(tier.rent)} a week.` : 'No rent.'
   return (
     <div className="place has-thumb" role="group" aria-label={tier.name}>
-      <span className="postcard tier-thumb" aria-hidden="true"><PixelArt art={TIER_ART_THUMB[tier.id]} /></span>
+      <span className="postcard" aria-hidden="true"><PixelArt art={TIER_ART_THUMB[tier.id]} /></span>
       <div className="name">{tier.name}</div>
       {action}
       {/* The next tier's button names its move-in cost; any tier after it states it here. */}

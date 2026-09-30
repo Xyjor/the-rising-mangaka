@@ -5,6 +5,8 @@ import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { ART_PALETTE } from '../art/palette'
+import * as registry from '../art/registry'
+import type { ArtRef } from '../art/registry'
 
 const ROOT = join(__dirname, '..', '..', '..')
 const MANIFEST_PATH = join(ROOT, 'art', 'manifest.json')
@@ -171,5 +173,21 @@ describe('generated PNGs', () => {
       expect(bytes, `${entry.id} size`).toBeLessThanOrEqual(cap)
     }
     expect(total).toBeLessThanOrEqual(100 * 1024)
+  })
+  it("gives every registry ArtRef its manifest entry's native size", () => {
+    const byId = new Map(loadManifest().map((e) => [e.id, e]))
+    const refs: ArtRef[] = []
+    const isRef = (v: unknown): v is ArtRef =>
+      typeof v === 'object' && v !== null && typeof (v as ArtRef).id === 'string' && typeof (v as ArtRef).w === 'number'
+    for (const value of Object.values(registry)) {
+      if (isRef(value)) refs.push(value)
+      else if (typeof value === 'object' && value !== null) refs.push(...Object.values(value).filter(isRef))
+    }
+    expect(refs.length).toBeGreaterThan(50)
+    for (const ref of refs) {
+      const entry = byId.get(ref.id)
+      expect(entry, `${ref.id} has a manifest entry`).toBeDefined()
+      expect([ref.w, ref.h], `${ref.id} size`).toEqual(entry!.native)
+    }
   })
 })
