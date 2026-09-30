@@ -13,3 +13,7 @@
 .anime-terms { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 2px; }
 
 .card.flat.year-card { border-color: var(--accent); }
+
+/* The event's scene: 2x on desktop, 1x on phones. */
+.event-card .event-art { display: block; width: fit-content; line-height: 0; margin-bottom: 4px; }
+@media (max-width: 640px) { .event-card .event-art img { width: 96px; height: 54px; } }

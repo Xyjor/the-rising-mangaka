@@ -7,6 +7,7 @@ import type { GameState } from '../../sim'
 import { useStore } from '../../state/store'
 import { KIDS_OFFER } from '../../test/fixtures'
 import { AnimeOfferCard } from '../AnimeOfferCard'
+import { ANIME_ART } from '../art/registry'
 import { DeskTray } from '../hud/DeskTray'
 
 const TITLE = 'Two studios want to animate "Magic Club"'
@@ -38,6 +39,7 @@ describe('AnimeOfferCard', () => {
     render(<AnimeOfferCard />)
     const card = screen.getByRole('region', { name: TITLE })
     expect(card.textContent).toContain('"Magic Club" is a hit: popularity 70 or more and 37,000 or more copies sold.')
+    expect(screen.getByRole('group', { name: 'Studio Kumo' }).querySelector(`img[src="${ANIME_ART.kumo.src}"]`)).not.toBeNull()
     const kumo = within(screen.getByRole('group', { name: 'Studio Kumo' })).getAllByRole('listitem').map((li) => li.textContent)
     expect(kumo).toEqual([
       'Pays you ¥2,000 when you sign.',

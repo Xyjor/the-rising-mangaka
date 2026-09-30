@@ -56,13 +56,12 @@ describe('NewMangaWizard art', () => {
     fireEvent.click(screen.getByRole('button', { name: /Action/ }))
     expect(document.querySelector(`.choice img[src="${THEME_ART.samurai.src}"]`)).not.toBeNull()
   })
-  it('keeps the same framed tile, holding an icon, on a genre card with no art yet', () => {
+  it('gives every genre card, slice of life included, its art tile', () => {
     render(<NewMangaWizard />)
     const tiles = [...document.querySelectorAll('.choice .choice-art')]
     expect(tiles).toHaveLength(10)
+    expect(document.querySelector('.art-fallback')).toBeNull()
     const slice = screen.getByRole('button', { name: /Slice of Life/ })
-    const fallback = slice.querySelector('.choice-art.art-fallback') as HTMLElement
-    expect(fallback.querySelector('svg')).not.toBeNull()
-    expect([fallback.style.width, fallback.style.height]).toEqual(['68px', '68px'])
+    expect(slice.querySelector(`.choice-art img[src="${GENRE_ART.slice.src}"]`)).not.toBeNull()
   })
 })

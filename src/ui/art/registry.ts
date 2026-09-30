@@ -4,7 +4,9 @@
 // referenced id has no generated PNG — a missing asset fails immediately, not at render time.
 
 import type { BadgeId } from '../../sim/badges'
-import type { AwardId, EquipmentId, EventId, GenreId, MagazineId, MerchItemId, PlaceId, ThemeId } from '../../sim/types'
+import type {
+  AnimeStudioId, AwardId, EquipmentId, EventId, GenreId, MagazineId, MerchItemId, PlaceId, StudioTierId, ThemeId,
+} from '../../sim/types'
 
 /** A generated pixel-art asset: its manifest id, the bundled URL, and its native (unscaled) pixel size. */
 export interface ArtRef {
@@ -34,29 +36,15 @@ export function art(id: string, w: number, h: number): ArtRef {
   return { id, src, w, h }
 }
 
-/** Each badge's tile art, once generated. Missing art is the normal case: the tile falls back to an icon. */
-export const BADGE_ART: Partial<Record<BadgeId, ArtRef>> = {}
-
-/** Each merch item's art slot in the Series panel's Goods section, once generated; missing art falls back to an icon. */
-export const MERCH_ART: Partial<Record<MerchItemId, ArtRef>> = {}
-
-/** Each random event's card art, once generated; missing art falls back to the card's icon. */
-export const EVENT_ART: Partial<Record<EventId, ArtRef>> = {}
-
-/** Each trip's postcard art in the Trips panel, once generated; missing art falls back to the drawn CSS postcard. */
-export const PLACE_ART: Partial<Record<PlaceId, ArtRef>> = {}
-
 /** The title screen's key art (art/manifest.json entry "title/hero", native 320x180). */
 export const TITLE_ART: ArtRef = art('title/hero', 320, 180)
 
 /** A 32x32 cutout from a batch 1 sheet (art/manifest.json, `<group>/<id>`). */
 const icon = (id: string) => art(id, 32, 32)
 
-/**
- * Each genre's icon, once generated. Slice of life is still missing (its sheet came back without the teacup), so the
- * wizard falls back to no art for it.
- */
-export const GENRE_ART: Partial<Record<GenreId, ArtRef>> = {
+/** Each genre's icon (slice of life's teacup came from batch 2's Higgsfield sheet). */
+export const GENRE_ART: Record<GenreId, ArtRef> = {
+  slice: icon('genre/slice'),
   action: icon('genre/action'),
   romance: icon('genre/romance'),
   comedy: icon('genre/comedy'),
@@ -119,4 +107,88 @@ export const AWARD_ART: Record<AwardId, ArtRef> = {
   readers: icon('award/readers'),
   critics: icon('award/critics'),
   'golden-pen': icon('award/golden-pen'),
+}
+
+// ---------- batch 2 (Higgsfield z_image sheets) ----------
+
+/** A framed scene crop (not a cutout): places 64x40, events and studio tiers 96x54. */
+const place = (id: PlaceId) => art(`place/${id}`, 64, 40)
+const scene = (id: string) => art(id, 96, 54)
+
+/** Each badge's gallery tile. */
+export const BADGE_ART: Record<BadgeId, ArtRef> = {
+  'all-nighter': icon('badge/all-nighter'),
+  cancelled: icon('badge/cancelled'),
+  'stop-presses': icon('badge/stop-presses'),
+  'ramen-budget': icon('badge/ramen-budget'),
+  'first-place': icon('badge/first-place'),
+  'golden-pen': icon('badge/golden-pen'),
+  'grand-slam': icon('badge/grand-slam'),
+  'rival-10': icon('badge/rival-10'),
+  'perfect-pair': icon('badge/perfect-pair'),
+  'anime-signed': icon('badge/anime-signed'),
+  'anime-declined': icon('badge/anime-declined'),
+  'the-loft': icon('badge/the-loft'),
+  'fully-equipped': icon('badge/fully-equipped'),
+  century: icon('badge/century'),
+  millionaire: icon('badge/millionaire'),
+}
+
+/** The tile every not-yet-earned badge shows (a keyhole medal). */
+export const BADGE_LOCKED: ArtRef = icon('badge/locked')
+
+/** Each merch item's icon in the Series panel's Goods section. */
+export const MERCH_ART: Record<MerchItemId, ArtRef> = {
+  keychain: icon('merch/keychain'),
+  poster: icon('merch/poster'),
+  plush: icon('merch/plush'),
+  artbook: icon('merch/artbook'),
+  figure: icon('merch/figure'),
+}
+
+/** The goods licence (a shipping box with a heart), in the Goods section's header. */
+export const MERCH_LICENCE_ART: ArtRef = icon('merch/licence')
+
+/** Each trip's postcard, 64x40. */
+export const PLACE_ART: Record<PlaceId, ArtRef> = {
+  library: place('library'),
+  survey: place('survey'),
+  'art-class': place('art-class'),
+  'writing-workshop': place('writing-workshop'),
+  'editing-seminar': place('editing-seminar'),
+  'hot-spring': place('hot-spring'),
+  convention: place('convention'),
+  masterclass: place('masterclass'),
+  'manga-museum': place('manga-museum'),
+  'mountain-retreat': place('mountain-retreat'),
+  signing: place('signing'),
+}
+
+/** Each random event's card header, 96x54. */
+export const EVENT_ART: Record<EventId, ArtRef> = {
+  letter: scene('event/letter'),
+  cold: scene('event/cold'),
+  convention: scene('event/convention'),
+  raise: scene('event/raise'),
+  reprint: scene('event/reprint'),
+  workshop: scene('event/workshop'),
+  interview: scene('event/interview'),
+  signing: scene('event/signing'),
+  'editor-dinner': scene('event/editor-dinner'),
+  cover: scene('event/cover'),
+  'assistant-sick': scene('event/assistant-sick'),
+  'rival-challenge': scene('event/rival-challenge'),
+}
+
+/** Each anime studio's emblem, a 32x32 cutout (round emblems read better square than at 48x32). */
+export const ANIME_ART: Record<AnimeStudioId, ArtRef> = {
+  kumo: icon('anime/kumo'),
+  hoshi: icon('anime/hoshi'),
+}
+
+/** Each studio tier's room thumbnail, 96x54 (named apart from the scene's `TIER_ART` drawings). */
+export const TIER_ART_THUMB: Record<StudioTierId, ArtRef> = {
+  apartment: scene('tier/apartment'),
+  flat: scene('tier/flat'),
+  loft: scene('tier/loft'),
 }

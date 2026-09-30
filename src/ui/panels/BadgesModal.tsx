@@ -4,8 +4,7 @@ import type { Badge } from '../../sim'
 import { readProfile } from '../../state/profile'
 import { useStore } from '../../state/store'
 import { PixelArt } from '../art/PixelArt'
-import { BADGE_ART } from '../art/registry'
-import { Icon } from '../Icon'
+import { BADGE_ART, BADGE_LOCKED } from '../art/registry'
 import { Modal } from '../components'
 import '../../styles/career.css'
 
@@ -21,12 +20,12 @@ type TileState = 'earned' | 'earlier' | 'locked'
 
 function BadgeTile({ badge, state, day }: { badge: Badge; state: TileState; day?: number }) {
   const secret = state === 'locked' && badge.hidden
-  const art = BADGE_ART[badge.id]
+  const art = state === 'locked' ? BADGE_LOCKED : BADGE_ART[badge.id]
   const title = secret ? '???' : badge.title
   return (
     <li className={`badge-tile ${state}`} data-state={state}>
       <span className="badge-art" aria-hidden="true">
-        {art && !secret ? <PixelArt art={art} /> : <Icon name={secret ? 'info' : 'star'} size={24} />}
+        <PixelArt art={art} />
       </span>
       <div className="grow">
         <div><b>{title}</b></div>

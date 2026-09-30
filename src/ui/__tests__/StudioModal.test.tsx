@@ -9,7 +9,7 @@ import { App } from '../App'
 import { money } from '../format'
 import { StatsModal } from '../panels/StatsModal'
 import { StudioModal } from '../panels/StudioModal'
-import { EQUIPMENT_ART_ICON } from '../art/registry'
+import { EQUIPMENT_ART_ICON, TIER_ART_THUMB } from '../art/registry'
 
 // Money is set from the price helpers, so a new price scale leaves these tests standing.
 
@@ -33,6 +33,7 @@ describe('StudioModal', () => {
   it('marks the current studio and says what the next one costs and needs', () => {
     render(<StudioModal />)
     expect(row('Apartment').getByText('You are here')).toBeTruthy()
+    expect(screen.getByRole('group', { name: 'Studio loft' }).querySelector(`.tier-thumb img[src="${TIER_ART_THUMB.loft.src}"]`)).not.toBeNull()
     expect(row('Apartment').getByText('No rent.')).toBeTruthy()
     expect(row('Apartment').getByText('1 desk for an assistant')).toBeTruthy()
     expect(row('Studio flat').getByText('2 desks for assistants')).toBeTruthy()

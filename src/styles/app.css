@@ -442,3 +442,6 @@
 .merch-net { color: var(--green-text); }
 .merch-net.neg { color: var(--accent-text); }
 .merch-run { display: flex; flex-direction: column; gap: 4px; }
+
+/* Batch 2 art: a postcard holding generated art sizes to it and drops the drawn CSS postcard behind it. */
+.postcard.has-art { width: auto; height: auto; background: none; line-height: 0; }

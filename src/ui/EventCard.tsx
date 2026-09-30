@@ -3,7 +3,6 @@ import type { EventChoice } from '../sim'
 import { useStore } from '../state/store'
 import { EVENT_ART } from './art/registry'
 import { PixelArt } from './art/PixelArt'
-import { Icon } from './Icon'
 import { plural } from './format'
 import '../styles/cards.css'
 
@@ -19,7 +18,6 @@ export function EventCard() {
   const daysLeft = game.event.expiresDay - game.day
   const deadline = chapterDeadline(game)
   const titleId = `event-${prompt.id}-title`
-  const art = EVENT_ART[prompt.id]
 
   const answer = (key: 'a' | 'b', c: EventChoice) => {
     const away = c.trip && placeById(c.trip).days
@@ -38,10 +36,8 @@ export function EventCard() {
 
   return (
     <section className="card flat desk-card event-card" aria-labelledby={titleId}>
-      <div className="row" style={{ gap: 8 }}>
-        {art ? <PixelArt art={art} /> : <Icon name="sparkle" />}
-        <b id={titleId}>{prompt.title}</b>
-      </div>
+      <span className="art-frame event-art" aria-hidden="true"><PixelArt art={EVENT_ART[prompt.id]} scale={2} /></span>
+      <b id={titleId}>{prompt.title}</b>
       <p className="small">{prompt.body}</p>
       <div className="event-choices">
         {answer('a', prompt.a)}

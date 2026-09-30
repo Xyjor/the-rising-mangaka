@@ -1,5 +1,7 @@
 import { ANIME_OFFER_MIN_COPIES, ANIME_OFFER_MIN_POPULARITY, ANIME_STUDIOS, num } from '../sim'
 import { useStore } from '../state/store'
+import { ANIME_ART } from './art/registry'
+import { PixelArt } from './art/PixelArt'
 import { Icon } from './Icon'
 import { plural } from './format'
 import { animeTerms } from './labels'
@@ -31,7 +33,10 @@ export function AnimeOfferCard() {
       <div className="event-choices">
         {ANIME_STUDIOS.map((st) => (
           <div className="anime-studio event-choice" role="group" aria-labelledby={`anime-${st.id}`} key={st.id}>
-            <b id={`anime-${st.id}`} className="small">{st.name}</b>
+            <div className="row" style={{ gap: 8 }}>
+              <span className="art-frame" aria-hidden="true"><PixelArt art={ANIME_ART[st.id]} /></span>
+              <b id={`anime-${st.id}`} className="small">{st.name}</b>
+            </div>
             <ul className="anime-terms small">
               {animeTerms(st).map((t) => <li key={t}>{t}</li>)}
             </ul>

@@ -6,7 +6,7 @@ import { ConfirmRow } from '../ConfirmRow'
 import { Modal } from '../components'
 import { money } from '../format'
 import { PixelArt } from '../art/PixelArt'
-import { EQUIPMENT_ART_ICON } from '../art/registry'
+import { EQUIPMENT_ART_ICON, TIER_ART_THUMB } from '../art/registry'
 
 function deskText(desks: number): string {
   return desks === 1 ? '1 desk for an assistant' : `${desks} desks for assistants`
@@ -38,7 +38,8 @@ function TierRow({ game, tier, index }: { game: GameState; tier: StudioTier; ind
   }
   const rent = tier.rent ? `Rent ${money(tier.rent)} a week.` : 'No rent.'
   return (
-    <div className="place" role="group" aria-label={tier.name}>
+    <div className="place has-thumb" role="group" aria-label={tier.name}>
+      <span className="postcard has-art tier-thumb" aria-hidden="true"><PixelArt art={TIER_ART_THUMB[tier.id]} /></span>
       <div className="name">{tier.name}</div>
       {action}
       {/* The next tier's button names its move-in cost; any tier after it states it here. */}

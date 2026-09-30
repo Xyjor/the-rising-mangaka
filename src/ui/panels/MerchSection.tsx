@@ -1,9 +1,8 @@
 import { MERCH_ITEMS, activeMerchRuns, merchForecast, merchItemById, merchRefusal } from '../../sim'
 import type { MerchItem, Serial } from '../../sim'
 import { useStore } from '../../state/store'
-import { MERCH_ART } from '../art/registry'
+import { MERCH_ART, MERCH_LICENCE_ART } from '../art/registry'
 import { PixelArt } from '../art/PixelArt'
-import { Icon } from '../Icon'
 import { Bar } from '../components'
 import { money, plural } from '../format'
 
@@ -15,12 +14,11 @@ function MerchRow({ item, ser }: { item: MerchItem; ser: Serial }) {
   const orderMerch = useStore((s) => s.orderMerch)
   const f = merchForecast(game, item.id, ser.id)
   const refusal = merchRefusal(game, item.id, ser.id)
-  const art = MERCH_ART[item.id]
   const net = f.net >= 0 ? `net +${money(f.net)}` : `net ${money(f.net)}`
   return (
     <li className="merch-row" data-item={item.id}>
       <span className="merch-art" aria-hidden="true">
-        {art ? <PixelArt art={art} /> : <Icon name="star" size={24} />}
+        <PixelArt art={MERCH_ART[item.id]} />
       </span>
       <div className="grow">
         <div><b>{item.name}</b> <span className="small muted">{money(item.cost)}, {plural(item.weeks, 'week')}</span></div>
@@ -42,7 +40,10 @@ export function MerchSection({ ser }: { ser: Serial }) {
   const runs = activeMerchRuns(game).filter((r) => r.serialId === ser.id)
   return (
     <section className="card flat merch" aria-labelledby={`merch-${ser.id}`}>
-      <div className="lbl" id={`merch-${ser.id}`}>Goods</div>
+      <div className="row merch-head" style={{ gap: 8 }}>
+        <span className="merch-art" aria-hidden="true"><PixelArt art={MERCH_LICENCE_ART} /></span>
+        <div className="lbl" id={`merch-${ser.id}`}>Goods</div>
+      </div>
       {game.merch.licensedDay === null ? (
         <p className="small merch-locked">{LOCKED}</p>
       ) : (

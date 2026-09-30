@@ -6,6 +6,7 @@ import { BADGES, createGame } from '../../sim'
 import { PROFILE_KEY } from '../../state/profile'
 import { useStore } from '../../state/store'
 import { BadgesModal } from '../panels/BadgesModal'
+import { BADGE_ART, BADGE_LOCKED } from '../art/registry'
 
 function tile(title: string) {
   return screen.getAllByRole('listitem').find((li) => li.textContent?.includes(title))!
@@ -27,6 +28,7 @@ describe('BadgesModal', () => {
     expect(screen.getByText('A secret about deadlines')).toBeTruthy()
     // a visible badge shows its title and hint before it is earned
     expect(tile('Millionaire').textContent).toContain('Hold ¥1,000,000')
+    expect(document.querySelectorAll(`.badge-art img[src="${BADGE_LOCKED.src}"]`)).toHaveLength(15)
   })
 
   it('shows a badge earned in this career with its date, and one from an earlier career dimmed', () => {
@@ -40,6 +42,7 @@ describe('BadgesModal', () => {
     expect(screen.getByText(`1 of ${BADGES.length} badges`)).toBeTruthy()
     const mine = tile('Stop the presses')
     expect(mine.getAttribute('data-state')).toBe('earned')
+    expect(mine.querySelector(`img[src="${BADGE_ART['stop-presses'].src}"]`)).not.toBeNull()
     expect(mine.textContent).toContain('Earned Month 2, week 1, day 3')
     const earlier = tile('Century')
     expect(earlier.getAttribute('data-state')).toBe('earlier')
