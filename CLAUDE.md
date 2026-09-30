@@ -124,7 +124,7 @@ canvas space; `story.ts` `storyLook`, the story props' five snapshot inputs read
   `ErrorBoundary.tsx` (wraps `App` in `main.tsx`; a render crash shows a recovery screen that exports the stored save
   and starts over, or in a tab that does not own the save, reloads). Tests live in `src/ui/__tests__` and
   `src/ui/scene/__tests__`; see the UI-test docblock rule under Commands above.
-- `src/ui/art/` — the generated-art layer: `palette.ts` (`ART_PALETTE`, every colour also literal in `src/ui/scene/*.ts`
+- `src/ui/art/` — the generated-art layer: `palette.ts` (`ART_PALETTE_BASE`, frozen, the default snap so old assets regenerate byte for byte; `ART_PALETTE_SCENE` for manifest `"palette": "scene"` entries; `ART_PALETTE` their union, every colour also literal in `src/ui/scene/*.ts`
   or `src/styles/tokens.css`), `pixelOps.ts` (the pure pixel math `scripts/pixelate.ts` runs), `registry.ts` (typed
   `ArtRef` lookups over the PNGs in `src/assets/art/`, eagerly globbed by Vite) and `PixelArt.tsx` (the `<img>`
   wrapper every component uses to mount one). `art/manifest.json` and `art/raw/` at the repo root hold each asset's

@@ -390,6 +390,12 @@ afterward that every pixel it wrote is a literal `ART_PALETTE` colour.
 and every one of them must already appear literally somewhere in `src/ui/scene/*.ts` or `src/styles/tokens.css`
 (checked by `src/ui/__tests__/art.test.ts`) — a generated illustration can only use colours the hand-painted scene or
 the design tokens already use, so it reads as part of the same world rather than importing its own palette.
+Since 0.9.0 it is two lists: `ART_PALETTE_BASE`, frozen at its pre-0.9.0 73 colours (art.test checks its length and
+a SHA-256 of the list), which every earlier asset was snapped to, and `ART_PALETTE_SCENE`, the base followed by the
+scene's room colours. A manifest entry opts into the second with `"palette": "scene"` (the room shells and prop
+sprites); without it `scripts/pixelate.ts` snaps to the base, so `npm run art` regenerates every earlier illustration
+byte for byte instead of re-snapping it to a larger palette. `ART_PALETTE` is the union (the scene list), and
+art.test checks each PNG's colours against its own entry's palette.
 
 **Budgets** (also `art.test.ts`, run against the committed PNGs, not regenerated): every manifest id needs both a raw
 source and a generated PNG, with no orphan PNGs left under `src/assets/art`; every PNG's IHDR size must match its
@@ -434,7 +440,7 @@ result to `render`, and each image's load clears the loop's last-painted snapsho
 `render.ts` never imports the registry. In tests, `fakeCanvas.ts` records each `drawImage` in `images` (with `at`, the
 fill log's length at the call, for order checks) and `fakeImage(id, w, h)` makes an image `ready` accepts; the fill
 `log` stays fillRect-only, so the 673/1079 baselines measure what is still code-drawn (with `NO_ART` they are
-unchanged). `ART_PALETTE` holds the room shells' day colours (the plasters, the tatami, the planks, the concrete, the
+unchanged). `ART_PALETTE_SCENE` (for `"palette": "scene"` entries) holds the room shells' day colours (the plasters, the tatami, the planks, the concrete, the
 woods, the brick, the rugs and the flat's teal wallpaper), so a generated shell snaps to the drawn room's colours.
 
 **The title hero** (`TitleScreen.tsx`) renders `TITLE_ART` (manifest id `title/hero`, native 320x180) directly rather
@@ -1151,5 +1157,8 @@ scene. Task R1 laid the plumbing, with no art yet:
   what follows it (the loft's plants).
 - The fill budgets measure what is still code-drawn: `fakeCanvas.ts` logs `drawImage` apart (`images`), and the
   673/1079 baselines are unchanged with `NO_ART`.
-- `ART_PALETTE` gains the room shells' day colours from `roomArt.ts` and `studioArt.ts`; a `room/*` PNG may be up to
-  12 KB and the art total cap rises from 100 KB to 160 KB.
+- The room shells' day colours from `roomArt.ts` and `studioArt.ts` join the palette as `ART_PALETTE_SCENE`, used
+  only by manifest entries marked `"palette": "scene"`; `ART_PALETTE_BASE` stays frozen so the earlier
+  illustrations regenerate byte for byte (checked by hand on title/hero, genre/action, event/letter, badge/locked and
+  place/library: identical on the base, all five different on the scene palette). A `room/*` PNG may be up to 12 KB
+  and the art total cap rises from 100 KB to 160 KB.

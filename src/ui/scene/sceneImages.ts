@@ -21,7 +21,8 @@ export function onSceneImageLoad(cb: () => void): () => void {
 }
 
 function image(ref: ArtRef | undefined): HTMLImageElement | null {
-  if (!ref) return null
+  // no DOM (node tests, a server render): nothing to load, so the piece stays code-drawn
+  if (!ref || typeof Image === 'undefined') return null
   const img = new Image(ref.w, ref.h)
   img.decoding = 'async'
   img.addEventListener('load', loaded)

@@ -2,7 +2,13 @@
 // nearest entry in OKLab). Every colour here MUST appear literally as a hex string somewhere in `src/ui/scene/*.ts`
 // or `src/styles/tokens.css` (src/ui/__tests__/art.test.ts checks this), so the illustrated art always reads as part
 // of the same world as the hand-painted scene and room art. Lowercase `#rrggbb`, no duplicates.
-export const ART_PALETTE: readonly string[] = [
+//
+// Two lists, snapped to separately: ART_PALETTE_BASE is frozen at its pre-0.9.0 contents, and every committed
+// illustration was snapped to exactly it, so `npm run art` regenerates them byte for byte; never add to it.
+// ART_PALETTE_SCENE is base plus the scene's room colours, for entries marked `"palette": "scene"` in
+// art/manifest.json (the 0.9.0 room shells and prop sprites). ART_PALETTE is their union, the set of every colour an
+// asset may use.
+export const ART_PALETTE_BASE: readonly string[] = [
   // Outline, ink, near-black/white
   '#1c1a26', '#1b1b1b', '#f6f6f6',
   // Skin and hair
@@ -27,6 +33,10 @@ export const ART_PALETTE: readonly string[] = [
   '#6a3fd9', '#7c4dff', '#b9a2ff', '#ece4ff',
   // Greys
   '#66666f', '#5c5a62', '#77757e', '#8a8a96',
+]
+
+/** The scene's room colours added in 0.9.0 (roomArt.ts, studioArt.ts, render.ts), none of them already in the base. */
+const SCENE_ADDITIONS: readonly string[] = [
   // The room shells (0.9.0, roomArt.ts and studioArt.ts, day colours: at night the scene dims the image instead).
   // The apartment's plaster, woods and tatami
   '#e6d3a8', '#ecdcb6', '#9c7550', '#c9b48a', '#b88d62', '#7a5a3e', '#cdbd7c', '#bfae6c', '#3d4a3a', '#a8984f',
@@ -37,3 +47,9 @@ export const ART_PALETTE: readonly string[] = [
   // Switches and outlets; the window frame, the sill and the bookshelf's woods
   '#f0ead6', '#b8b2a5', '#5a4634', '#4a3828', '#6d4c33', '#8b6543', '#5a3d28',
 ] as const
+
+/** What a `"palette": "scene"` manifest entry snaps to: the base and the room colours. */
+export const ART_PALETTE_SCENE: readonly string[] = [...ART_PALETTE_BASE, ...SCENE_ADDITIONS]
+
+/** Every colour an asset may use (art.test.ts checks PNGs and literals against it). */
+export const ART_PALETTE: readonly string[] = ART_PALETTE_SCENE

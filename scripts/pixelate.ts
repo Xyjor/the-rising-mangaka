@@ -5,7 +5,7 @@
 import { readFileSync, mkdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import sharp from 'sharp'
-import { ART_PALETTE } from '../src/ui/art/palette'
+import { ART_PALETTE_BASE, ART_PALETTE_SCENE } from '../src/ui/art/palette'
 import {
   addOutline,
   alphaBoundingBox,
@@ -52,6 +52,8 @@ interface ManifestEntry {
   cutout: boolean
   outline: boolean
   colors?: number
+  /** which palette to snap to: `base` (the default, frozen, every pre-0.9.0 asset) or `scene` (base plus the room colours) */
+  palette?: 'base' | 'scene'
   crop?: [number, number, number, number]
   sheet?: SheetSpec
 }
@@ -115,7 +117,8 @@ async function processEntry(entry: ManifestEntry): Promise<{ outPath: string; co
     entry.sample === 'nearest'
       ? downsampleNearest(working, nativeW, nativeH)
       : downsampleArea(working, nativeW, nativeH)
-  working = snapToPalette(working, ART_PALETTE)
+  const palette = entry.palette === 'scene' ? ART_PALETTE_SCENE : ART_PALETTE_BASE
+  working = snapToPalette(working, palette)
   // The outline colour counts toward the cap, so leave it a slot.
   working = reduceColors(working, (entry.colors ?? DEFAULT_COLORS) - (entry.outline ? 1 : 0))
   working = despeckle(working)
@@ -137,9 +140,9 @@ async function processEntry(entry: ManifestEntry): Promise<{ outPath: string; co
   const fs = await import('node:fs/promises')
   await fs.writeFile(outPath, buffer)
 
-  // Re-read and verify every pixel colour is in ART_PALETTE.
+  // Re-read and verify every pixel colour is in the entry's palette.
   const { data: verifyData } = await sharp(outPath).ensureAlpha().raw().toBuffer({ resolveWithObject: true })
-  const paletteSet = new Set(ART_PALETTE)
+  const paletteSet = new Set(palette)
   const usedColours = new Set<string>()
   for (let i = 0; i < verifyData.length; i += 4) {
     if (verifyData[i + 3] === 0) continue
@@ -148,7 +151,7 @@ async function processEntry(entry: ManifestEntry): Promise<{ outPath: string; co
       .join('')}`
     usedColours.add(hex)
     if (!paletteSet.has(hex)) {
-      throw new Error(`${entry.id}: pixel colour ${hex} is not in ART_PALETTE`)
+      throw new Error(`${entry.id}: pixel colour ${hex} is not in its ${entry.palette ?? 'base'} palette`)
     }
   }
 

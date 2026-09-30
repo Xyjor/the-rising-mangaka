@@ -1,10 +1,11 @@
 // Checks the art pipeline's output on disk, without importing sharp or any browser API: manifest shape, that every
 // entry has both a raw source and a generated PNG, no orphan PNGs, and that every PNG is a small indexed (colour
 // type 3) image whose IHDR size matches its manifest `native` size and whose PLTE entries are all in ART_PALETTE.
+import { createHash } from 'node:crypto'
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { ART_PALETTE } from '../art/palette'
+import { ART_PALETTE, ART_PALETTE_BASE, ART_PALETTE_SCENE } from '../art/palette'
 import * as registry from '../art/registry'
 import type { ArtRef } from '../art/registry'
 
@@ -21,6 +22,7 @@ interface ManifestEntry {
   job?: string
   native: [number, number]
   colors?: number
+  palette?: 'base' | 'scene'
   sheet?: { src: string }
 }
 
@@ -150,6 +152,7 @@ describe('generated PNGs', () => {
   })
 
   it("holds the room shells' day colours (roomArt.ts, studioArt.ts), so a generated shell can match the drawn one", () => {
+    // four of these were in the palette before 0.9.0 (#e0b25a, #a9a59c, #cbc7bf, #8aa0c8); the rest are the scene additions
     const ROOM_COLOURS = [
       // the apartment: sand plaster and its streaks, the wood molding, beam and pillars, the baseboard, the tatami
       '#e6d3a8', '#ecdcb6', '#9c7550', '#c9b48a', '#b88d62', '#7a5a3e', '#cdbd7c', '#bfae6c', '#3d4a3a', '#a8984f',
@@ -164,22 +167,35 @@ describe('generated PNGs', () => {
     for (const hex of ROOM_COLOURS) expect(ART_PALETTE, hex).toContain(hex)
   })
 
+  it('freezes ART_PALETTE_BASE at its pre-0.9.0 73 colours, so every committed illustration regenerates byte for byte', () => {
+    expect(ART_PALETTE_BASE).toHaveLength(73)
+    const digest = createHash('sha256').update(ART_PALETTE_BASE.join(',')).digest('hex')
+    expect(digest).toBe('8a855b3aa5618d958e01a44dba45b8856f89a6845e3dd236f39779866bd480e6')
+    // the scene palette is the base, in order, then only new colours; ART_PALETTE is that union
+    expect(ART_PALETTE_SCENE.slice(0, ART_PALETTE_BASE.length)).toEqual(ART_PALETTE_BASE)
+    const base = new Set(ART_PALETTE_BASE)
+    for (const hex of ART_PALETTE_SCENE.slice(ART_PALETTE_BASE.length)) expect(base.has(hex), hex).toBe(false)
+    expect(ART_PALETTE).toEqual(ART_PALETTE_SCENE)
+  })
+
   it('every ART_PALETTE colour appears literally in scene sources or tokens.css', () => {
     for (const hex of ART_PALETTE) {
       expect(allowedText.includes(hex), `${hex} missing from scene/*.ts or tokens.css`).toBe(true)
     }
   })
 
-  it('IHDR size matches native, colour type is indexed (3), and every PLTE colour is in ART_PALETTE', () => {
-    const palette = new Set(ART_PALETTE)
+  it('IHDR size matches native, colour type is indexed (3), and every PLTE colour is in the entry palette', () => {
     for (const entry of manifest) {
+      // an entry snaps to the frozen base unless it opts into the scene palette
+      expect([undefined, 'base', 'scene'], `${entry.id} palette`).toContain(entry.palette)
+      const palette = new Set(entry.palette === 'scene' ? ART_PALETTE_SCENE : ART_PALETTE_BASE)
       const png = parsePng(pngPathFor(entry.id))
       expect(png.width, `${entry.id} width`).toBe(entry.native[0])
       expect(png.height, `${entry.id} height`).toBe(entry.native[1])
       expect(png.colorType, `${entry.id} colour type`).toBe(3)
       expect(png.palette.length, `${entry.id} colour cap`).toBeLessThanOrEqual(entry.colors ?? 16)
       for (const hex of png.palette) {
-        expect(palette.has(hex), `${entry.id}: PLTE colour ${hex} not in ART_PALETTE`).toBe(true)
+        expect(palette.has(hex), `${entry.id}: PLTE colour ${hex} not in its ${entry.palette ?? 'base'} palette`).toBe(true)
       }
     }
   })
