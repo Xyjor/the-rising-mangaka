@@ -11,6 +11,7 @@ import {
   nearestPaletteIndex,
   padToAspect,
   reduceColors,
+  remapSeam,
   rgbToOklab,
   snapToPalette,
   toOklabPalette,
@@ -106,6 +107,18 @@ describe('nearestPaletteIndex / snapToPalette', () => {
     expect(out.data[7]).toBe(0) // still transparent
   })
 
+  it('keeps the hue over the lightness when the lightness weight is below 1 (a dusty teal wall stays teal)', () => {
+    // the flat's raw wallpaper teal is nearer a grey by plain OKLab distance, but the lighter palette teal shares its hue
+    const teal = toOklabPalette(['#8a8a96', '#8fb5ac'])
+    expect(nearestPaletteIndex(0x6b, 0x97, 0x8e, teal)).toBe(0)
+    expect(nearestPaletteIndex(0x6b, 0x97, 0x8e, teal, 1)).toBe(0)
+    expect(nearestPaletteIndex(0x6b, 0x97, 0x8e, teal, 0.25)).toBe(1)
+    const img = makeImage(1, 1)
+    setPixel(img, 0, 0, 0x6b, 0x97, 0x8e)
+    expect(snapToPalette(img, ['#8a8a96', '#8fb5ac']).data[0]).toBe(0x8a)
+    expect(snapToPalette(img, ['#8a8a96', '#8fb5ac'], 0.25).data[0]).toBe(0x8f)
+  })
+
   it('rgbToOklab produces distinct coordinates for distinct colours', () => {
     const black = rgbToOklab(0, 0, 0)
     const white = rgbToOklab(255, 255, 255)
@@ -128,6 +141,18 @@ describe('reduceColors', () => {
       expect(out.data[i + 1]).toBe(0)
       expect(out.data[i + 2]).toBe(0)
     }
+  })
+
+  it('re-snaps a dropped colour with the same lightness weight', () => {
+    // two grey pixels and two teal ones are kept; the one darker teal goes to the grey by plain distance, the teal at 0.25
+    const img = makeImage(5, 1)
+    setPixel(img, 0, 0, 0x8a, 0x8a, 0x96)
+    setPixel(img, 1, 0, 0x8a, 0x8a, 0x96)
+    setPixel(img, 2, 0, 0x8f, 0xb5, 0xac)
+    setPixel(img, 3, 0, 0x8f, 0xb5, 0xac)
+    setPixel(img, 4, 0, 0x6b, 0x97, 0x8e)
+    expect(reduceColors(img, 2).data[16]).toBe(0x8a)
+    expect(reduceColors(img, 2, 0.25).data[16]).toBe(0x8f)
   })
 
   it('leaves the image untouched when already within the cap', () => {
@@ -365,5 +390,61 @@ describe('findBlobs', () => {
     const img = makeImage(5, 5)
     fill(img, 200, 200, 200)
     expect(findBlobs(img, { tolerance: 24, mergeGap: 2, minArea: 1 })).toEqual([])
+  })
+})
+
+describe('remapSeam', () => {
+  /** A width x height image: rows above `seam` one colour (the wall), rows from it another (the floor). */
+  function twoBands(width: number, height: number, seam: number) {
+    const img = makeImage(width, height)
+    for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
+      if (y < seam) setPixel(img, x, y, 200, 100, 50)
+      else setPixel(img, x, y, 20, 60, 120)
+    }
+    return img
+  }
+  const rowColour = (img: ReturnType<typeof makeImage>, y: number) => {
+    const i = y * img.width * 4
+    return [img.data[i], img.data[i + 1], img.data[i + 2]]
+  }
+
+  for (const sample of ['area', 'nearest'] as const) {
+    it(`lands the source seam exactly on the destination seam row (${sample})`, () => {
+      // a seam at 87% of the source height must still land on row 114 of 180 (63%)
+      const src = twoBands(64, 200, 174)
+      const out = remapSeam(src, 174, 32, 180, 114, sample)
+      expect(out.width).toBe(32)
+      expect(out.height).toBe(180)
+      for (let y = 0; y < 114; y++) expect(rowColour(out, y), `row ${y}`).toEqual([200, 100, 50])
+      for (let y = 114; y < 180; y++) expect(rowColour(out, y), `row ${y}`).toEqual([20, 60, 120])
+    })
+  }
+
+  it('area-averages within each side of the seam, never across it', () => {
+    // above the seam: rows alternate black and white, so every wall row averages to grey; the floor stays flat
+    const src = makeImage(4, 40)
+    for (let y = 0; y < 40; y++) for (let x = 0; x < 4; x++) {
+      const v = y < 30 ? (y % 2 ? 255 : 0) : 90
+      setPixel(src, x, y, v, v, v)
+    }
+    const out = remapSeam(src, 30, 2, 20, 15, 'area')
+    for (let y = 0; y < 15; y++) expect(rowColour(out, y)[0], `row ${y}`).toBeCloseTo(127.5, -1)
+    for (let y = 15; y < 20; y++) expect(rowColour(out, y)).toEqual([90, 90, 90])
+  })
+
+  it('stretches each side piecewise-linearly: a source mark halfway down the wall lands halfway to the seam', () => {
+    const src = twoBands(8, 100, 80)
+    for (let x = 0; x < 8; x++) setPixel(src, x, 40, 255, 255, 255)
+    for (let x = 0; x < 8; x++) setPixel(src, x, 41, 255, 255, 255)
+    const out = remapSeam(src, 80, 8, 60, 40, 'nearest')
+    const white = [...Array(60).keys()].filter((y) => rowColour(out, y)[0] === 255)
+    expect(white).toEqual([20])
+  })
+
+  it('refuses a seam outside the image', () => {
+    const src = twoBands(4, 10, 5)
+    expect(() => remapSeam(src, 0, 4, 10, 5, 'area')).toThrow()
+    expect(() => remapSeam(src, 10, 4, 10, 5, 'area')).toThrow()
+    expect(() => remapSeam(src, 5, 4, 10, 10, 'area')).toThrow()
   })
 })
