@@ -7,6 +7,7 @@ import type { StudioTierId } from '../../../sim'
 import { H, PROP_BOX, PROP_FOOTPRINT, SKY_LUT, W, render, skyColor } from '../render'
 import type { Snapshot } from '../render'
 import { drawRoomShell } from '../roomArt'
+import { DOORWAY_BOX, DOOR_BOX } from '../studioArt'
 import { NO_ART, PROP_SPRITE, ROOM_NIGHT_DIM, fitSprite, placeSprite, ready } from '../sceneArt'
 import type { SceneArt, ScenePropId } from '../sceneArt'
 import type { Season } from '../season'
@@ -88,6 +89,16 @@ describe('render', () => {
         }
       }
     }
+  })
+
+  it("spans the bookshelf's contact shadow over its sprite when the image is ready, and keeps the old one without art", () => {
+    const shadowAt = (log: readonly FillCall[]) => log.find((c) => c.style === 'rgba(40, 24, 16, 0.28)' && c.y === 114 && c.x >= 64 && c.x < 74)
+    const ready = fakeContext()
+    render(ready.ctx, sceneSnapshot(), 0.3, 100, fakeSceneArt())
+    expect(shadowAt(ready.log)).toMatchObject({ x: PROP_BOX.bookshelf.x, w: PROP_BOX.bookshelf.w })
+    const bare = fakeContext()
+    render(bare.ctx, sceneSnapshot(), 0.3, 100)
+    expect(shadowAt(bare.log)).toMatchObject({ x: 72, w: 35 })
   })
 
   it('renders frame 0 the same way twice (a pure function of its inputs)', () => {
@@ -739,6 +750,8 @@ describe('scene art (0.9.0 R1): generated images with the code-drawn look as the
       bed: { x: 192, y: 105, w: 58, h: 23 },
       poster: { x: 116, y: 50, w: 22, h: 28 },
     })
+    // the doormat (drawn at DOOR_BOX's columns) must sit under the doorway sprite too
+    expect([DOOR_BOX.x, DOOR_BOX.w]).toEqual([DOORWAY_BOX.x, DOORWAY_BOX.w])
     const right = (b: { x: number; w: number }) => b.x + b.w
     // the door and the doorway are drawn after the bed: they stop short of it (the coat rack at x 283 is drawn after them)
     expect(PROP_BOX.door.x).toBeGreaterThanOrEqual(right(PROP_BOX.bed))
@@ -773,13 +786,14 @@ describe('scene art (0.9.0 R1): generated images with the code-drawn look as the
         const skipped = plain.log.length - art.log.length
         expect(skipped, label).toBeGreaterThan(0)
         // the same fills in the same order before and after; the skipped block lies inside the footprint
-        expect(art.log.slice(0, at), label).toEqual(plain.log.slice(0, at))
         // a ready door or doorway also moves the doormat and the doorway's night light onto its sprite (same fill counts;
         // studioArt.test checks where they go), so those are compared by style only
-        const moved = (c: FillCall) => (id === 'door' || id === 'doorway') && (
+        // (a ready bookshelf likewise widens its contact shadow onto its sprite)
+        const moved = (c: FillCall) => (id === 'bookshelf' && c.style === 'rgba(40, 24, 16, 0.28)' && c.y === 114 && c.x >= 64 && c.x < 74) || (id === 'door' || id === 'doorway') && (
           (c.style === '#c94b4b' && c.y === 114 && c.h === 3) || (c.style === '#a83c3c' && c.y === 115 && c.h === 1) ||
           c.style === 'rgba(255,214,150,0.12)' || c.style === 'rgba(255,214,150,0.35)')
         const sameFill = (c: FillCall) => (moved(c) ? { style: c.style } : c)
+        expect(art.log.slice(0, at).map(sameFill), label).toEqual(plain.log.slice(0, at).map(sameFill))
         expect(art.log.slice(at).map(sameFill), label).toEqual(plain.log.slice(at + skipped).map(sameFill))
         for (const c of plain.log.slice(at, at + skipped)) {
           const inside = c.x >= box.x && c.y >= box.y && c.x + c.w <= box.x + box.w && c.y + c.h <= box.y + box.h

@@ -377,8 +377,12 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
     if (night) { ctx.fillStyle = ROOM_NIGHT_DIM; ctx.fillRect(0, 0, W, H) }
   } else drawRoomShell(ctx, s.tier, night)
   prop(ctx, art, 'kitchenette', drawKitchenette)
+  // the bookshelf's shadow spans its sprite when the image is ready, else the code-drawn shelf (x 72, 35 wide)
+  const shelfReady = ready(art.prop.bookshelf)
+  const shelfX = shelfReady ? PROP_BOX.bookshelf.x : 72
+  const shelfW = shelfReady ? PROP_BOX.bookshelf.w : 35
   // contact shadows on the floor: the fridge, the counter, the bookshelf, the desk and the bed
-  shadow(ctx, 2, 114, 16); shadow(ctx, 20, 114, 42); shadow(ctx, 72, 114, 35); shadow(ctx, 116, 118, 58); shadow(ctx, 192, 128, 58)
+  shadow(ctx, 2, 114, 16); shadow(ctx, 20, 114, 42); shadow(ctx, shelfX, 114, shelfW); shadow(ctx, 116, 118, 58); shadow(ctx, 192, 128, 58)
 
   // window
   prop(ctx, art, 'window', windowFrame)

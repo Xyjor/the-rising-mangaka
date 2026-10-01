@@ -1,6 +1,6 @@
 // Checks the art pipeline's output on disk, without importing sharp or any browser API: manifest shape, that every
 // entry has both a raw source and a generated PNG, no orphan PNGs, and that every PNG is a small indexed (colour
-// type 3) image whose IHDR size matches its manifest `native` size and whose PLTE entries are all in ART_PALETTE.
+// type 3) image whose IHDR size matches its manifest `native` size and whose PLTE entries are all in its own entry's palette (base or scene).
 import { createHash } from 'node:crypto'
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'

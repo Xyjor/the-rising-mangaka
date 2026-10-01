@@ -405,8 +405,8 @@ art.test checks each PNG's colours against its own entry's palette.
 
 **Budgets** (also `art.test.ts`, run against the committed PNGs, not regenerated): every manifest id needs both a raw
 source and a generated PNG, with no orphan PNGs left under `src/assets/art`; every PNG's IHDR size must match its
-manifest `native` size, its colour type must be indexed (PNG colour type 3), and every PLTE entry must be in
-`ART_PALETTE`; and every PNG must fit its size cap (16 KB for `title/hero`, 12 KB for a `room/*` shell, 4 KB for any
+manifest `native` size, its colour type must be indexed (PNG colour type 3), and each PNG's PLTE entries must be in
+its own manifest entry's palette (base or scene); and every PNG must fit its size cap (16 KB for `title/hero`, 12 KB for a `room/*` shell, 4 KB for any
 other entry, 160 KB total across every generated asset; the room cap and the total were raised from 100 KB in 0.9.0).
 
 **Mounting in the UI.** `src/ui/art/registry.ts` globs every generated PNG in eagerly (`import.meta.glob`, `eager:
