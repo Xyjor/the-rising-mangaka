@@ -9,7 +9,7 @@ import { ART_PALETTE, ART_PALETTE_BASE, ART_PALETTE_SCENE } from '../art/palette
 import * as registry from '../art/registry'
 import type { ArtRef } from '../art/registry'
 import { PROP_FOOTPRINT } from '../scene/render'
-import { PROP_MAX_W, PROP_SPRITE, fitSprite } from '../scene/sceneArt'
+import { DESK_PROPS, PROP_MAX_W, PROP_SPRITE, fitDesk, fitSprite } from '../scene/sceneArt'
 import type { ScenePropId } from '../scene/sceneArt'
 
 const ROOT = join(__dirname, '..', '..', '..')
@@ -31,6 +31,8 @@ interface ManifestEntry {
   outline: boolean
   crop?: [number, number, number, number]
   seam?: { src: number; dst: number }
+  tolerance?: number
+  flip?: boolean
   sheet?: { src: string }
 }
 
@@ -162,7 +164,7 @@ describe('art manifest', () => {
     }
   })
 
-  it("sizes every structural prop sprite by its footprint height and its crop's aspect (PROP_SPRITE), a 16-colour outlined cutout (the bookshelf 24)", () => {
+  it("sizes every prop sprite by its footprint height (a desk by its width) and its crop's aspect (PROP_SPRITE), a 16-colour outlined cutout (the bookshelf 24)", () => {
     const props = manifest.filter((e) => e.id.startsWith('prop/'))
     expect(props.map((e) => e.id.slice(5)).sort()).toEqual(Object.keys(PROP_SPRITE).sort())
     for (const e of props) {
@@ -174,8 +176,17 @@ describe('art manifest', () => {
       expect(e.crop, `${e.id} crop`).toBeDefined()
       const [, , cw, ch] = e.crop!
       expect(e.native, e.id).toEqual([...PROP_SPRITE[id]])
-      expect(fitSprite(cw / ch, PROP_FOOTPRINT[id], PROP_MAX_W[id]), e.id).toEqual([...PROP_SPRITE[id]])
+      const desk = (DESK_PROPS as readonly ScenePropId[]).includes(id)
+      const fit = desk ? fitDesk(cw / ch, PROP_FOOTPRINT[id]) : fitSprite(cw / ch, PROP_FOOTPRINT[id], PROP_MAX_W[id])
+      expect(fit, e.id).toEqual([...PROP_SPRITE[id]])
+      // the crop lies inside its sheet (all three 0.10.0 sheets and the 0.9.0 one are 2048x1152)
+      const [cx, cy] = e.crop!
+      expect(cx >= 0 && cy >= 0 && cx + cw <= 2048 && cy + ch <= 1152, `${e.id} crop`).toBe(true)
     }
+    // the two cutout knobs: a raised flood tolerance (the wooden chair's grey floor shadow) and a mirror (the arm lamp
+    // leans left over the page), each only where it is needed
+    expect(manifest.filter((e) => e.tolerance !== undefined).map((e) => [e.id, e.tolerance])).toEqual([['prop/chair', 40]])
+    expect(manifest.filter((e) => e.flip !== undefined).map((e) => [e.id, e.flip])).toEqual([['prop/arm-lamp', true]])
   })
 
   it('has no orphan PNGs under src/assets/art', () => {

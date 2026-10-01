@@ -63,6 +63,10 @@ export function fakeSceneArt(): SceneArt {
     prop: {
       window: img('window'), door: img('door'), doorway: img('doorway'), kitchenette: img('kitchenette'),
       bookshelf: img('bookshelf'), bed: img('bed'), poster: img('poster'),
+      desk: img('desk'), 'drafting-table': img('drafting-table'), chair: img('chair'), 'tall-chair': img('tall-chair'),
+      'arm-lamp': img('arm-lamp'), 'reference-shelf': img('reference-shelf'), 'coffee-machine': img('coffee-machine'),
+      zabuton: img('zabuton'), boxes: img('boxes'), fern: img('fern'), books: img('books'), 'floor-lamp': img('floor-lamp'),
+      sofa: img('sofa'), bin: img('bin'),
     },
   }
 }
