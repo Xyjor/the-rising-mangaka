@@ -29,22 +29,29 @@ export interface Footprint {
 }
 
 /**
- * A prop sprite's native size [w, h]: the footprint's full height, its width from the sprite's own aspect (w / h),
- * so a generated piece is never squashed into the old footprint's shape. Where the wider sprite would hide something
- * drawn before it, `maxW` caps the width instead and the height follows from the aspect.
+ * A prop sprite's native size [w, h]: the footprint's full height (or `minH`, a small prop's minimum readable height,
+ * where that is taller), its width from the sprite's own aspect (w / h), so a generated piece is never squashed into
+ * the old footprint's shape. Where the wider sprite would hide something drawn before it, `maxW` caps the width
+ * instead and the height follows from the aspect.
  */
-export function fitSprite(aspect: number, footprint: Footprint, maxW = Infinity): [number, number] {
-  const w = Math.round(footprint.h * aspect)
-  if (w <= maxW) return [w, footprint.h]
+export function fitSprite(aspect: number, footprint: Footprint, maxW = Infinity, minH = 0): [number, number] {
+  const h = Math.max(footprint.h, minH)
+  const w = Math.round(h * aspect)
+  if (w <= maxW) return [w, h]
   return [maxW, Math.round(maxW / aspect)]
 }
 
+/** How a sprite sits across its footprint: centred (the rule), or flush with its right edge. */
+export type PropAlign = 'centre' | 'right'
+
 /**
  * Where a w x h prop sprite lands: its bottom row on the footprint's bottom row, centred across the footprint (a half
- * pixel of slack goes to the right, so the sprite sits one pixel left).
+ * pixel of slack goes to the right, so the sprite sits one pixel left), or with `align` 'right' its right edge on the
+ * footprint's.
  */
-export function placeSprite(footprint: Footprint, w: number, h: number): Footprint {
-  return { x: footprint.x + Math.floor((footprint.w - w) / 2), y: footprint.y + footprint.h - h, w, h }
+export function placeSprite(footprint: Footprint, w: number, h: number, align: PropAlign = 'centre'): Footprint {
+  const x = align === 'right' ? footprint.x + footprint.w - w : footprint.x + Math.floor((footprint.w - w) / 2)
+  return { x, y: footprint.y + footprint.h - h, w, h }
 }
 
 /**
@@ -71,16 +78,34 @@ export function hangSprite(footprint: Footprint, w: number, h: number): Footprin
  * The widths a prop's sprite is capped at, where its full-height sprite would hide something drawn before it: the bed
  * stays inside its old 58 px footprint, so the door and the doorway (drawn after it, at full height 38 and 46 px wide,
  * well over it) can be 33 px, the widest that stays centred on the door frame and clear of the bed (x 192-249). The
- * reference shelf (31 px at full height, under the poster from x 116) is 11 px, the widest centred on its slot that
- * stops at x 115; the sofa (41 px) is 37, clear of the bin (x 232, drawn after it in the same front row).
+ * sofa (41 px) is 37, clear of the bin (x 232, drawn after it in the same front row). The reference shelf, a squat
+ * bookcase (31x38 at its slot's full height, which would cover most of the bookshelf), is 20 wide and so 24 tall,
+ * standing in front of the bookshelf's right side (`PROP_ALIGN`) above the desk top.
  */
 export const PROP_MAX_W: Partial<Record<ScenePropId, number>> = {
-  bed: 58, door: 33, doorway: 33, 'reference-shelf': 11, sofa: 37,
+  bed: 58, door: 33, doorway: 33, sofa: 37, 'reference-shelf': 20,
 }
 
 /**
+ * The minimum readable heights (0.10.0 fix round 1): a sprite drawn in perspective at its footprint's height would be
+ * a speck where the drawn piece was flat (the zabuton 14x7, the book stack 10x9, the coffee machine 6x8). Each is
+ * raised to about twice its old height, still standing on its floor or sill line, where the space is free: the
+ * zabuton 24x12 (its old width), the book stack 20x18, the coffee machine 11x14 on the sill (clear of the trophies
+ * from x 194 and below the pane's cross bar at y 64). (The reference shelf grows the other way, from 11x13 to 20x24,
+ * through `PROP_MAX_W` and `PROP_ALIGN`.)
+ */
+export const PROP_MIN_H: Partial<Record<ScenePropId, number>> = { zabuton: 12, books: 18, 'coffee-machine': 14 }
+
+/**
+ * The props that do not centre on their footprint: the reference shelf stands flush with its slot's right edge (x 114,
+ * clear of the poster from x 116), so its wider sprite reaches left over the bookshelf, which it is drawn in front of.
+ */
+export const PROP_ALIGN: Partial<Record<ScenePropId, PropAlign>> = { 'reference-shelf': 'right' }
+
+/**
  * Each prop sprite's native size [w, h] (art/manifest.json `prop/<id>` native): `fitSprite` of its crop's aspect on
- * its footprint (render.ts `PROP_FOOTPRINT`) under `PROP_MAX_W`, or `fitDesk` for a desk, checked by art.test.
+ * its footprint (render.ts `PROP_FOOTPRINT`) under `PROP_MAX_W` and `PROP_MIN_H`, or `fitDesk` for a desk, checked by
+ * art.test.
  */
 export const PROP_SPRITE: Record<ScenePropId, readonly [number, number]> = {
   window: [48, 36],
@@ -95,12 +120,12 @@ export const PROP_SPRITE: Record<ScenePropId, readonly [number, number]> = {
   chair: [19, 30],
   'tall-chair': [24, 34],
   'arm-lamp': [14, 20],
-  'reference-shelf': [11, 13],
-  'coffee-machine': [6, 8],
-  zabuton: [14, 7],
+  'reference-shelf': [20, 24],
+  'coffee-machine': [11, 14],
+  zabuton: [24, 12],
   boxes: [22, 22],
   fern: [30, 27],
-  books: [10, 9],
+  books: [20, 18],
   'floor-lamp': [18, 34],
   sofa: [37, 23],
   bin: [13, 12],

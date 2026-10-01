@@ -9,7 +9,7 @@ import { ART_PALETTE, ART_PALETTE_BASE, ART_PALETTE_SCENE } from '../art/palette
 import * as registry from '../art/registry'
 import type { ArtRef } from '../art/registry'
 import { PROP_FOOTPRINT } from '../scene/render'
-import { DESK_PROPS, PROP_MAX_W, PROP_SPRITE, fitDesk, fitSprite } from '../scene/sceneArt'
+import { DESK_PROPS, PROP_MAX_W, PROP_MIN_H, PROP_SPRITE, fitDesk, fitSprite } from '../scene/sceneArt'
 import type { ScenePropId } from '../scene/sceneArt'
 
 const ROOT = join(__dirname, '..', '..', '..')
@@ -177,7 +177,7 @@ describe('art manifest', () => {
       const [, , cw, ch] = e.crop!
       expect(e.native, e.id).toEqual([...PROP_SPRITE[id]])
       const desk = (DESK_PROPS as readonly ScenePropId[]).includes(id)
-      const fit = desk ? fitDesk(cw / ch, PROP_FOOTPRINT[id]) : fitSprite(cw / ch, PROP_FOOTPRINT[id], PROP_MAX_W[id])
+      const fit = desk ? fitDesk(cw / ch, PROP_FOOTPRINT[id]) : fitSprite(cw / ch, PROP_FOOTPRINT[id], PROP_MAX_W[id], PROP_MIN_H[id])
       expect(fit, e.id).toEqual([...PROP_SPRITE[id]])
       // the crop lies inside its sheet (all three 0.10.0 sheets and the 0.9.0 one are 2048x1152)
       const [cx, cy] = e.crop!

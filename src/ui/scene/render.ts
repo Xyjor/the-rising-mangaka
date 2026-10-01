@@ -294,8 +294,9 @@ export const PROP_FOOTPRINT: Record<ScenePropId, Footprint> = {
 }
 
 /**
- * Where each prop's generated sprite lands (canvas space): its native size (sceneArt.ts `PROP_SPRITE`) bottom-aligned
- * and centred on its footprint (`placeSprite`), but a desk, which hangs from its footprint's top row (`hangSprite`, so
+ * Where each prop's generated sprite lands (canvas space): its native size (sceneArt.ts `PROP_SPRITE`, under
+ * `PROP_MAX_W` and `PROP_MIN_H`) bottom-aligned and centred on its footprint (`placeSprite`, or flush right where
+ * `PROP_ALIGN` says), but a desk, which hangs from its footprint's top row (`hangSprite`, so
  * the tabletop stays at y 98). The code-drawn fallback keeps painting inside `PROP_FOOTPRINT`. The one table of where
  * every sprite goes: the equipment's and the front row's boxes come from studioArt.ts and roomArt.ts, which draw with
  * them.

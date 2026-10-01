@@ -3090,8 +3090,8 @@
     "prompt": "16-bit pixel art furniture sprite sheet, Kairosoft SNES style, flat front view, thick dark outlines, limited palette, 3 by 2 grid of separate objects on a flat light grey background: a plain wooden writing desk, wide and low; a wide wooden drafting table with a tilted top and a glowing lightbox on its left end; a simple wooden chair seen from behind; a tall black mesh office chair seen from behind; a black adjustable arm desk lamp; a slim tall reference shelf of books. No text.",
     "preamble": "none",
     "native": [
-      11,
-      13
+      20,
+      24
     ],
     "sample": "area",
     "cutout": true,
@@ -3120,8 +3120,8 @@
     "prompt": "16-bit pixel art sprite sheet, Kairosoft SNES style, flat front view, thick dark outlines, limited palette, two separate objects far apart on a flat light grey background: on the left a simple wooden chair seen from directly behind showing its backrest; on the right a small espresso coffee machine. Nothing else. No text.",
     "preamble": "none",
     "native": [
-      6,
-      8
+      11,
+      14
     ],
     "sample": "area",
     "cutout": true,
@@ -3150,8 +3150,8 @@
     "prompt": "16-bit pixel art prop sprite sheet, Kairosoft SNES style, flat front view, thick dark outlines, limited palette, 4 by 2 grid of separate small objects on a flat light grey background: a red zabuton floor cushion; a stack of two cardboard boxes; a potted fern; a short stack of books; a tall standing floor lamp; the arm and corner of a blue sofa; a small grey metal waste bin; a small espresso coffee machine. No text.",
     "preamble": "none",
     "native": [
-      14,
-      7
+      24,
+      12
     ],
     "sample": "area",
     "cutout": true,
@@ -3240,8 +3240,8 @@
     "prompt": "16-bit pixel art prop sprite sheet, Kairosoft SNES style, flat front view, thick dark outlines, limited palette, 4 by 2 grid of separate small objects on a flat light grey background: a red zabuton floor cushion; a stack of two cardboard boxes; a potted fern; a short stack of books; a tall standing floor lamp; the arm and corner of a blue sofa; a small grey metal waste bin; a small espresso coffee machine. No text.",
     "preamble": "none",
     "native": [
-      10,
-      9
+      20,
+      18
     ],
     "sample": "area",
     "cutout": true,

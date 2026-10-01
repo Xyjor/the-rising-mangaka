@@ -460,7 +460,7 @@ that stays centred on the door frame and clear of the bed (x 192-249) and the co
 | `bed` | 192, 102, 58, 26 (`BED_FOOTPRINT`) | 58x23 (capped) | 192, 105, 58, 23 |
 | `poster` | 116, 50, 22, 28 (`POSTER_FOOTPRINT`) | 22x28 | 116, 50, 22, 28 |
 
-The bookshelf's wider box reaches under the reference shelf (x 105-115 as a sprite, 107-114 drawn), which is drawn
+The bookshelf's wider box reaches under the reference shelf (x 95-114 as a sprite, 107-114 drawn), which is drawn
 after it and stays in front.
 
 **The furniture (0.10.0 P1).** Fourteen more props follow the same rule, each at its own call site in today's draw
@@ -479,10 +479,18 @@ perspective, would be 35 px wide (the drafting table 45) under a 58 px desk top,
 pot and the lamp's clamp (to x 169) would hang off it. So a desk (`DESK_PROPS`) spans its footprint's width
 (`fitDesk`) and hangs from its top row (`hangSprite`): the tabletop's back edge stays at y 98, where the pages, the
 ink pot and the pen sit (the drafting table's footprint starts at its lightbox, y 95, three sprite rows above its top),
-and the legs reach down to y 130 on the floor. Two more caps (`PROP_MAX_W`): the reference shelf, a squat bookcase (31
-px wide at its slot's 38 px height, over the poster from x 116, which is drawn after it), is 11x13, the widest
-centred on its slot that stops at x 115; the sofa (41 px at full height) is 37, clear of the bin (x 232), which
-follows it in the loft's front row.
+and the legs reach down to y 130 on the floor. The sofa (41 px at full height) is capped at 37 (`PROP_MAX_W`), clear
+of the bin (x 232), which follows it in the loft's front row.
+
+Small props get a minimum readable size (fix round 1, a controller ruling): drawn in perspective at their flat
+footprint's height, the zabuton (14x7), the book stack (10x9) and the coffee machine (6x8) were specks, so
+`PROP_MIN_H` raises each to about twice that height, its width from its aspect, still bottom-aligned and centred on
+its floor or sill line, where the space is free: the zabuton 24x12 (its old width), the book stack 20x18 (clear of the
+bin), the coffee machine 11x14 on the sill (right edge x 191, clear of the trophies from x 194; top y 67, below the
+pane's cross bar at 63-64 and left of its middle bar at 203). The reference shelf, a squat bookcase (31x38 at its
+slot's full height), goes the other way: capped at 20 wide (`PROP_MAX_W`, so 24 tall) and flush with its slot's right
+edge (`PROP_ALIGN` 'right', `placeSprite`'s `align`), it stands in front of the bookshelf's right side (x 95-114,
+y 70-93), clear of the poster (x 116, drawn after it) and above the desk top (y 98).
 
 | Prop | Footprint (fallback) | Sprite | Box (image) x, y, w, h |
 |---|---|---|---|
@@ -491,12 +499,12 @@ follows it in the loft's front row.
 | `chair` | 134, 78, 20, 30 (`STOCK_CHAIR_FOOTPRINT`) | 19x30 | 134, 78, 19, 30 |
 | `tall-chair` | 132, 74, 24, 34 (`TALL_CHAIR_FOOTPRINT`) | 24x34 | 132, 74, 24, 34 |
 | `arm-lamp` | 156, 78, 14, 20 (`ARM_LAMP_FOOTPRINT`) | 14x20 (mirrored) | 156, 78, 14, 20 |
-| `reference-shelf` | 107, 56, 8, 38 (`REFERENCE_SHELF_FOOTPRINT`) | 11x13 (capped) | 105, 81, 11, 13 |
-| `coffee-machine` | 182, 73, 9, 8 (`COFFEE_MACHINE_FOOTPRINT`) | 6x8 | 183, 73, 6, 8 |
-| `zabuton` | 87, 161, 24, 7 (`FRONT_FOOTPRINT`) | 14x7 | 92, 161, 14, 7 |
+| `reference-shelf` | 107, 56, 8, 38 (`REFERENCE_SHELF_FOOTPRINT`) | 20x24 (capped, flush right) | 95, 70, 20, 24 |
+| `coffee-machine` | 182, 73, 9, 8 (`COFFEE_MACHINE_FOOTPRINT`) | 11x14 (minimum height) | 181, 67, 11, 14 |
+| `zabuton` | 87, 161, 24, 7 (`FRONT_FOOTPRINT`) | 24x12 (minimum height) | 87, 156, 24, 12 |
 | `boxes` | 148, 148, 22, 22 | 22x22 | 148, 148, 22, 22 |
 | `fern` | 71, 144, 16, 27 | 30x27 | 64, 144, 30, 27 |
-| `books` | 152, 158, 18, 9 | 10x9 | 156, 158, 10, 9 |
+| `books` | 152, 158, 18, 9 | 20x18 (minimum height) | 151, 149, 20, 18 |
 | `floor-lamp` | 64, 142, 12, 34 | 18x34 | 61, 142, 18, 34 |
 | `sofa` | 196, 150, 36, 26 | 37x23 (capped) | 195, 153, 37, 23 |
 | `bin` | 233, 154, 11, 12 | 13x12 | 232, 154, 13, 12 |
@@ -1293,8 +1301,11 @@ generated sprites (see "The furniture" under "Scene images"):
   stays at y 98 under the pages, the ink pot and the pen; at the footprint's height it would be 35 px wide under a
   58 px desk top. Its legs reach y 130 (the drafting table's 129), over the floor, and with three assistants its
   pedestal covers the right end of their bench (x 116-129), as the drawn desk already covers the third assistant.
-- The reference shelf sprite is capped at 11x13 (`PROP_MAX_W`), centred on its slot and clear of the poster; the sofa
-  at 37x23, clear of the bin.
+- The sofa sprite is capped at 37x23, clear of the bin.
+- Fix round 1 (controller ruling): small props get a minimum readable size, about twice their old height, where the
+  space is free (`PROP_MIN_H`: the zabuton 24x12, the book stack 20x18, the coffee machine 11x14 on the sill); the
+  reference shelf is 20x24, flush with its slot's right edge (`PROP_ALIGN`) in front of the bookshelf's right side,
+  clear of the poster and above the desk top. The fill counts do not change.
 - Two pipeline knobs, each used once: `flip` (the arm lamp) and a cutout's flood `tolerance` (the wooden chair, 40).
 - The assistants' bench stays code-drawn (its width follows the staff); the pen tablet and the other small desk
   pieces too.

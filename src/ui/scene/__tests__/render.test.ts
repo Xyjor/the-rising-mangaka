@@ -8,7 +8,7 @@ import { H, PROP_BOX, PROP_FOOTPRINT, SKY_LUT, W, render, skyColor } from '../re
 import type { Snapshot } from '../render'
 import { drawRoomShell } from '../roomArt'
 import { DOORWAY_BOX, DOOR_BOX, NO_EQUIPMENT } from '../studioArt'
-import { DESK_PROPS, NO_ART, PROP_SPRITE, ROOM_NIGHT_DIM, fitDesk, fitSprite, hangSprite, placeSprite, ready } from '../sceneArt'
+import { DESK_PROPS, NO_ART, PROP_ALIGN, PROP_MIN_H, PROP_SPRITE, ROOM_NIGHT_DIM, fitDesk, fitSprite, hangSprite, placeSprite, ready } from '../sceneArt'
 import type { SceneArt, ScenePropId } from '../sceneArt'
 import type { Season } from '../season'
 import { newActorTable } from '../actors'
@@ -748,6 +748,21 @@ describe('scene art (0.9.0 R1): generated images with the code-drawn look as the
     expect(fitSprite(2, fp, 50)).toEqual([40, 20])
   })
 
+  it('raises a small prop to its minimum readable height (fix round 1), its width still from its aspect', () => {
+    const fp = { x: 10, y: 20, w: 10, h: 8 }
+    expect(fitSprite(2, fp, Infinity, 12)).toEqual([24, 12])
+    expect(fitSprite(2, fp, Infinity, 6)).toEqual([16, 8])
+    expect(fitSprite(2, fp, 20, 12)).toEqual([20, 10])
+    expect(PROP_MIN_H).toEqual({ zabuton: 12, books: 18, 'coffee-machine': 14 })
+  })
+
+  it('right-aligns a sprite on its footprint where asked, still on its bottom row', () => {
+    const fp = { x: 10, y: 20, w: 10, h: 20 }
+    expect(placeSprite(fp, 16, 12, 'right')).toEqual({ x: 4, y: 28, w: 16, h: 12 })
+    expect(placeSprite(fp, 16, 12, 'centre')).toEqual(placeSprite(fp, 16, 12))
+    expect(PROP_ALIGN).toEqual({ 'reference-shelf': 'right' })
+  })
+
   it("sizes a desk sprite by its footprint's width instead, its height from its aspect, and hangs it from the footprint's top row", () => {
     const fp = { x: 10, y: 20, w: 30, h: 10 }
     expect(fitDesk(2, fp)).toEqual([30, 15])
@@ -769,8 +784,8 @@ describe('scene art (0.9.0 R1): generated images with the code-drawn look as the
   it("places each generated sprite by that rule: its box from PROP_SPRITE on PROP_FOOTPRINT, clear of what it must not hide", () => {
     const desk = (id: ScenePropId) => (DESK_PROPS as readonly ScenePropId[]).includes(id)
     for (const id of Object.keys(PROP_FOOTPRINT) as ScenePropId[]) {
-      const place = desk(id) ? hangSprite : placeSprite
-      expect(PROP_BOX[id], id).toEqual(place(PROP_FOOTPRINT[id], ...PROP_SPRITE[id]))
+      const box = desk(id) ? hangSprite(PROP_FOOTPRINT[id], ...PROP_SPRITE[id]) : placeSprite(PROP_FOOTPRINT[id], ...PROP_SPRITE[id], PROP_ALIGN[id])
+      expect(PROP_BOX[id], id).toEqual(box)
     }
     expect(PROP_BOX).toEqual({
       window: { x: 180, y: 46, w: 48, h: 36 },
@@ -785,12 +800,12 @@ describe('scene art (0.9.0 R1): generated images with the code-drawn look as the
       chair: { x: 134, y: 78, w: 19, h: 30 },
       'tall-chair': { x: 132, y: 74, w: 24, h: 34 },
       'arm-lamp': { x: 156, y: 78, w: 14, h: 20 },
-      'reference-shelf': { x: 105, y: 81, w: 11, h: 13 },
-      'coffee-machine': { x: 183, y: 73, w: 6, h: 8 },
-      zabuton: { x: 92, y: 161, w: 14, h: 7 },
+      'reference-shelf': { x: 95, y: 70, w: 20, h: 24 },
+      'coffee-machine': { x: 181, y: 67, w: 11, h: 14 },
+      zabuton: { x: 87, y: 156, w: 24, h: 12 },
       boxes: { x: 148, y: 148, w: 22, h: 22 },
       fern: { x: 64, y: 144, w: 30, h: 27 },
-      books: { x: 156, y: 158, w: 10, h: 9 },
+      books: { x: 151, y: 149, w: 20, h: 18 },
       'floor-lamp': { x: 61, y: 142, w: 18, h: 34 },
       sofa: { x: 195, y: 153, w: 37, h: 23 },
       bin: { x: 232, y: 154, w: 13, h: 12 },
@@ -815,6 +830,20 @@ describe('scene art (0.9.0 R1): generated images with the code-drawn look as the
     // 0.10.0 P1: the reference shelf stays clear of the poster (x 116, drawn after it); the sofa of the bin (x 232, drawn
     // after it); the desk top spans the pages (x 121) to the lamp's clamp (x 169)
     expect(right(PROP_BOX['reference-shelf'])).toBeLessThanOrEqual(116)
+    // fix round 1: the reference shelf stands in front of the bookshelf's right side, above the desk top (y 98)
+    expect(PROP_BOX['reference-shelf'].x).toBeGreaterThanOrEqual(PROP_BOX.bookshelf.x)
+    expect(PROP_BOX['reference-shelf'].y + PROP_BOX['reference-shelf'].h).toBeLessThanOrEqual(98)
+    // the coffee machine on the sill: clear of the trophies (x 194), the pane's middle bar (x 203) and its cross bar
+    // (y 63-64), above the sill (y 81)
+    const coffee = PROP_BOX['coffee-machine']
+    expect(right(coffee)).toBeLessThanOrEqual(194)
+    expect(coffee.y).toBeGreaterThan(64)
+    expect(coffee.y + coffee.h).toBe(81)
+    // the zabuton and the book stack stay inside the phone crop (x 24-296) and clear of the bin (x 232)
+    for (const id of ['zabuton', 'books'] as const) {
+      expect(PROP_BOX[id].x, id).toBeGreaterThanOrEqual(24)
+      expect(right(PROP_BOX[id]), id).toBeLessThanOrEqual(PROP_BOX.bin.x)
+    }
     expect(right(PROP_BOX.sofa)).toBeLessThanOrEqual(PROP_BOX.bin.x)
     expect(PROP_BOX.desk.x).toBeLessThanOrEqual(121)
     expect(right(PROP_BOX.desk)).toBeGreaterThanOrEqual(170)
