@@ -339,24 +339,23 @@ at `CAT_BED` (4 fills, drawn just before it).
   mangaka sheet, a side mangaka sheet, the editor and the cat, all in `art/raw/sprites/`) went through the same gate
   (`sprites-C2.png`: each candidate next to the hand-drawn frame it would replace, 8x at the actor's own spot on the
   apartment shell, the three outfits or three assistant looks, the real render in the scene at 4x, and every mood's
-  face and mark on the head-steady frames; `walk-C2.gif` and `walk-C2-strip.png` show the cycles in motion). Two
-  sets won and are drawn now. **The standing idle** (`MANGAKA_IDLE`, `sprite/mangaka-front-idle`): the front sheet's
-  body, cropped below its head, stretched to a 16x16 box (`fit`, `stretch`) on rows 16-31 under the grafted
-  `ANCHOR_HEAD`, three neck cells touched (`cells`), the collar and tie re-applied (`withCollar`), frame 1 its
-  `breathOf`. It reads as well as the hand-drawn body in all three outfits and the faces land as before, since the head
-  is the anchor (195 and 192 fills before, 167 and 166 now). **The assistants' doze** (`ASSISTANT_DOZE`,
-  `sprite/assistant-doze`): the front sheet's dozing cell fitted to a 20x23 box on the frame's last rows, the head down
-  on folded arms, eyes shut, eight cells touched (three stray specks, the right eye's shut line). It reads as asleep
-  more clearly than the hand-drawn head on a block (113 fills before, 100 now). Kept hand-drawn: the walk (the side
-  sheet's four steps all keep the legs apart, with no pass frame and no bob, so in motion it slides, and the side
-  facing contradicts the front-facing set); the seated pair (a front-facing floor pose whose red shoes sit beside the
-  desk in sit 0 and vanish in sit 1, blinking every 8 frames, with no arm to the page); the stretch (a side-view
-  one-arm reach) and the sip (a clear mug, but both turn the front idle to profile mid-cycle); the editor (the glasses
-  and hair snap into a mask on the idle, and the walk's three-quarter steps carry red specks and no shoes); and the cat
-  (at 12x8 each cell is a 5-7 column blob with no eye or ears). The losers' modules stay generated and validated in
-  `sprites.test` (frame rules, the seated pair's face rules, fills at most 1.25x the frame each would replace), imported
-  only by the test, so the bundle carries none of them. The stretch and sip keep the hand-drawn body, so the idle
-  cycle's body changes slightly for those 120 of 360 frames (the pocket line gives way to the shirt stripes).
+  face and mark on the head-steady frames; `walk-C2.gif` and `walk-C2-strip.png` show the cycles in motion). **The
+  one generated frame drawn is the assistants' doze** (`ASSISTANT_DOZE`, `sprite/assistant-doze`): the front sheet's
+  dozing cell fitted to a 20x23 box on the frame's last rows, the head down on folded arms, eyes shut, eight cells
+  touched (three stray specks, the right eye's shut line). It reads as asleep more clearly than the hand-drawn head
+  on a block (113 fills before, 100 now). Every other pose stays hand-drawn. The standing idle
+  (`sprite/mangaka-front-idle`: the front sheet's body stretched to a 16x16 box on rows 16-31 under the grafted
+  `ANCHOR_HEAD`, three neck cells touched, 167 and 166 fills against 195 and 192) was a near tie, and the controller
+  ruled it off: drawn, it would switch bodies mid-cycle against the hand-drawn stretch and sip, breaking one look per
+  pose set. The walk lost because the side sheet's four steps all keep the legs apart, with no pass frame and no bob,
+  so in motion it slides, and the side facing contradicts the front-facing set. The seated pair is a front-facing
+  floor pose whose red shoes sit beside the desk in sit 0 and vanish in sit 1, blinking every 8 frames, with no arm
+  to the page. The stretch is a side-view one-arm reach. The sip has a clear mug, but like the stretch it turns the
+  front idle to profile mid-cycle. On the editor, the glasses and hair snap into a mask on the idle, and the walk's
+  three-quarter steps carry red specks and no shoes. The cat, at 12x8, is a 5-7 column blob in every cell, with no
+  eye or ears. The losers' modules, the idle included, stay generated and validated in `sprites.test` (frame rules,
+  the idle's and the seated pair's face rules, fills at most 1.25x the frame each would replace). Only the test
+  imports them, so the bundle carries none.
 
 The frame sets: idle 2 frames (`frame/16 % 2`), walk 4 (`anim/100 % 4`), sit 2 (`frame/8 % 2` while working, frame 0
 otherwise), panic 2 (for 40 of every 240 frames while working on a late chapter, `Snapshot.late`), a 30x14 lying
@@ -408,9 +407,9 @@ The 0.10.0 props (P1) moved them to 521 and 928 (-25 each): the stock chair 4, t
 front row (the zabuton 4, the boxes 6, the bin 4) are sprites in both scenes (each contact shadow is still one fill,
 moved across its sprite; the bin's crumpled pages stay code-drawn); budgets 781.5 and 1392.
 The 0.11.0 generated frames (task C2) move none of the four: both reference scenes draw the mangaka and an assistant
-seated at frame 100, never the standing idle or the doze, so 673/1079 and 521/928 stay as they are (re-measured: the
-exact-count tests still pass). Where they do show, the generated frames cost fewer fills than the hand-drawn ones (the
-standing idle 28 and 26 fewer, the doze 13 fewer).
+seated at frame 100, never the doze (the one generated frame drawn), so 673/1079 and 521/928 stay as they are
+(re-measured: the exact-count tests still pass). Where it does show, the doze costs 13 fewer fills than the hand-drawn
+one.
 
 ### Art
 The live scene is code-drawn `fillRect` (`render.ts`, `roomArt.ts`, `studioArt.ts`, `sprites.ts`), and since 0.9.0 it

@@ -5,7 +5,6 @@
 import { LOOK_HAIRS, LOOK_HAIRS_SHADE, LOOK_SHIRTS, LOOK_SHIRTS_SHADE } from '../looks'
 import { ASSISTANT_DOZE_C2 } from './generated/assistant-doze'
 import { MANGAKA_SIT_GEN_1 } from './generated/mangaka-draw'
-import { MANGAKA_IDLE_C2 } from './generated/mangaka-front-idle'
 import { MANGAKA_IDLE_GEN } from './generated/mangaka-idle'
 import { MANGAKA_LIE_GEN } from './generated/mangaka-lie'
 import { MANGAKA_PANIC_GEN } from './generated/mangaka-panic'
@@ -15,7 +14,7 @@ import { MANGAKA_WALK_GEN_1 } from './generated/mangaka-walk-2'
 import { MANGAKA_WALK_GEN_2 } from './generated/mangaka-walk-3'
 import { MANGAKA_WALK_GEN_3 } from './generated/mangaka-walk-4'
 import type { Mood } from './mood'
-import { PAL, type SpriteMap } from './spriteCore'
+import { ANCHOR_HEAD, PAL, type SpriteMap } from './spriteCore'
 
 export { ANCHOR_HEAD, PAL, faceRules, frameRules } from './spriteCore'
 export type { SpriteMap } from './spriteCore'
@@ -61,15 +60,31 @@ export function breathOf(f: SpriteMap): SpriteMap {
   return ['.'.repeat(f[0].length), ...f.slice(0, 24), ...f.slice(25)]
 }
 
-const IDLE_0: SpriteMap = withCollar(MANGAKA_IDLE_C2)
+/** The standing anchor's body under ANCHOR_HEAD: the hoodie with its collar and tie, the trousers, the shoes. */
+const IDLE_BODY: SpriteMap = [
+  '......LJKKsssKKjL.......', // 16
+  '.....LJJJKRYRKJjjL......', // 17
+  '....LJJJJJRYRJJJjjL.....', // 18
+  '....LJJJJJWyWJJJjjL.....', // 19
+  '....LJJLJJRYRJJLjjL.....', // 20
+  '....LJJLJJWyWJJLjjL.....', // 21
+  '....LSSLJJRYRJJLSsL.....', // 22
+  '.....LLLJJJJJJJLLL......', // 23
+  '.......LjjjjjjjjL.......', // 24
+  '.......LTTTTTTTtL.......', // 25
+  '.......LTTTLTTTtL.......', // 26
+  '.......LTTTLTTTtL.......', // 27
+  '.......LTTTLTTttL.......', // 28
+  '.......LtttLttttL.......', // 29
+  '......LOOOLLOOOoL.......', // 30
+  '......LLLLLLLLLLL.......', // 31
+]
+const IDLE_0: SpriteMap = [...ANCHOR_HEAD, ...IDLE_BODY]
 
-/**
- * Standing, the style anchor: frame 0 is generated (task C2, art/manifest.json `sprite/mangaka-front-idle`: the front
- * sheet's body fitted to rows 16-31 under ANCHOR_HEAD, the neck cells touched, the collar and tie re-applied by
- * `withCollar`), frame 1 its breath (rows 0-23 a row lower, the hem tucked under, `breathOf`), 16 frames each. The
- * readability gate (sprites-C2.png) found it reads as well as the hand-drawn body it replaced (195 and 192 fills; now
- * 167 and 166).
- */
+/** Standing, the style anchor (frame 0: ANCHOR_HEAD over IDLE_BODY) and its breath (frame 1: rows 0-23 a row lower,
+ * the hem tucked under, `breathOf`), 16 frames each. Hand-drawn: task C2's generated idle (`sprite/mangaka-front-idle`)
+ * was a near tie and would have switched bodies mid-cycle against the hand-drawn stretch and sip, so it stays a
+ * candidate (sprites.test), not drawn. */
 export const MANGAKA_IDLE: readonly [SpriteMap, SpriteMap] = [IDLE_0, breathOf(IDLE_0)]
 
 /** How far each head-steady pose moves the head (the FACES overlay goes at rows 9-12 + headDy). stretch[1] is a row
@@ -927,8 +942,8 @@ export function pressOf(f: SpriteMap): SpriteMap {
  * and its breath, the four walk frames, the two seated frames with their collar, panic and its press, the bed pose.
  * Not drawn: the readability gate (sprites-C1.png) found most of them read worse at 24x32 than the hand-drawn frames,
  * so the scene never drew them; these stay validated (sprites.test) as the probe sheet's candidates. Task C2's
- * retry sheets replaced the standing idle and the assistant doze (above); its other candidates (the side walk,
- * stretch and sip, the front seated pair, the editor, the cat) lost the gate and are validated in sprites.test
+ * retry sheets replaced only the assistant doze (above); its other candidates (the front idle, the side walk,
+ * stretch and sip, the front seated pair, the editor, the cat) were kept off the scene and are validated in sprites.test
  * straight from their generated modules, never imported here.
  */
 export const GENERATED_MANGAKA = {

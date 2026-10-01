@@ -217,32 +217,28 @@ describe('the sprites', () => {
       [GENERATED_MANGAKA.lie, MANGAKA_LIE],
     ]
     for (const [gen, hand] of pairs) expect(runCount(gen)).toBeLessThanOrEqual(1.25 * runCount(hand))
-    // the hand-drawn idle (195 and 192 fills) is no longer drawn since task C2, so its counts are recorded
     expect(GENERATED_MANGAKA.idle.map(runCount)).toEqual([159, 156])
+    GENERATED_MANGAKA.idle.forEach((f, i) => expect(runCount(f)).toBeLessThanOrEqual(1.25 * runCount(MANGAKA_IDLE[i])))
     expect(pairs.map(([g, h]) => [runCount(g), runCount(h)])).toEqual([
       [144, 198], [139, 178], [137, 198], [122, 178], [198, 184], [197, 187], [210, 254],
       [205, 250], [48, 72],
     ])
   })
 
-  it('draws the task C2 readability gate winners: the generated standing idle and the assistant doze', () => {
-    // the idle: the front sheet's body fitted under the anchor head, the collar and tie re-applied, the breath derived
-    expect(MANGAKA_IDLE).toEqual([withCollar(MANGAKA_IDLE_C2), breathOf(withCollar(MANGAKA_IDLE_C2))])
-    expect(MANGAKA_IDLE_C2.slice(0, 16)).toEqual(ANCHOR_HEAD)
-    for (const f of MANGAKA_IDLE) expect(faceRules(f)).toEqual([])
-    // the neck under the chin with the collar points either side (art/manifest.json cells), the tie down the middle
-    expect([MANGAKA_IDLE[0][16].slice(8, 15), MANGAKA_IDLE[0][17][11], MANGAKA_IDLE[0][19][11]]).toEqual(['KKsssKK', 'Y', 'y'])
+  it('draws the task C2 readability gate winner, the generated assistant doze, and keeps the hand-drawn idle', () => {
     expect(ASSISTANT_DOZE).toEqual(ASSISTANT_DOZE_C2)
-    // fills against the hand-drawn frames they replace: idle 195 and 192, the doze 113 (task C2 report)
-    const hand = [195, 192, 113]
-    const gen = [...MANGAKA_IDLE, ASSISTANT_DOZE].map(runCount)
-    expect(gen).toEqual([167, 166, 100])
-    gen.forEach((g, i) => expect(g).toBeLessThanOrEqual(1.25 * hand[i]))
+    // fills against the hand-drawn doze it replaced (113, task C2 report)
+    expect(runCount(ASSISTANT_DOZE)).toBe(100)
+    expect(runCount(ASSISTANT_DOZE)).toBeLessThanOrEqual(1.25 * 113)
+    // the controller's ruling: the generated idle stays a candidate, the scene draws the hand-drawn standing frame
+    expect(MANGAKA_IDLE[0]).not.toEqual(withCollar(MANGAKA_IDLE_C2))
+    expect(MANGAKA_IDLE.map(runCount)).toEqual([195, 192])
   })
 
   it('validates every task C2 candidate the gate kept off the scene against the frame rules and the fill budget', () => {
     // [generated, the hand-drawn frame it would replace, w, h]
     const people: [SpriteMap, SpriteMap][] = [
+      [withCollar(MANGAKA_IDLE_C2), MANGAKA_IDLE[0]], [breathOf(withCollar(MANGAKA_IDLE_C2)), MANGAKA_IDLE[1]],
       [MANGAKA_WALK_C2_0, MANGAKA_WALK[0]], [MANGAKA_WALK_C2_1, MANGAKA_WALK[1]], [MANGAKA_WALK_C2_3, MANGAKA_WALK[2]],
       [MANGAKA_WALK_C2_4, MANGAKA_WALK[3]], [MANGAKA_WALK_C2_2, MANGAKA_WALK[0]],
       [withCollar(MANGAKA_SIT_C2_0), MANGAKA_SIT[0]], [withCollar(MANGAKA_SIT_C2_1), MANGAKA_SIT[1]],
@@ -256,8 +252,11 @@ describe('the sprites', () => {
     ]
     people.forEach(([g], i) => expect(frameRules(g), `person ${i}`).toEqual([]))
     cats.forEach(([g], i) => expect(frameRules(g, 12, 8), `cat ${i}`).toEqual([]))
-    // the seated candidates keep the anchor head, so they would take the FACES overlay
-    for (const f of [MANGAKA_SIT_C2_0, MANGAKA_SIT_C2_1]) expect(faceRules(withCollar(f))).toEqual([])
+    // the idle and seated candidates keep the anchor head, so they would take the FACES overlay
+    expect(MANGAKA_IDLE_C2.slice(0, 16)).toEqual(ANCHOR_HEAD)
+    for (const f of [MANGAKA_IDLE_C2, MANGAKA_SIT_C2_0, MANGAKA_SIT_C2_1]) expect(faceRules(withCollar(f))).toEqual([])
+    // the idle candidate's neck under the chin with the collar points either side (art/manifest.json cells)
+    expect(withCollar(MANGAKA_IDLE_C2)[16].slice(8, 15)).toBe('KKsssKK')
     for (const [g, h] of [...people, ...cats]) expect(runCount(g)).toBeLessThanOrEqual(1.25 * runCount(h))
   })
 })

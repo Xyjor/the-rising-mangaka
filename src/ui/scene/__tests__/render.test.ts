@@ -615,7 +615,7 @@ describe('the assistants, the wall clock and the cat (Task 2.5)', () => {
 })
 
 describe('outfits by level (Task 5, Decision 7)', () => {
-  // standing at MANGAKA_STAND (170, 81): the standing frame's row 19 col 6 'J' -> (170+6, 81+19) = (176, 100)
+  // standing at MANGAKA_STAND (170, 81): the anchor's row 19 col 6 'J' -> (170+6, 81+19) = (176, 100)
   it('dresses the standing mangaka in the outfit for their level', () => {
     const table = newActorTable()
     Object.assign(table.mangaka, { x: 170, y: 81, targetX: 170, targetY: 81, state: 'standing', goal: 'standing' })
