@@ -10,7 +10,7 @@
 import type { StudioTierId } from '../../sim'
 import { rawRect, shadow } from './paint'
 import type { Snapshot } from './render'
-import { NO_ART, PROP_SPRITE, placeSprite, ready } from './sceneArt'
+import { NO_ART, ready, spriteBox } from './sceneArt'
 import type { Footprint, SceneArt, ScenePropId } from './sceneArt'
 import { corkCards } from './story'
 
@@ -206,15 +206,19 @@ export const FRONT_FOOTPRINT: Record<FrontPropId, Footprint> = {
   bin: { x: 233, y: 154, w: 11, h: 12 },
 }
 
-/** Where each front-row sprite lands, by the 0.9.0 rule (render.ts `PROP_BOX` reads these). */
+/**
+ * Where each front-row sprite lands (render.ts `PROP_BOX` reads these): the 0.9.0 rule, bottom-aligned and centred,
+ * with the zabuton and the book stack raised to their minimum readable heights (sceneArt.ts `PROP_MIN_H`, already in
+ * their `PROP_SPRITE` sizes) and any `PROP_ALIGN` honoured through `spriteBox`.
+ */
 export const FRONT_BOX: Record<FrontPropId, Footprint> = {
-  zabuton: placeSprite(FRONT_FOOTPRINT.zabuton, ...PROP_SPRITE.zabuton),
-  boxes: placeSprite(FRONT_FOOTPRINT.boxes, ...PROP_SPRITE.boxes),
-  fern: placeSprite(FRONT_FOOTPRINT.fern, ...PROP_SPRITE.fern),
-  books: placeSprite(FRONT_FOOTPRINT.books, ...PROP_SPRITE.books),
-  'floor-lamp': placeSprite(FRONT_FOOTPRINT['floor-lamp'], ...PROP_SPRITE['floor-lamp']),
-  sofa: placeSprite(FRONT_FOOTPRINT.sofa, ...PROP_SPRITE.sofa),
-  bin: placeSprite(FRONT_FOOTPRINT.bin, ...PROP_SPRITE.bin),
+  zabuton: spriteBox('zabuton', FRONT_FOOTPRINT.zabuton),
+  boxes: spriteBox('boxes', FRONT_FOOTPRINT.boxes),
+  fern: spriteBox('fern', FRONT_FOOTPRINT.fern),
+  books: spriteBox('books', FRONT_FOOTPRINT.books),
+  'floor-lamp': spriteBox('floor-lamp', FRONT_FOOTPRINT['floor-lamp']),
+  sofa: spriteBox('sofa', FRONT_FOOTPRINT.sofa),
+  bin: spriteBox('bin', FRONT_FOOTPRINT.bin),
 }
 
 /**
@@ -343,14 +347,23 @@ export function drawCalendar(ctx: CanvasRenderingContext2D, s: Snapshot, frame: 
   }
 }
 
-/** Empty coffee cups on the floor under the desk's front (x 136-150, y 120-123): one each below 60, 40 and 20 stamina. */
-export function drawCups(ctx: CanvasRenderingContext2D, s: Snapshot) {
+/** Where the cups stand under a desk sprite: its knee hole is open floor from y 124 (the stock desk's rows 26-32, cols
+ * 19-45; the drafting table's from row 23), so the cups' rows 126-129 sit between its legs. */
+export const CUPS_UNDER_DESK_Y = 126
+
+/**
+ * Empty coffee cups on the floor under the desk's front (x 136-150, y 120-123): one each below 60, 40 and 20 stamina.
+ * With the desk's sprite ready (`deskImage`) they stand lower, at y 126-129, in the sprite's open knee hole, since
+ * rows 120-123 are its modesty panel there; same fills either way.
+ */
+export function drawCups(ctx: CanvasRenderingContext2D, s: Snapshot, deskImage = false) {
   const n = s.stamina < 20 ? 3 : s.stamina < 40 ? 2 : s.stamina < 60 ? 1 : 0
+  const y = deskImage ? CUPS_UNDER_DESK_Y : 120
   for (let i = 0; i < n; i++) {
     const x = 136 + i * 5
-    rawRect(ctx, x, 120, 3, 4, CUP)
-    rawRect(ctx, x, 120, 3, 1, COFFEE)
-    rawRect(ctx, x + 3, 121, 1, 2, CUP)
+    rawRect(ctx, x, y, 3, 4, CUP)
+    rawRect(ctx, x, y, 3, 1, COFFEE)
+    rawRect(ctx, x + 3, y + 1, 1, 2, CUP)
   }
 }
 

@@ -3015,7 +3015,13 @@
       435,
       682
     ],
-    "tolerance": 40
+    "tolerance": 40,
+    "holes": [
+      [
+        193,
+        254
+      ]
+    ]
   },
   {
     "id": "prop/tall-chair",

@@ -271,9 +271,13 @@ function rgbDist(r1: number, g1: number, b1: number, r2: number, g2: number, b2:
 /**
  * Flood-fills transparent starting from the four edges, over pixels whose colour is within `tolerance` (0-441.7,
  * the max possible RGB distance) of the top-left corner's colour. Only spreads through connected near-corner-colour
- * pixels, so a same-coloured subject that doesn't touch an edge survives.
+ * pixels, so a same-coloured subject that doesn't touch an edge survives. `holes` are extra seed points [x, y] for
+ * background walled off inside the subject (a chair's backrest opening), cleared by the same rule; a seed on a pixel
+ * that is not near the corner colour clears nothing.
  */
-export function floodTransparentFromEdges(img: RgbaImage, tolerance: number): RgbaImage {
+export function floodTransparentFromEdges(
+  img: RgbaImage, tolerance: number, holes: readonly (readonly [number, number])[] = [],
+): RgbaImage {
   const { width, height, data } = img
   const out = makeImage(width, height)
   out.data.set(data)
@@ -300,6 +304,7 @@ export function floodTransparentFromEdges(img: RgbaImage, tolerance: number): Rg
     seed(0, y)
     seed(width - 1, y)
   }
+  for (const [x, y] of holes) if (x >= 0 && y >= 0 && x < width && y < height) seed(x, y)
   while (stack.length > 0) {
     const idx = stack.pop() as number
     const x = idx % width

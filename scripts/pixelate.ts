@@ -73,6 +73,11 @@ interface ManifestEntry {
    * sheet drew a soft grey shadow under an object that the default leaves behind.
    */
   tolerance?: number
+  /**
+   * Seed points [x, y] (in the crop, after the flip if any) for background the cutout's edge flood cannot reach: an opening
+   * walled off inside the object, cleared to transparent with the same tolerance.
+   */
+  holes?: [number, number][]
   /** Mirror the crop left to right before anything else (an object the sheet drew facing the wrong way for its spot). */
   flip?: boolean
   sheet?: SheetSpec
@@ -124,7 +129,7 @@ async function processEntry(entry: ManifestEntry): Promise<{ outPath: string; co
   if (entry.flip) working = flipHorizontal(working)
 
   if (entry.cutout) {
-    working = floodTransparentFromEdges(working, entry.tolerance ?? FLOOD_TOLERANCE)
+    working = floodTransparentFromEdges(working, entry.tolerance ?? FLOOD_TOLERANCE, entry.holes)
     const bbox = alphaBoundingBox(working)
     if (bbox) {
       const [targetW, targetH] = entry.native

@@ -32,6 +32,7 @@ interface ManifestEntry {
   crop?: [number, number, number, number]
   seam?: { src: number; dst: number }
   tolerance?: number
+  holes?: [number, number][]
   flip?: boolean
   sheet?: { src: string }
 }
@@ -187,6 +188,11 @@ describe('art manifest', () => {
     // leans left over the page), each only where it is needed
     expect(manifest.filter((e) => e.tolerance !== undefined).map((e) => [e.id, e.tolerance])).toEqual([['prop/chair', 40]])
     expect(manifest.filter((e) => e.flip !== undefined).map((e) => [e.id, e.flip])).toEqual([['prop/arm-lamp', true]])
+    // and a hole seed for background walled off inside an object (the chair's backrest opening), inside its crop
+    expect(manifest.filter((e) => e.holes !== undefined).map((e) => [e.id, e.holes])).toEqual([['prop/chair', [[193, 254]]]])
+    for (const e of manifest.filter((x) => x.holes)) {
+      for (const [hx, hy] of e.holes!) expect(hx >= 0 && hy >= 0 && hx < e.crop![2] && hy < e.crop![3], e.id).toBe(true)
+    }
   })
 
   it('has no orphan PNGs under src/assets/art', () => {

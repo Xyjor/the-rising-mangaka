@@ -761,6 +761,11 @@ describe('scene art (0.9.0 R1): generated images with the code-drawn look as the
     expect(placeSprite(fp, 16, 12, 'right')).toEqual({ x: 4, y: 28, w: 16, h: 12 })
     expect(placeSprite(fp, 16, 12, 'centre')).toEqual(placeSprite(fp, 16, 12))
     expect(PROP_ALIGN).toEqual({ 'reference-shelf': 'right' })
+    // every listed alignment takes effect in the placement table: a right-aligned box ends on its footprint's right edge
+    for (const [id, align] of Object.entries(PROP_ALIGN) as [ScenePropId, string][]) {
+      expect(align, id).toBe('right')
+      expect(PROP_BOX[id].x + PROP_BOX[id].w, id).toBe(PROP_FOOTPRINT[id].x + PROP_FOOTPRINT[id].w)
+    }
   })
 
   it("sizes a desk sprite by its footprint's width instead, its height from its aspect, and hangs it from the footprint's top row", () => {
@@ -1006,6 +1011,31 @@ describe('furniture, equipment and the front row as sprites (0.10.0 P1)', () => 
     // the drafting table owned but its image still loading: the old shadow, as today
     const loading = { ...fakeSceneArt(), prop: { ...fakeSceneArt().prop, 'drafting-table': null } }
     expect(shadowUnder(paint({ owned: { ...NONE, 'drafting-table': true } }, 0.3, loading).log, { x: 116, y: 118, w: 58, h: 0 })).toBe(true)
+  })
+
+  it("stands the stamina cups in the desk sprite's open knee hole (y 126) once it is ready, else where they were (y 120)", () => {
+    const CUP = '#f2efe6'
+    const cups = (log: readonly FillCall[]) => log.filter((f) => (f.style === CUP || f.style === '#5a3618') && f.x >= 136 && f.x <= 150 && f.y >= 120 && f.y <= 130)
+    const tables: [string, Partial<Snapshot>][] = [['desk', {}], ['drafting-table', { owned: { ...NONE, 'drafting-table': true } }]]
+    for (const [desk, over] of tables) {
+      const low = { ...over, stamina: 10 }
+      const plain = cups(paint(low, 0.3, NO_ART).log)
+      const art = cups(paint(low).log)
+      expect(plain, desk).toHaveLength(9)
+      expect(art, desk).toHaveLength(9)
+      expect(Math.min(...plain.map((f) => f.y)), desk).toBe(120)
+      expect(art.map((f) => f.y - 6), desk).toEqual(plain.map((f) => f.y))
+      // between the legs: inside the sprite's columns, below its apron, above its feet
+      const b = PROP_BOX[desk as ScenePropId]
+      for (const f of art) {
+        expect(f.x >= b.x + 19 && f.x + f.w <= b.x + 46, `${desk} ${JSON.stringify(f)}`).toBe(true)
+        expect(f.y + f.h <= b.y + b.h, `${desk} ${JSON.stringify(f)}`).toBe(true)
+      }
+    }
+    // the drafting table owned but its image still loading: the cups stay at y 120
+    const loading = { ...fakeSceneArt(), prop: { ...fakeSceneArt().prop, 'drafting-table': null } }
+    const stay = cups(paint({ owned: { ...NONE, 'drafting-table': true }, stamina: 10 }, 0.3, loading).log)
+    expect(Math.min(...stay.map((f) => f.y))).toBe(120)
   })
 
   it('keeps the crumpled pages code-drawn, above the bin sprite, while drawing', () => {

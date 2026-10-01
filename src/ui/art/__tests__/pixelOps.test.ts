@@ -202,6 +202,28 @@ describe('floodTransparentFromEdges', () => {
     const centre = (2 * 5 + 2) * 4
     expect(out.data[centre + 3]).toBe(255)
   })
+
+  it('also clears an enclosed background patch from a hole seed, and ignores a seed on the subject', () => {
+    const img = makeImage(7, 5)
+    fill(img, 255, 255, 255)
+    // a black ring (cols 1-5, rows 1-3) around a two-pixel white hole (cols 2-3, row 2) and one black pixel (col 4)
+    for (let x = 1; x <= 5; x++) {
+      setPixel(img, x, 1, 0, 0, 0)
+      setPixel(img, x, 3, 0, 0, 0)
+    }
+    setPixel(img, 1, 2, 0, 0, 0)
+    setPixel(img, 5, 2, 0, 0, 0)
+    setPixel(img, 4, 2, 0, 0, 0)
+    const alpha = (out: ReturnType<typeof makeImage>, x: number, y: number) => out.data[(y * 7 + x) * 4 + 3]
+    const out = floodTransparentFromEdges(img, 10, [[2, 2], [4, 2]])
+    expect(alpha(out, 2, 2)).toBe(0)
+    expect(alpha(out, 3, 2)).toBe(0)
+    // the seed on a subject pixel (far from the corner colour) clears nothing; the ring stays
+    expect(alpha(out, 4, 2)).toBe(255)
+    expect(alpha(out, 1, 1)).toBe(255)
+    // the outside is cleared as before
+    expect(alpha(out, 0, 0)).toBe(0)
+  })
 })
 
 describe('alphaBoundingBox', () => {

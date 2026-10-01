@@ -13,7 +13,7 @@
 import type { EquipmentId, StudioTierId } from '../../sim'
 import { rawRect, rect } from './paint'
 import type { Snapshot } from './render'
-import { PROP_ALIGN, PROP_SPRITE, hangSprite, placeSprite } from './sceneArt'
+import { PROP_SPRITE, hangSprite, spriteBox } from './sceneArt'
 import type { Fallback, Footprint, ScenePropId } from './sceneArt'
 
 /** One flag per piece of equipment: studioLook's owned list as flags, set when it changes, never walked per frame. */
@@ -99,8 +99,8 @@ export const DOOR_FOOTPRINT: Footprint = { x: 258, y: 56, w: 17, h: 58 }
 export const DOORWAY_FOOTPRINT: Footprint = DOOR_FOOTPRINT
 
 /** Where the door's and the doorway's generated sprites land (render.ts `PROP_BOX` reads these): canvas x 250-282. */
-export const DOOR_BOX: Footprint = placeSprite(DOOR_FOOTPRINT, ...PROP_SPRITE.door)
-export const DOORWAY_BOX: Footprint = placeSprite(DOORWAY_FOOTPRINT, ...PROP_SPRITE.doorway)
+export const DOOR_BOX: Footprint = spriteBox('door', DOOR_FOOTPRINT)
+export const DOORWAY_BOX: Footprint = spriteBox('doorway', DOORWAY_FOOTPRINT)
 
 /** The apartment's plain front door in the right wall (canvas x 258-274, y 56-113): two panels and a brass knob. */
 function plainDoor(ctx: CanvasRenderingContext2D) {
@@ -229,12 +229,10 @@ export const TALL_CHAIR_FOOTPRINT: Footprint = { x: 132, y: 74, w: 24, h: 34 }
 export const DRAFTING_TABLE_FOOTPRINT: Footprint = { x: 108, y: 95, w: 68, h: 23 }
 
 /** Where each piece's generated sprite lands (render.ts `PROP_BOX` reads these; the drafting table hangs as a desk). */
-export const COFFEE_MACHINE_BOX: Footprint = placeSprite(COFFEE_MACHINE_FOOTPRINT, ...PROP_SPRITE['coffee-machine'])
-export const ARM_LAMP_BOX: Footprint = placeSprite(ARM_LAMP_FOOTPRINT, ...PROP_SPRITE['arm-lamp'])
-export const REFERENCE_SHELF_BOX: Footprint = placeSprite(
-  REFERENCE_SHELF_FOOTPRINT, ...PROP_SPRITE['reference-shelf'], PROP_ALIGN['reference-shelf'],
-)
-export const TALL_CHAIR_BOX: Footprint = placeSprite(TALL_CHAIR_FOOTPRINT, ...PROP_SPRITE['tall-chair'])
+export const COFFEE_MACHINE_BOX: Footprint = spriteBox('coffee-machine', COFFEE_MACHINE_FOOTPRINT)
+export const ARM_LAMP_BOX: Footprint = spriteBox('arm-lamp', ARM_LAMP_FOOTPRINT)
+export const REFERENCE_SHELF_BOX: Footprint = spriteBox('reference-shelf', REFERENCE_SHELF_FOOTPRINT)
+export const TALL_CHAIR_BOX: Footprint = spriteBox('tall-chair', TALL_CHAIR_FOOTPRINT)
 export const DRAFTING_TABLE_BOX: Footprint = hangSprite(DRAFTING_TABLE_FOOTPRINT, ...PROP_SPRITE['drafting-table'])
 
 /**

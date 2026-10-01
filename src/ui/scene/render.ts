@@ -27,7 +27,7 @@ import type { Owned } from './studioArt'
 import {
   FRONT_BOX, FRONT_FOOTPRINT, TIER_FRONT, drawAmbient, drawCalendar, drawCorkboard, drawCups, drawFanLetters, drawRoomShell, drawSeriesPoster,
 } from './roomArt'
-import { NO_ART, PROP_SPRITE, ROOM_NIGHT_DIM, drawProp, hangSprite, placeSprite, ready } from './sceneArt'
+import { NO_ART, PROP_SPRITE, ROOM_NIGHT_DIM, drawProp, hangSprite, ready, spriteBox } from './sceneArt'
 import type { Fallback, Footprint, SceneArt, ScenePropId } from './sceneArt'
 import type { StoryLook } from './story'
 
@@ -295,23 +295,23 @@ export const PROP_FOOTPRINT: Record<ScenePropId, Footprint> = {
 
 /**
  * Where each prop's generated sprite lands (canvas space): its native size (sceneArt.ts `PROP_SPRITE`, under
- * `PROP_MAX_W` and `PROP_MIN_H`) bottom-aligned and centred on its footprint (`placeSprite`, or flush right where
+ * `PROP_MAX_W` and `PROP_MIN_H`) bottom-aligned and centred on its footprint (`spriteBox`, or flush right where
  * `PROP_ALIGN` says), but a desk, which hangs from its footprint's top row (`hangSprite`, so
  * the tabletop stays at y 98). The code-drawn fallback keeps painting inside `PROP_FOOTPRINT`. The one table of where
  * every sprite goes: the equipment's and the front row's boxes come from studioArt.ts and roomArt.ts, which draw with
  * them.
  */
 export const PROP_BOX: Record<ScenePropId, Footprint> = {
-  window: placeSprite(WINDOW_FOOTPRINT, ...PROP_SPRITE.window),
+  window: spriteBox('window', WINDOW_FOOTPRINT),
   door: DOOR_BOX,
   doorway: DOORWAY_BOX,
-  kitchenette: placeSprite(KITCHENETTE_FOOTPRINT, ...PROP_SPRITE.kitchenette),
-  bookshelf: placeSprite(BOOKSHELF_FOOTPRINT, ...PROP_SPRITE.bookshelf),
-  bed: placeSprite(BED_FOOTPRINT, ...PROP_SPRITE.bed),
-  poster: placeSprite(POSTER_FOOTPRINT, ...PROP_SPRITE.poster),
+  kitchenette: spriteBox('kitchenette', KITCHENETTE_FOOTPRINT),
+  bookshelf: spriteBox('bookshelf', BOOKSHELF_FOOTPRINT),
+  bed: spriteBox('bed', BED_FOOTPRINT),
+  poster: spriteBox('poster', POSTER_FOOTPRINT),
   desk: hangSprite(DESK_FOOTPRINT, ...PROP_SPRITE.desk),
   'drafting-table': DRAFTING_TABLE_BOX,
-  chair: placeSprite(STOCK_CHAIR_FOOTPRINT, ...PROP_SPRITE.chair),
+  chair: spriteBox('chair', STOCK_CHAIR_FOOTPRINT),
   'tall-chair': TALL_CHAIR_BOX,
   'arm-lamp': ARM_LAMP_BOX,
   'reference-shelf': REFERENCE_SHELF_BOX,
@@ -557,7 +557,7 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
   rect(ctx, ink, 58, 4, 4, '#1b1b1b'); rect(ctx, ink + 1, 57, 2, 1, '#1b1b1b')
   rect(ctx, 76, 58, 5, 4, '#fff'); rect(ctx, 81, 59, 1, 2, '#fff'); if (working) { const st = Math.floor(frame / 10) % 2; rect(ctx, 77 + st, 55, 1, 2, '#d9d3c5') }
   if (s.owned.tablet) EQUIPMENT_ART.tablet(ctx, s, frame, night)
-  drawCups(ctx, s)
+  drawCups(ctx, s, ready(art.prop[deskId]))
   if (absent) { rect(ctx, 96, 58, 8, 5, '#fff7c2'); rect(ctx, 97, 59, 6, 1, '#b8b2a5'); rect(ctx, 97, 61, 4, 1, '#b8b2a5') }
 
   // the mangaka in front of the desk (standing, walking or in bed), then the editor on a visit

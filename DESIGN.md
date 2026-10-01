@@ -379,7 +379,8 @@ illustration, and double as reference art the hand-painted sprites get redrawn t
 seed, and recorded as one entry in `art/manifest.json`: id, model, resolution, seed, steps, shift and the exact
 prompt, plus how the pipeline should treat it (`native` size, `sample` mode, whether it needs a `cutout` or an
 `outline`, an optional `colors` cap, and an optional `crop` or sheet `cell` for a multi-pose sheet; since 0.10.0 an
-optional `flip`, which mirrors the crop before anything else, and a cutout's flood `tolerance`, 24 when absent). The raw generated
+optional `flip`, which mirrors the crop before anything else, a cutout's flood `tolerance`, 24 when absent, and
+`holes`, seed points in the crop for background walled off inside the object, cleared by the same flood). The raw generated
 file is committed under `art/raw/<id>.webp` (or the sheet's own name) rather than treated as disposable, because the
 Space's model or sampler can change and a generation is not reproducible from the manifest alone.
 
@@ -511,7 +512,10 @@ y 70-93), clear of the poster (x 116, drawn after it) and above the desk top (y 
 
 Once a sprite is ready, the pieces keyed to it follow (same fill counts): the desk's contact shadow lies under its
 sprite's feet (116, 131, 58; the drafting table's 108, 130, 68) instead of the drawn desk's (116, 118, 58); each
-front-row piece's shadow spans its sprite's columns under its bottom row; and the owned arm lamp's lit bulb sits in the
+front-row piece's shadow spans its sprite's columns under its bottom row; the stamina cups (`drawCups`, told by
+render whether the standing desk's sprite is ready) move from y 120-123, which is the sprite's modesty panel, down to
+y 126-129 (`CUPS_UNDER_DESK_Y`), on the open floor between its legs (the stock desk's knee hole is clear from y 124, the
+drafting table's from y 118); and the owned arm lamp's lit bulb sits in the
 sprite's shade opening (157, 83, 5x1, against the drawn lamp's 158, 83, 4x1), its glow below unchanged, since the
 mirrored sprite's shade lands where the drawn one is. The sprites are 16-colour outlined cutouts from three
 Higgsfield sheets (2026-10-01, prompts verbatim in the manifest): `props/desk-set.png` (job dd602d7c: the desk, the
@@ -520,8 +524,10 @@ and unused), `props/floor-set.png` (job 497767e8: the zabuton, the boxes, the fe
 lamp, the left sofa and the bin; its coffee machine sits on a sofa and is unused) and `props/chair-coffee.png` (job
 81612505: the wooden chair and the coffee machine). Crops are each object's `--measure` box plus a 2 px margin. The
 arm lamp is mirrored (`flip`) so its shade leans left over the page, as the drawn one does; the wooden chair's flood
-`tolerance` is 40, since the sheet drew a soft grey floor shadow between its legs that 24 leaves behind (the grey
-inside its backrest's opening is enclosed and stays: the seated mangaka covers it).
+`tolerance` is 40, since the sheet drew a soft grey floor shadow between its legs that 24 leaves behind, and its
+backrest's opening, walled off from the edges, is cleared by a `holes` seed (193, 254 in the crop), so the wall shows
+through it whenever the mangaka is off the chair. Every non-desk box goes through `spriteBox` (its `PROP_SPRITE`
+size, placed as `PROP_ALIGN` says).
 Once the door's or the doorway's image is ready, two code-drawn pieces follow it (`drawEntrance`, `drawStudioLights`,
 told by render whether it is ready; same fill counts): the doormat spans the sprite (x 250-282, its dark inner strip
 2 px in), and the doorway's night halo and spill light the noren sprite's opening (halo 255,87,23,27 taking in the
@@ -1306,7 +1312,10 @@ generated sprites (see "The furniture" under "Scene images"):
   space is free (`PROP_MIN_H`: the zabuton 24x12, the book stack 20x18, the coffee machine 11x14 on the sill); the
   reference shelf is 20x24, flush with its slot's right edge (`PROP_ALIGN`) in front of the bookshelf's right side,
   clear of the poster and above the desk top. The fill counts do not change.
-- Two pipeline knobs, each used once: `flip` (the arm lamp) and a cutout's flood `tolerance` (the wooden chair, 40).
+- Three pipeline knobs, each used once: `flip` (the arm lamp), a cutout's flood `tolerance` (the wooden chair, 40)
+  and `holes` (the chair's backrest opening).
+- Review fix: with a desk sprite ready the stamina cups stand at y 126-129, between its legs, instead of over its
+  modesty panel (same fills).
 - The assistants' bench stays code-drawn (its width follows the staff); the pen tablet and the other small desk
   pieces too.
 - Art baselines 546/953 move to 521/928 (budgets 781.5 and 1392); 673/1079 are unchanged.

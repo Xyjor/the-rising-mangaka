@@ -137,6 +137,15 @@ export interface SceneArt {
   prop: Partial<Record<ScenePropId, CanvasImageSource | null>>
 }
 
+/**
+ * Where prop `id`'s sprite lands on `footprint` by the rule: its `PROP_SPRITE` size, bottom-aligned, placed as
+ * `PROP_ALIGN` says (centred unless listed). Every non-desk box goes through here, so an alignment can never be
+ * listed without taking effect.
+ */
+export function spriteBox(id: ScenePropId, footprint: Footprint): Footprint {
+  return placeSprite(footprint, ...PROP_SPRITE[id], PROP_ALIGN[id])
+}
+
 /** No generated art: every piece code-drawn, today's scene exactly. */
 export const NO_ART: SceneArt = {
   room: { apartment: null, flat: null, loft: null },
