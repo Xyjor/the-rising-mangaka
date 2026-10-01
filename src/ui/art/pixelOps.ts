@@ -536,3 +536,132 @@ export function flipHorizontal(src: RgbaImage): RgbaImage {
   }
   return out
 }
+
+// --- The `--sprite` mode: a generated pose cell becomes a string-map frame (src/ui/scene/sprites.ts's format). ---
+
+/**
+ * Pads a cutout (already trimmed to its alpha box) with transparency out to the frame's aspect (frameW / frameH):
+ * a too-narrow subject is widened and centred horizontally (the extra column, when odd, on the right); a too-wide one
+ * is heightened with every added row on top, so the feet stay on the last row once it is downsampled.
+ */
+export function padBottomCentred(img: RgbaImage, frameW: number, frameH: number): RgbaImage {
+  const w = Math.max(img.width, Math.round((img.height * frameW) / frameH))
+  const h = Math.max(img.height, Math.round((img.width * frameH) / frameW))
+  const out = makeImage(w, h)
+  const ox = Math.floor((w - img.width) / 2)
+  const oy = h - img.height
+  for (let y = 0; y < img.height; y++) {
+    out.data.set(img.data.subarray(y * img.width * 4, (y + 1) * img.width * 4), ((oy + y) * w + ox) * 4)
+  }
+  return out
+}
+
+/**
+ * Snaps every opaque pixel to the nearest (OKLab) colour among `keys`' PAL colours and returns the frame as string-map
+ * rows ('.' where transparent). Only the listed keys can come out; PAL repeats some hex values (the collar K is the
+ * hoodie J), so on a tie the first listed key wins.
+ */
+export function snapToKeys(img: RgbaImage, keys: string, pal: Record<string, string>): string[] {
+  for (const k of keys) if (!(k in pal)) throw new Error(`snapToKeys: key ${k} is not in the palette`)
+  const lab = toOklabPalette([...keys].map((k) => pal[k]))
+  const rows: string[] = []
+  for (let y = 0; y < img.height; y++) {
+    let row = ''
+    for (let x = 0; x < img.width; x++) {
+      const i = (y * img.width + x) * 4
+      row += img.data[i + 3] === 0 ? '.' : keys[nearestPaletteIndex(img.data[i], img.data[i + 1], img.data[i + 2], lab)]
+    }
+    rows.push(row)
+  }
+  return rows
+}
+
+/** Swaps each key of `from` for the key at the same index of `to`, on rows r0 to r1 inclusive only. */
+export function remapRows(rows: readonly string[], [r0, r1]: readonly [number, number], from: string, to: string): string[] {
+  return rows.map((row, r) =>
+    r < r0 || r > r1 ? row : [...row].map((ch) => { const i = from.indexOf(ch); return i < 0 ? ch : to[i] }).join(''))
+}
+
+const filled = (rows: readonly string[], r: number, c: number) =>
+  r >= 0 && r < rows.length && c >= 0 && c < rows[r].length && rows[r][c] !== '.'
+
+/** The 1px outline: every filled cell 4-adjacent to a clear cell or the frame's edge becomes L. */
+export function outlineToL(rows: readonly string[]): string[] {
+  return rows.map((row, r) => [...row].map((ch, c) => {
+    if (ch === '.') return ch
+    const edge = !filled(rows, r - 1, c) || !filled(rows, r + 1, c) || !filled(rows, r, c - 1) || !filled(rows, r, c + 1)
+    return edge ? 'L' : ch
+  }).join(''))
+}
+
+/** Closes each row's outline (frameRules): the first and the last filled cell of every row become L. */
+export function closeOutline(rows: readonly string[]): string[] {
+  return rows.map((row) => {
+    const first = row.search(/[^.]/)
+    if (first < 0) return row
+    let last = row.length - 1
+    while (row[last] === '.') last--
+    const cells = [...row]
+    cells[first] = 'L'
+    cells[last] = 'L'
+    return cells.join('')
+  })
+}
+
+/**
+ * Clears single-cell flecks the downsample leaves (each one is a fill of its own): a cell, never L, that is not on the
+ * frame's edge takes its neighbours' key when all four agree, or when its left and right neighbours agree on a key
+ * that is not clear and not L (a fleck inside a horizontal run). Reads the input only, so one pass is order-free.
+ */
+export function despeckleGrid(rows: readonly string[]): string[] {
+  return rows.map((row, r) => [...row].map((ch, c) => {
+    if (ch === '.' || ch === 'L' || r === 0 || c === 0 || r === rows.length - 1 || c === row.length - 1) return ch
+    const left = row[c - 1]
+    const right = row[c + 1]
+    if (left === right && left !== ch && left !== '.' && left !== 'L') return left
+    const up = rows[r - 1][c]
+    if (up === left && up === right && up === rows[r + 1][c] && up !== '.') return up
+    return ch
+  }).join(''))
+}
+
+/** Replaces the frame's first rows with `head` (the anchor head graft), every row the same width. */
+export function graftRows(rows: readonly string[], head: readonly string[]): string[] {
+  if (head.some((h, i) => h.length !== (rows[i] ?? '').length)) throw new Error('graftRows: the head is not the frame width')
+  return [...head, ...rows.slice(head.length)]
+}
+
+/**
+ * The manifest's touched cells, `[row, col, key]`, set after the outline and any graft: a detail the downsample cannot
+ * keep (a one-pixel eye), recorded in the manifest so regeneration reproduces it rather than a hand edit to the output.
+ */
+export function setCells(rows: readonly string[], cells: readonly (readonly [number, number, string])[]): string[] {
+  const out = rows.map((row) => [...row])
+  for (const [r, c, key] of cells) {
+    if (key.length !== 1 || r < 0 || r >= out.length || c < 0 || c >= out[r].length) {
+      throw new Error(`setCells: [${r}, ${c}, ${key}] is not one key inside the frame`)
+    }
+    out[r][c] = key
+  }
+  return out.map((row) => row.join(''))
+}
+
+/** How many fills drawSprite issues for a frame: one per horizontal run of one non-clear key. */
+export function runCount(rows: readonly string[]): number {
+  let n = 0
+  for (const row of rows) for (let c = 0; c < row.length; c++) if (row[c] !== '.' && row[c] !== row[c - 1]) n++
+  return n
+}
+
+/** The TS module `--sprite` writes to src/ui/scene/generated/: a header, any notes, then the frame as string[]. */
+export function spriteModule(id: string, name: string, rows: readonly string[], notes: readonly string[] = []): string {
+  return [
+    `// Generated by \`npm run art -- ${id}\` (scripts/pixelate.ts --sprite mode) from art/manifest.json.`,
+    '// Never edit by hand: change the manifest entry or the raw sheet and regenerate.',
+    ...notes.map((n) => `// ${n}`),
+    `export const ${name}: string[] = [`,
+    ...rows.map((row, i) => `  '${row}', // ${i}`),
+    ']',
+    '',
+  ].join('\n')
+}
