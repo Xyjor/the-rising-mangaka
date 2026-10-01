@@ -103,7 +103,8 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   palette (uppercase base, lowercase shade, `L` outline), the 24×32 chibi string-map frames (head rows 0-15, body
   16-31), the run-length `drawSprite`, `frameRules` (closed outline, feet on the last row, every key in the palette),
   `faceRules` (the FACES window rows 9-12 cols 4-17 holds only face keys, the mark slot clear, the head inside the
-  avatar crop), `ANCHOR_HEAD` (the hand-drawn head the avatar draws and the `--sprite` graft uses),
+  avatar crop; it, `frameRules`, `PAL` and `ANCHOR_HEAD` live in the import-free leaf `spriteCore.ts`, re-exported, so
+  `npm run art` never loads sprites.ts), `ANCHOR_HEAD` (the hand-drawn head the avatar draws and the `--sprite` graft uses),
   `GENERATED_MANGAKA` (the probe sheet's frames from `src/ui/scene/generated/*.ts`, written by `npm run art` and never
   hand-edited; validated but not drawn: task C1's readability gate kept every hand-drawn pose, see DESIGN.md "The
   sprites"), `FACES`/`MARKS` (the mood overlay and its mark above the head, drawn by `drawMood`) and `outfitOf`/`OUTFIT_PALS`

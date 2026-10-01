@@ -3,35 +3,20 @@
 // colour in PAL (uppercase the base, lowercase its shade; the light comes from the top left). Every 24x32 frame passes
 // `frameRules` (sprites.test.ts). Facing left; drawSprite mirrors a frame to face right.
 import { LOOK_HAIRS, LOOK_HAIRS_SHADE, LOOK_SHIRTS, LOOK_SHIRTS_SHADE } from '../looks'
-import type { Mood } from './mood'
+import { MANGAKA_SIT_GEN_1 } from './generated/mangaka-draw'
 import { MANGAKA_IDLE_GEN } from './generated/mangaka-idle'
+import { MANGAKA_LIE_GEN } from './generated/mangaka-lie'
+import { MANGAKA_PANIC_GEN } from './generated/mangaka-panic'
+import { MANGAKA_SIT_GEN_0 } from './generated/mangaka-sit'
 import { MANGAKA_WALK_GEN_0 } from './generated/mangaka-walk-1'
 import { MANGAKA_WALK_GEN_1 } from './generated/mangaka-walk-2'
 import { MANGAKA_WALK_GEN_2 } from './generated/mangaka-walk-3'
 import { MANGAKA_WALK_GEN_3 } from './generated/mangaka-walk-4'
-import { MANGAKA_SIT_GEN_0 } from './generated/mangaka-sit'
-import { MANGAKA_SIT_GEN_1 } from './generated/mangaka-draw'
-import { MANGAKA_PANIC_GEN } from './generated/mangaka-panic'
-import { MANGAKA_LIE_GEN } from './generated/mangaka-lie'
+import type { Mood } from './mood'
+import { ANCHOR_HEAD, PAL, type SpriteMap } from './spriteCore'
 
-export type SpriteMap = readonly string[]
-
-export const PAL: Record<string, string> = {
-  L: '#1c1a26',
-  H: '#2b2140', h: '#1d1630',
-  S: '#f4cfa5', s: '#dba57d',
-  E: '#1b1b1b', W: '#f6f6f6', M: '#c0392b', B: '#e8a0a0',
-  R: '#3b6fd6', r: '#2a52a6',
-  J: '#6f7a8c', j: '#525c6b',
-  T: '#2c2c3a', t: '#1f1f2a',
-  O: '#c0392b', o: '#8e2a20',
-  G: '#5b6270', g: '#454a55', N: '#c0392b', P: '#3b3b45',
-  F: '#6d4c33', f: '#4e3622',
-  C: '#e39a4a', c: '#c67d33', Q: '#f0ead6',
-  // the collar (K) and tie (Y, its shade y) on the idle and seated frames: in the hoodie (and on the assistants) they
-  // keep the colours of the cells they replaced (the hoodie J, the shirt's W and R stripes), so nothing changes there
-  K: '#6f7a8c', Y: '#f6f6f6', y: '#3b6fd6',
-}
+export { ANCHOR_HEAD, PAL, faceRules, frameRules } from './spriteCore'
+export type { SpriteMap } from './spriteCore'
 
 /** One palette per assistant look (look 0 is the mangaka's colours), built once so render allocates nothing. */
 export const ASSISTANT_PALS: Record<string, string>[] = LOOK_SHIRTS.map((_, i) => ({
@@ -56,101 +41,30 @@ export const OUTFIT_PALS: Record<Outfit, Record<string, string>> = {
   blazer: { ...PAL, J: '#2e3a78', j: '#222b5c', K: '#f6f6f6', Y: '#c0392b', y: '#8e2a20' },
 }
 
-/**
- * The hand-drawn anchor head (rows 0-15 of the original standing frame): the staff portrait (`SpriteAvatar`) draws it,
- * and the `--sprite` pipeline grafts it onto a generated frame whose own head fails `faceRules` (manifest
- * `graft: "anchor-head"`), so the FACES overlay and the mark always land where they were drawn for.
- */
-export const ANCHOR_HEAD: SpriteMap = [
-  '......LLLLLLLLLL........', // 0
-  '....LLHHHHHHHHHhLL......', // 1
-  '...LHHHHHHHHHHHHhhL.....', // 2
-  '..LHHHHHHHHHHHHHHhhL....', // 3
-  '..LHHHHHHHHHHHHHHhhL....', // 4
-  '..LHHHHHHHHHHHHHHhhL....', // 5
-  '..LHHHSHHHHSHHHHHhhL....', // 6
-  '..LHSSSSSSSSSSSSSShL....', // 7
-  '..LHSSSSSSSSSSSSSSsL....', // 8
-  '..LHSSEESSSSSSEESSsL....', // 9
-  '..LHSSEWSSSSSSEWSSsL....', // 10
-  '..LHSSEESSSSSSEESSsL....', // 11
-  '..LSBBSSSSMMSSSSBBsL....', // 12
-  '...LSSSSSSSSSSSSSSsL....', // 13
-  '....LSSSSSSSSSSSSsL.....', // 14
-  '.....LLsssssssssLL......', // 15
+/** The standing anchor's body under ANCHOR_HEAD: the hoodie with its collar and tie, the trousers, the shoes. */
+const IDLE_BODY: SpriteMap = [
+  '......LJKKsssKKjL.......', // 16
+  '.....LJJJKRYRKJjjL......', // 17
+  '....LJJJJJRYRJJJjjL.....', // 18
+  '....LJJJJJWyWJJJjjL.....', // 19
+  '....LJJLJJRYRJJLjjL.....', // 20
+  '....LJJLJJWyWJJLjjL.....', // 21
+  '....LSSLJJRYRJJLSsL.....', // 22
+  '.....LLLJJJJJJJLLL......', // 23
+  '.......LjjjjjjjjL.......', // 24
+  '.......LTTTTTTTtL.......', // 25
+  '.......LTTTLTTTtL.......', // 26
+  '.......LTTTLTTTtL.......', // 27
+  '.......LTTTLTTttL.......', // 28
+  '.......LtttLttttL.......', // 29
+  '......LOOOLLOOOoL.......', // 30
+  '......LLLLLLLLLLL.......', // 31
 ]
+const IDLE_0: SpriteMap = [...ANCHOR_HEAD, ...IDLE_BODY]
 
-/** Standing, the style anchor (frame 0) and its breath (frame 1: rows 0-23 a row lower, the hem tucked under), 16 frames each. */
-export const MANGAKA_IDLE: readonly [SpriteMap, SpriteMap] = [
-  [
-    '......LLLLLLLLLL........', // 0
-    '....LLHHHHHHHHHhLL......', // 1
-    '...LHHHHHHHHHHHHhhL.....', // 2
-    '..LHHHHHHHHHHHHHHhhL....', // 3
-    '..LHHHHHHHHHHHHHHhhL....', // 4
-    '..LHHHHHHHHHHHHHHhhL....', // 5
-    '..LHHHSHHHHSHHHHHhhL....', // 6
-    '..LHSSSSSSSSSSSSSShL....', // 7
-    '..LHSSSSSSSSSSSSSSsL....', // 8
-    '..LHSSEESSSSSSEESSsL....', // 9
-    '..LHSSEWSSSSSSEWSSsL....', // 10
-    '..LHSSEESSSSSSEESSsL....', // 11
-    '..LSBBSSSSMMSSSSBBsL....', // 12
-    '...LSSSSSSSSSSSSSSsL....', // 13
-    '....LSSSSSSSSSSSSsL.....', // 14
-    '.....LLsssssssssLL......', // 15
-    '......LJKKsssKKjL.......', // 16
-    '.....LJJJKRYRKJjjL......', // 17
-    '....LJJJJJRYRJJJjjL.....', // 18
-    '....LJJJJJWyWJJJjjL.....', // 19
-    '....LJJLJJRYRJJLjjL.....', // 20
-    '....LJJLJJWyWJJLjjL.....', // 21
-    '....LSSLJJRYRJJLSsL.....', // 22
-    '.....LLLJJJJJJJLLL......', // 23
-    '.......LjjjjjjjjL.......', // 24
-    '.......LTTTTTTTtL.......', // 25
-    '.......LTTTLTTTtL.......', // 26
-    '.......LTTTLTTTtL.......', // 27
-    '.......LTTTLTTttL.......', // 28
-    '.......LtttLttttL.......', // 29
-    '......LOOOLLOOOoL.......', // 30
-    '......LLLLLLLLLLL.......', // 31
-  ],
-  [
-    '........................', // 0
-    '......LLLLLLLLLL........', // 1
-    '....LLHHHHHHHHHhLL......', // 2
-    '...LHHHHHHHHHHHHhhL.....', // 3
-    '..LHHHHHHHHHHHHHHhhL....', // 4
-    '..LHHHHHHHHHHHHHHhhL....', // 5
-    '..LHHHHHHHHHHHHHHhhL....', // 6
-    '..LHHHSHHHHSHHHHHhhL....', // 7
-    '..LHSSSSSSSSSSSSSShL....', // 8
-    '..LHSSSSSSSSSSSSSSsL....', // 9
-    '..LHSSEESSSSSSEESSsL....', // 10
-    '..LHSSEWSSSSSSEWSSsL....', // 11
-    '..LHSSEESSSSSSEESSsL....', // 12
-    '..LSBBSSSSMMSSSSBBsL....', // 13
-    '...LSSSSSSSSSSSSSSsL....', // 14
-    '....LSSSSSSSSSSSSsL.....', // 15
-    '.....LLsssssssssLL......', // 16
-    '......LJKKsssKKjL.......', // 17
-    '.....LJJJKRYRKJjjL......', // 18
-    '....LJJJJJRYRJJJjjL.....', // 19
-    '....LJJJJJWyWJJJjjL.....', // 20
-    '....LJJLJJRYRJJLjjL.....', // 21
-    '....LJJLJJWyWJJLjjL.....', // 22
-    '....LSSLJJRYRJJLSsL.....', // 23
-    '.....LLLJJJJJJJLLL......', // 24
-    '.......LTTTTTTTtL.......', // 25
-    '.......LTTTLTTTtL.......', // 26
-    '.......LTTTLTTTtL.......', // 27
-    '.......LTTTLTTttL.......', // 28
-    '.......LtttLttttL.......', // 29
-    '......LOOOLLOOOoL.......', // 30
-    '......LLLLLLLLLLL.......', // 31
-  ],
-] as const
+/** Standing, the style anchor (frame 0: ANCHOR_HEAD over IDLE_BODY) and its breath (frame 1: rows 0-23 a row lower,
+ * the hem tucked under, `breathOf`), 16 frames each. */
+export const MANGAKA_IDLE: readonly [SpriteMap, SpriteMap] = [IDLE_0, breathOf(IDLE_0)]
 
 /** How far each head-steady pose moves the head (the FACES overlay goes at rows 9-12 + headDy). stretch[1] is a row
  * lower than stretch[0] (MANGAKA_STRETCH[1] leads with a blank row, like MANGAKA_IDLE); sip's two frames share the
@@ -1075,49 +989,6 @@ export const HUMAN_FRAMES: readonly SpriteMap[] = [
 ]
 
 /**
- * What is wrong with a frame, [] when nothing: every row `w` wide, `h` rows, every key in `pal` (PAL by default), the last row not empty,
- * and a closed outline (on every row with content, the first and last non-'.' character is 'L').
- */
-export function frameRules(map: SpriteMap, w = 24, h = 32, pal: Record<string, string> = PAL): string[] {
-  const out: string[] = []
-  if (map.length !== h) out.push(`${map.length} rows, not ${h}`)
-  map.forEach((row, r) => {
-    if (row.length !== w) out.push(`row ${r} is ${row.length} wide, not ${w}`)
-    for (const ch of row) if (ch !== '.' && !(ch in pal)) out.push(`row ${r} has key ${ch}`)
-    const first = row.search(/[^.]/)
-    if (first < 0) return
-    let last = row.length - 1
-    while (row[last] === '.') last--
-    if (row[first] !== 'L' || row[last] !== 'L') out.push(`row ${r} is open`)
-  })
-  if (map.length && !/[^.]/.test(map[map.length - 1])) out.push('the last row is empty')
-  return out
-}
-
-/** The keys a face may show inside the FACES window: skin and its shade, the eyes and their white, mouth, blush, outline. */
-const FACE_KEYS = 'SsEWMBL'
-
-/**
- * What stops a head-steady frame taking the mood overlay, [] when nothing: rows 9-12, cols 4-17 (where `FACES` lands)
- * hold only face keys, so the overlay paints over a face; rows 0-2, cols 20-22 (the mark slot) are clear; and the head
- * (rows 0-15) stays inside cols 2-19, the `SpriteAvatar` crop. The `--sprite` pipeline grafts the anchor head onto a
- * generated frame that fails it.
- */
-export function faceRules(map: SpriteMap): string[] {
-  const out: string[] = []
-  for (let r = 0; r <= 15 && r < map.length; r++) {
-    for (let c = 0; c < map[r].length; c++) {
-      const ch = map[r][c]
-      if (ch === '.') continue
-      if (r >= 9 && r <= 12 && c >= 4 && c <= 17 && !FACE_KEYS.includes(ch)) out.push(`row ${r} col ${c} is ${ch}, not a face key`)
-      if (r <= 2 && c >= 20 && c <= 22) out.push(`row ${r} col ${c} is in the mark slot`)
-      else if (c < 2 || c > 19) out.push(`row ${r} col ${c} is outside the avatar crop`)
-    }
-  }
-  return out
-}
-
-/**
  * A string-map sprite in canvas space, its top-left at (x, y) rounded: rows `fromRow` to `rows - 1`, mirrored left to
  * right when `flip`. Each horizontal run of one key is a single fillRect (indices only, nothing allocated).
  */
@@ -1143,4 +1014,3 @@ export function drawSprite(
     }
   }
 }
-

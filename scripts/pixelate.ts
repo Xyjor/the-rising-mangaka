@@ -32,7 +32,7 @@ import {
   snapToPalette,
   type RgbaImage,
 } from '../src/ui/art/pixelOps'
-import { ANCHOR_HEAD, PAL, faceRules, frameRules } from '../src/ui/scene/sprites'
+import { ANCHOR_HEAD, PAL, faceRules, frameRules } from '../src/ui/scene/spriteCore'
 
 const ROOT = join(__dirname, '..')
 const MANIFEST_PATH = join(ROOT, 'art', 'manifest.json')
@@ -140,6 +140,9 @@ function loadManifest(): AnyEntry[] {
 }
 
 const isSprite = (e: AnyEntry): e is SpriteEntry => (e as SpriteEntry).kind === 'sprite'
+
+/** A person's frame (24x32) that takes the FACES overlay: the only kind faceRules is reported for. */
+const facedPerson = (e: SpriteEntry) => e.frame[0] === 24 && e.frame[1] === 32 && !e.faceless
 
 async function loadRgba(path: string): Promise<RgbaImage> {
   const { data, info } = await sharp(path).ensureAlpha().raw().toBuffer({ resolveWithObject: true })
@@ -249,8 +252,7 @@ function spriteFrame(cell: RgbaImage, entry: SpriteEntry): { rows: string[]; fac
   let rows = snapToKeys(working, entry.keys, PAL)
   for (const m of entry.remap ?? []) rows = remapRows(rows, m.rows, m.from, m.to)
   rows = closeOutline(outlineToL(despeckleGrid(rows)))
-  const person = fw === 24 && fh === 32
-  const faceBefore = person && !entry.faceless ? faceRules(rows) : []
+  const faceBefore = facedPerson(entry) ? faceRules(rows) : []
   if (entry.graft === 'anchor-head') rows = closeOutline(graftRows(rows, ANCHOR_HEAD))
   if (entry.cells) rows = setCells(rows, entry.cells)
   return { rows, faceBefore }
@@ -265,7 +267,7 @@ async function processSprite(entry: SpriteEntry): Promise<{ outPath: string; run
   if (broken.length) throw new Error(`${entry.id} breaks frameRules:\n  ${broken.join('\n  ')}\n${rows.join('\n')}`)
   const notes: string[] = []
   if (entry.graft) notes.push(`graft: ${entry.graft} (rows 0-15 are ANCHOR_HEAD; faceRules failed ${faceBefore.length} cells before it)`)
-  const faceAfter = fw === 24 && !entry.faceless ? faceRules(rows) : []
+  const faceAfter = facedPerson(entry) ? faceRules(rows) : []
   if (faceAfter.length) console.warn(`${entry.id}: faceRules: ${faceAfter.length} failures, e.g. ${faceAfter.slice(0, 3).join('; ')}`)
   const outPath = join(ROOT, 'src', 'ui', 'scene', 'generated', `${entry.id.replace(/^sprite\//, '')}.ts`)
   mkdirSync(dirname(outPath), { recursive: true })

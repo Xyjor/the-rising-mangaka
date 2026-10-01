@@ -329,7 +329,13 @@ at `CAT_BED` (4 fills, drawn just before it).
   panic (mush) and the bed (a front view peeking over a blue mound, nothing like the pillow pose) read worse at 24x32,
   so every pose keeps its hand-drawn frame (the plan's fallback). Only the four side-on walk frames read; they wait
   on the owner's decision. The candidates stay validated in `sprites.test` (frame rules, face rules, fills at most
-  1.25x the frame they would replace). Stretch, sip and the doze had no cell on the sheet.
+  1.25x the frame they would replace). Stretch, sip and the doze had no cell on the sheet. Every hand-drawn frame
+  that takes the overlay (the breathing idle, the seated frames) passes `faceRules`, and so does the sip; the stretch
+  does not (its flung arms leave the avatar crop), which is harmless: render draws only the mood mark on the stretch
+  and the sip (`faceSteady` false), never the face. `spriteCore.ts` holds `PAL`, `SpriteMap`, `ANCHOR_HEAD`,
+  `frameRules` and `faceRules` as a leaf module with no imports (sprites.ts re-exports them), so the pipeline checks a
+  frame without loading the generated frames or the scene; `MANGAKA_IDLE[0]` is built from `ANCHOR_HEAD` (one source
+  for the head) and frame 1 is `breathOf` it.
 
 The frame sets: idle 2 frames (`frame/16 % 2`), walk 4 (`anim/100 % 4`), sit 2 (`frame/8 % 2` while working, frame 0
 otherwise), panic 2 (for 40 of every 240 frames while working on a late chapter, `Snapshot.late`), a 30x14 lying

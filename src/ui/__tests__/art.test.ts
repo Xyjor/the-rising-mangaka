@@ -231,7 +231,8 @@ describe('art manifest', () => {
       expect(e.keys, `${e.id} keys has the outline`).toContain('L')
       expect([undefined, 'anchor-head'], `${e.id} graft`).toContain(e.graft)
       const [cx, cy, cw, ch] = e.crop
-      expect(cx >= 0 && cy >= 0 && cx + cw <= 2048 && cy + ch <= 1152, `${e.id} crop`).toBe(true)
+      const sheet = parsePng(join(ROOT, 'art', 'raw', e.sheet.src))
+      expect(cx >= 0 && cy >= 0 && cx + cw <= sheet.width && cy + ch <= sheet.height, `${e.id} crop`).toBe(true)
       const mod = readFileSync(join(SCENE_DIR, 'generated', `${e.id.slice(7)}.ts`), 'utf8')
       expect(mod, e.id).toContain(`npm run art -- ${e.id}`)
       expect(mod, e.id).toContain(`export const ${e.name}: string[] = [`)

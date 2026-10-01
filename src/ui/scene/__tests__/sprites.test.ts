@@ -34,7 +34,10 @@ describe('the sprites', () => {
   })
 
   it('faceRules: the FACES window holds only face keys, the mark slot is clear, the head stays in the avatar crop', () => {
-    expect(faceRules(MANGAKA_IDLE[0])).toEqual([])
+    // every hand-drawn frame that takes the overlay (render.ts: the breathing idle, the seated frames) passes, and the
+    // sip too; the stretch does not (its arms leave the avatar crop), and render never draws a face on it (faceSteady)
+    for (const f of [...MANGAKA_IDLE, ...MANGAKA_SIT, ...MANGAKA_SIP]) expect(faceRules(f)).toEqual([])
+    for (const f of MANGAKA_STRETCH) expect(faceRules(f)).not.toEqual([])
     // hair inside the FACES window (rows 9-12, cols 4-17)
     const hair = MANGAKA_IDLE[0].slice()
     hair[10] = hair[10].slice(0, 5) + 'H' + hair[10].slice(6)
@@ -158,6 +161,8 @@ describe('the sprites', () => {
   it('derives the breath, the collar and the press the way the hand-drawn frames have them', () => {
     // the breath: rows 0-23 a row lower, the hem row 24 tucked under; exactly the hand-drawn idle's frame 1
     expect(breathOf(MANGAKA_IDLE[0])).toEqual(MANGAKA_IDLE[1])
+    expect(MANGAKA_IDLE[1][24]).toBe(MANGAKA_IDLE[0][23])
+    expect(MANGAKA_IDLE[1].slice(25)).toEqual(MANGAKA_IDLE[0].slice(25))
     // the collar and tie cells are where the hand-drawn idle and seated frames have them
     for (const f of [MANGAKA_IDLE[0], MANGAKA_SIT[0], MANGAKA_SIT[1]]) expect(withCollar(f)).toEqual(f)
     for (const [r, c, k] of COLLAR_CELLS) expect(MANGAKA_IDLE[0][r][c], `row ${r} col ${c}`).toBe(k)
