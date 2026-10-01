@@ -4,15 +4,6 @@
 // `frameRules` (sprites.test.ts). Facing left; drawSprite mirrors a frame to face right.
 import { LOOK_HAIRS, LOOK_HAIRS_SHADE, LOOK_SHIRTS, LOOK_SHIRTS_SHADE } from '../looks'
 import { ASSISTANT_DOZE_C2 } from './generated/assistant-doze'
-import { MANGAKA_SIT_GEN_1 } from './generated/mangaka-draw'
-import { MANGAKA_IDLE_GEN } from './generated/mangaka-idle'
-import { MANGAKA_LIE_GEN } from './generated/mangaka-lie'
-import { MANGAKA_PANIC_GEN } from './generated/mangaka-panic'
-import { MANGAKA_SIT_GEN_0 } from './generated/mangaka-sit'
-import { MANGAKA_WALK_GEN_0 } from './generated/mangaka-walk-1'
-import { MANGAKA_WALK_GEN_1 } from './generated/mangaka-walk-2'
-import { MANGAKA_WALK_GEN_2 } from './generated/mangaka-walk-3'
-import { MANGAKA_WALK_GEN_3 } from './generated/mangaka-walk-4'
 import type { Mood } from './mood'
 import { ANCHOR_HEAD, PAL, type SpriteMap } from './spriteCore'
 
@@ -40,19 +31,6 @@ export const OUTFIT_PALS: Record<Outfit, Record<string, string>> = {
   hoodie: PAL,
   cardigan: { ...PAL, J: '#c9a24a', j: '#a8832f', K: '#f6f6f6', Y: '#c0392b', y: '#8e2a20' },
   blazer: { ...PAL, J: '#2e3a78', j: '#222b5c', K: '#f6f6f6', Y: '#c0392b', y: '#8e2a20' },
-}
-
-/** Where the hand-drawn idle and seated frames have the collar (K) and the tie (Y, its shade y), [row, col, key]. */
-export const COLLAR_CELLS: readonly (readonly [number, number, 'K' | 'Y' | 'y'])[] = [
-  [16, 8, 'K'], [16, 9, 'K'], [16, 13, 'K'], [16, 14, 'K'], [17, 9, 'K'], [17, 13, 'K'],
-  [17, 11, 'Y'], [18, 11, 'Y'], [19, 11, 'y'], [20, 11, 'Y'], [21, 11, 'y'], [22, 11, 'Y'],
-]
-
-/** A frame with the collar and tie cells re-applied (K/Y/y show only in the cardigan and the blazer). */
-export function withCollar(f: SpriteMap): SpriteMap {
-  const rows = f.map((r) => [...r])
-  for (const [r, c, k] of COLLAR_CELLS) rows[r][c] = k
-  return rows.map((r) => r.join(''))
 }
 
 /** The breath (as the hand-drawn idle has it): rows 0-23 a row lower, row 24 (the hem) tucked under, rows 25-31 kept. */
@@ -83,8 +61,8 @@ const IDLE_0: SpriteMap = [...ANCHOR_HEAD, ...IDLE_BODY]
 
 /** Standing, the style anchor (frame 0: ANCHOR_HEAD over IDLE_BODY) and its breath (frame 1: rows 0-23 a row lower,
  * the hem tucked under, `breathOf`), 16 frames each. Hand-drawn: task C2's generated idle (`sprite/mangaka-front-idle`)
- * was a near tie and would have switched bodies mid-cycle against the hand-drawn stretch and sip, so it stays a
- * candidate (sprites.test), not drawn. */
+ * was a near tie and would have switched bodies mid-cycle against the hand-drawn stretch and sip, so it was retired
+ * (its manifest recipe and raw sheet kept, no frame module; DESIGN.md "The sprites"). */
 export const MANGAKA_IDLE: readonly [SpriteMap, SpriteMap] = [IDLE_0, breathOf(IDLE_0)]
 
 /** How far each head-steady pose moves the head (the FACES overlay goes at rows 9-12 + headDy). stretch[1] is a row
@@ -557,7 +535,7 @@ export const MANGAKA_LIE: SpriteMap = [
 /**
  * An assistant asleep at the desk, generated (task C2, art/manifest.json `sprite/assistant-doze`, from the front sheet's
  * dozing cell fitted to a 20x23 box on the frame's last rows): the head down on the folded arms (rows 10-26, eyes shut,
- * a few cells touched in the manifest), the arms (J) on rows 27-30. The readability gate found it reads as dozing more
+ * eight cells touched in the manifest), the arms (J) on rows 27-30. The readability gate found it reads as dozing more
  * clearly than the hand-drawn frame it replaced (113 fills; now 100). Drawn with the assistant's palette, no mood.
  */
 export const ASSISTANT_DOZE: SpriteMap = ASSISTANT_DOZE_C2
@@ -928,34 +906,6 @@ export const MARKS: Record<Exclude<Mood, 'neutral'>, SpriteMap> = {
   happy: ['.Y.', 'YWY', '.Y.', '...', '...'],
   surprised: ['.L.', '.L.', '.L.', '...', '.L.'],
   sleepy: ['LLL', '..L', '.L.', 'L..', 'LLL'],
-}
-
-// ---------- the generated frames (0.11.0, art/manifest.json `sprite/*`, written by `npm run art`) ----------
-
-/** Panic's frame 1: the hands pressed a row lower (rows 0-3 a row down, row 4 dropped under them). */
-export function pressOf(f: SpriteMap): SpriteMap {
-  return ['.'.repeat(f[0].length), ...f.slice(0, 4), ...f.slice(5)]
-}
-
-/**
- * The generated mangaka frames (0.11.0, Task C1), assembled the way the scene would use them: the idle with its collar
- * and its breath, the four walk frames, the two seated frames with their collar, panic and its press, the bed pose.
- * Not drawn: the readability gate (sprites-C1.png) found most of them read worse at 24x32 than the hand-drawn frames,
- * so the scene never drew them; these stay validated (sprites.test) as the probe sheet's candidates. Task C2's
- * retry sheets replaced only the assistant doze (above); its other candidates (the front idle, the side walk,
- * stretch and sip, the front seated pair, the editor, the cat) were kept off the scene and are validated in sprites.test
- * straight from their generated modules, never imported here.
- */
-export const GENERATED_MANGAKA = {
-  // the calls are marked pure so the bundle drops the whole set while the scene draws none of it
-  idle: [/* @__PURE__ */ withCollar(MANGAKA_IDLE_GEN), /* @__PURE__ */ breathOf(/* @__PURE__ */ withCollar(MANGAKA_IDLE_GEN))],
-  walk: [MANGAKA_WALK_GEN_0, MANGAKA_WALK_GEN_1, MANGAKA_WALK_GEN_2, MANGAKA_WALK_GEN_3],
-  sit: [/* @__PURE__ */ withCollar(MANGAKA_SIT_GEN_0), /* @__PURE__ */ withCollar(MANGAKA_SIT_GEN_1)],
-  panic: [MANGAKA_PANIC_GEN, /* @__PURE__ */ pressOf(MANGAKA_PANIC_GEN)],
-  lie: MANGAKA_LIE_GEN,
-} as const satisfies {
-  idle: readonly [SpriteMap, SpriteMap]; walk: readonly [SpriteMap, SpriteMap, SpriteMap, SpriteMap]
-  sit: readonly [SpriteMap, SpriteMap]; panic: readonly [SpriteMap, SpriteMap]; lie: SpriteMap
 }
 
 /** Every exported 24x32 frame, for the frame-rules test. */

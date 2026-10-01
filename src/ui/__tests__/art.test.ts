@@ -41,6 +41,8 @@ interface ManifestEntry {
 interface SpriteEntry {
   id: string
   kind: 'sprite'
+  /** a candidate the scene does not draw: its recipe and raw sheet stay, no frame module is committed */
+  retired?: boolean
   source: string
   seed: number | null
   job?: string
@@ -48,9 +50,12 @@ interface SpriteEntry {
   crop: [number, number, number, number]
   frame: [number, number]
   keys: string
+  sample: string
   name: string
   graft?: string
   cells?: [number, number, string][]
+  fit?: [number, number]
+  remap?: { rows: [number, number]; from: string; to: string }[]
 }
 
 function loadAll(): (ManifestEntry | SpriteEntry)[] {
@@ -225,20 +230,46 @@ describe('art manifest', () => {
     expect(sprites.length).toBeGreaterThan(0)
     for (const e of sprites) {
       expect(e.id, e.id).toMatch(/^sprite\/[a-z0-9-]+$/)
+      expect([undefined, true], `${e.id} retired`).toContain(e.retired)
+      // every recipe, retired or not, keeps its committed raw sheet with the crop inside it (IHDR)
       expect(statSync(join(ROOT, 'art', 'raw', e.sheet.src)).isFile(), `raw sheet for ${e.id}`).toBe(true)
-      // a person 24x32, lying down 30x14, the cat 12x8 (task C2)
-      expect([[24, 32], [30, 14], [12, 8]], `${e.id} frame`).toContainEqual(e.frame)
-      expect(e.keys, `${e.id} keys`).toMatch(/^[A-Za-z]+$/)
-      expect(e.keys, `${e.id} keys has the outline`).toContain('L')
-      expect([undefined, 'anchor-head'], `${e.id} graft`).toContain(e.graft)
       const [cx, cy, cw, ch] = e.crop
       const sheet = parsePng(join(ROOT, 'art', 'raw', e.sheet.src))
       expect(cx >= 0 && cy >= 0 && cx + cw <= sheet.width && cy + ch <= sheet.height, `${e.id} crop`).toBe(true)
+      // a retired candidate (the readability gate lost it) has no module; `npm run art -- <id>` restores it
+      if (e.retired) continue
+      // a person 24x32, lying down 30x14, the cat 12x8 (task C2)
+      expect([[24, 32], [30, 14], [12, 8]], `${e.id} frame`).toContainEqual(e.frame)
+      const [fw, fh] = e.frame
+      expect(e.keys, `${e.id} keys`).toMatch(/^[A-Za-z]+$/)
+      expect(e.keys, `${e.id} keys has the outline`).toContain('L')
+      expect([undefined, 'anchor-head'], `${e.id} graft`).toContain(e.graft)
+      expect(['area', 'nearest'], `${e.id} sample`).toContain(e.sample)
+      if (e.fit) {
+        const [bw, bh] = e.fit
+        expect(Number.isInteger(bw) && Number.isInteger(bh) && bw > 0 && bh > 0 && bw <= fw && bh <= fh, `${e.id} fit`).toBe(true)
+      }
+      for (const [r, c, k] of e.cells ?? []) {
+        expect(e.keys.includes(k), `${e.id} cell [${r}, ${c}] key ${k}`).toBe(true)
+        expect(r >= 0 && r < fh && c >= 0 && c < fw, `${e.id} cell [${r}, ${c}] inside the frame`).toBe(true)
+      }
+      for (const m of e.remap ?? []) expect(m.from.length, `${e.id} remap ${m.from} to ${m.to}`).toBe(m.to.length)
       const mod = readFileSync(join(SCENE_DIR, 'generated', `${e.id.slice(7)}.ts`), 'utf8')
       expect(mod, e.id).toContain(`npm run art -- ${e.id}`)
       expect(mod, e.id).toContain(`export const ${e.name}: string[] = [`)
       expect(mod.includes('graft: anchor-head'), `${e.id} records its graft`).toBe(e.graft === 'anchor-head')
+      // hand-touched cells are disclosed in the module's header
+      const touched = e.cells?.length ?? 0
+      expect(mod.includes(`cells: ${touched} touched in the manifest`), `${e.id} discloses its cells`).toBe(touched > 0)
     }
+  })
+
+  it('has no generated frame module without a non-retired sprite entry', () => {
+    const live = new Set(loadSprites().filter((e) => !e.retired).map((e) => `${e.id.slice(7)}.ts`))
+    const onDisk = readdirSync(join(SCENE_DIR, 'generated')).filter((f) => f.endsWith('.ts'))
+    for (const f of onDisk) expect(live.has(f), `orphan or retired frame module: generated/${f}`).toBe(true)
+    // and the controller's ruling: only the assistants' doze is drawn from a generated frame
+    expect(onDisk).toEqual(['assistant-doze.ts'])
   })
 
   it('has no orphan PNGs under src/assets/art', () => {

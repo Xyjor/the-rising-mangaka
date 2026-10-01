@@ -320,16 +320,15 @@ at `CAT_BED` (4 fills, drawn just before it).
   the `SpriteAvatar` crop. `ANCHOR_HEAD` is the hand-drawn anchor head (rows 0-15 of `MANGAKA_IDLE[0]`, asserted
   equal); the staff portrait draws it, and the `--sprite` pipeline (see "### Art") grafts it onto a generated frame
   whose own head fails `faceRules` (the graft rule: rows 0-15 replaced, recorded per frame in the manifest as
-  `graft: "anchor-head"`). `GENERATED_MANGAKA` assembles the generated frames from the 2026-09-30 probe sheet the way
-  the scene would use them (`withCollar` re-applies `COLLAR_CELLS`, the K/Y/y cells at the hand-drawn coordinates;
-  `breathOf` is the idle's breath, rows 0-23 a row lower, `breathOf(MANGAKA_IDLE[0])` being exactly
-  `MANGAKA_IDLE[1]`; `pressOf` panic's frame 1). **None of the C1 frames is drawn**: the readability gate (`sprites-C1.png`, every
+  `graft: "anchor-head"`). `breathOf` is the idle's breath (rows 0-23 a row lower, `breathOf(MANGAKA_IDLE[0])` being
+  exactly `MANGAKA_IDLE[1]`). **None of the C1 frames is drawn**: the readability gate (`sprites-C1.png`, every
   frame next to its hand-drawn one, 8x, three outfits, every mood) found the idle (a narrow column, no arms or
   shoes), the two seated frames (the stool baked in, no pen arm, two unrelated cells that jitter when they alternate),
   panic (mush) and the bed (a front view peeking over a blue mound, nothing like the pillow pose) read worse at 24x32,
-  so every pose keeps its hand-drawn frame (the plan's fallback). Only the four side-on walk frames read; they wait
-  on the owner's decision. The candidates stay validated in `sprites.test` (frame rules, face rules, fills at most
-  1.25x the frame they would replace). Stretch, sip and the doze had no cell on the sheet. Every hand-drawn frame
+  so every pose keeps its hand-drawn frame (the plan's fallback). Only the four side-on walk frames read, and they lost
+  to the hand-drawn walk at the final review (in motion they slide, with no pass frame and no bob, and face side-on
+  against the front-facing set). All nine C1 candidates are retired (see "Retired candidates" below). Stretch, sip
+  and the doze had no cell on the sheet. Every hand-drawn frame
   that takes the overlay (the breathing idle, the seated frames) passes `faceRules`, and so does the sip; the stretch
   does not (its flung arms leave the avatar crop), which is harmless: render draws only the mood mark on the stretch
   and the sip (`faceSteady` false), never the face. `spriteCore.ts` holds `PAL`, `SpriteMap`, `ANCHOR_HEAD`,
@@ -353,9 +352,14 @@ at `CAT_BED` (4 fills, drawn just before it).
   to the page. The stretch is a side-view one-arm reach. The sip has a clear mug, but like the stretch it turns the
   front idle to profile mid-cycle. On the editor, the glasses and hair snap into a mask on the idle, and the walk's
   three-quarter steps carry red specks and no shoes. The cat, at 12x8, is a 5-7 column blob in every cell, with no
-  eye or ears. The losers' modules, the idle included, stay generated and validated in `sprites.test` (frame rules,
-  the idle's and the seated pair's face rules, fills at most 1.25x the frame each would replace). Only the test
-  imports them, so the bundle carries none.
+  eye or ears. Every loser, the idle included, is retired.
+- **Retired candidates** (0.11.0 final review). Every C1 probe-sheet frame and every C2 candidate except the doze
+  carries `"retired": true` in `art/manifest.json`: its recipe (sheet, crop, keys, fit, remap, cells) and its raw
+  sheet in `art/raw/sprites/` stay committed, its `src/ui/scene/generated/*.ts` module does not. `npm run art -- --all`
+  skips a retired entry; to restore one, run `npm run art -- sprite/<name>` (it notes the entry is retired and writes
+  the module anyway), then drop the flag and import the module. art.test checks a retired entry only for its raw
+  sheet and a crop inside it (read from the IHDR), requires a module for every other sprite entry, and fails on any
+  `generated/*.ts` without a non-retired entry, so `generated/` holds exactly `assistant-doze.ts`.
 
 The frame sets: idle 2 frames (`frame/16 % 2`), walk 4 (`anim/100 % 4`), sit 2 (`frame/8 % 2` while working, frame 0
 otherwise), panic 2 (for 40 of every 240 frames while working on a late chapter, `Snapshot.late`), a 30x14 lying
@@ -409,7 +413,10 @@ moved across its sprite; the bin's crumpled pages stay code-drawn); budgets 781.
 The 0.11.0 generated frames (task C2) move none of the four: both reference scenes draw the mangaka and an assistant
 seated at frame 100, never the doze (the one generated frame drawn), so 673/1079 and 521/928 stay as they are
 (re-measured: the exact-count tests still pass). Where it does show, the doze costs 13 fewer fills than the hand-drawn
-one.
+one. The rest scene (`sceneSnapshot({ activity: 'rest' })`, the mangaka in bed, the cat sitting in the kitchen, the
+assistant dozing under its Z) has its own pin, 509 at t 0.3 frame 100 (derived by hand from the 673 in render.test's
+`REST_BASELINE_FILLS`), with a 1.5x budget (763.5) every season by day and night stays under. The doze's Z sits at
+the frame's y - 2, just above the head on the arms (row 10), not y - 6 where an upright head's mark goes.
 
 ### Art
 The live scene is code-drawn `fillRect` (`render.ts`, `roomArt.ts`, `studioArt.ts`, `sprites.ts`), and since 0.9.0 it
@@ -468,8 +475,12 @@ listed key winning a duplicate hex such as `K`/`J`), remapped (`remapRows`), des
 takes its agreeing neighbours' key), outlined (`outlineToL`: every filled cell on the silhouette's edge becomes `L`),
 closed (`closeOutline`: each row's first and last filled cell `L`), grafted (`graftRows`) and touched (`setCells`).
 The pipeline throws on a frame that breaks `frameRules` and prints a `faceRules` report for a head-steady one;
-`runCount` counts the fills a frame costs. art.test checks each sprite entry (raw sheet committed, frame size, keys,
-the generated module exports its name and records its graft) apart from the PNG entries.
+`runCount` counts the fills a frame costs. The module's header discloses each step the recipe applied beyond the plain
+snap: `fit`, `flip`, `graft`, and `cells: N touched in the manifest (art/manifest.json)` when the entry touches cells.
+art.test checks each live sprite entry apart from the PNG entries (raw sheet committed with the crop inside it, frame
+size, keys, `sample` area or nearest, `fit` within the frame, each `cells` key among `keys` and inside the frame,
+`remap` from/to of equal length, and the generated module exports its name, records its graft and discloses its
+cells); a `retired` entry only for its sheet and crop (see "Retired candidates" under "The sprites").
 
 **The palette rule.** `ART_PALETTE` (`src/ui/art/palette.ts`) is a fixed, deduplicated list of lowercase hex colours,
 and every one of them must already appear literally somewhere in `src/ui/scene/*.ts` or `src/styles/tokens.css`

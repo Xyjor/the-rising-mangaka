@@ -3,6 +3,8 @@
 // a string-map frame module under src/ui/scene/generated/<name>.ts (the `--sprite` mode). Run with:
 //   npm run art -- title/hero
 //   npm run art -- --all
+// `--all` skips a `retired: true` sprite entry (a candidate the readability gate lost: its recipe and raw sheet stay
+// committed, its frame module does not); naming a retired id regenerates its module (to restore or re-inspect it).
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import sharp from 'sharp'
@@ -104,6 +106,11 @@ interface ManifestEntry {
 interface SpriteEntry {
   id: string
   kind: 'sprite'
+  /**
+   * A candidate the scene does not draw (0.11.0's readability gate): `--all` skips it and no frame module is
+   * committed for it, while its recipe and raw sheet stay. Naming its id regenerates the module.
+   */
+  retired?: boolean
   source: string
   model: string
   seed: number | null
@@ -289,6 +296,7 @@ async function processSprite(entry: SpriteEntry): Promise<{ outPath: string; run
   if (entry.fit) notes.push(`fit: the cutout ${entry.stretch ? 'stretched' : 'fitted'} to ${entry.fit[0]}x${entry.fit[1]} on the frame's last rows`)
   if (entry.flip) notes.push('flip: the sheet drew the pose facing right')
   if (entry.graft) notes.push(`graft: ${entry.graft} (rows 0-15 are ANCHOR_HEAD; faceRules failed ${faceBefore.length} cells before it)`)
+  if (entry.cells?.length) notes.push(`cells: ${entry.cells.length} touched in the manifest (art/manifest.json)`)
   const faceAfter = facedPerson(entry) ? faceRules(rows) : []
   if (faceAfter.length) console.warn(`${entry.id}: faceRules: ${faceAfter.length} failures, e.g. ${faceAfter.slice(0, 3).join('; ')}`)
   const outPath = join(ROOT, 'src', 'ui', 'scene', 'generated', `${entry.id.replace(/^sprite\//, '')}.ts`)
@@ -312,7 +320,9 @@ async function main() {
     return
   }
   const manifest = loadManifest()
-  const ids = args.includes('--all') ? manifest.map((e) => e.id) : args.filter((a) => !a.startsWith('--'))
+  const ids = args.includes('--all')
+    ? manifest.filter((e) => !(isSprite(e) && e.retired)).map((e) => e.id)
+    : args.filter((a) => !a.startsWith('--'))
 
   if (ids.length === 0) {
     console.error('Usage: npm run art -- <id> [<id> ...] | npm run art -- --all')
@@ -327,6 +337,7 @@ async function main() {
       process.exit(1)
     }
     if (isSprite(entry)) {
+      if (entry.retired) console.log(`${id}: retired (the scene does not draw it; --all skips it), regenerating as asked`)
       const { outPath, runs } = await processSprite(entry)
       console.log(`${id}: ${outPath} (${runs} fills)`)
       continue

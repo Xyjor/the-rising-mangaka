@@ -3357,6 +3357,7 @@
   {
     "id": "sprite/mangaka-idle",
     "kind": "sprite",
+    "retired": true,
     "source": "higgsfield:z_image",
     "model": "z_image",
     "seed": null,
@@ -3393,6 +3394,7 @@
   {
     "id": "sprite/mangaka-walk-1",
     "kind": "sprite",
+    "retired": true,
     "source": "higgsfield:z_image",
     "model": "z_image",
     "seed": null,
@@ -3441,6 +3443,7 @@
   {
     "id": "sprite/mangaka-walk-2",
     "kind": "sprite",
+    "retired": true,
     "source": "higgsfield:z_image",
     "model": "z_image",
     "seed": null,
@@ -3499,6 +3502,7 @@
   {
     "id": "sprite/mangaka-walk-3",
     "kind": "sprite",
+    "retired": true,
     "source": "higgsfield:z_image",
     "model": "z_image",
     "seed": null,
@@ -3557,6 +3561,7 @@
   {
     "id": "sprite/mangaka-walk-4",
     "kind": "sprite",
+    "retired": true,
     "source": "higgsfield:z_image",
     "model": "z_image",
     "seed": null,
@@ -3605,6 +3610,7 @@
   {
     "id": "sprite/mangaka-sit",
     "kind": "sprite",
+    "retired": true,
     "source": "higgsfield:z_image",
     "model": "z_image",
     "seed": null,
@@ -3641,6 +3647,7 @@
   {
     "id": "sprite/mangaka-draw",
     "kind": "sprite",
+    "retired": true,
     "source": "higgsfield:z_image",
     "model": "z_image",
     "seed": null,
@@ -3677,6 +3684,7 @@
   {
     "id": "sprite/mangaka-panic",
     "kind": "sprite",
+    "retired": true,
     "source": "higgsfield:z_image",
     "model": "z_image",
     "seed": null,
@@ -3713,6 +3721,7 @@
   {
     "id": "sprite/mangaka-lie",
     "kind": "sprite",
+    "retired": true,
     "source": "higgsfield:z_image",
     "model": "z_image",
     "seed": null,
@@ -3739,6 +3748,7 @@
   {
     "id": "sprite/mangaka-front-idle",
     "kind": "sprite",
+    "retired": true,
     "source": "higgsfield:z_image",
     "model": "z_image",
     "seed": null,
@@ -3808,6 +3818,7 @@
   {
     "id": "sprite/mangaka-front-sit-0",
     "kind": "sprite",
+    "retired": true,
     "source": "higgsfield:z_image",
     "model": "z_image",
     "seed": null,
@@ -3859,6 +3870,7 @@
   {
     "id": "sprite/mangaka-front-sit-1",
     "kind": "sprite",
+    "retired": true,
     "source": "higgsfield:z_image",
     "model": "z_image",
     "seed": null,
@@ -3992,6 +4004,7 @@
   {
     "id": "sprite/mangaka-side-walk-0",
     "kind": "sprite",
+    "retired": true,
     "source": "higgsfield:z_image",
     "model": "z_image",
     "seed": null,
@@ -4031,6 +4044,7 @@
   {
     "id": "sprite/mangaka-side-walk-1",
     "kind": "sprite",
+    "retired": true,
     "source": "higgsfield:z_image",
     "model": "z_image",
     "seed": null,
@@ -4070,6 +4084,7 @@
   {
     "id": "sprite/mangaka-side-walk-2",
     "kind": "sprite",
+    "retired": true,
     "source": "higgsfield:z_image",
     "model": "z_image",
     "seed": null,
@@ -4109,6 +4124,7 @@
   {
     "id": "sprite/mangaka-side-walk-3",
     "kind": "sprite",
+    "retired": true,
     "source": "higgsfield:z_image",
     "model": "z_image",
     "seed": null,
@@ -4148,6 +4164,7 @@
   {
     "id": "sprite/mangaka-side-walk-4",
     "kind": "sprite",
+    "retired": true,
     "source": "higgsfield:z_image",
     "model": "z_image",
     "seed": null,
@@ -4187,6 +4204,7 @@
   {
     "id": "sprite/mangaka-side-stretch",
     "kind": "sprite",
+    "retired": true,
     "source": "higgsfield:z_image",
     "model": "z_image",
     "seed": null,
@@ -4226,6 +4244,7 @@
   {
     "id": "sprite/mangaka-side-sip",
     "kind": "sprite",
+    "retired": true,
     "source": "higgsfield:z_image",
     "model": "z_image",
     "seed": null,
@@ -4265,6 +4284,7 @@
   {
     "id": "sprite/mangaka-side-sip-1",
     "kind": "sprite",
+    "retired": true,
     "source": "higgsfield:z_image",
     "model": "z_image",
     "seed": null,
@@ -4316,6 +4336,7 @@
   {
     "id": "sprite/editor-idle",
     "kind": "sprite",
+    "retired": true,
     "source": "higgsfield:z_image",
     "model": "z_image",
     "seed": null,
@@ -4373,6 +4394,7 @@
   {
     "id": "sprite/editor-walk-0",
     "kind": "sprite",
+    "retired": true,
     "source": "higgsfield:z_image",
     "model": "z_image",
     "seed": null,
@@ -4431,6 +4453,7 @@
   {
     "id": "sprite/editor-walk-1",
     "kind": "sprite",
+    "retired": true,
     "source": "higgsfield:z_image",
     "model": "z_image",
     "seed": null,
@@ -4489,6 +4512,7 @@
   {
     "id": "sprite/editor-walk-2",
     "kind": "sprite",
+    "retired": true,
     "source": "higgsfield:z_image",
     "model": "z_image",
     "seed": null,
@@ -4547,6 +4571,7 @@
   {
     "id": "sprite/editor-walk-3",
     "kind": "sprite",
+    "retired": true,
     "source": "higgsfield:z_image",
     "model": "z_image",
     "seed": null,
@@ -4605,6 +4630,7 @@
   {
     "id": "sprite/cat-sit",
     "kind": "sprite",
+    "retired": true,
     "source": "higgsfield:z_image",
     "model": "z_image",
     "seed": null,
@@ -4638,6 +4664,7 @@
   {
     "id": "sprite/cat-groom",
     "kind": "sprite",
+    "retired": true,
     "source": "higgsfield:z_image",
     "model": "z_image",
     "seed": null,
@@ -4671,6 +4698,7 @@
   {
     "id": "sprite/cat-stretch",
     "kind": "sprite",
+    "retired": true,
     "source": "higgsfield:z_image",
     "model": "z_image",
     "seed": null,
@@ -4705,6 +4733,7 @@
   {
     "id": "sprite/cat-walk-0",
     "kind": "sprite",
+    "retired": true,
     "source": "higgsfield:z_image",
     "model": "z_image",
     "seed": null,
@@ -4738,6 +4767,7 @@
   {
     "id": "sprite/cat-walk-1",
     "kind": "sprite",
+    "retired": true,
     "source": "higgsfield:z_image",
     "model": "z_image",
     "seed": null,

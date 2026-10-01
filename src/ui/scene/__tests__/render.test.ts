@@ -12,7 +12,8 @@ import { DESK_PROPS, NO_ART, PROP_ALIGN, PROP_MIN_H, PROP_SPRITE, ROOM_NIGHT_DIM
 import type { SceneArt, ScenePropId } from '../sceneArt'
 import type { Season } from '../season'
 import { newActorTable } from '../actors'
-import { MANGAKA_SIT } from '../sprites'
+import { ASSISTANT_DOZE, CAT_SIT, CAT_SLEEP, MANGAKA_LIE, MANGAKA_SIT } from '../sprites'
+import { runCount } from '../../art/pixelOps'
 import type { Actor, ActorTable } from '../actors'
 
 /**
@@ -45,6 +46,18 @@ const BUDGET = BASELINE_FILLS * 1.5
  */
 const ART_BASELINE_FILLS = 521
 const ART_BUDGET = ART_BASELINE_FILLS * 1.5
+
+/**
+ * fillRect calls for the rest scene (`sceneSnapshot({ activity: 'rest' })`: the reference scene on a rest day, the
+ * assistant dozing at the desk under the generated ASSISTANT_DOZE, 0.11.0) at t = 0.3 and frame 100, measured the same
+ * way: 509. By hand, from the 673: the seated mangaka goes to bed (MANGAKA_SIT[0] 184 out; MANGAKA_LIE 72, the blanket
+ * and its fold 2 and frame 100's three Zs at 9 each, 101 in), the cat leaves its cushion for the kitchen (the cushion
+ * 4 and CAT_SLEEP 31 out; frame 100 is catFrame's sit, CAT_SIT 34 in), the assistant dozes (MANGAKA_SIT[0] 184 and its
+ * page 3 out; ASSISTANT_DOZE 100 and its Z 9 in), and nobody works (the lamp's glow and the mug's steam, 2 out):
+ * 673 - 184 + 101 - 35 + 34 - 187 + 109 - 2 = 509. Every rest scene must stay under 1.5 times this (763.5).
+ */
+const REST_BASELINE_FILLS = 509
+const REST_BUDGET = REST_BASELINE_FILLS * 1.5
 
 describe('render', () => {
   it('paints every pixel from a palette (an unknown sprite key would paint magenta)', () => {
@@ -124,6 +137,24 @@ describe('render', () => {
         const { ctx, log } = fakeContext()
         render(ctx, sceneSnapshot({ season }), t, 100)
         expect(log.length, `${season} t ${t}`).toBeLessThan(BUDGET)
+      }
+    }
+  })
+
+  it('stays under 1.5 times the measured rest-scene baseline, the assistant dozing, in every season, by day and by night', () => {
+    expect(REST_BUDGET).toBe(763.5)
+    // the by-hand terms (see REST_BASELINE_FILLS)
+    expect([MANGAKA_SIT[0], MANGAKA_LIE, CAT_SLEEP, CAT_SIT, ASSISTANT_DOZE].map(runCount)).toEqual([184, 72, 31, 34, 100])
+    const ref = fakeContext()
+    const rest = sceneSnapshot({ activity: 'rest' })
+    expect([rest.actors.mangaka.state, rest.actors.cat.state, rest.actors.assistants[0].state]).toEqual(['sleeping', 'sitting', 'sleeping'])
+    render(ref.ctx, rest, 0.3, 100)
+    expect(ref.log).toHaveLength(REST_BASELINE_FILLS)
+    for (const season of ['spring', 'summer', 'autumn', 'winter'] as Season[]) {
+      for (const t of [0.3, 0.9]) {
+        const { ctx, log } = fakeContext()
+        render(ctx, sceneSnapshot({ activity: 'rest', season }), t, 100)
+        expect(log.length, `${season} t ${t}`).toBeLessThan(REST_BUDGET)
       }
     }
   })
@@ -433,9 +464,11 @@ describe('the assistants, the wall clock and the cat (Task 2.5)', () => {
 
   it('dozes a sleeping assistant, head on the folded arms, with the Z, and seats a working one upright', () => {
     const rest = at({ activity: 'rest' }, 0.3, 0)
-    // DOZE (generated, task C2) row 11 col 9 is hair (the head down on the arms); the Z at (66 + 18, 89 - 6)
+    // DOZE (generated, task C2) row 11 col 9 is hair (the head down on the arms); the Z just above the head
+    // at (66 + 18, 89 - 2), its top row 87 (the doze's first painted row is 10, y 99)
     expect(covers(rest, '#2b2140', 75, 100)).toBeGreaterThan(-1)
-    expect(covers(rest, '#2f5ecf', 85, 83)).toBeGreaterThan(-1)
+    expect(covers(rest, '#2f5ecf', 85, 87)).toBeGreaterThan(-1)
+    expect(covers(rest, '#2f5ecf', 85, 83)).toBe(-1)
     expect(page(rest)).toBe(-1)
     // no hair where the upright head's row 2 col 8 would be
     expect(covers(rest, '#2b2140', 74, 91)).toBe(-1)
@@ -615,7 +648,7 @@ describe('the assistants, the wall clock and the cat (Task 2.5)', () => {
 })
 
 describe('outfits by level (Task 5, Decision 7)', () => {
-  // standing at MANGAKA_STAND (170, 81): the anchor's row 19 col 6 'J' -> (170+6, 81+19) = (176, 100)
+  // standing at MANGAKA_STAND (170, 81): the anchor's row 18 col 6 'J' -> (170+6, 81+18) = (176, 99)
   it('dresses the standing mangaka in the outfit for their level', () => {
     const table = newActorTable()
     Object.assign(table.mangaka, { x: 170, y: 81, targetX: 170, targetY: 81, state: 'standing', goal: 'standing' })
@@ -624,9 +657,9 @@ describe('outfits by level (Task 5, Decision 7)', () => {
       render(ctx, sceneSnapshot({ level, actors: table }), 0.3, 0)
       return log
     }
-    expect(covers(at(1), '#6f7a8c', 176, 100)).toBeGreaterThan(-1)
-    expect(covers(at(5), '#c9a24a', 176, 100)).toBeGreaterThan(-1)
-    expect(covers(at(10), '#2e3a78', 176, 100)).toBeGreaterThan(-1)
+    expect(covers(at(1), '#6f7a8c', 176, 99)).toBeGreaterThan(-1)
+    expect(covers(at(5), '#c9a24a', 176, 99)).toBeGreaterThan(-1)
+    expect(covers(at(10), '#2e3a78', 176, 99)).toBeGreaterThan(-1)
   })
 
   it('leaves an assistant\'s look palette unaffected by the player\'s level', () => {

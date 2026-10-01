@@ -546,7 +546,7 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
       const pal = ASSISTANT_PALS[s.assistants[i].look % ASSISTANT_PALS.length]
       if (actor.state === 'sleeping') {
         drawSprite(ctx, ASSISTANT_DOZE, actor.x, actor.y, 32, pal)
-        glyph(ctx, 'Z', actor.x + 18, actor.y - 6, '#2f5ecf')
+        glyph(ctx, 'Z', actor.x + 18, actor.y - 2, '#2f5ecf')
       } else {
         const idx = working ? Math.floor((frame + i * 3) / 8) % 2 : 0
         drawSprite(ctx, MANGAKA_SIT[idx], actor.x, actor.y, 32, pal)
