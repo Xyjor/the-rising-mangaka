@@ -3,7 +3,7 @@
 // Generated images come in as a `SceneArt` (sceneArt.ts): a ready room image replaces the code-drawn shell and a ready
 // prop image replaces its piece at the same footprint and the same place in the draw order. This module never imports
 // the art registry.
-import type { StudioTierId } from '../../sim'
+import type { EquipmentId, StudioTierId } from '../../sim'
 import { ASSISTANT_SEAT_X } from './actors'
 import type { Actor, ActorTable } from './actors'
 import {
@@ -18,15 +18,16 @@ import { BAR_X, paneRect, rawRect, rect, shadow } from './paint'
 import { drawSeasonNight, drawSeasonPane, drawSeasonSill, drawSeasonWall } from './season'
 import type { Season } from './season'
 import {
-  DOORWAY_BOX, DOORWAY_FOOTPRINT, DOOR_BOX, DOOR_FOOTPRINT, EQUIPMENT_ART, KITCHENETTE_FOOTPRINT, TIER_ART, TIER_DOOR,
-  drawAnimePoster,
-  drawEntrance, drawKitchenette, drawStudioLights, drawTrophies, drawVolumes,
+  ARM_LAMP_BOX, ARM_LAMP_FOOTPRINT, COFFEE_MACHINE_BOX, COFFEE_MACHINE_FOOTPRINT, DOORWAY_BOX, DOORWAY_FOOTPRINT, DOOR_BOX,
+  DOOR_FOOTPRINT, DRAFTING_TABLE_BOX, DRAFTING_TABLE_FOOTPRINT, EQUIPMENT_ART, EQUIPMENT_SPRITE, KITCHENETTE_FOOTPRINT,
+  REFERENCE_SHELF_BOX, REFERENCE_SHELF_FOOTPRINT, TALL_CHAIR_BOX, TALL_CHAIR_FOOTPRINT, TIER_ART, TIER_DOOR,
+  drawAnimePoster, drawEntrance, drawKitchenette, drawStudioLights, drawTrophies, drawVolumes,
 } from './studioArt'
 import type { Owned } from './studioArt'
 import {
-  TIER_FRONT, drawAmbient, drawCalendar, drawCorkboard, drawCups, drawFanLetters, drawRoomShell, drawSeriesPoster,
+  FRONT_BOX, FRONT_FOOTPRINT, TIER_FRONT, drawAmbient, drawCalendar, drawCorkboard, drawCups, drawFanLetters, drawRoomShell, drawSeriesPoster,
 } from './roomArt'
-import { NO_ART, PROP_SPRITE, ROOM_NIGHT_DIM, drawProp, placeSprite, ready } from './sceneArt'
+import { NO_ART, PROP_SPRITE, ROOM_NIGHT_DIM, drawProp, hangSprite, ready, spriteBox } from './sceneArt'
 import type { Fallback, Footprint, SceneArt, ScenePropId } from './sceneArt'
 import type { StoryLook } from './story'
 
@@ -211,7 +212,7 @@ function drawMangaka(
   }
 }
 
-// ---------- the structural props (each a generated sprite when one is ready, else these fills) ----------
+// ---------- the props (each a generated sprite when one is ready, else these fills) ----------
 
 /** The window's frame (room 116,10 48x36; canvas x 180-227, y 46-81); the pane, sky, bars and sill paint over it. */
 export const WINDOW_FOOTPRINT: Footprint = { x: 180, y: 46, w: 48, h: 36 }
@@ -250,7 +251,24 @@ function bed(ctx: CanvasRenderingContext2D) {
   rect(ctx, 130, 74, 40, 2, '#a83c3c')
 }
 
-/** Every structural prop's footprint: the box its code-drawn fallback paints in, and the base its sprite is sized and placed on. */
+/**
+ * The stock desk (room 52,62 58x20; canvas x 116-173, y 98-117): its top (y 98, where the pages, the ink pot and the
+ * pen sit), its front, two legs and a drawer.
+ */
+export const DESK_FOOTPRINT: Footprint = { x: 116, y: 98, w: 58, h: 20 }
+function stockDesk(ctx: CanvasRenderingContext2D) {
+  rect(ctx, 52, 62, 58, 4, '#8b5a2b'); rect(ctx, 52, 66, 58, 14, '#70461f')
+  rect(ctx, 54, 66, 2, 16, '#5a3618'); rect(ctx, 106, 66, 2, 16, '#5a3618')
+  rect(ctx, 60, 70, 20, 8, '#5a3618'); rect(ctx, 62, 72, 16, 1, '#8b5a2b'); rect(ctx, 62, 75, 16, 1, '#8b5a2b')
+}
+
+/** The stock chair (room 70,42 20x30; canvas x 134-153, y 78-107): its back, seat and two legs, behind the seated mangaka. */
+export const STOCK_CHAIR_FOOTPRINT: Footprint = { x: 134, y: 78, w: 20, h: 30 }
+function stockChair(ctx: CanvasRenderingContext2D) {
+  rect(ctx, 72, 42, 16, 12, '#4a4a55'); rect(ctx, 70, 54, 20, 4, '#4a4a55'); rect(ctx, 71, 58, 2, 14, '#4a4a55'); rect(ctx, 87, 58, 2, 14, '#4a4a55')
+}
+
+/** Every prop's footprint: the box its code-drawn fallback paints in, and the base its sprite is sized and placed on. */
 export const PROP_FOOTPRINT: Record<ScenePropId, Footprint> = {
   window: WINDOW_FOOTPRINT,
   door: DOOR_FOOTPRINT,
@@ -259,26 +277,104 @@ export const PROP_FOOTPRINT: Record<ScenePropId, Footprint> = {
   bookshelf: BOOKSHELF_FOOTPRINT,
   bed: BED_FOOTPRINT,
   poster: POSTER_FOOTPRINT,
+  desk: DESK_FOOTPRINT,
+  'drafting-table': DRAFTING_TABLE_FOOTPRINT,
+  chair: STOCK_CHAIR_FOOTPRINT,
+  'tall-chair': TALL_CHAIR_FOOTPRINT,
+  'arm-lamp': ARM_LAMP_FOOTPRINT,
+  'reference-shelf': REFERENCE_SHELF_FOOTPRINT,
+  'coffee-machine': COFFEE_MACHINE_FOOTPRINT,
+  zabuton: FRONT_FOOTPRINT.zabuton,
+  boxes: FRONT_FOOTPRINT.boxes,
+  fern: FRONT_FOOTPRINT.fern,
+  books: FRONT_FOOTPRINT.books,
+  'floor-lamp': FRONT_FOOTPRINT['floor-lamp'],
+  sofa: FRONT_FOOTPRINT.sofa,
+  bin: FRONT_FOOTPRINT.bin,
 }
 
 /**
- * Where each prop's generated sprite lands (canvas space): its native size (sceneArt.ts `PROP_SPRITE`) bottom-aligned
- * and centred on its footprint (`placeSprite`). The code-drawn fallback keeps painting inside `PROP_FOOTPRINT`.
+ * Where each prop's generated sprite lands (canvas space): its native size (sceneArt.ts `PROP_SPRITE`, under
+ * `PROP_MAX_W` and `PROP_MIN_H`) bottom-aligned and centred on its footprint (`spriteBox`, or flush right where
+ * `PROP_ALIGN` says), but a desk, which hangs from its footprint's top row (`hangSprite`, so
+ * the tabletop stays at y 98). The code-drawn fallback keeps painting inside `PROP_FOOTPRINT`. The one table of where
+ * every sprite goes: the equipment's and the front row's boxes come from studioArt.ts and roomArt.ts, which draw with
+ * them.
  */
 export const PROP_BOX: Record<ScenePropId, Footprint> = {
-  window: placeSprite(WINDOW_FOOTPRINT, ...PROP_SPRITE.window),
+  window: spriteBox('window', WINDOW_FOOTPRINT),
   door: DOOR_BOX,
   doorway: DOORWAY_BOX,
-  kitchenette: placeSprite(KITCHENETTE_FOOTPRINT, ...PROP_SPRITE.kitchenette),
-  bookshelf: placeSprite(BOOKSHELF_FOOTPRINT, ...PROP_SPRITE.bookshelf),
-  bed: placeSprite(BED_FOOTPRINT, ...PROP_SPRITE.bed),
-  poster: placeSprite(POSTER_FOOTPRINT, ...PROP_SPRITE.poster),
+  kitchenette: spriteBox('kitchenette', KITCHENETTE_FOOTPRINT),
+  bookshelf: spriteBox('bookshelf', BOOKSHELF_FOOTPRINT),
+  bed: spriteBox('bed', BED_FOOTPRINT),
+  poster: spriteBox('poster', POSTER_FOOTPRINT),
+  desk: hangSprite(DESK_FOOTPRINT, ...PROP_SPRITE.desk),
+  'drafting-table': DRAFTING_TABLE_BOX,
+  chair: spriteBox('chair', STOCK_CHAIR_FOOTPRINT),
+  'tall-chair': TALL_CHAIR_BOX,
+  'arm-lamp': ARM_LAMP_BOX,
+  'reference-shelf': REFERENCE_SHELF_BOX,
+  'coffee-machine': COFFEE_MACHINE_BOX,
+  zabuton: FRONT_BOX.zabuton,
+  boxes: FRONT_BOX.boxes,
+  fern: FRONT_BOX.fern,
+  books: FRONT_BOX.books,
+  'floor-lamp': FRONT_BOX['floor-lamp'],
+  sofa: FRONT_BOX.sofa,
+  bin: FRONT_BOX.bin,
+}
+
+const PAGE_X = 3
+const PAGE_Y = 120
+const PAGE_W = 6
+const PAGE_H = 4
+function pagesOverlap(box: Footprint): boolean[] {
+  return ASSISTANT_SEAT_X.map((x) => x + PAGE_X < box.x + box.w && x + PAGE_X + PAGE_W > box.x
+    && PAGE_Y < box.y + box.h && PAGE_Y + PAGE_H > box.y)
+}
+/** Per seat: its page (and ink lines) overlaps the desk sprite's box, so the sprite would cover it. */
+const PAGE_UNDER_DESK: Record<'desk' | 'drafting-table', boolean[]> = {
+  desk: pagesOverlap(PROP_BOX.desk),
+  'drafting-table': pagesOverlap(PROP_BOX['drafting-table']),
+}
+
+/**
+ * The working assistants' pages and their ink lines. A page the ready desk sprite would cover is drawn after the
+ * desk (`afterDesk`), the rest before it, as always; without the sprite every page is drawn before.
+ */
+function drawPages(ctx: CanvasRenderingContext2D, s: Snapshot, shown: number, afterDesk: boolean, deskSpriteReady: boolean) {
+  const under = PAGE_UNDER_DESK[s.owned['drafting-table'] ? 'drafting-table' : 'desk']
+  const inked = Math.round(s.progress * 3)
+  for (let i = 0; i < shown; i++) {
+    const actor = s.actors.assistants[i]
+    if (actor.state !== 'seated') continue
+    if ((deskSpriteReady && under[i]) !== afterDesk) continue
+    rawRect(ctx, actor.x + PAGE_X, PAGE_Y, PAGE_W, PAGE_H, PROP_PAPER)
+    for (let k = 0; k < inked; k++) rawRect(ctx, actor.x + 4, 121 + k, 4, 1, PROP_LINE)
+  }
 }
 
 /** `drawProp` at the prop's sprite box (its image) or its footprint (its fallback fills, which carry their own coordinates). */
 function prop(ctx: CanvasRenderingContext2D, art: SceneArt, id: ScenePropId, fallback: Fallback) {
   const b = PROP_BOX[id]
   drawProp(ctx, art, id, b.x, b.y, b.w, b.h, fallback)
+}
+
+/**
+ * An owned piece of equipment: its sprite (studioArt.ts `EQUIPMENT_SPRITE`) at its `PROP_BOX` once the image is
+ * ready, else its code-drawn `EQUIPMENT_ART`, in the same place in the draw order.
+ */
+function equipment(
+  ctx: CanvasRenderingContext2D, s: Snapshot, art: SceneArt, id: EquipmentId, frame: number, night: boolean,
+) {
+  // mirrors drawProp's ready-or-fallback rule (equipment fallbacks take (s, frame, night), so drawProp cannot be used)
+  const sprite = EQUIPMENT_SPRITE[id]
+  const img = sprite === null ? null : art.prop[sprite]
+  if (sprite !== null && ready(img)) {
+    const b = PROP_BOX[sprite]
+    ctx.drawImage(img, b.x, b.y, b.w, b.h)
+  } else EQUIPMENT_ART[id](ctx, s, frame, night)
 }
 
 // ---------- sky ----------
@@ -381,8 +477,16 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
   const shelfReady = ready(art.prop.bookshelf)
   const shelfX = shelfReady ? PROP_BOX.bookshelf.x : 72
   const shelfW = shelfReady ? PROP_BOX.bookshelf.w : 35
+  // the desk's shadow lies under its sprite's feet when the image is ready (the stock desk's or the drafting table's,
+  // whichever stands there), else under the code-drawn desk (x 116, 58 wide, y 118)
+  const deskId: ScenePropId = s.owned['drafting-table'] ? 'drafting-table' : 'desk'
+  const deskBox = PROP_BOX[deskId]
+  const deskSpriteReady = ready(art.prop[deskId])
   // contact shadows on the floor: the fridge, the counter, the bookshelf, the desk and the bed
-  shadow(ctx, 2, 114, 16); shadow(ctx, 20, 114, 42); shadow(ctx, shelfX, 114, shelfW); shadow(ctx, 116, 118, 58); shadow(ctx, 192, 128, 58)
+  shadow(ctx, 2, 114, 16); shadow(ctx, 20, 114, 42); shadow(ctx, shelfX, 114, shelfW)
+  if (deskSpriteReady) shadow(ctx, deskBox.x, deskBox.y + deskBox.h, deskBox.w)
+  else shadow(ctx, 116, 118, 58)
+  shadow(ctx, 192, 128, 58)
 
   // window
   prop(ctx, art, 'window', windowFrame)
@@ -405,13 +509,13 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
   rect(ctx, 114, 45, 52, 3, '#4a3828')
   drawSeasonSill(ctx, s.season)
   drawSeasonWall(ctx, s.season)
-  if (s.owned.coffee) EQUIPMENT_ART.coffee(ctx, s, frame, night)
+  if (s.owned.coffee) equipment(ctx, s, art, 'coffee', frame, night)
   drawTrophies(ctx, s.trophies)
 
   // bookshelf, with the volumes on top and the reference shelf beside it
   prop(ctx, art, 'bookshelf', bookshelf)
   drawVolumes(ctx, s.volumes)
-  if (s.owned.shelf) EQUIPMENT_ART.shelf(ctx, s, frame, night)
+  if (s.owned.shelf) equipment(ctx, s, art, 'shelf', frame, night)
 
   drawClock(ctx, t)
   drawCorkboard(ctx, s)
@@ -455,31 +559,21 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
     const dw = 8 + 20 * shown
     shadow(ctx, 62, 132, dw)
     rawRect(ctx, 62, 120, dw, 3, '#8b5a2b'); rawRect(ctx, 62, 123, dw, 9, '#70461f')
-    if (working) {
-      const inked = Math.round(s.progress * 3)
-      for (let i = 0; i < shown; i++) {
-        const actor = s.actors.assistants[i]
-        if (actor.state !== 'seated') continue
-        rawRect(ctx, actor.x + 3, 120, 6, 4, PROP_PAPER)
-        for (let k = 0; k < inked; k++) rawRect(ctx, actor.x + 4, 121 + k, 4, 1, PROP_LINE)
-      }
-    }
+    if (working) drawPages(ctx, s, shown, false, deskSpriteReady)
   }
   // chair (before the player: they sit in it)
-  if (s.owned.chair) EQUIPMENT_ART.chair(ctx, s, frame, night)
-  else { rect(ctx, 72, 42, 16, 12, '#4a4a55'); rect(ctx, 70, 54, 20, 4, '#4a4a55'); rect(ctx, 71, 58, 2, 14, '#4a4a55'); rect(ctx, 87, 58, 2, 14, '#4a4a55') }
+  if (s.owned.chair) equipment(ctx, s, art, 'chair', frame, night)
+  else prop(ctx, art, 'chair', stockChair)
 
   // the mangaka seated at the desk (behind its top)
   drawMangaka(ctx, s, s.actors.mangaka, frame, working, false, night)
 
   // desk (or the drafting table in its place) and the lamp
-  if (s.owned['drafting-table']) EQUIPMENT_ART['drafting-table'](ctx, s, frame, night)
-  else {
-    rect(ctx, 52, 62, 58, 4, '#8b5a2b'); rect(ctx, 52, 66, 58, 14, '#70461f')
-    rect(ctx, 54, 66, 2, 16, '#5a3618'); rect(ctx, 106, 66, 2, 16, '#5a3618')
-    rect(ctx, 60, 70, 20, 8, '#5a3618'); rect(ctx, 62, 72, 16, 1, '#8b5a2b'); rect(ctx, 62, 75, 16, 1, '#8b5a2b')
-  }
-  if (s.owned.lamp) EQUIPMENT_ART.lamp(ctx, s, frame, night)
+  if (s.owned['drafting-table']) equipment(ctx, s, art, 'drafting-table', frame, night)
+  else prop(ctx, art, 'desk', stockDesk)
+  // the pages the desk sprite would cover (its box overlaps theirs) go on top of it
+  if (working && s.assistants.length) drawPages(ctx, s, Math.min(3, s.assistants.length), true, deskSpriteReady)
+  if (s.owned.lamp) equipment(ctx, s, art, 'lamp', frame, night)
   else { rect(ctx, 100, 50, 1, 12, '#3b3b45'); rect(ctx, 96, 47, 9, 4, '#3fa66c'); if (night || working) rect(ctx, 97, 51, 7, 2, '#fff2a8') }
   const stack = Math.round(1 + s.progress * 8)
   rect(ctx, 57, 62 - stack, 14, stack, '#fdfcf7'); for (let i = 0; i < stack; i += 2) rect(ctx, 57, 62 - stack + i, 14, 1, '#e9e5da')
@@ -489,7 +583,7 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
   rect(ctx, ink, 58, 4, 4, '#1b1b1b'); rect(ctx, ink + 1, 57, 2, 1, '#1b1b1b')
   rect(ctx, 76, 58, 5, 4, '#fff'); rect(ctx, 81, 59, 1, 2, '#fff'); if (working) { const st = Math.floor(frame / 10) % 2; rect(ctx, 77 + st, 55, 1, 2, '#d9d3c5') }
   if (s.owned.tablet) EQUIPMENT_ART.tablet(ctx, s, frame, night)
-  drawCups(ctx, s)
+  drawCups(ctx, s, ready(art.prop[deskId]))
   if (absent) { rect(ctx, 96, 58, 8, 5, '#fff7c2'); rect(ctx, 97, 59, 6, 1, '#b8b2a5'); rect(ctx, 97, 61, 4, 1, '#b8b2a5') }
 
   // the mangaka in front of the desk (standing, walking or in bed), then the editor on a visit
@@ -524,7 +618,7 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
   if (s.visitor === 'editor' && editor.state === 'standing' && editor.facing === -1) drawVisitorProp(ctx, s.visitorProp, editor.x, editor.y, frame)
 
   // the front row, in front of everyone
-  TIER_FRONT[s.tier](ctx, s, frame, night)
+  TIER_FRONT[s.tier](ctx, s, frame, night, art)
 
   if (night) {
     ctx.fillStyle = 'rgba(20, 24, 60, 0.28)'; ctx.fillRect(0, 0, W, H)
@@ -533,6 +627,6 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
     drawSeasonNight(ctx, s.season, frame)
   }
   // the arm lamp (at night or while working) and the doorway's spill (at night), after the overlay so they glow
-  drawStudioLights(ctx, s, night, working, ready(art.prop.doorway))
+  drawStudioLights(ctx, s, night, working, ready(art.prop.doorway), ready(art.prop['arm-lamp']))
   drawAmbient(ctx, s, t, night, working)
 }

@@ -2,7 +2,7 @@
 // `drawRoomShell` whenever the tier has no generated room image ready: the
 // apartment's tatami and wooden pillars, the flat's teal wallpaper, wainscot and honey planks, the loft's brick accent
 // and pale concrete), the front row of props on the floor (`TIER_FRONT`, drawn after the actors so they pass behind
-// it), the story props that picture the game (the corkboard, the calendar, the coffee cups, the serial's cover, the
+// it; each piece a generated sprite once its image is ready, since 0.10.0), the story props that picture the game (the corkboard, the calendar, the coffee cups, the serial's cover, the
 // fan letters and the bin; story.ts reads their inputs) and the light (`drawAmbient`: the daylight shaft, the lamp's
 // pool, the monitor glow and the vignette, after the night overlay). Every piece keeps inside the phone's visible band
 // (x 60-260 for anything that matters) and off the actors' spots. Nothing here allocates per frame. Raw hex is
@@ -10,7 +10,8 @@
 import type { StudioTierId } from '../../sim'
 import { rawRect, shadow } from './paint'
 import type { Snapshot } from './render'
-import type { Art } from './studioArt'
+import { NO_ART, ready, spriteBox } from './sceneArt'
+import type { Footprint, SceneArt, ScenePropId } from './sceneArt'
 import { corkCards } from './story'
 
 /** Paints one tier's walls and floor across the whole 320x180 canvas (the wall to y 113, the floor from y 114). */
@@ -180,10 +181,64 @@ export function drawRoomShell(ctx: CanvasRenderingContext2D, tier: StudioTierId,
 
 // ---------- the front row ----------
 
+/**
+ * Paints one tier's front row: like studioArt's `Art`, plus the scene's generated images, since each piece is a prop
+ * sprite once its image is ready.
+ */
+export type FrontArt = (ctx: CanvasRenderingContext2D, s: Snapshot, frame: number, night: boolean, art: SceneArt) => void
+
+/** The front row's pieces, each one's code-drawn footprint in canvas space (its fills paint inside it). */
+export type FrontPropId = 'zabuton' | 'boxes' | 'fern' | 'books' | 'floor-lamp' | 'sofa' | 'bin'
+export const FRONT_FOOTPRINT: Record<FrontPropId, Footprint> = {
+  /** The apartment's zabuton (x 87-110, y 161-167), its tassels at both ends. */
+  zabuton: { x: 87, y: 161, w: 24, h: 7 },
+  /** The apartment's two manga boxes (x 148-169, y 148-169). */
+  boxes: { x: 148, y: 148, w: 22, h: 22 },
+  /** The flat's potted fern (x 71-86, y 144-170), its swaying top leaf included. */
+  fern: { x: 71, y: 144, w: 16, h: 27 },
+  /** The flat's three reference books on the floor (x 152-169, y 158-166). */
+  books: { x: 152, y: 158, w: 18, h: 9 },
+  /** The loft's floor lamp (x 64-75, y 142-175). */
+  'floor-lamp': { x: 64, y: 142, w: 12, h: 34 },
+  /** The loft's sofa corner (x 196-231, y 150-175), its feet included. */
+  sofa: { x: 196, y: 150, w: 36, h: 26 },
+  /** The waste bin's rim and body (x 233-243, y 154-165); the crumpled pages above it stay code-drawn. */
+  bin: { x: 233, y: 154, w: 11, h: 12 },
+}
+
+/**
+ * Where each front-row sprite lands (render.ts `PROP_BOX` reads these): the 0.9.0 rule, bottom-aligned and centred,
+ * with the zabuton and the book stack raised to their minimum readable heights (sceneArt.ts `PROP_MIN_H`, already in
+ * their `PROP_SPRITE` sizes) and any `PROP_ALIGN` honoured through `spriteBox`.
+ */
+export const FRONT_BOX: Record<FrontPropId, Footprint> = {
+  zabuton: spriteBox('zabuton', FRONT_FOOTPRINT.zabuton),
+  boxes: spriteBox('boxes', FRONT_FOOTPRINT.boxes),
+  fern: spriteBox('fern', FRONT_FOOTPRINT.fern),
+  books: spriteBox('books', FRONT_FOOTPRINT.books),
+  'floor-lamp': spriteBox('floor-lamp', FRONT_FOOTPRINT['floor-lamp']),
+  sofa: spriteBox('sofa', FRONT_FOOTPRINT.sofa),
+  bin: spriteBox('bin', FRONT_FOOTPRINT.bin),
+}
+
+/**
+ * A front-row piece: its sprite at `FRONT_BOX` and its contact shadow across the sprite when the image is ready; else
+ * nothing, and the caller paints the code-drawn piece with its own shadow. Returns whether the sprite was drawn.
+ */
+function frontSprite(ctx: CanvasRenderingContext2D, art: SceneArt, id: FrontPropId & ScenePropId): boolean {
+  const img = art.prop[id]
+  if (!ready(img)) return false
+  const b = FRONT_BOX[id]
+  ctx.drawImage(img, b.x, b.y, b.w, b.h)
+  shadow(ctx, b.x, b.y + b.h, b.w)
+  return true
+}
+
 /** The waste bin (x 233-243, y 151-167): a crumpled page on top per quarter of the manuscript drawn, while drawing. */
-export function drawBin(ctx: CanvasRenderingContext2D, s: Snapshot) {
+export function drawBin(ctx: CanvasRenderingContext2D, s: Snapshot, art: SceneArt = NO_ART) {
   const balls = s.phase === 'drawing' ? Math.min(3, Math.floor(s.progress * 4)) : 0
   for (let i = 0; i < balls; i++) rawRect(ctx, 234 + i * 3, 151 + (i % 2), 3, 3, PAPER)
+  if (frontSprite(ctx, art, 'bin')) return
   rawRect(ctx, 233, 154, 11, 2, METAL_DARK)
   rawRect(ctx, 234, 156, 9, 10, METAL_LIGHT)
   rawRect(ctx, 236, 158, 1, 6, METAL_DARK); rawRect(ctx, 240, 158, 1, 6, METAL_DARK)
@@ -191,43 +246,58 @@ export function drawBin(ctx: CanvasRenderingContext2D, s: Snapshot) {
 }
 
 /** The apartment's front row: a zabuton floor cushion and a stack of manga boxes, and the bin. */
-const apartmentFront: Art = (ctx, s) => {
-  rawRect(ctx, 88, 161, 22, 7, ZABUTON); rawRect(ctx, 88, 166, 22, 2, ZABUTON_SHADE)
-  rawRect(ctx, 87, 161, 1, 1, TASSEL); rawRect(ctx, 110, 161, 1, 1, TASSEL)
-  shadow(ctx, 88, 168, 22)
-  rawRect(ctx, 150, 148, 18, 10, CARDBOARD); rawRect(ctx, 148, 158, 22, 12, CARDBOARD)
-  rawRect(ctx, 158, 148, 2, 10, TAPE); rawRect(ctx, 148, 163, 22, 2, TAPE)
-  rawRect(ctx, 150, 157, 18, 1, CARDBOARD_EDGE); rawRect(ctx, 148, 169, 22, 1, CARDBOARD_EDGE)
-  shadow(ctx, 148, 170, 22)
-  drawBin(ctx, s)
+const apartmentFront: FrontArt = (ctx, s, _frame, _night, art) => {
+  if (!frontSprite(ctx, art, 'zabuton')) {
+    rawRect(ctx, 88, 161, 22, 7, ZABUTON); rawRect(ctx, 88, 166, 22, 2, ZABUTON_SHADE)
+    rawRect(ctx, 87, 161, 1, 1, TASSEL); rawRect(ctx, 110, 161, 1, 1, TASSEL)
+    shadow(ctx, 88, 168, 22)
+  }
+  if (!frontSprite(ctx, art, 'boxes')) {
+    rawRect(ctx, 150, 148, 18, 10, CARDBOARD); rawRect(ctx, 148, 158, 22, 12, CARDBOARD)
+    rawRect(ctx, 158, 148, 2, 10, TAPE); rawRect(ctx, 148, 163, 22, 2, TAPE)
+    rawRect(ctx, 150, 157, 18, 1, CARDBOARD_EDGE); rawRect(ctx, 148, 169, 22, 1, CARDBOARD_EDGE)
+    shadow(ctx, 148, 170, 22)
+  }
+  drawBin(ctx, s, art)
 }
 
 /** The flat's front row: a potted fern, a stack of reference books on the floor, and the bin. */
-const flatFront: Art = (ctx, s, frame) => {
-  const sway = Math.floor(frame / 30) % 2
-  rawRect(ctx, 76 + sway, 144, 4, 4, LEAF_LIGHT); rawRect(ctx, 71, 149, 6, 4, LEAF); rawRect(ctx, 81, 148, 6, 4, LEAF)
-  rawRect(ctx, 73, 154, 12, 4, LEAF_LIGHT); rawRect(ctx, 78, 148, 1, 12, LEAF)
-  rawRect(ctx, 72, 159, 14, 2, POT_RIM); rawRect(ctx, 73, 161, 12, 10, POT)
-  shadow(ctx, 72, 171, 14)
-  for (let i = 0; i < 3; i++) rawRect(ctx, 152 + (i % 2) * 2, 164 - i * 3, 16, 3, BOOKS[i])
-  shadow(ctx, 151, 167, 20)
-  drawBin(ctx, s)
+const flatFront: FrontArt = (ctx, s, frame, _night, art) => {
+  if (!frontSprite(ctx, art, 'fern')) {
+    const sway = Math.floor(frame / 30) % 2
+    rawRect(ctx, 76 + sway, 144, 4, 4, LEAF_LIGHT); rawRect(ctx, 71, 149, 6, 4, LEAF); rawRect(ctx, 81, 148, 6, 4, LEAF)
+    rawRect(ctx, 73, 154, 12, 4, LEAF_LIGHT); rawRect(ctx, 78, 148, 1, 12, LEAF)
+    rawRect(ctx, 72, 159, 14, 2, POT_RIM); rawRect(ctx, 73, 161, 12, 10, POT)
+    shadow(ctx, 72, 171, 14)
+  }
+  if (!frontSprite(ctx, art, 'books')) {
+    for (let i = 0; i < 3; i++) rawRect(ctx, 152 + (i % 2) * 2, 164 - i * 3, 16, 3, BOOKS[i])
+    shadow(ctx, 151, 167, 20)
+  }
+  drawBin(ctx, s, art)
 }
 
 /** The loft's front row: a floor lamp, the corner of a sofa, and the bin. */
-const loftFront: Art = (ctx, s) => {
-  rawRect(ctx, 64, 142, 12, 7, LAMP_SHADE); rawRect(ctx, 65, 149, 10, 1, SWITCH_EDGE)
-  rawRect(ctx, 69, 150, 2, 24, METAL); rawRect(ctx, 65, 174, 10, 2, METAL)
-  shadow(ctx, 64, 176, 12)
-  rawRect(ctx, 196, 150, 34, 8, SOFA_SHADE); rawRect(ctx, 196, 158, 34, 16, SOFA)
-  rawRect(ctx, 198, 158, 28, 5, SOFA_CUSHION); rawRect(ctx, 226, 154, 6, 20, SOFA_SHADE)
-  rawRect(ctx, 198, 174, 2, 2, METAL); rawRect(ctx, 228, 174, 2, 2, METAL)
-  shadow(ctx, 196, 176, 36)
-  drawBin(ctx, s)
+const loftFront: FrontArt = (ctx, s, _frame, _night, art) => {
+  if (!frontSprite(ctx, art, 'floor-lamp')) {
+    rawRect(ctx, 64, 142, 12, 7, LAMP_SHADE); rawRect(ctx, 65, 149, 10, 1, SWITCH_EDGE)
+    rawRect(ctx, 69, 150, 2, 24, METAL); rawRect(ctx, 65, 174, 10, 2, METAL)
+    shadow(ctx, 64, 176, 12)
+  }
+  if (!frontSprite(ctx, art, 'sofa')) {
+    rawRect(ctx, 196, 150, 34, 8, SOFA_SHADE); rawRect(ctx, 196, 158, 34, 16, SOFA)
+    rawRect(ctx, 198, 158, 28, 5, SOFA_CUSHION); rawRect(ctx, 226, 154, 6, 20, SOFA_SHADE)
+    rawRect(ctx, 198, 174, 2, 2, METAL); rawRect(ctx, 228, 174, 2, 2, METAL)
+    shadow(ctx, 196, 176, 36)
+  }
+  drawBin(ctx, s, art)
 }
 
-/** Each tier's front row, painted after every actor (and before the night overlay). */
-export const TIER_FRONT: Record<StudioTierId, Art> = {
+/**
+ * Each tier's front row, painted after every actor (and before the night overlay); each piece is its generated sprite
+ * once that image is ready (at `FRONT_BOX`, its contact shadow across the sprite), else its code-drawn fills.
+ */
+export const TIER_FRONT: Record<StudioTierId, FrontArt> = {
   apartment: apartmentFront,
   flat: flatFront,
   loft: loftFront,
@@ -277,14 +347,23 @@ export function drawCalendar(ctx: CanvasRenderingContext2D, s: Snapshot, frame: 
   }
 }
 
-/** Empty coffee cups on the floor under the desk's front (x 136-150, y 120-123): one each below 60, 40 and 20 stamina. */
-export function drawCups(ctx: CanvasRenderingContext2D, s: Snapshot) {
+/** Where the cups stand under a desk sprite: its knee hole is open floor from y 124 (the stock desk's rows 26-32, cols
+ * 19-45; the drafting table's from row 23), so the cups' rows 126-129 sit between its legs. */
+export const CUPS_UNDER_DESK_Y = 126
+
+/**
+ * Empty coffee cups on the floor under the desk's front (x 136-150, y 120-123): one each below 60, 40 and 20 stamina.
+ * With the desk's sprite ready (`deskImage`) they stand lower, at y 126-129, in the sprite's open knee hole, since
+ * rows 120-123 are its modesty panel there; same fills either way.
+ */
+export function drawCups(ctx: CanvasRenderingContext2D, s: Snapshot, deskImage = false) {
   const n = s.stamina < 20 ? 3 : s.stamina < 40 ? 2 : s.stamina < 60 ? 1 : 0
+  const y = deskImage ? CUPS_UNDER_DESK_Y : 120
   for (let i = 0; i < n; i++) {
     const x = 136 + i * 5
-    rawRect(ctx, x, 120, 3, 4, CUP)
-    rawRect(ctx, x, 120, 3, 1, COFFEE)
-    rawRect(ctx, x + 3, 121, 1, 2, CUP)
+    rawRect(ctx, x, y, 3, 4, CUP)
+    rawRect(ctx, x, y, 3, 1, COFFEE)
+    rawRect(ctx, x + 3, y + 1, 1, 2, CUP)
   }
 }
 

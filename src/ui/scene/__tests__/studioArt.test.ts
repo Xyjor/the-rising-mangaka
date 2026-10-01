@@ -70,10 +70,12 @@ const FULL_BASELINE = 1079
  * fillRect calls for `BARE_FULL` at night, t 0.9, frame 100, with every generated image ready (`fakeSceneArt`),
  * measured the same way (0.9.0 R2): 953. By hand, the 1079 less the fills the apartment's images replace (the shell 61,
  * the kitchenette 17, the window frame 1, the bookshelf 34, the stock poster 4, the bed 5, the plain door 5: 127), plus
- * the room image's night dim (1): 1079 - 127 + 1 = 953. The full scene with the art ready must stay under 1.5 times
- * this (its own budget, 1429.5).
+ * the room image's night dim (1): 1079 - 127 + 1 = 953. 0.10.0 P1 re-measured it the same way at 928 (-25): the stock
+ * chair 4, the stock desk 7, the zabuton 4, the boxes 6 and the bin 4 are sprites now (their contact shadows stay one
+ * fill each, the bin's pages stay code-drawn): 953 - 25 = 928. The full scene with the art ready must stay under 1.5
+ * times this (its own budget, 1392).
  */
-const FULL_ART_BASELINE = 953
+const FULL_ART_BASELINE = 928
 
 function paint(over: Partial<Snapshot> = {}, t = 0.3, frame = 100): FillCall[] {
   const { ctx, log } = fakeContext()
@@ -204,12 +206,16 @@ describe('the studio in the scene', () => {
     render(bare.ctx, sceneSnapshot(BARE_FULL), 0.9, 100, art)
     expect(bare.log).toHaveLength(FULL_ART_BASELINE)
     const budget = FULL_ART_BASELINE * 1.5
-    expect(budget).toBe(1429.5)
+    expect(budget).toBe(1392)
     for (const [t, frame, visiting] of [[0.9, 100, 0], [0.9, 0, 0], [0.3, 100, 0], [0.9, 100, 1]]) {
       const { ctx, log, images } = fakeContext()
       render(ctx, sceneSnapshot(visiting ? { ...EVERYTHING, visitor: 'editor', visitorProp: 'contract' } : EVERYTHING), t, frame, art)
-      // the loft: its room, the doorway and four more props (the anime poster hides the stock one)
-      expect(images.map((i) => i.id), `t ${t} frame ${frame}`).toEqual(['room/loft', 'kitchenette', 'window', 'bookshelf', 'bed', 'doorway'])
+      // the loft: its room, the doorway and four more props (the anime poster hides the stock one), every piece of
+      // equipment but the pen tablet in its own place in the order, then the loft's front row
+      expect(images.map((i) => i.id), `t ${t} frame ${frame}`).toEqual([
+        'room/loft', 'kitchenette', 'window', 'coffee-machine', 'bookshelf', 'reference-shelf', 'bed', 'doorway',
+        'tall-chair', 'drafting-table', 'arm-lamp', 'floor-lamp', 'sofa', 'bin',
+      ])
       expect(log.length, `t ${t} frame ${frame}`).toBeGreaterThan(FULL_ART_BASELINE)
       expect(log.length, `t ${t} frame ${frame}`).toBeLessThan(budget)
     }
@@ -389,6 +395,22 @@ describe('the studio art', () => {
     expect(glow(lamp, true, false).length).toBeGreaterThan(0)
     expect(glow(lamp, false, true).length).toBeGreaterThan(0)
     expect(glow(NONE, true, true)).toEqual([])
+  })
+
+  it("puts the arm lamp's bulb on the lamp sprite's once its image is ready (its glow below is the same), else keeps the old bulb", () => {
+    const bulb = '#fff2a8'
+    const lights = (lampImage: boolean) =>
+      alone((ctx) => drawStudioLights(ctx, sceneSnapshot({ owned: { ...NONE, lamp: true } }), true, false, false, lampImage))
+    const glow = (log: FillCall[]) => log.filter((c) => c.style === LAMP_GLOW)
+    expect(lights(false).filter((c) => c.style === bulb)).toEqual([{ style: bulb, x: 158, y: 83, w: 4, h: 1 }])
+    // the sprite's bulb: the opening under its shade, cols 1-5 of row 5
+    const b = PROP_BOX['arm-lamp']
+    expect(lights(true).filter((c) => c.style === bulb)).toEqual([{ style: bulb, x: b.x + 1, y: b.y + 5, w: 5, h: 1 }])
+    expect(glow(lights(true))).toEqual(glow(lights(false)))
+    // render tells it whether the image is ready
+    const { ctx, log } = fakeContext()
+    render(ctx, sceneSnapshot({ owned: { ...NONE, lamp: true } }), 0.9, 100, fakeSceneArt())
+    expect(log.filter((c) => c.style === bulb)).toEqual([{ style: bulb, x: 157, y: 83, w: 5, h: 1 }])
   })
 
   it('spills warm light from the doorway at night, in the flat and the loft only', () => {

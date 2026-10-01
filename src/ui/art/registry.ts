@@ -207,10 +207,11 @@ export const ROOM_ART: Record<StudioTierId, ArtRef> = {
   loft: art('room/loft', 320, 180),
 }
 
-/** A structural prop's cutout sprite at its native size (sceneArt.ts `PROP_SPRITE`, placed by render.ts `PROP_BOX`). */
+/** A prop's cutout sprite at its native size (sceneArt.ts `PROP_SPRITE`, placed by render.ts `PROP_BOX`). */
 const sceneProp = (id: ScenePropId) => art(`prop/${id}`, PROP_SPRITE[id][0], PROP_SPRITE[id][1])
 
-/** Each structural prop's sprite. Until one loads, its code-drawn piece paints instead. */
+/** Each prop's sprite: the structural props (0.9.0), the furniture and equipment, and the front row (0.10.0). Until one
+ * loads, its code-drawn piece paints instead. */
 export const SCENE_PROP_ART: Record<ScenePropId, ArtRef> = {
   window: sceneProp('window'),
   door: sceneProp('door'),
@@ -219,4 +220,18 @@ export const SCENE_PROP_ART: Record<ScenePropId, ArtRef> = {
   bookshelf: sceneProp('bookshelf'),
   bed: sceneProp('bed'),
   poster: sceneProp('poster'),
+  desk: sceneProp('desk'),
+  'drafting-table': sceneProp('drafting-table'),
+  chair: sceneProp('chair'),
+  'tall-chair': sceneProp('tall-chair'),
+  'arm-lamp': sceneProp('arm-lamp'),
+  'reference-shelf': sceneProp('reference-shelf'),
+  'coffee-machine': sceneProp('coffee-machine'),
+  zabuton: sceneProp('zabuton'),
+  boxes: sceneProp('boxes'),
+  fern: sceneProp('fern'),
+  books: sceneProp('books'),
+  'floor-lamp': sceneProp('floor-lamp'),
+  sofa: sceneProp('sofa'),
+  bin: sceneProp('bin'),
 }

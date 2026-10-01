@@ -1,6 +1,9 @@
 // The player's studio in the scene (`studioLook`): the tier's doorway and the loft's plants, the equipment, the volumes
 // on the bookshelf, the anime poster and the trophies on the sill. render.ts calls each piece at its own place in the
-// draw order; the lamp, the chair, the drafting table and the anime poster replace the stock piece in that place. Every
+// draw order; the lamp, the chair, the drafting table and the anime poster replace the stock piece in that place. Since
+// 0.10.0 the coffee machine, the arm lamp, the reference shelf, the tall chair and the drafting table are each a
+// generated sprite once its image is ready (`EQUIPMENT_SPRITE`, at render.ts `PROP_BOX`), and these fills while it
+// is missing or loading; the pen tablet stays code-drawn. Every
 // piece keeps to its region, all in canvas coordinates inside the phone crop x 24-296 (object-fit: cover at 375x667
 // crops the rest), and off the seated mangaka [132,155]x[67,98] (but for the chair behind them and the drafting table's
 // top on the desk's own row, y 98), the standing spot [170,193]x[81,112] and the editor's spot [204,215]x[102,116].
@@ -10,8 +13,8 @@
 import type { EquipmentId, StudioTierId } from '../../sim'
 import { rawRect, rect } from './paint'
 import type { Snapshot } from './render'
-import { PROP_SPRITE, placeSprite } from './sceneArt'
-import type { Fallback, Footprint } from './sceneArt'
+import { PROP_SPRITE, hangSprite, spriteBox } from './sceneArt'
+import type { Fallback, Footprint, ScenePropId } from './sceneArt'
 
 /** One flag per piece of equipment: studioLook's owned list as flags, set when it changes, never walked per frame. */
 export type Owned = Record<EquipmentId, boolean>
@@ -96,8 +99,8 @@ export const DOOR_FOOTPRINT: Footprint = { x: 258, y: 56, w: 17, h: 58 }
 export const DOORWAY_FOOTPRINT: Footprint = DOOR_FOOTPRINT
 
 /** Where the door's and the doorway's generated sprites land (render.ts `PROP_BOX` reads these): canvas x 250-282. */
-export const DOOR_BOX: Footprint = placeSprite(DOOR_FOOTPRINT, ...PROP_SPRITE.door)
-export const DOORWAY_BOX: Footprint = placeSprite(DOORWAY_FOOTPRINT, ...PROP_SPRITE.doorway)
+export const DOOR_BOX: Footprint = spriteBox('door', DOOR_FOOTPRINT)
+export const DOORWAY_BOX: Footprint = spriteBox('doorway', DOORWAY_FOOTPRINT)
 
 /** The apartment's plain front door in the right wall (canvas x 258-274, y 56-113): two panels and a brass knob. */
 function plainDoor(ctx: CanvasRenderingContext2D) {
@@ -213,6 +216,37 @@ export function drawEntrance(ctx: CanvasRenderingContext2D, absent: boolean, doo
 }
 
 // ---------- the equipment ----------
+
+/** The coffee machine's footprint on the sill (canvas x 182-190, y 73-80). */
+export const COFFEE_MACHINE_FOOTPRINT: Footprint = { x: 182, y: 73, w: 9, h: 8 }
+/** The arm lamp's footprint at the desk's right (canvas x 156-169, y 78-97): its shade over the page, its clamp. */
+export const ARM_LAMP_FOOTPRINT: Footprint = { x: 156, y: 78, w: 14, h: 20 }
+/** The reference shelf's footprint on the wall between the bookshelf and the poster (canvas x 107-114, y 56-93). */
+export const REFERENCE_SHELF_FOOTPRINT: Footprint = { x: 107, y: 56, w: 8, h: 38 }
+/** The tall chair's footprint behind the seated mangaka (canvas x 132-155, y 74-107). */
+export const TALL_CHAIR_FOOTPRINT: Footprint = { x: 132, y: 74, w: 24, h: 34 }
+/** The drafting table's footprint (canvas x 108-175, y 95-117): its lightbox (y 95-97), then the top from y 98. */
+export const DRAFTING_TABLE_FOOTPRINT: Footprint = { x: 108, y: 95, w: 68, h: 23 }
+
+/** Where each piece's generated sprite lands (render.ts `PROP_BOX` reads these; the drafting table hangs as a desk). */
+export const COFFEE_MACHINE_BOX: Footprint = spriteBox('coffee-machine', COFFEE_MACHINE_FOOTPRINT)
+export const ARM_LAMP_BOX: Footprint = spriteBox('arm-lamp', ARM_LAMP_FOOTPRINT)
+export const REFERENCE_SHELF_BOX: Footprint = spriteBox('reference-shelf', REFERENCE_SHELF_FOOTPRINT)
+export const TALL_CHAIR_BOX: Footprint = spriteBox('tall-chair', TALL_CHAIR_FOOTPRINT)
+export const DRAFTING_TABLE_BOX: Footprint = hangSprite(DRAFTING_TABLE_FOOTPRINT, ...PROP_SPRITE['drafting-table'])
+
+/**
+ * The generated sprite each piece of equipment draws as, once its image is ready (null: the pen tablet stays
+ * code-drawn, too small to gain from one). render draws it at `PROP_BOX`, else the piece's own `EQUIPMENT_ART`.
+ */
+export const EQUIPMENT_SPRITE: Record<EquipmentId, ScenePropId | null> = {
+  coffee: 'coffee-machine',
+  lamp: 'arm-lamp',
+  shelf: 'reference-shelf',
+  chair: 'tall-chair',
+  'drafting-table': 'drafting-table',
+  tablet: null,
+}
 
 /** A coffee machine on the sill's left, x 118-126, y 37-44: a cup in its bay and a red power light. */
 function coffeeMachine(ctx: CanvasRenderingContext2D) {
@@ -331,13 +365,16 @@ export function drawTrophies(ctx: CanvasRenderingContext2D, trophies: number) {
 
 /**
  * The studio's lights, drawn last so they glow through the night overlay: the arm lamp's bulb and its glow at night or
- * while the mangaka works, and the doorway's warm spill at night.
+ * while the mangaka works (the bulb on the lamp sprite's when `lampImage` is ready; the glow below it is the same
+ * either way, since the sprite's shade sits where the drawn one does), and the doorway's warm spill at night.
  */
 export function drawStudioLights(
-  ctx: CanvasRenderingContext2D, s: Snapshot, night: boolean, working: boolean, doorwayImage = false,
+  ctx: CanvasRenderingContext2D, s: Snapshot, night: boolean, working: boolean, doorwayImage = false, lampImage = false,
 ) {
   if (s.owned.lamp && (night || working)) {
-    rect(ctx, 94, 47, 4, 1, BULB_ON)
+    // the arm lamp sprite's bulb is the opening under its shade (cols 1-5, row 5); the drawn lamp's is 4 px at x 158
+    if (lampImage) rawRect(ctx, ARM_LAMP_BOX.x + 1, ARM_LAMP_BOX.y + 5, 5, 1, BULB_ON)
+    else rect(ctx, 94, 47, 4, 1, BULB_ON)
     rect(ctx, 93, 48, 6, 4, LAMP_GLOW)
     rect(ctx, 92, 52, 8, 10, LAMP_GLOW)
   }

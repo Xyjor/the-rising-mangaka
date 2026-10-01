@@ -10,6 +10,7 @@ import type { Snapshot } from '../render'
 import {
   TIER_FRONT, TIER_ROOM, drawAmbient, drawBin, drawCalendar, drawCorkboard, drawCups, drawFanLetters, drawSeriesPoster,
 } from '../roomArt'
+import { NO_ART } from '../sceneArt'
 
 type Box = readonly [x0: number, x1: number, y0: number, y1: number]
 const inBox = (c: FillCall, [x0, x1, y0, y1]: Box) => c.x >= x0 && c.x + c.w <= x1 + 1 && c.y >= y0 && c.y + c.h <= y1 + 1
@@ -102,7 +103,7 @@ describe('each tier\'s room', () => {
 
 describe('the front row', () => {
   it('stands on the floor inside the phone crop, off every actor\'s spot', () => {
-    const logs = TIERS.map((tier) => alone((ctx) => TIER_FRONT[tier](ctx, sceneSnapshot({ tier }), 100, false)))
+    const logs = TIERS.map((tier) => alone((ctx) => TIER_FRONT[tier](ctx, sceneSnapshot({ tier }), 100, false, NO_ART)))
     expect(new Set(logs.map(key)).size).toBe(3)
     for (const log of logs) {
       expect(log.length).toBeGreaterThan(0)
@@ -117,7 +118,7 @@ describe('the front row', () => {
   it('is drawn after the actors, so the cat walks behind it', () => {
     const s = sceneSnapshot({ tier: 'flat' })
     const log = paint({ tier: 'flat' })
-    const front = alone((ctx) => TIER_FRONT.flat(ctx, s, 100, false))
+    const front = alone((ctx) => TIER_FRONT.flat(ctx, s, 100, false, NO_ART))
     const cat = covers(log, '#e39a4a', 197, 121)
     expect(cat).toBeGreaterThan(-1)
     const first = log.findIndex((c) => key([c]) === key([front[0]]))

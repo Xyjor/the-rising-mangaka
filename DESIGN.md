@@ -361,11 +361,15 @@ since the images leave fewer fills and 673's budget would hide growth: 546 (`ren
 apartment's room and six props replace, the shell 61, the kitchenette 17, the window frame 1, the bookshelf 34, the
 stock poster 4, the bed 5 and the plain door 5) and 953 (`studioArt.test.ts`: 1079 less the same 127, plus the room
 image's night dim), each with a 1.5x budget (819 and 1429.5) that every tier, season and the full scene stay under.
+The 0.10.0 props (P1) moved them to 521 and 928 (-25 each): the stock chair 4, the stock desk 7 and the apartment's
+front row (the zabuton 4, the boxes 6, the bin 4) are sprites in both scenes (each contact shadow is still one fill,
+moved across its sprite; the bin's crumpled pages stay code-drawn); budgets 781.5 and 1392.
 
 ### Art
 The live scene is code-drawn `fillRect` (`render.ts`, `roomArt.ts`, `studioArt.ts`, `sprites.ts`), and since 0.9.0 it
 may also draw generated images with `drawImage`: each tier's room shell (walls, beams and floor, no furniture) and the
-structural props, as sprites at the footprints of the code-drawn pieces they replace (see "Scene images" below).
+structural props, as sprites at the footprints of the code-drawn pieces they replace (see "Scene images" below), and
+since 0.10.0 the desk, the chairs, the equipment and each tier's front row the same way.
 Every image has a code-drawn fallback, painted while it is missing or still loading, so a frame is never blank; the
 characters stay string-map sprites. Elsewhere, generated raster art (upgrade 0.5.0) is static illustrations, shipped
 as indexed PNGs, that never move or redraw per frame: they give fixed spots (the title screen, the panels) real
@@ -374,14 +378,18 @@ illustration, and double as reference art the hand-painted sprites get redrawn t
 **Making an asset.** Each asset is generated once with a Hugging Face image Space running Z-Image-Turbo at a fixed
 seed, and recorded as one entry in `art/manifest.json`: id, model, resolution, seed, steps, shift and the exact
 prompt, plus how the pipeline should treat it (`native` size, `sample` mode, whether it needs a `cutout` or an
-`outline`, an optional `colors` cap, and an optional `crop` or sheet `cell` for a multi-pose sheet). The raw generated
+`outline`, an optional `colors` cap, and an optional `crop` or sheet `cell` for a multi-pose sheet; since 0.10.0 an
+optional `flip`, which mirrors the crop before anything else, a cutout's flood `tolerance`, 24 when absent, and
+`holes`, seed points in the crop for background walled off inside the object, cleared by the same flood). The raw generated
 file is committed under `art/raw/<id>.webp` (or the sheet's own name) rather than treated as disposable, because the
 Space's model or sampler can change and a generation is not reproducible from the manifest alone.
 
 `npm run art -- <id> | --all` runs `scripts/pixelate.ts`, which is IO and orchestration only; the pixel math lives in
 `src/ui/art/pixelOps.ts` (plain RGBA buffers, no `sharp` import, so it is unit-tested directly). For each entry it:
-crops the manifest's `crop` rect or slices one cell out of a sprite sheet; for a `cutout` entry, flood-fills
-transparent from the edges (`floodTransparentFromEdges`, matching the corner colour within a tolerance), finds the
+crops the manifest's `crop` rect or slices one cell out of a sprite sheet; mirrors it for a `flip` entry
+(`flipHorizontal`); for a `cutout` entry, flood-fills
+transparent from the edges (`floodTransparentFromEdges`, matching the corner colour within a tolerance, the entry's
+`tolerance` or 24), finds the
 alpha bounding box, and pads it out to the target aspect ratio before cropping to it (`padToAspect`) so the subject
 isn't stretched; downsamples to the manifest's `native` size, either area-averaged (`sample: "area"`, alpha-weighted,
 transparent when under half a block is opaque) or nearest-neighbour (`sample: "nearest"`, for an already-blocky sheet
@@ -418,9 +426,10 @@ crisp in every browser; its `alt` defaults to `''` (decorative) except where the
 the title hero.
 
 **Scene images (0.9.0).** `render(ctx, s, t, frame, art = NO_ART)` takes a `SceneArt` (`src/ui/scene/sceneArt.ts`):
-`room`, one image or null per tier, and `prop`, one per structural prop (`ScenePropId`: `window`, the window's frame;
+`room`, one image or null per tier, and `prop`, one per prop (`ScenePropId`: `window`, the window's frame;
 `door`, the apartment's plain front door; `doorway`, the flat's and the loft's lit doorway; `kitchenette`;
-`bookshelf`; `bed`; `poster`, the stock poster, shown while no serial or anime takes its place). `ready(img)` is true
+`bookshelf`; `bed`; `poster`, the stock poster, shown while no serial or anime takes its place; and since 0.10.0 the
+furniture, below). `ready(img)` is true
 only for a loaded image (an `<img>` `complete` with a natural width; anything else with a width). A ready room image
 is drawn first at 0,0,320,180 in place of `drawRoomShell` (`roomArt.ts`, the `TIER_ROOM` pass), then, at night, one
 `ROOM_NIGHT_DIM` fill (`rgba(20,24,60,0.25)`) over the canvas, since one image serves day and night; the sky, the
@@ -452,7 +461,73 @@ that stays centred on the door frame and clear of the bed (x 192-249) and the co
 | `bed` | 192, 102, 58, 26 (`BED_FOOTPRINT`) | 58x23 (capped) | 192, 105, 58, 23 |
 | `poster` | 116, 50, 22, 28 (`POSTER_FOOTPRINT`) | 22x28 | 116, 50, 22, 28 |
 
-The bookshelf's wider box reaches under the reference shelf (x 107-114), which is drawn after it and stays in front.
+The bookshelf's wider box reaches under the reference shelf (x 95-114 as a sprite, 107-114 drawn), which is drawn
+after it and stays in front.
+
+**The furniture (0.10.0 P1).** Fourteen more props follow the same rule, each at its own call site in today's draw
+order: the stock `desk` and `chair`; the equipment, each only when owned and in the stock piece's place (studioArt.ts
+`EQUIPMENT_SPRITE`: the `coffee-machine` on the sill, the `arm-lamp`, the `reference-shelf` in front of the
+bookshelf, the `tall-chair` in the chair's place, the `drafting-table` in the desk's; the pen tablet stays
+code-drawn); and each tier's front row (roomArt.ts `TIER_FRONT`, after the actors, so the cat passes behind it: the
+apartment's `zabuton` and `boxes`, the flat's `fern` and `books`, the loft's `floor-lamp` and `sofa`, every tier's
+`bin`). The chairs draw before the seated mangaka (he sits in front of the backrest), the desk after him and before
+the pages, the lamp after the desk. The small pieces stay code-drawn (the ink pot, the pen and the mug, the pen
+tablet, the trophies, the pages, the bin's crumpled pages, the stock desk lamp), and so does the assistants' desk: it
+is a bench whose width grows with the staff (28 to 68 px, 12 high), which one fixed-aspect sprite cannot fill. A working assistant's page and its ink lines go on after the active desk sprite whenever its box overlaps the sprite's box and the image is ready (the drafting table's left leg covers seat 3's page); otherwise they stay before it.
+
+The desks are the one exception to the rule. At the footprint's height (20 px) a desk sprite, drawn with its top in
+perspective, would be 35 px wide (the drafting table 45) under a 58 px desk top, and the pages (from x 121), the ink
+pot and the lamp's clamp (to x 169) would hang off it. So a desk (`DESK_PROPS`) spans its footprint's width
+(`fitDesk`) and hangs from its top row (`hangSprite`): the tabletop's back edge stays at y 98, where the pages, the
+ink pot and the pen sit (the drafting table's footprint starts at its lightbox, y 95, three sprite rows above its top),
+and the legs reach down to y 130 on the floor. The sofa (41 px at full height) is capped at 37 (`PROP_MAX_W`), clear
+of the bin (x 232), which follows it in the loft's front row.
+
+Small props get a minimum readable size (fix round 1, a controller ruling): drawn in perspective at their flat
+footprint's height, the zabuton (14x7), the book stack (10x9) and the coffee machine (6x8) were specks, so
+`PROP_MIN_H` raises each to about twice that height, its width from its aspect, still bottom-aligned and centred on
+its floor or sill line, where the space is free: the zabuton 24x12 (its old width), the book stack 20x18 (clear of the
+bin), the coffee machine 11x14 on the sill (right edge x 191, clear of the trophies from x 194; top y 67, below the
+pane's cross bar at 63-64 and left of its middle bar at 203). The reference shelf, a squat bookcase (31x38 at its
+slot's full height), goes the other way: capped at 20 wide (`PROP_MAX_W`, so 24 tall) and flush with its slot's right
+edge (`PROP_ALIGN` 'right', `placeSprite`'s `align`), it stands in front of the bookshelf's right side (x 95-114,
+y 70-93), clear of the poster (x 116, drawn after it) and above the desk top (y 98).
+
+| Prop | Footprint (fallback) | Sprite | Box (image) x, y, w, h |
+|---|---|---|---|
+| `desk` | 116, 98, 58, 20 (`DESK_FOOTPRINT`) | 58x33 (width-fit) | 116, 98, 58, 33 |
+| `drafting-table` | 108, 95, 68, 23 (`DRAFTING_TABLE_FOOTPRINT`) | 68x35 (width-fit) | 108, 95, 68, 35 |
+| `chair` | 134, 78, 20, 30 (`STOCK_CHAIR_FOOTPRINT`) | 19x30 | 134, 78, 19, 30 |
+| `tall-chair` | 132, 74, 24, 34 (`TALL_CHAIR_FOOTPRINT`) | 24x34 | 132, 74, 24, 34 |
+| `arm-lamp` | 156, 78, 14, 20 (`ARM_LAMP_FOOTPRINT`) | 14x20 (mirrored) | 156, 78, 14, 20 |
+| `reference-shelf` | 107, 56, 8, 38 (`REFERENCE_SHELF_FOOTPRINT`) | 20x24 (capped, flush right) | 95, 70, 20, 24 |
+| `coffee-machine` | 182, 73, 9, 8 (`COFFEE_MACHINE_FOOTPRINT`) | 11x14 (minimum height) | 181, 67, 11, 14 |
+| `zabuton` | 87, 161, 24, 7 (`FRONT_FOOTPRINT`) | 24x12 (minimum height) | 87, 156, 24, 12 |
+| `boxes` | 148, 148, 22, 22 | 22x22 | 148, 148, 22, 22 |
+| `fern` | 71, 144, 16, 27 | 30x27 | 64, 144, 30, 27 |
+| `books` | 152, 158, 18, 9 | 20x18 (minimum height) | 151, 149, 20, 18 |
+| `floor-lamp` | 64, 142, 12, 34 | 18x34 | 61, 142, 18, 34 |
+| `sofa` | 196, 150, 36, 26 | 37x23 (capped) | 195, 153, 37, 23 |
+| `bin` | 233, 154, 11, 12 | 13x12 | 232, 154, 13, 12 |
+
+Once a sprite is ready, the pieces keyed to it follow (same fill counts): the desk's contact shadow lies under its
+sprite's feet (116, 131, 58; the drafting table's 108, 130, 68) instead of the drawn desk's (116, 118, 58); each
+front-row piece's shadow spans its sprite's columns under its bottom row; the stamina cups (`drawCups`, told by
+render whether the standing desk's sprite is ready) move from y 120-123, which is the sprite's modesty panel, down to
+y 126-129 (`CUPS_UNDER_DESK_Y`), on the open floor between its legs (the stock desk's knee hole is clear from y 124, the
+drafting table's from y 118); and the owned arm lamp's lit bulb sits in the
+sprite's shade opening (157, 83, 5x1, against the drawn lamp's 158, 83, 4x1), its glow below unchanged, since the
+mirrored sprite's shade lands where the drawn one is. The sprites are 16-colour outlined cutouts from three
+Higgsfield sheets (2026-10-01, prompts verbatim in the manifest): `props/desk-set.png` (job dd602d7c: the desk, the
+drafting table, the tall chair, the arm lamp and the reference shelf; its wooden chair is merged with a second lamp
+and unused), `props/floor-set.png` (job 497767e8: the zabuton, the boxes, the fern, the three-book stack, the floor
+lamp, the left sofa and the bin; its coffee machine sits on a sofa and is unused) and `props/chair-coffee.png` (job
+81612505: the wooden chair and the coffee machine). Crops are each object's `--measure` box plus a 2 px margin. The
+arm lamp is mirrored (`flip`) so its shade leans left over the page, as the drawn one does; the wooden chair's flood
+`tolerance` is 40, since the sheet drew a soft grey floor shadow between its legs that 24 leaves behind, and its
+backrest's opening, walled off from the edges, is cleared by a `holes` seed (193, 254 in the crop), so the wall shows
+through it whenever the mangaka is off the chair. Every non-desk box goes through `spriteBox` (its `PROP_SPRITE`
+size, placed as `PROP_ALIGN` says).
 Once the door's or the doorway's image is ready, two code-drawn pieces follow it (`drawEntrance`, `drawStudioLights`,
 told by render whether it is ready; same fill counts): the doormat spans the sprite (x 250-282, its dark inner strip
 2 px in), and the doorway's night halo and spill light the noren sprite's opening (halo 255,87,23,27 taking in the
@@ -486,7 +561,7 @@ result to `render`, and each image's load clears the loop's last-painted snapsho
 `render.ts` never imports the registry. In tests, `fakeCanvas.ts` records each `drawImage` in `images` (with `at`, the
 fill log's length at the call, for order checks) and `fakeImage(id, w, h)` makes an image `ready` accepts; the fill
 `log` stays fillRect-only, so the 673/1079 baselines measure what is still code-drawn (with `NO_ART` they are
-unchanged), and `fakeSceneArt()` readies every image at once for the 546/953 art baselines. `ART_PALETTE_SCENE` (for `"palette": "scene"` entries) holds the room shells' day colours (the plasters, the tatami, the planks, the concrete, the
+unchanged), and `fakeSceneArt()` readies every image at once for the art baselines (521/928 since 0.10.0). `ART_PALETTE_SCENE` (for `"palette": "scene"` entries) holds the room shells' day colours (the plasters, the tatami, the planks, the concrete, the
 woods, the brick, the rugs and the flat's teal wallpaper), so a generated shell snaps to the drawn room's colours.
 
 **The title hero** (`TitleScreen.tsx`) renders `TITLE_ART` (manifest id `title/hero`, native 320x180) directly rather
@@ -525,7 +600,7 @@ PNG gets one more palette entry for transparency (never drawn, so `art.test.ts` 
 | `ANIME_ART` | `anime/<AnimeStudioId>` | the anime offer card's studio columns, 1x (32x32: the round emblems read better square than at 48x32) |
 | `TIER_ART_THUMB` (96x54) | `tier/<StudioTierId>` | Studio's tier rows, 1x |
 | `ROOM_ART` (320x180) | `room/<StudioTierId>` | the live scene's room shell, drawn by `render` (0.9.0, see "Scene images") |
-| `SCENE_PROP_ART` (`PROP_SPRITE`) | `prop/<ScenePropId>` | the live scene's structural props, at `PROP_BOX` (0.9.0) |
+| `SCENE_PROP_ART` (`PROP_SPRITE`) | `prop/<ScenePropId>` | the live scene's props, at `PROP_BOX` (the structural ones 0.9.0, the furniture and front row 0.10.0) |
 
 **Sheets (batch 2, 0.8.0), a second host.** The remaining 51 assets came from twelve sheets generated on
 Higgsfield with its `z_image` model (the same Z-Image family), `art/raw/sheets/<group>.png` (prompts verbatim in the manifest), because the Hugging Face
@@ -1224,3 +1299,24 @@ Task R2 put the art in (three room shells, seven prop sprites):
   and 46 px); the fallbacks keep their old footprints.
 - New fill baselines with every image ready: 546 (`render.test.ts`) and 953 (`studioArt.test.ts`), each with its own
   1.5x budget, beside the unchanged 673/1079.
+
+**2026-10-01, props.** Release 0.10.0 Task P1 turns the desk, the chairs, the equipment and each tier's front row into
+generated sprites (see "The furniture" under "Scene images"):
+
+- A desk sprite spans its footprint's width and hangs from its top row (`fitDesk`, `hangSprite`), so the tabletop
+  stays at y 98 under the pages, the ink pot and the pen; at the footprint's height it would be 35 px wide under a
+  58 px desk top. Its legs reach y 130 (the drafting table's 129), over the floor, and with three assistants its
+  pedestal covers the right end of their bench (x 116-129), as the drawn desk already covers the third assistant.
+- The sofa sprite is capped at 37x23, clear of the bin.
+- Fix round 1 (controller ruling): small props get a minimum readable size, about twice their old height, where the
+  space is free (`PROP_MIN_H`: the zabuton 24x12, the book stack 20x18, the coffee machine 11x14 on the sill); the
+  reference shelf is 20x24, flush with its slot's right edge (`PROP_ALIGN`) in front of the bookshelf's right side,
+  clear of the poster and above the desk top. The fill counts do not change.
+- Three pipeline knobs, each used once: `flip` (the arm lamp), a cutout's flood `tolerance` (the wooden chair, 40)
+  and `holes` (the chair's backrest opening).
+- Review fix: with a desk sprite ready the stamina cups stand at y 126-129, between its legs, instead of over its
+  modesty panel (same fills).
+- The assistants' bench stays code-drawn (its width follows the staff); the pen tablet and the other small desk
+  pieces too.
+- Art baselines 546/953 move to 521/928 (budgets 781.5 and 1392); 673/1079 are unchanged.
+- Final review (controller ruling): with the drafting table's image ready its left leg (x 111-122, y ~120-123) hid seat 3's page and ink lines, so a seated assistant's page is drawn after the active desk sprite when its box overlaps the sprite's box and the sprite is ready (`PAGE_UNDER_DESK`, precomputed per seat); with no image the order is unchanged. Same fill counts, baselines unchanged.

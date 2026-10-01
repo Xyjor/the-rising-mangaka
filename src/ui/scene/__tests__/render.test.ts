@@ -7,8 +7,8 @@ import type { StudioTierId } from '../../../sim'
 import { H, PROP_BOX, PROP_FOOTPRINT, SKY_LUT, W, render, skyColor } from '../render'
 import type { Snapshot } from '../render'
 import { drawRoomShell } from '../roomArt'
-import { DOORWAY_BOX, DOOR_BOX } from '../studioArt'
-import { NO_ART, PROP_SPRITE, ROOM_NIGHT_DIM, fitSprite, placeSprite, ready } from '../sceneArt'
+import { DOORWAY_BOX, DOOR_BOX, NO_EQUIPMENT } from '../studioArt'
+import { DESK_PROPS, NO_ART, PROP_ALIGN, PROP_MIN_H, PROP_SPRITE, ROOM_NIGHT_DIM, fitDesk, fitSprite, hangSprite, placeSprite, ready } from '../sceneArt'
 import type { SceneArt, ScenePropId } from '../sceneArt'
 import type { Season } from '../season'
 import { newActorTable } from '../actors'
@@ -37,10 +37,13 @@ const BUDGET = BASELINE_FILLS * 1.5
  * fillRect calls for the same reference scene with every generated image ready (`fakeSceneArt`: the apartment's room
  * image and its six props, 7 drawImage calls), measured the same way (0.9.0 R2): 546. By hand, the 673 less what the
  * images replace: the apartment's shell 61, the kitchenette 17, the window frame 1, the bookshelf 34, the stock poster
- * 4, the bed 5 and the plain door 5 (673 - 127 = 546). The night dim adds 1 at night. Every scene with the art ready
- * must stay under 1.5 times this (its own budget: the images leave fewer fills, so 673's budget would hide growth).
+ * 4, the bed 5 and the plain door 5 (673 - 127 = 546). The night dim adds 1 at night. 0.10.0 P1 re-measured it the
+ * same way at 521 (-25, 14 drawImage calls): the stock chair 4 and the stock desk 7, and the apartment's front row, the
+ * zabuton 4, the boxes 6 and the bin 4 (each piece's contact shadow is still one fill, moved across its sprite, and the
+ * bin's crumpled pages stay code-drawn): 546 - 25 = 521. Every scene with the art ready must stay under 1.5 times this
+ * (781.5; its own budget: the images leave fewer fills, so 673's budget would hide growth).
  */
-const ART_BASELINE_FILLS = 546
+const ART_BASELINE_FILLS = 521
 const ART_BUDGET = ART_BASELINE_FILLS * 1.5
 
 describe('render', () => {
@@ -75,11 +78,13 @@ describe('render', () => {
   })
 
   it('stays under 1.5 times its own measured baseline with every generated image ready, in every tier and season', () => {
-    expect(ART_BUDGET).toBe(819)
+    expect(ART_BUDGET).toBe(781.5)
     const ref = fakeContext()
     render(ref.ctx, sceneSnapshot(), 0.3, 100, fakeSceneArt())
     expect(ref.log).toHaveLength(ART_BASELINE_FILLS)
-    expect(ref.images.map((i) => i.id)).toEqual(['room/apartment', 'kitchenette', 'window', 'bookshelf', 'poster', 'bed', 'door'])
+    expect(ref.images.map((i) => i.id)).toEqual([
+      'room/apartment', 'kitchenette', 'window', 'bookshelf', 'poster', 'bed', 'door', 'chair', 'desk', 'zabuton', 'boxes', 'bin',
+    ])
     for (const tier of ['apartment', 'flat', 'loft'] as StudioTierId[]) {
       for (const season of ['spring', 'summer', 'autumn', 'winter'] as Season[]) {
         for (const t of [0.3, 0.9]) {
@@ -716,6 +721,21 @@ describe('scene art (0.9.0 R1): generated images with the code-drawn look as the
       bookshelf: { x: 72, y: 54, w: 34, h: 58 },
       bed: { x: 192, y: 102, w: 58, h: 26 },
       poster: { x: 116, y: 50, w: 22, h: 28 },
+      // 0.10.0 P1: the desk and the chairs, the equipment and each tier's front row
+      desk: { x: 116, y: 98, w: 58, h: 20 },
+      'drafting-table': { x: 108, y: 95, w: 68, h: 23 },
+      chair: { x: 134, y: 78, w: 20, h: 30 },
+      'tall-chair': { x: 132, y: 74, w: 24, h: 34 },
+      'arm-lamp': { x: 156, y: 78, w: 14, h: 20 },
+      'reference-shelf': { x: 107, y: 56, w: 8, h: 38 },
+      'coffee-machine': { x: 182, y: 73, w: 9, h: 8 },
+      zabuton: { x: 87, y: 161, w: 24, h: 7 },
+      boxes: { x: 148, y: 148, w: 22, h: 22 },
+      fern: { x: 71, y: 144, w: 16, h: 27 },
+      books: { x: 152, y: 158, w: 18, h: 9 },
+      'floor-lamp': { x: 64, y: 142, w: 12, h: 34 },
+      sofa: { x: 196, y: 150, w: 36, h: 26 },
+      bin: { x: 233, y: 154, w: 11, h: 12 },
     })
   })
 
@@ -728,6 +748,35 @@ describe('scene art (0.9.0 R1): generated images with the code-drawn look as the
     expect(fitSprite(2, fp, 50)).toEqual([40, 20])
   })
 
+  it('raises a small prop to its minimum readable height (fix round 1), its width still from its aspect', () => {
+    const fp = { x: 10, y: 20, w: 10, h: 8 }
+    expect(fitSprite(2, fp, Infinity, 12)).toEqual([24, 12])
+    expect(fitSprite(2, fp, Infinity, 6)).toEqual([16, 8])
+    expect(fitSprite(2, fp, 20, 12)).toEqual([20, 10])
+    expect(PROP_MIN_H).toEqual({ zabuton: 12, books: 18, 'coffee-machine': 14 })
+  })
+
+  it('right-aligns a sprite on its footprint where asked, still on its bottom row', () => {
+    const fp = { x: 10, y: 20, w: 10, h: 20 }
+    expect(placeSprite(fp, 16, 12, 'right')).toEqual({ x: 4, y: 28, w: 16, h: 12 })
+    expect(placeSprite(fp, 16, 12, 'centre')).toEqual(placeSprite(fp, 16, 12))
+    expect(PROP_ALIGN).toEqual({ 'reference-shelf': 'right' })
+    // every listed alignment takes effect in the placement table: a right-aligned box ends on its footprint's right edge
+    for (const [id, align] of Object.entries(PROP_ALIGN) as [ScenePropId, string][]) {
+      expect(align, id).toBe('right')
+      expect(PROP_BOX[id].x + PROP_BOX[id].w, id).toBe(PROP_FOOTPRINT[id].x + PROP_FOOTPRINT[id].w)
+    }
+  })
+
+  it("sizes a desk sprite by its footprint's width instead, its height from its aspect, and hangs it from the footprint's top row", () => {
+    const fp = { x: 10, y: 20, w: 30, h: 10 }
+    expect(fitDesk(2, fp)).toEqual([30, 15])
+    expect(fitDesk(1.75, fp)).toEqual([30, 17])
+    expect(hangSprite(fp, 30, 15)).toEqual({ x: 10, y: 20, w: 30, h: 15 })
+    expect(hangSprite(fp, 27, 15)).toEqual({ x: 11, y: 20, w: 27, h: 15 })
+    expect([...DESK_PROPS]).toEqual(['desk', 'drafting-table'])
+  })
+
   it('places a prop sprite bottom-aligned on its footprint and centred across it (a half pixel rounds left)', () => {
     const fp = { x: 10, y: 20, w: 10, h: 20 }
     expect(placeSprite(fp, 10, 20)).toEqual(fp)
@@ -738,8 +787,10 @@ describe('scene art (0.9.0 R1): generated images with the code-drawn look as the
   })
 
   it("places each generated sprite by that rule: its box from PROP_SPRITE on PROP_FOOTPRINT, clear of what it must not hide", () => {
+    const desk = (id: ScenePropId) => (DESK_PROPS as readonly ScenePropId[]).includes(id)
     for (const id of Object.keys(PROP_FOOTPRINT) as ScenePropId[]) {
-      expect(PROP_BOX[id], id).toEqual(placeSprite(PROP_FOOTPRINT[id], ...PROP_SPRITE[id]))
+      const box = desk(id) ? hangSprite(PROP_FOOTPRINT[id], ...PROP_SPRITE[id]) : placeSprite(PROP_FOOTPRINT[id], ...PROP_SPRITE[id], PROP_ALIGN[id])
+      expect(PROP_BOX[id], id).toEqual(box)
     }
     expect(PROP_BOX).toEqual({
       window: { x: 180, y: 46, w: 48, h: 36 },
@@ -749,6 +800,20 @@ describe('scene art (0.9.0 R1): generated images with the code-drawn look as the
       bookshelf: { x: 64, y: 54, w: 50, h: 58 },
       bed: { x: 192, y: 105, w: 58, h: 23 },
       poster: { x: 116, y: 50, w: 22, h: 28 },
+      desk: { x: 116, y: 98, w: 58, h: 33 },
+      'drafting-table': { x: 108, y: 95, w: 68, h: 35 },
+      chair: { x: 134, y: 78, w: 19, h: 30 },
+      'tall-chair': { x: 132, y: 74, w: 24, h: 34 },
+      'arm-lamp': { x: 156, y: 78, w: 14, h: 20 },
+      'reference-shelf': { x: 95, y: 70, w: 20, h: 24 },
+      'coffee-machine': { x: 181, y: 67, w: 11, h: 14 },
+      zabuton: { x: 87, y: 156, w: 24, h: 12 },
+      boxes: { x: 148, y: 148, w: 22, h: 22 },
+      fern: { x: 64, y: 144, w: 30, h: 27 },
+      books: { x: 151, y: 149, w: 20, h: 18 },
+      'floor-lamp': { x: 61, y: 142, w: 18, h: 34 },
+      sofa: { x: 195, y: 153, w: 37, h: 23 },
+      bin: { x: 232, y: 154, w: 13, h: 12 },
     })
     // the doormat (drawn at DOOR_BOX's columns) must sit under the doorway sprite too
     expect([DOOR_BOX.x, DOOR_BOX.w]).toEqual([DOORWAY_BOX.x, DOORWAY_BOX.w])
@@ -761,17 +826,49 @@ describe('scene art (0.9.0 R1): generated images with the code-drawn look as the
     // the bookshelf is drawn after the kitchenette, and clear of it; the poster clear of the corkboard (x 140)
     expect(PROP_BOX.bookshelf.x).toBeGreaterThanOrEqual(right(PROP_BOX.kitchenette))
     expect(right(PROP_BOX.poster)).toBeLessThanOrEqual(140)
-    // every sprite stands on its footprint's bottom row
+    // every sprite stands on its footprint's bottom row, but a desk, whose tabletop (and the drafting table's lightbox)
+    // keeps the footprint's top row, where the pages, the ink pot and the pen sit
     for (const id of Object.keys(PROP_BOX) as ScenePropId[]) {
-      expect(PROP_BOX[id].y + PROP_BOX[id].h, id).toBe(PROP_FOOTPRINT[id].y + PROP_FOOTPRINT[id].h)
+      if (desk(id)) expect(PROP_BOX[id].y, id).toBe(PROP_FOOTPRINT[id].y)
+      else expect(PROP_BOX[id].y + PROP_BOX[id].h, id).toBe(PROP_FOOTPRINT[id].y + PROP_FOOTPRINT[id].h)
     }
+    // 0.10.0 P1: the reference shelf stays clear of the poster (x 116, drawn after it); the sofa of the bin (x 232, drawn
+    // after it); the desk top spans the pages (x 121) to the lamp's clamp (x 169)
+    expect(right(PROP_BOX['reference-shelf'])).toBeLessThanOrEqual(116)
+    // fix round 1: the reference shelf stands in front of the bookshelf's right side, above the desk top (y 98)
+    expect(PROP_BOX['reference-shelf'].x).toBeGreaterThanOrEqual(PROP_BOX.bookshelf.x)
+    expect(PROP_BOX['reference-shelf'].y + PROP_BOX['reference-shelf'].h).toBeLessThanOrEqual(98)
+    // the coffee machine on the sill: clear of the trophies (x 194), the pane's middle bar (x 203) and its cross bar
+    // (y 63-64), above the sill (y 81)
+    const coffee = PROP_BOX['coffee-machine']
+    expect(right(coffee)).toBeLessThanOrEqual(194)
+    expect(coffee.y).toBeGreaterThan(64)
+    expect(coffee.y + coffee.h).toBe(81)
+    // the zabuton and the book stack stay inside the phone crop (x 24-296) and clear of the bin (x 232)
+    for (const id of ['zabuton', 'books'] as const) {
+      expect(PROP_BOX[id].x, id).toBeGreaterThanOrEqual(24)
+      expect(right(PROP_BOX[id]), id).toBeLessThanOrEqual(PROP_BOX.bin.x)
+    }
+    expect(right(PROP_BOX.sofa)).toBeLessThanOrEqual(PROP_BOX.bin.x)
+    expect(PROP_BOX.desk.x).toBeLessThanOrEqual(121)
+    expect(right(PROP_BOX.desk)).toBeGreaterThanOrEqual(170)
   })
 
-  /** Each prop and a scene that shows it: the door is the apartment's, the doorway the flat's and the loft's. */
+  /**
+   * Each prop and a scene that shows it: the door is the apartment's, the doorway the flat's and the loft's; a piece of
+   * equipment shows only when owned; each front-row piece in its tier, the bin in all three.
+   */
+  const own = (id: keyof typeof NO_EQUIPMENT): Partial<Snapshot> => ({ owned: { ...NO_EQUIPMENT, [id]: true } })
   const CASES: [ScenePropId, Partial<Snapshot>][] = [
     ['window', {}], ['door', {}], ['doorway', { tier: 'flat' }], ['doorway', { tier: 'loft' }], ['kitchenette', {}],
     ['bookshelf', {}], ['bed', {}], ['poster', {}],
+    ['desk', {}], ['drafting-table', own('drafting-table')], ['chair', {}], ['tall-chair', own('chair')],
+    ['arm-lamp', own('lamp')], ['reference-shelf', own('shelf')], ['coffee-machine', own('coffee')],
+    ['zabuton', {}], ['boxes', {}], ['fern', { tier: 'flat' }], ['books', { tier: 'flat' }],
+    ['floor-lamp', { tier: 'loft' }], ['sofa', { tier: 'loft' }], ['bin', {}], ['bin', { tier: 'flat' }], ['bin', { tier: 'loft' }],
   ]
+  /** The front row and the desks: a ready sprite moves its contact shadow across itself (same fill count). */
+  const SHADOWED: readonly ScenePropId[] = ['desk', 'drafting-table', 'zabuton', 'boxes', 'fern', 'books', 'floor-lamp', 'sofa', 'bin']
 
   it("draws each ready prop at its sprite's box, in its fallback's place in the draw order, skipping its fallback fills (all inside the old footprint)", () => {
     for (const t of [0.3, 0.9]) {
@@ -789,7 +886,10 @@ describe('scene art (0.9.0 R1): generated images with the code-drawn look as the
         // a ready door or doorway also moves the doormat and the doorway's night light onto its sprite (same fill counts;
         // studioArt.test checks where they go), so those are compared by style only
         // (a ready bookshelf likewise widens its contact shadow onto its sprite)
-        const moved = (c: FillCall) => (id === 'bookshelf' && c.style === 'rgba(40, 24, 16, 0.28)' && c.y === 114 && c.x >= 64 && c.x < 74) || (id === 'door' || id === 'doorway') && (
+        // (and a ready desk or front-row piece its own shadow, a ready arm lamp its bulb)
+        const moved = (c: FillCall) => (SHADOWED.includes(id) && c.style === 'rgba(40, 24, 16, 0.28)') ||
+          (id === 'arm-lamp' && c.style === '#fff2a8') ||
+          (id === 'bookshelf' && c.style === 'rgba(40, 24, 16, 0.28)' && c.y === 114 && c.x >= 64 && c.x < 74) || (id === 'door' || id === 'doorway') && (
           (c.style === '#c94b4b' && c.y === 114 && c.h === 3) || (c.style === '#a83c3c' && c.y === 115 && c.h === 1) ||
           c.style === 'rgba(255,214,150,0.12)' || c.style === 'rgba(255,214,150,0.35)')
         const sameFill = (c: FillCall) => (moved(c) ? { style: c.style } : c)
@@ -826,5 +926,142 @@ describe('scene art (0.9.0 R1): generated images with the code-drawn look as the
     const art = paint({}, 0.3, withProp('bed', loadingImage('bed')))
     expect(art.images).toEqual([])
     expect(art.log).toEqual(plain.log)
+  })
+})
+
+describe('furniture, equipment and the front row as sprites (0.10.0 P1)', () => {
+  const NONE = NO_EQUIPMENT
+  const ALL = { coffee: true, lamp: true, shelf: true, chair: true, 'drafting-table': true, tablet: true }
+  const SHADOW = 'rgba(40, 24, 16, 0.28)'
+  /** The seated mangaka at MANGAKA_SEAT (24x32 at 132, 67), mood overlay included. */
+  const SEATED = { x0: 132, x1: 155, y0: 67, y1: 98 }
+  function paint(over: Partial<Snapshot>, t = 0.3, art: SceneArt = fakeSceneArt()) {
+    const f = fakeContext()
+    render(f.ctx, sceneSnapshot(over), t, 100, art)
+    return f
+  }
+  const imageAt = (images: readonly { id: string; at: number }[], id: string) => {
+    const i = images.find((x) => x.id === id)
+    expect(i, id).toBeDefined()
+    return i!.at
+  }
+
+  it('draws seat 3 page and its ink lines after the drafting table sprite that overlaps them, and keeps the old order otherwise', () => {
+    const crew = [{ look: 0, stamina: 80 }, { look: 1, stamina: 80 }, { look: 2, stamina: 80 }]
+    const owned = { ...NONE, 'drafting-table': true }
+    const isPage = (f: FillCall) => f.style === '#fdfcf7' && f.x === 109 && f.y === 120 && f.w === 6 && f.h === 4
+    const isLine = (f: FillCall) => f.style === '#b8b2a5' && f.x === 110 && f.w === 4 && f.h === 1 && f.y >= 121
+    const { log, images } = paint({ owned, assistants: crew, progress: 1 })
+    const d = imageAt(images, 'drafting-table')
+    const page = log.findIndex(isPage)
+    expect(page).toBeGreaterThanOrEqual(d)
+    log.forEach((f, i) => { if (isLine(f)) expect(i).toBeGreaterThanOrEqual(d) })
+    expect(log.filter(isLine)).toHaveLength(3)
+    // the desk image is drawn once, so nothing of it lands after the page
+    expect(images.filter((im) => im.id === 'drafting-table')).toHaveLength(1)
+    // the drafting table still loading: pages before the (code-drawn) desk, as before
+    const loading = { ...fakeSceneArt(), prop: { ...fakeSceneArt().prop, 'drafting-table': null } }
+    const old = paint({ owned, assistants: crew, progress: 1 }, 0.3, loading)
+    expect(old.log.findIndex(isPage)).toBeGreaterThan(-1)
+    expect(old.log.findIndex(isPage)).toBeLessThan(old.log.findIndex((f) => f.style === '#fdfcf7' && f.x === 121))
+  })
+
+  it('draws the chair before the seated mangaka and the desk after him, before the pages, the stock pieces and the owned ones alike', () => {
+    for (const [owned, chair, desk] of [[NONE, 'chair', 'desk'], [ALL, 'tall-chair', 'drafting-table']] as const) {
+      const { log, images } = paint({ owned })
+      const c = imageAt(images, chair)
+      const d = imageAt(images, desk)
+      // everything painted between the chair and the desk is the seated mangaka
+      const between = log.slice(c, d)
+      expect(between.length, chair).toBeGreaterThan(40)
+      for (const f of between) {
+        const inside = f.x >= SEATED.x0 && f.x + f.w <= SEATED.x1 + 1 && f.y >= SEATED.y0 && f.y + f.h <= SEATED.y1 + 1
+        expect(inside, `${chair}: ${JSON.stringify(f)}`).toBe(true)
+      }
+      // the page stack (x 121, on the desk top at y 98) goes on after the desk
+      const pages = log.findIndex((f) => f.style === '#fdfcf7' && f.x === 121 && f.y + f.h === 98)
+      expect(pages, desk).toBeGreaterThanOrEqual(d)
+      // the lamp after the desk
+      if (owned === ALL) expect(imageAt(images, 'arm-lamp')).toBeGreaterThanOrEqual(d)
+    }
+  })
+
+  it('draws an owned piece in place of the stock one, and an unowned piece not at all', () => {
+    const ids = (owned: typeof NONE) => paint({ owned }).images.map((i) => i.id)
+    const stock = ids(NONE)
+    expect(stock).toContain('desk')
+    expect(stock).toContain('chair')
+    for (const id of ['drafting-table', 'tall-chair', 'arm-lamp', 'reference-shelf', 'coffee-machine']) expect(stock).not.toContain(id)
+    const all = ids(ALL)
+    for (const id of ['drafting-table', 'tall-chair', 'arm-lamp', 'reference-shelf', 'coffee-machine']) expect(all).toContain(id)
+    expect(all).not.toContain('desk')
+    expect(all).not.toContain('chair')
+    expect(ids({ ...NONE, 'drafting-table': true })).toEqual(expect.arrayContaining(['drafting-table', 'chair']))
+    expect(ids({ ...NONE, 'drafting-table': true })).not.toContain('desk')
+    expect(ids({ ...NONE, chair: true })).toEqual(expect.arrayContaining(['tall-chair', 'desk']))
+    expect(ids({ ...NONE, chair: true })).not.toContain('chair')
+  })
+
+  it("draws each tier's own front row, after every actor, and the bin in all three", () => {
+    const FRONT: Record<StudioTierId, string[]> = {
+      apartment: ['zabuton', 'boxes', 'bin'], flat: ['fern', 'books', 'bin'], loft: ['floor-lamp', 'sofa', 'bin'],
+    }
+    for (const tier of ['apartment', 'flat', 'loft'] as StudioTierId[]) {
+      const { log, images } = paint({ tier })
+      expect(images.slice(-3).map((i) => i.id), tier).toEqual(FRONT[tier])
+      // the cat sleeps on its cushion before the front row
+      expect(covers(log, '#c9a24a', 200, 122), tier).toBeLessThan(images[images.length - 3].at)
+    }
+  })
+
+  it("lays each front-row piece's and the desk's contact shadow across its sprite once the image is ready", () => {
+    const shadowUnder = (log: readonly FillCall[], b: { x: number; y: number; w: number; h: number }) =>
+      log.some((f) => f.style === SHADOW && f.x === b.x && f.y === b.y + b.h && f.w === b.w && f.h === 2)
+    const cases: [ScenePropId, Partial<Snapshot>][] = [
+      ['zabuton', {}], ['boxes', {}], ['bin', {}], ['fern', { tier: 'flat' }], ['books', { tier: 'flat' }],
+      ['floor-lamp', { tier: 'loft' }], ['sofa', { tier: 'loft' }], ['desk', {}],
+      ['drafting-table', { owned: { ...NONE, 'drafting-table': true } }],
+    ]
+    for (const [id, over] of cases) expect(shadowUnder(paint(over).log, PROP_BOX[id]), id).toBe(true)
+    // the desk's: under its sprite's feet (y 131), the drafting table's (y 130); the code-drawn desk's at y 118
+    expect(shadowUnder(paint({}).log, { x: 116, y: 131, w: 58, h: 0 })).toBe(true)
+    expect(shadowUnder(paint({ owned: { ...NONE, 'drafting-table': true } }).log, { x: 108, y: 130, w: 68, h: 0 })).toBe(true)
+    const bare = paint({}, 0.3, NO_ART).log
+    expect(shadowUnder(bare, { x: 116, y: 118, w: 58, h: 0 })).toBe(true)
+    // the drafting table owned but its image still loading: the old shadow, as today
+    const loading = { ...fakeSceneArt(), prop: { ...fakeSceneArt().prop, 'drafting-table': null } }
+    expect(shadowUnder(paint({ owned: { ...NONE, 'drafting-table': true } }, 0.3, loading).log, { x: 116, y: 118, w: 58, h: 0 })).toBe(true)
+  })
+
+  it("stands the stamina cups in the desk sprite's open knee hole (y 126) once it is ready, else where they were (y 120)", () => {
+    const CUP = '#f2efe6'
+    const cups = (log: readonly FillCall[]) => log.filter((f) => (f.style === CUP || f.style === '#5a3618') && f.x >= 136 && f.x <= 150 && f.y >= 120 && f.y <= 130)
+    const tables: [string, Partial<Snapshot>][] = [['desk', {}], ['drafting-table', { owned: { ...NONE, 'drafting-table': true } }]]
+    for (const [desk, over] of tables) {
+      const low = { ...over, stamina: 10 }
+      const plain = cups(paint(low, 0.3, NO_ART).log)
+      const art = cups(paint(low).log)
+      expect(plain, desk).toHaveLength(9)
+      expect(art, desk).toHaveLength(9)
+      expect(Math.min(...plain.map((f) => f.y)), desk).toBe(120)
+      expect(art.map((f) => f.y - 6), desk).toEqual(plain.map((f) => f.y))
+      // between the legs: inside the sprite's columns, below its apron, above its feet
+      const b = PROP_BOX[desk as ScenePropId]
+      for (const f of art) {
+        expect(f.x >= b.x + 19 && f.x + f.w <= b.x + 46, `${desk} ${JSON.stringify(f)}`).toBe(true)
+        expect(f.y + f.h <= b.y + b.h, `${desk} ${JSON.stringify(f)}`).toBe(true)
+      }
+    }
+    // the drafting table owned but its image still loading: the cups stay at y 120
+    const loading = { ...fakeSceneArt(), prop: { ...fakeSceneArt().prop, 'drafting-table': null } }
+    const stay = cups(paint({ owned: { ...NONE, 'drafting-table': true }, stamina: 10 }, 0.3, loading).log)
+    expect(Math.min(...stay.map((f) => f.y))).toBe(120)
+  })
+
+  it('keeps the crumpled pages code-drawn, above the bin sprite, while drawing', () => {
+    const { log, images } = paint({ progress: 0.9 })
+    const bin = imageAt(images, 'bin')
+    const pages = log.filter((f, i) => f.style === '#fdfcf7' && f.y >= 151 && f.y <= 152 && f.x >= 234 && i <= bin)
+    expect(pages).toHaveLength(3)
   })
 })
