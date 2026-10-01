@@ -576,6 +576,37 @@ export function snapToKeys(img: RgbaImage, keys: string, pal: Record<string, str
   return rows
 }
 
+/**
+ * The palette a sprite entry snaps against (0.11.0 C2): `pal` (PAL) with each anchored key compared against the sheet
+ * colour it stands for instead (a light grey hoodie anchors J, navy hair anchors H), so the snap follows the sheet's own
+ * colours while only listed keys come out. A new object; `pal` is never changed. An anchor for a key the entry does not
+ * list, or a colour that is not `#rrggbb`, throws.
+ */
+export function anchoredPalette(
+  pal: Record<string, string>, keys: string, anchors: Record<string, string> = {},
+): Record<string, string> {
+  for (const [k, hex] of Object.entries(anchors)) {
+    if (!keys.includes(k)) throw new Error(`anchoredPalette: anchor ${k} is not one of the keys ${keys}`)
+    if (!/^#[0-9a-f]{6}$/i.test(hex)) throw new Error(`anchoredPalette: anchor ${k} is ${hex}, not #rrggbb`)
+  }
+  return { ...pal, ...anchors }
+}
+
+/**
+ * A grid smaller than the frame placed on the frame's last rows, centred (the extra column, when odd, on the right):
+ * the manifest's `fit` box (a body fitted under the anchor head, rows 16-31). A grid larger than the frame throws.
+ */
+export function placeInFrame(rows: readonly string[], frameW: number, frameH: number): string[] {
+  const w = rows[0]?.length ?? 0
+  if (w > frameW || rows.length > frameH) throw new Error(`placeInFrame: ${w}x${rows.length} does not fit ${frameW}x${frameH}`)
+  const ox = Math.floor((frameW - w) / 2)
+  const blank = '.'.repeat(frameW)
+  return [
+    ...Array.from({ length: frameH - rows.length }, () => blank),
+    ...rows.map((r) => '.'.repeat(ox) + r + '.'.repeat(frameW - ox - r.length)),
+  ]
+}
+
 /** Swaps each key of `from` for the key at the same index of `to`, on rows r0 to r1 inclusive only. */
 export function remapRows(rows: readonly string[], [r0, r1]: readonly [number, number], from: string, to: string): string[] {
   return rows.map((row, r) =>

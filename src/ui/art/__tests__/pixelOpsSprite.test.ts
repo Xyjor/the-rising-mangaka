@@ -1,7 +1,7 @@
 // The `--sprite` mode's pure helpers (pixelOps.ts): a generated pose cell becomes a string-map frame in PAL keys.
 import { describe, expect, it } from 'vitest'
 import {
-  closeOutline, despeckleGrid, graftRows, makeImage, outlineToL, padBottomCentred, remapRows, runCount, setCells, snapToKeys,
+  anchoredPalette, closeOutline, despeckleGrid, graftRows, makeImage, placeInFrame, outlineToL, padBottomCentred, remapRows, runCount, setCells, snapToKeys,
   spriteModule, type RgbaImage,
 } from '../pixelOps'
 
@@ -139,5 +139,43 @@ describe('spriteModule', () => {
       + "  'LL', // 1\n"
       + ']\n',
     )
+  })
+})
+
+describe('anchoredPalette (0.11.0 C2: a sheet colour per key)', () => {
+  const pal = { L: '#1c1a26', J: '#6f7a8c', W: '#f6f6f6' }
+
+  it('compares each anchored key against the sheet colour it stands for, the rest against PAL', () => {
+    const out = anchoredPalette(pal, 'LJW', { J: '#d8dce0' })
+    expect(out).toEqual({ L: '#1c1a26', J: '#d8dce0', W: '#f6f6f6' })
+    // a light grey hoodie snaps to J once J is anchored to it (without the anchor it is nearer W)
+    const grey = solid(1, 1, [212, 214, 218])
+    expect(snapToKeys(grey, 'LJW', pal)).toEqual(['W'])
+    expect(snapToKeys(grey, 'LJW', out)).toEqual(['J'])
+  })
+
+  it('leaves PAL itself untouched', () => {
+    anchoredPalette(pal, 'LJ', { J: '#000000' })
+    expect(pal.J).toBe('#6f7a8c')
+  })
+
+  it('refuses an anchor for a key the entry does not list, or a colour that is not #rrggbb', () => {
+    expect(() => anchoredPalette(pal, 'LJ', { W: '#ffffff' })).toThrow(/W/)
+    expect(() => anchoredPalette(pal, 'LJ', { J: 'grey' })).toThrow(/J/)
+  })
+})
+
+describe('placeInFrame (0.11.0 C2: a body fitted to a box under the anchor head)', () => {
+  it('puts a smaller grid on the last rows of the frame, centred, the extra column on the right', () => {
+    expect(placeInFrame(['LL', 'LL'], 5, 3)).toEqual(['.....', '.LL..', '.LL..'])
+  })
+
+  it('returns a grid already at the frame size unchanged', () => {
+    expect(placeInFrame(['LJ', 'JL'], 2, 2)).toEqual(['LJ', 'JL'])
+  })
+
+  it('refuses a grid larger than the frame', () => {
+    expect(() => placeInFrame(['LLL'], 2, 1)).toThrow()
+    expect(() => placeInFrame(['L', 'L'], 1, 1)).toThrow()
   })
 })

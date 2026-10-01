@@ -9,6 +9,8 @@ import sharp from 'sharp'
 import { ART_PALETTE_BASE, ART_PALETTE_SCENE } from '../src/ui/art/palette'
 import {
   addOutline,
+  anchoredPalette,
+  placeInFrame,
   alphaBoundingBox,
   closeOutline,
   despeckleGrid,
@@ -126,6 +128,21 @@ interface SpriteEntry {
   cells?: [number, number, string][]
   /** a frame that never takes the FACES overlay (walking, panic, lying): faceRules is not reported for it */
   faceless?: boolean
+  /**
+   * The sheet colour each key stands for (0.11.0 C2, pixelOps `anchoredPalette`): the snap compares against these
+   * instead of PAL's own colours for the listed keys (the sheet's light grey hoodie is J, its navy hair H).
+   */
+  anchors?: Record<string, string>
+  /**
+   * The box [w, h] the cutout is fitted to (aspect kept, unless `stretch`) instead of the whole frame, then placed on
+   * the frame's last rows, centred (pixelOps `placeInFrame`): a body cropped below the sheet's head, fitted to rows
+   * 16-31 under the anchor head graft, or a pose drawn smaller than the frame.
+   */
+  fit?: [number, number]
+  /** Resample the cutout to the `fit` box exactly, without keeping its aspect (a sheet body narrower than the anchor's). */
+  stretch?: boolean
+  /** Mirror the crop left to right first (a sheet that drew the pose facing right; frames face left). */
+  flip?: boolean
 }
 
 /** A raw source path: `name` as given when it carries an extension (the Higgsfield sheets are .png), else `.webp`. */
@@ -244,12 +261,15 @@ async function processEntry(entry: ManifestEntry): Promise<{ outPath: string; co
 /** The `--sprite` mode's pure steps on an already cropped cell: the frame rows, and what faceRules said before a graft. */
 function spriteFrame(cell: RgbaImage, entry: SpriteEntry): { rows: string[]; faceBefore: string[] } {
   const [fw, fh] = entry.frame
-  let working = floodTransparentFromEdges(cell, entry.tolerance ?? FLOOD_TOLERANCE)
+  const [bw, bh] = entry.fit ?? entry.frame
+  let working = floodTransparentFromEdges(entry.flip ? flipHorizontal(cell) : cell, entry.tolerance ?? FLOOD_TOLERANCE)
   const bbox = alphaBoundingBox(working)
   if (!bbox) throw new Error(`${entry.id}: the cutout is empty`)
-  working = padBottomCentred(sliceRegion(working, bbox.x, bbox.y, bbox.width, bbox.height), fw, fh)
-  working = entry.sample === 'nearest' ? downsampleNearest(working, fw, fh) : downsampleArea(working, fw, fh)
-  let rows = snapToKeys(working, entry.keys, PAL)
+  working = sliceRegion(working, bbox.x, bbox.y, bbox.width, bbox.height)
+  if (!entry.stretch) working = padBottomCentred(working, bw, bh)
+  working = entry.sample === 'nearest' ? downsampleNearest(working, bw, bh) : downsampleArea(working, bw, bh)
+  let rows = snapToKeys(working, entry.keys, anchoredPalette(PAL, entry.keys, entry.anchors))
+  if (entry.fit) rows = placeInFrame(rows, fw, fh)
   for (const m of entry.remap ?? []) rows = remapRows(rows, m.rows, m.from, m.to)
   rows = closeOutline(outlineToL(despeckleGrid(rows)))
   const faceBefore = facedPerson(entry) ? faceRules(rows) : []
@@ -266,6 +286,8 @@ async function processSprite(entry: SpriteEntry): Promise<{ outPath: string; run
   const broken = frameRules(rows, fw, fh)
   if (broken.length) throw new Error(`${entry.id} breaks frameRules:\n  ${broken.join('\n  ')}\n${rows.join('\n')}`)
   const notes: string[] = []
+  if (entry.fit) notes.push(`fit: the cutout ${entry.stretch ? 'stretched' : 'fitted'} to ${entry.fit[0]}x${entry.fit[1]} on the frame's last rows`)
+  if (entry.flip) notes.push('flip: the sheet drew the pose facing right')
   if (entry.graft) notes.push(`graft: ${entry.graft} (rows 0-15 are ANCHOR_HEAD; faceRules failed ${faceBefore.length} cells before it)`)
   const faceAfter = facedPerson(entry) ? faceRules(rows) : []
   if (faceAfter.length) console.warn(`${entry.id}: faceRules: ${faceAfter.length} failures, e.g. ${faceAfter.slice(0, 3).join('; ')}`)
