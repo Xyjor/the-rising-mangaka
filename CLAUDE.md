@@ -94,8 +94,8 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   entrance and door, drawn straight in canvas space) and its `PANE_X/Y/W/H`/`BAR_X` and `paneRect` clipped to the
   window pane; `render.ts` holds the palettes, string-map sprites and `render`, one frame painted from a `Snapshot`
   with nothing allocated per frame (`Snapshot.late` turns the seated mangaka to the panic frames); `sceneArt.ts`
-  `SceneArt` (render's last argument, default `NO_ART`): generated room shells and structural-prop sprites drawn with
-  `drawImage` (`ready`, `drawProp`; a sprite keeps its aspect at `PROP_SPRITE`, placed by `placeSprite` at render.ts's
+  `SceneArt` (render's last argument, default `NO_ART`): generated room shells and prop sprites (structural, furniture, front row) drawn with
+  `drawImage` (`ready`, `drawProp`; a sprite keeps its aspect at `PROP_SPRITE`, placed by `placeSprite` (a desk by `hangSprite`) at render.ts's
   `PROP_BOX`, the fallback inside `PROP_FOOTPRINT`), each falling back to its code-drawn piece
   (`drawRoomShell`, the window frame, `TIER_DOOR`, ...) while missing or loading; `sceneImages.ts` builds them once from
   the registry's `ROOM_ART`/`SCENE_PROP_ART` (render.ts never imports the registry) and `StudioScene` repaints on a
@@ -118,7 +118,7 @@ canvas space; `story.ts` `storyLook`, the story props' five snapshot inputs read
   and `Pops.tsx` the DOM speech bubbles and floating money/fans/xp numbers, styled by `scene.css`;
   `StudioScene.tsx` is the component and its 24 fps frame loop (reading `studioLook` through `useShallow`, lighting
   from the presentation clock, playing the `knock` and `pop` cues); every render is checked against a hand-measured
-  fillRect baseline (`render.test.ts` 673, `studioArt.test.ts` 1079; with every scene image ready, 546 and 953)
+  fillRect baseline (`render.test.ts` 673, `studioArt.test.ts` 1079; with every scene image ready, 521 and 928)
   and must stay under 1.5x it),
   `components.tsx` (Bar, Pips, Modal, RankChart), `format.ts` (money/compact/plural formatters), `Icon.tsx`
   (inline SVG icon set), `SaveFileSection.tsx` and `useSaveFile.ts` (export and load, in Settings and on the
