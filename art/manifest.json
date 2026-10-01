@@ -3735,5 +3735,1037 @@
     "sample": "nearest",
     "name": "MANGAKA_LIE_GEN",
     "faceless": true
+  },
+  {
+    "id": "sprite/mangaka-front-idle",
+    "kind": "sprite",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "seed": null,
+    "job": "3c41ac8b-803c-46bd-953d-2f27eb5c5c66",
+    "prompt": "Tiny 24x32 pixel art sprites scaled up 10x, big hard square pixels, chibi manga artist facing the viewer: navy hair, peach skin, light grey hoodie, darker grey sleeves, brown trousers, red shoes, black outline. One row on flat light grey: standing arms at sides; sitting holding a pen forward; sitting with pen raised; panicking hands on head; asleep under a blanket showing only the head. No text.",
+    "sheet": {
+      "src": "sprites/mangaka-front.png"
+    },
+    "crop": [
+      89,
+      478,
+      437,
+      576
+    ],
+    "frame": [
+      24,
+      32
+    ],
+    "keys": "LJjSsTtOoW",
+    "sample": "nearest",
+    "name": "MANGAKA_IDLE_C2",
+    "anchors": {
+      "L": "#040404",
+      "J": "#d8dce0",
+      "j": "#949498",
+      "S": "#fcd4bc",
+      "s": "#e8b89c",
+      "T": "#64443c",
+      "t": "#4c3028",
+      "O": "#dc2424",
+      "W": "#fcfcfc"
+    },
+    "fit": [
+      16,
+      16
+    ],
+    "stretch": true,
+    "remap": [
+      {
+        "rows": [
+          16,
+          31
+        ],
+        "from": "s",
+        "to": "j"
+      }
+    ],
+    "graft": "anchor-head",
+    "cells": [
+      [
+        16,
+        10,
+        "s"
+      ],
+      [
+        16,
+        11,
+        "s"
+      ],
+      [
+        16,
+        12,
+        "s"
+      ]
+    ]
+  },
+  {
+    "id": "sprite/mangaka-front-sit-0",
+    "kind": "sprite",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "seed": null,
+    "job": "3c41ac8b-803c-46bd-953d-2f27eb5c5c66",
+    "prompt": "Tiny 24x32 pixel art sprites scaled up 10x, big hard square pixels, chibi manga artist facing the viewer: navy hair, peach skin, light grey hoodie, darker grey sleeves, brown trousers, red shoes, black outline. One row on flat light grey: standing arms at sides; sitting holding a pen forward; sitting with pen raised; panicking hands on head; asleep under a blanket showing only the head. No text.",
+    "sheet": {
+      "src": "sprites/mangaka-front.png"
+    },
+    "crop": [
+      608,
+      400,
+      336,
+      205
+    ],
+    "frame": [
+      24,
+      32
+    ],
+    "keys": "LJjSsTtOoW",
+    "sample": "nearest",
+    "name": "MANGAKA_SIT_C2_0",
+    "anchors": {
+      "L": "#040404",
+      "J": "#94949c",
+      "j": "#6c6c74",
+      "S": "#fcd4bc",
+      "s": "#e8b89c",
+      "T": "#5c3c3c",
+      "t": "#3c241c",
+      "O": "#dc2424",
+      "W": "#fcfcfc"
+    },
+    "fit": [
+      24,
+      16
+    ],
+    "remap": [
+      {
+        "rows": [
+          16,
+          31
+        ],
+        "from": "s",
+        "to": "J"
+      }
+    ],
+    "graft": "anchor-head"
+  },
+  {
+    "id": "sprite/mangaka-front-sit-1",
+    "kind": "sprite",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "seed": null,
+    "job": "3c41ac8b-803c-46bd-953d-2f27eb5c5c66",
+    "prompt": "Tiny 24x32 pixel art sprites scaled up 10x, big hard square pixels, chibi manga artist facing the viewer: navy hair, peach skin, light grey hoodie, darker grey sleeves, brown trousers, red shoes, black outline. One row on flat light grey: standing arms at sides; sitting holding a pen forward; sitting with pen raised; panicking hands on head; asleep under a blanket showing only the head. No text.",
+    "sheet": {
+      "src": "sprites/mangaka-front.png"
+    },
+    "crop": [
+      1088,
+      400,
+      339,
+      189
+    ],
+    "frame": [
+      24,
+      32
+    ],
+    "keys": "LJjSsTtOoW",
+    "sample": "nearest",
+    "name": "MANGAKA_SIT_C2_1",
+    "anchors": {
+      "L": "#040404",
+      "J": "#94949c",
+      "j": "#6c6c74",
+      "S": "#fcd4bc",
+      "s": "#e8b89c",
+      "T": "#5c3c3c",
+      "t": "#3c241c",
+      "O": "#dc2424",
+      "W": "#fcfcfc"
+    },
+    "fit": [
+      24,
+      16
+    ],
+    "remap": [
+      {
+        "rows": [
+          16,
+          31
+        ],
+        "from": "s",
+        "to": "J"
+      }
+    ],
+    "graft": "anchor-head"
+  },
+  {
+    "id": "sprite/assistant-doze",
+    "kind": "sprite",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "seed": null,
+    "job": "3c41ac8b-803c-46bd-953d-2f27eb5c5c66",
+    "prompt": "Tiny 24x32 pixel art sprites scaled up 10x, big hard square pixels, chibi manga artist facing the viewer: navy hair, peach skin, light grey hoodie, darker grey sleeves, brown trousers, red shoes, black outline. One row on flat light grey: standing arms at sides; sitting holding a pen forward; sitting with pen raised; panicking hands on head; asleep under a blanket showing only the head. No text.",
+    "sheet": {
+      "src": "sprites/mangaka-front.png"
+    },
+    "crop": [
+      619,
+      675,
+      335,
+      364
+    ],
+    "frame": [
+      24,
+      32
+    ],
+    "keys": "LHhSsBJj",
+    "sample": "nearest",
+    "name": "ASSISTANT_DOZE_C2",
+    "anchors": {
+      "L": "#040404",
+      "H": "#1c2444",
+      "h": "#14142c",
+      "S": "#fcd4bc",
+      "s": "#e8b89c",
+      "B": "#f4a890",
+      "J": "#64443c",
+      "j": "#4c3028"
+    },
+    "fit": [
+      20,
+      23
+    ],
+    "faceless": true,
+    "cells": [
+      [
+        17,
+        12,
+        "H"
+      ],
+      [
+        22,
+        5,
+        "S"
+      ],
+      [
+        30,
+        12,
+        "S"
+      ],
+      [
+        21,
+        12,
+        "h"
+      ],
+      [
+        21,
+        13,
+        "h"
+      ],
+      [
+        21,
+        14,
+        "h"
+      ],
+      [
+        22,
+        13,
+        "S"
+      ],
+      [
+        22,
+        14,
+        "S"
+      ]
+    ]
+  },
+  {
+    "id": "sprite/mangaka-side-walk-0",
+    "kind": "sprite",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "seed": null,
+    "job": "6182f4ee-00b0-4557-b42c-513a6fe7b323",
+    "prompt": "Tiny low-resolution pixel art sprite sheet, each character drawn at exactly 24 by 32 pixels then scaled up 10x so every pixel is a big hard square, NES/Game Boy Color era, 2-head chibi proportions. The same young manga artist in every frame on a flat light grey background, evenly spaced in one row, facing left in side view: dark navy hair, peach skin, light grey hoodie with darker grey sleeves, dark brown trousers, red shoes, black 1-pixel outline. Frames: four walking steps forming a loop; stretching with both arms raised; sipping from a mug. No text, no background objects.",
+    "sheet": {
+      "src": "sprites/mangaka-side.png"
+    },
+    "crop": [
+      126,
+      122,
+      274,
+      441
+    ],
+    "frame": [
+      24,
+      32
+    ],
+    "keys": "LHhSsJjTtOoW",
+    "sample": "nearest",
+    "name": "MANGAKA_WALK_C2_0",
+    "anchors": {
+      "L": "#040404",
+      "H": "#141444",
+      "h": "#0c0c30",
+      "S": "#f4ccac",
+      "s": "#dca88c",
+      "J": "#a4a4b4",
+      "j": "#7c7c8c",
+      "T": "#4c2424",
+      "t": "#2c1414",
+      "O": "#c4141c",
+      "W": "#fcfcfc"
+    },
+    "faceless": true
+  },
+  {
+    "id": "sprite/mangaka-side-walk-1",
+    "kind": "sprite",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "seed": null,
+    "job": "6182f4ee-00b0-4557-b42c-513a6fe7b323",
+    "prompt": "Tiny low-resolution pixel art sprite sheet, each character drawn at exactly 24 by 32 pixels then scaled up 10x so every pixel is a big hard square, NES/Game Boy Color era, 2-head chibi proportions. The same young manga artist in every frame on a flat light grey background, evenly spaced in one row, facing left in side view: dark navy hair, peach skin, light grey hoodie with darker grey sleeves, dark brown trousers, red shoes, black 1-pixel outline. Frames: four walking steps forming a loop; stretching with both arms raised; sipping from a mug. No text, no background objects.",
+    "sheet": {
+      "src": "sprites/mangaka-side.png"
+    },
+    "crop": [
+      630,
+      122,
+      279,
+      441
+    ],
+    "frame": [
+      24,
+      32
+    ],
+    "keys": "LHhSsJjTtOoW",
+    "sample": "nearest",
+    "name": "MANGAKA_WALK_C2_1",
+    "anchors": {
+      "L": "#040404",
+      "H": "#141444",
+      "h": "#0c0c30",
+      "S": "#f4ccac",
+      "s": "#dca88c",
+      "J": "#a4a4b4",
+      "j": "#7c7c8c",
+      "T": "#4c2424",
+      "t": "#2c1414",
+      "O": "#c4141c",
+      "W": "#fcfcfc"
+    },
+    "faceless": true
+  },
+  {
+    "id": "sprite/mangaka-side-walk-2",
+    "kind": "sprite",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "seed": null,
+    "job": "6182f4ee-00b0-4557-b42c-513a6fe7b323",
+    "prompt": "Tiny low-resolution pixel art sprite sheet, each character drawn at exactly 24 by 32 pixels then scaled up 10x so every pixel is a big hard square, NES/Game Boy Color era, 2-head chibi proportions. The same young manga artist in every frame on a flat light grey background, evenly spaced in one row, facing left in side view: dark navy hair, peach skin, light grey hoodie with darker grey sleeves, dark brown trousers, red shoes, black 1-pixel outline. Frames: four walking steps forming a loop; stretching with both arms raised; sipping from a mug. No text, no background objects.",
+    "sheet": {
+      "src": "sprites/mangaka-side.png"
+    },
+    "crop": [
+      1663,
+      130,
+      250,
+      433
+    ],
+    "frame": [
+      24,
+      32
+    ],
+    "keys": "LHhSsJjTtOoW",
+    "sample": "nearest",
+    "name": "MANGAKA_WALK_C2_2",
+    "anchors": {
+      "L": "#040404",
+      "H": "#141444",
+      "h": "#0c0c30",
+      "S": "#f4ccac",
+      "s": "#dca88c",
+      "J": "#a4a4b4",
+      "j": "#7c7c8c",
+      "T": "#4c2424",
+      "t": "#2c1414",
+      "O": "#c4141c",
+      "W": "#fcfcfc"
+    },
+    "faceless": true
+  },
+  {
+    "id": "sprite/mangaka-side-walk-3",
+    "kind": "sprite",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "seed": null,
+    "job": "6182f4ee-00b0-4557-b42c-513a6fe7b323",
+    "prompt": "Tiny low-resolution pixel art sprite sheet, each character drawn at exactly 24 by 32 pixels then scaled up 10x so every pixel is a big hard square, NES/Game Boy Color era, 2-head chibi proportions. The same young manga artist in every frame on a flat light grey background, evenly spaced in one row, facing left in side view: dark navy hair, peach skin, light grey hoodie with darker grey sleeves, dark brown trousers, red shoes, black 1-pixel outline. Frames: four walking steps forming a loop; stretching with both arms raised; sipping from a mug. No text, no background objects.",
+    "sheet": {
+      "src": "sprites/mangaka-side.png"
+    },
+    "crop": [
+      130,
+      646,
+      247,
+      412
+    ],
+    "frame": [
+      24,
+      32
+    ],
+    "keys": "LHhSsJjTtOoW",
+    "sample": "nearest",
+    "name": "MANGAKA_WALK_C2_3",
+    "anchors": {
+      "L": "#040404",
+      "H": "#141444",
+      "h": "#0c0c30",
+      "S": "#f4ccac",
+      "s": "#dca88c",
+      "J": "#a4a4b4",
+      "j": "#7c7c8c",
+      "T": "#4c2424",
+      "t": "#2c1414",
+      "O": "#c4141c",
+      "W": "#fcfcfc"
+    },
+    "faceless": true
+  },
+  {
+    "id": "sprite/mangaka-side-walk-4",
+    "kind": "sprite",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "seed": null,
+    "job": "6182f4ee-00b0-4557-b42c-513a6fe7b323",
+    "prompt": "Tiny low-resolution pixel art sprite sheet, each character drawn at exactly 24 by 32 pixels then scaled up 10x so every pixel is a big hard square, NES/Game Boy Color era, 2-head chibi proportions. The same young manga artist in every frame on a flat light grey background, evenly spaced in one row, facing left in side view: dark navy hair, peach skin, light grey hoodie with darker grey sleeves, dark brown trousers, red shoes, black 1-pixel outline. Frames: four walking steps forming a loop; stretching with both arms raised; sipping from a mug. No text, no background objects.",
+    "sheet": {
+      "src": "sprites/mangaka-side.png"
+    },
+    "crop": [
+      630,
+      657,
+      237,
+      401
+    ],
+    "frame": [
+      24,
+      32
+    ],
+    "keys": "LHhSsJjTtOoW",
+    "sample": "nearest",
+    "name": "MANGAKA_WALK_C2_4",
+    "anchors": {
+      "L": "#040404",
+      "H": "#141444",
+      "h": "#0c0c30",
+      "S": "#f4ccac",
+      "s": "#dca88c",
+      "J": "#a4a4b4",
+      "j": "#7c7c8c",
+      "T": "#4c2424",
+      "t": "#2c1414",
+      "O": "#c4141c",
+      "W": "#fcfcfc"
+    },
+    "faceless": true
+  },
+  {
+    "id": "sprite/mangaka-side-stretch",
+    "kind": "sprite",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "seed": null,
+    "job": "6182f4ee-00b0-4557-b42c-513a6fe7b323",
+    "prompt": "Tiny low-resolution pixel art sprite sheet, each character drawn at exactly 24 by 32 pixels then scaled up 10x so every pixel is a big hard square, NES/Game Boy Color era, 2-head chibi proportions. The same young manga artist in every frame on a flat light grey background, evenly spaced in one row, facing left in side view: dark navy hair, peach skin, light grey hoodie with darker grey sleeves, dark brown trousers, red shoes, black 1-pixel outline. Frames: four walking steps forming a loop; stretching with both arms raised; sipping from a mug. No text, no background objects.",
+    "sheet": {
+      "src": "sprites/mangaka-side.png"
+    },
+    "crop": [
+      1139,
+      126,
+      290,
+      437
+    ],
+    "frame": [
+      24,
+      32
+    ],
+    "keys": "LHhSsJjTtOoW",
+    "sample": "nearest",
+    "name": "MANGAKA_STRETCH_C2",
+    "anchors": {
+      "L": "#040404",
+      "H": "#141444",
+      "h": "#0c0c30",
+      "S": "#f4ccac",
+      "s": "#dca88c",
+      "J": "#a4a4b4",
+      "j": "#7c7c8c",
+      "T": "#4c2424",
+      "t": "#2c1414",
+      "O": "#c4141c",
+      "W": "#fcfcfc"
+    },
+    "faceless": true
+  },
+  {
+    "id": "sprite/mangaka-side-sip",
+    "kind": "sprite",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "seed": null,
+    "job": "6182f4ee-00b0-4557-b42c-513a6fe7b323",
+    "prompt": "Tiny low-resolution pixel art sprite sheet, each character drawn at exactly 24 by 32 pixels then scaled up 10x so every pixel is a big hard square, NES/Game Boy Color era, 2-head chibi proportions. The same young manga artist in every frame on a flat light grey background, evenly spaced in one row, facing left in side view: dark navy hair, peach skin, light grey hoodie with darker grey sleeves, dark brown trousers, red shoes, black 1-pixel outline. Frames: four walking steps forming a loop; stretching with both arms raised; sipping from a mug. No text, no background objects.",
+    "sheet": {
+      "src": "sprites/mangaka-side.png"
+    },
+    "crop": [
+      1153,
+      656,
+      257,
+      402
+    ],
+    "frame": [
+      24,
+      32
+    ],
+    "keys": "LHhSsJjTtOoW",
+    "sample": "nearest",
+    "name": "MANGAKA_SIP_C2",
+    "anchors": {
+      "L": "#040404",
+      "H": "#141444",
+      "h": "#0c0c30",
+      "S": "#f4ccac",
+      "s": "#dca88c",
+      "J": "#a4a4b4",
+      "j": "#7c7c8c",
+      "T": "#4c2424",
+      "t": "#2c1414",
+      "O": "#c4141c",
+      "W": "#fcfcfc"
+    },
+    "faceless": true
+  },
+  {
+    "id": "sprite/mangaka-side-sip-1",
+    "kind": "sprite",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "seed": null,
+    "job": "6182f4ee-00b0-4557-b42c-513a6fe7b323",
+    "prompt": "Tiny low-resolution pixel art sprite sheet, each character drawn at exactly 24 by 32 pixels then scaled up 10x so every pixel is a big hard square, NES/Game Boy Color era, 2-head chibi proportions. The same young manga artist in every frame on a flat light grey background, evenly spaced in one row, facing left in side view: dark navy hair, peach skin, light grey hoodie with darker grey sleeves, dark brown trousers, red shoes, black 1-pixel outline. Frames: four walking steps forming a loop; stretching with both arms raised; sipping from a mug. No text, no background objects.",
+    "sheet": {
+      "src": "sprites/mangaka-side.png"
+    },
+    "crop": [
+      1153,
+      656,
+      257,
+      402
+    ],
+    "frame": [
+      24,
+      32
+    ],
+    "keys": "LHhSsJjTtOoW",
+    "sample": "nearest",
+    "name": "MANGAKA_SIP_C2_1",
+    "anchors": {
+      "L": "#040404",
+      "H": "#141444",
+      "h": "#0c0c30",
+      "S": "#f4ccac",
+      "s": "#dca88c",
+      "J": "#a4a4b4",
+      "j": "#7c7c8c",
+      "T": "#4c2424",
+      "t": "#2c1414",
+      "O": "#c4141c",
+      "W": "#fcfcfc"
+    },
+    "faceless": true,
+    "cells": [
+      [
+        11,
+        8,
+        "S"
+      ],
+      [
+        12,
+        8,
+        "s"
+      ]
+    ]
+  },
+  {
+    "id": "sprite/editor-idle",
+    "kind": "sprite",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "seed": null,
+    "job": "31a297c9-651e-4a90-aeb5-2c8aefb4557e",
+    "prompt": "Pixel art character sprite sheet on a flat light grey background, the same chibi manga editor in every frame, two heads tall, short slicked dark hair, glasses, navy suit, white shirt, red tie, carrying a brown briefcase, 16-bit Kairosoft style, thick dark outline, evenly spaced in one row, all facing left: 1) standing idle; 2) standing idle holding an envelope; 3) walking step one; 4) walking step two; 5) walking step three; 6) walking step four. Consistent proportions and colours across frames, crisp pixels, no text, no letters.",
+    "sheet": {
+      "src": "sprites/editor.png"
+    },
+    "crop": [
+      91,
+      80,
+      271,
+      484
+    ],
+    "frame": [
+      24,
+      32
+    ],
+    "keys": "LHSsBWNGgFfTt",
+    "sample": "nearest",
+    "name": "EDITOR_IDLE_C2",
+    "anchors": {
+      "L": "#0c0c1c",
+      "H": "#2c2444",
+      "S": "#fcd4b4",
+      "s": "#e0b090",
+      "B": "#f4b49c",
+      "W": "#ececec",
+      "N": "#c0392b",
+      "G": "#2c3454",
+      "g": "#1c2440",
+      "F": "#74342c",
+      "f": "#4c2018"
+    },
+    "remap": [
+      {
+        "rows": [
+          16,
+          31
+        ],
+        "from": "H",
+        "to": "G"
+      },
+      {
+        "rows": [
+          25,
+          31
+        ],
+        "from": "Gg",
+        "to": "Tt"
+      }
+    ],
+    "faceless": true
+  },
+  {
+    "id": "sprite/editor-walk-0",
+    "kind": "sprite",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "seed": null,
+    "job": "31a297c9-651e-4a90-aeb5-2c8aefb4557e",
+    "prompt": "Pixel art character sprite sheet on a flat light grey background, the same chibi manga editor in every frame, two heads tall, short slicked dark hair, glasses, navy suit, white shirt, red tie, carrying a brown briefcase, 16-bit Kairosoft style, thick dark outline, evenly spaced in one row, all facing left: 1) standing idle; 2) standing idle holding an envelope; 3) walking step one; 4) walking step two; 5) walking step three; 6) walking step four. Consistent proportions and colours across frames, crisp pixels, no text, no letters.",
+    "sheet": {
+      "src": "sprites/editor.png"
+    },
+    "crop": [
+      435,
+      677,
+      256,
+      428
+    ],
+    "frame": [
+      24,
+      32
+    ],
+    "keys": "LHSsBWNGgFfTt",
+    "sample": "nearest",
+    "name": "EDITOR_WALK_C2_0",
+    "anchors": {
+      "L": "#0c0c1c",
+      "H": "#2c2444",
+      "S": "#fcd4b4",
+      "s": "#e0b090",
+      "B": "#f4b49c",
+      "W": "#ececec",
+      "N": "#c0392b",
+      "G": "#2c3454",
+      "g": "#1c2440",
+      "F": "#74342c",
+      "f": "#4c2018"
+    },
+    "remap": [
+      {
+        "rows": [
+          16,
+          31
+        ],
+        "from": "H",
+        "to": "G"
+      },
+      {
+        "rows": [
+          25,
+          31
+        ],
+        "from": "Gg",
+        "to": "Tt"
+      }
+    ],
+    "flip": true,
+    "faceless": true
+  },
+  {
+    "id": "sprite/editor-walk-1",
+    "kind": "sprite",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "seed": null,
+    "job": "31a297c9-651e-4a90-aeb5-2c8aefb4557e",
+    "prompt": "Pixel art character sprite sheet on a flat light grey background, the same chibi manga editor in every frame, two heads tall, short slicked dark hair, glasses, navy suit, white shirt, red tie, carrying a brown briefcase, 16-bit Kairosoft style, thick dark outline, evenly spaced in one row, all facing left: 1) standing idle; 2) standing idle holding an envelope; 3) walking step one; 4) walking step two; 5) walking step three; 6) walking step four. Consistent proportions and colours across frames, crisp pixels, no text, no letters.",
+    "sheet": {
+      "src": "sprites/editor.png"
+    },
+    "crop": [
+      779,
+      681,
+      250,
+      422
+    ],
+    "frame": [
+      24,
+      32
+    ],
+    "keys": "LHSsBWNGgFfTt",
+    "sample": "nearest",
+    "name": "EDITOR_WALK_C2_1",
+    "anchors": {
+      "L": "#0c0c1c",
+      "H": "#2c2444",
+      "S": "#fcd4b4",
+      "s": "#e0b090",
+      "B": "#f4b49c",
+      "W": "#ececec",
+      "N": "#c0392b",
+      "G": "#2c3454",
+      "g": "#1c2440",
+      "F": "#74342c",
+      "f": "#4c2018"
+    },
+    "remap": [
+      {
+        "rows": [
+          16,
+          31
+        ],
+        "from": "H",
+        "to": "G"
+      },
+      {
+        "rows": [
+          25,
+          31
+        ],
+        "from": "Gg",
+        "to": "Tt"
+      }
+    ],
+    "flip": true,
+    "faceless": true
+  },
+  {
+    "id": "sprite/editor-walk-2",
+    "kind": "sprite",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "seed": null,
+    "job": "31a297c9-651e-4a90-aeb5-2c8aefb4557e",
+    "prompt": "Pixel art character sprite sheet on a flat light grey background, the same chibi manga editor in every frame, two heads tall, short slicked dark hair, glasses, navy suit, white shirt, red tie, carrying a brown briefcase, 16-bit Kairosoft style, thick dark outline, evenly spaced in one row, all facing left: 1) standing idle; 2) standing idle holding an envelope; 3) walking step one; 4) walking step two; 5) walking step three; 6) walking step four. Consistent proportions and colours across frames, crisp pixels, no text, no letters.",
+    "sheet": {
+      "src": "sprites/editor.png"
+    },
+    "crop": [
+      1104,
+      687,
+      235,
+      417
+    ],
+    "frame": [
+      24,
+      32
+    ],
+    "keys": "LHSsBWNGgFfTt",
+    "sample": "nearest",
+    "name": "EDITOR_WALK_C2_2",
+    "anchors": {
+      "L": "#0c0c1c",
+      "H": "#2c2444",
+      "S": "#fcd4b4",
+      "s": "#e0b090",
+      "B": "#f4b49c",
+      "W": "#ececec",
+      "N": "#c0392b",
+      "G": "#2c3454",
+      "g": "#1c2440",
+      "F": "#74342c",
+      "f": "#4c2018"
+    },
+    "remap": [
+      {
+        "rows": [
+          16,
+          31
+        ],
+        "from": "H",
+        "to": "G"
+      },
+      {
+        "rows": [
+          25,
+          31
+        ],
+        "from": "Gg",
+        "to": "Tt"
+      }
+    ],
+    "flip": true,
+    "faceless": true
+  },
+  {
+    "id": "sprite/editor-walk-3",
+    "kind": "sprite",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "seed": null,
+    "job": "31a297c9-651e-4a90-aeb5-2c8aefb4557e",
+    "prompt": "Pixel art character sprite sheet on a flat light grey background, the same chibi manga editor in every frame, two heads tall, short slicked dark hair, glasses, navy suit, white shirt, red tie, carrying a brown briefcase, 16-bit Kairosoft style, thick dark outline, evenly spaced in one row, all facing left: 1) standing idle; 2) standing idle holding an envelope; 3) walking step one; 4) walking step two; 5) walking step three; 6) walking step four. Consistent proportions and colours across frames, crisp pixels, no text, no letters.",
+    "sheet": {
+      "src": "sprites/editor.png"
+    },
+    "crop": [
+      1417,
+      689,
+      236,
+      415
+    ],
+    "frame": [
+      24,
+      32
+    ],
+    "keys": "LHSsBWNGgFfTt",
+    "sample": "nearest",
+    "name": "EDITOR_WALK_C2_3",
+    "anchors": {
+      "L": "#0c0c1c",
+      "H": "#2c2444",
+      "S": "#fcd4b4",
+      "s": "#e0b090",
+      "B": "#f4b49c",
+      "W": "#ececec",
+      "N": "#c0392b",
+      "G": "#2c3454",
+      "g": "#1c2440",
+      "F": "#74342c",
+      "f": "#4c2018"
+    },
+    "remap": [
+      {
+        "rows": [
+          16,
+          31
+        ],
+        "from": "H",
+        "to": "G"
+      },
+      {
+        "rows": [
+          25,
+          31
+        ],
+        "from": "Gg",
+        "to": "Tt"
+      }
+    ],
+    "flip": true,
+    "faceless": true
+  },
+  {
+    "id": "sprite/cat-sit",
+    "kind": "sprite",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "seed": null,
+    "job": "45035b6b-1eff-479c-9197-3f6b392c5f8a",
+    "prompt": "Pixel art sprite sheet on a flat light grey background, the same small orange tabby cat with a cream chest in every frame, 16-bit Kairosoft style, thick dark outline, evenly spaced in one row, side view facing left: 1) sitting upright; 2) sitting and licking a raised paw; 3) stretching with front legs forward; 4) curled up asleep; 5) walking step one; 6) walking step two. Consistent proportions and colours across frames, crisp pixels, no text, no letters.",
+    "sheet": {
+      "src": "sprites/cat.png"
+    },
+    "crop": [
+      1242,
+      106,
+      317,
+      344
+    ],
+    "frame": [
+      12,
+      8
+    ],
+    "keys": "LCcQ",
+    "sample": "nearest",
+    "name": "CAT_SIT_C2",
+    "anchors": {
+      "L": "#240c14",
+      "C": "#f4943c",
+      "c": "#d46414",
+      "Q": "#fcecbc"
+    },
+    "tolerance": 60,
+    "faceless": true
+  },
+  {
+    "id": "sprite/cat-groom",
+    "kind": "sprite",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "seed": null,
+    "job": "45035b6b-1eff-479c-9197-3f6b392c5f8a",
+    "prompt": "Pixel art sprite sheet on a flat light grey background, the same small orange tabby cat with a cream chest in every frame, 16-bit Kairosoft style, thick dark outline, evenly spaced in one row, side view facing left: 1) sitting upright; 2) sitting and licking a raised paw; 3) stretching with front legs forward; 4) curled up asleep; 5) walking step one; 6) walking step two. Consistent proportions and colours across frames, crisp pixels, no text, no letters.",
+    "sheet": {
+      "src": "sprites/cat.png"
+    },
+    "crop": [
+      826,
+      109,
+      330,
+      341
+    ],
+    "frame": [
+      12,
+      8
+    ],
+    "keys": "LCcQ",
+    "sample": "nearest",
+    "name": "CAT_GROOM_C2",
+    "anchors": {
+      "L": "#240c14",
+      "C": "#f4943c",
+      "c": "#d46414",
+      "Q": "#fcecbc"
+    },
+    "tolerance": 60,
+    "faceless": true
+  },
+  {
+    "id": "sprite/cat-stretch",
+    "kind": "sprite",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "seed": null,
+    "job": "45035b6b-1eff-479c-9197-3f6b392c5f8a",
+    "prompt": "Pixel art sprite sheet on a flat light grey background, the same small orange tabby cat with a cream chest in every frame, 16-bit Kairosoft style, thick dark outline, evenly spaced in one row, side view facing left: 1) sitting upright; 2) sitting and licking a raised paw; 3) stretching with front legs forward; 4) curled up asleep; 5) walking step one; 6) walking step two. Consistent proportions and colours across frames, crisp pixels, no text, no letters.",
+    "sheet": {
+      "src": "sprites/cat.png"
+    },
+    "crop": [
+      131,
+      800,
+      453,
+      255
+    ],
+    "frame": [
+      12,
+      8
+    ],
+    "keys": "LCcQ",
+    "sample": "nearest",
+    "name": "CAT_STRETCH_C2",
+    "anchors": {
+      "L": "#240c14",
+      "C": "#f4943c",
+      "c": "#d46414",
+      "Q": "#fcecbc"
+    },
+    "tolerance": 60,
+    "faceless": true,
+    "flip": true
+  },
+  {
+    "id": "sprite/cat-walk-0",
+    "kind": "sprite",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "seed": null,
+    "job": "45035b6b-1eff-479c-9197-3f6b392c5f8a",
+    "prompt": "Pixel art sprite sheet on a flat light grey background, the same small orange tabby cat with a cream chest in every frame, 16-bit Kairosoft style, thick dark outline, evenly spaced in one row, side view facing left: 1) sitting upright; 2) sitting and licking a raised paw; 3) stretching with front legs forward; 4) curled up asleep; 5) walking step one; 6) walking step two. Consistent proportions and colours across frames, crisp pixels, no text, no letters.",
+    "sheet": {
+      "src": "sprites/cat.png"
+    },
+    "crop": [
+      704,
+      775,
+      415,
+      282
+    ],
+    "frame": [
+      12,
+      8
+    ],
+    "keys": "LCcQ",
+    "sample": "nearest",
+    "name": "CAT_WALK_C2_0",
+    "anchors": {
+      "L": "#240c14",
+      "C": "#f4943c",
+      "c": "#d46414",
+      "Q": "#fcecbc"
+    },
+    "tolerance": 60,
+    "faceless": true
+  },
+  {
+    "id": "sprite/cat-walk-1",
+    "kind": "sprite",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "seed": null,
+    "job": "45035b6b-1eff-479c-9197-3f6b392c5f8a",
+    "prompt": "Pixel art sprite sheet on a flat light grey background, the same small orange tabby cat with a cream chest in every frame, 16-bit Kairosoft style, thick dark outline, evenly spaced in one row, side view facing left: 1) sitting upright; 2) sitting and licking a raised paw; 3) stretching with front legs forward; 4) curled up asleep; 5) walking step one; 6) walking step two. Consistent proportions and colours across frames, crisp pixels, no text, no letters.",
+    "sheet": {
+      "src": "sprites/cat.png"
+    },
+    "crop": [
+      1625,
+      776,
+      342,
+      282
+    ],
+    "frame": [
+      12,
+      8
+    ],
+    "keys": "LCcQ",
+    "sample": "nearest",
+    "name": "CAT_WALK_C2_1",
+    "anchors": {
+      "L": "#240c14",
+      "C": "#f4943c",
+      "c": "#d46414",
+      "Q": "#fcecbc"
+    },
+    "tolerance": 60,
+    "faceless": true
   }
 ]

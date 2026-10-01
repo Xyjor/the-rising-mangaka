@@ -226,7 +226,8 @@ describe('art manifest', () => {
     for (const e of sprites) {
       expect(e.id, e.id).toMatch(/^sprite\/[a-z0-9-]+$/)
       expect(statSync(join(ROOT, 'art', 'raw', e.sheet.src)).isFile(), `raw sheet for ${e.id}`).toBe(true)
-      expect([[24, 32], [30, 14]], `${e.id} frame`).toContainEqual(e.frame)
+      // a person 24x32, lying down 30x14, the cat 12x8 (task C2)
+      expect([[24, 32], [30, 14], [12, 8]], `${e.id} frame`).toContainEqual(e.frame)
       expect(e.keys, `${e.id} keys`).toMatch(/^[A-Za-z]+$/)
       expect(e.keys, `${e.id} keys has the outline`).toContain('L')
       expect([undefined, 'anchor-head'], `${e.id} graft`).toContain(e.graft)
