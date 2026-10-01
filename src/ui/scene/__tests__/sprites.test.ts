@@ -2,11 +2,14 @@
 // the outline closed on every row. Pure data, the default node environment.
 import { describe, expect, it } from 'vitest'
 import {
+  ANCHOR_HEAD, breathOf,
   ASSISTANT_DOZE, ASSISTANT_PALS, CAT_GROOM, CAT_SIT, CAT_SLEEP, CAT_STRETCH, CAT_WALK, EDITOR_IDLE, EDITOR_WALK, HUMAN_FRAMES,
   MANGAKA_IDLE, MANGAKA_LIE, MANGAKA_PANIC, MANGAKA_SIP, MANGAKA_SIT, MANGAKA_STRETCH, MANGAKA_WALK, OUTFIT_PALS, PAL,
-  PROP_CONTRACT, PROP_ENVELOPE, PROP_LETTER, PROP_PAL, PROP_TROPHY, frameRules, outfitOf,
+  PROP_CONTRACT, PROP_ENVELOPE, PROP_LETTER, PROP_PAL, PROP_TROPHY, faceRules, frameRules, outfitOf,
 } from '../sprites'
 import { LOOK_HAIRS, LOOK_HAIRS_SHADE, LOOK_SHIRTS, LOOK_SHIRTS_SHADE } from '../../looks'
+import { runCount } from '../../art/pixelOps'
+import { ASSISTANT_DOZE_C2 } from '../generated/assistant-doze'
 
 describe('the sprites', () => {
   it('passes the frame rules for every 24x32 frame, the 30x14 bed pose and the 12x8 cat', () => {
@@ -28,6 +31,25 @@ describe('the sprites', () => {
     expect(frameRules(PROP_TROPHY, 5, 6, PROP_PAL)).toEqual([])
     // a prop key is not a person's
     expect(frameRules(PROP_ENVELOPE, 6, 4)).not.toEqual([]) // its paper-line l
+  })
+
+  it('faceRules: the FACES window holds only face keys, the mark slot is clear, the head stays in the avatar crop', () => {
+    // every hand-drawn frame that takes the overlay (render.ts: the breathing idle, the seated frames) passes, and the
+    // sip too; the stretch does not (its arms leave the avatar crop), and render never draws a face on it (faceSteady)
+    for (const f of [...MANGAKA_IDLE, ...MANGAKA_SIT, ...MANGAKA_SIP]) expect(faceRules(f)).toEqual([])
+    for (const f of MANGAKA_STRETCH) expect(faceRules(f)).not.toEqual([])
+    // hair inside the FACES window (rows 9-12, cols 4-17)
+    const hair = MANGAKA_IDLE[0].slice()
+    hair[10] = hair[10].slice(0, 5) + 'H' + hair[10].slice(6)
+    expect(faceRules(hair)).toEqual(['row 10 col 5 is H, not a face key'])
+    // something in the mark slot (rows 0-2, cols 20-22)
+    const mark = MANGAKA_IDLE[0].slice()
+    mark[1] = mark[1].slice(0, 21) + 'L' + mark[1].slice(22)
+    expect(faceRules(mark)).toContain('row 1 col 21 is in the mark slot')
+    // the head spilling out of the avatar crop (rows 0-15, cols 2-19)
+    const wide = MANGAKA_IDLE[0].slice()
+    wide[4] = 'L' + wide[4].slice(1)
+    expect(faceRules(wide)).toEqual(['row 4 col 0 is outside the avatar crop'])
   })
 
   it('reports a short row, an unknown key and an empty last row', () => {
@@ -62,9 +84,10 @@ describe('the sprites', () => {
     // the editor: hair row 2 col 8, glasses row 10 col 5, tie row 17 col 11, suit row 18 col 5, briefcase row 24 col 20
     const e = EDITOR_IDLE[0]
     expect([e[2][8], e[10][5], e[17][11], e[18][5], e[24][20]]).toEqual(['H', 'P', 'N', 'G', 'F'])
-    // the doze: the head down 6 and right 2, so row 8 col 10 is hair and row 2 is clear
-    expect(ASSISTANT_DOZE[8][10]).toBe('H')
-    expect(ASSISTANT_DOZE[2].slice(0, 10)).toBe('..........')
+    // the doze (generated, task C2): the head down on the folded arms, the hair from row 11, the arms on rows 27-30
+    expect(ASSISTANT_DOZE[11][9]).toBe('H')
+    expect(ASSISTANT_DOZE.slice(0, 10).every((r) => r === '.'.repeat(24))).toBe(true)
+    expect(ASSISTANT_DOZE[28][4]).toBe('J')
     expect([CAT_SIT[3][3], CAT_WALK[1][6][1], CAT_WALK[0][6][1]]).toEqual(['E', 'C', 'L'])
     expect([PROP_ENVELOPE[1][2], PROP_TROPHY[1][2]]).toEqual(['W', 'Y'])
   })
@@ -129,5 +152,28 @@ describe('the sprites', () => {
     expect(OUTFIT_PALS.cardigan.j).toBe('#a8832f')
     expect(OUTFIT_PALS.blazer.J).toBe('#2e3a78')
     expect(OUTFIT_PALS.blazer.j).toBe('#222b5c')
+  })
+
+  it('keeps the anchor head (the graft and the staff portrait) equal to the standing frame rows 0-15', () => {
+    expect(ANCHOR_HEAD).toEqual(MANGAKA_IDLE[0].slice(0, 16))
+    expect(faceRules(ANCHOR_HEAD.concat(MANGAKA_IDLE[0].slice(16)))).toEqual([])
+  })
+
+  it('derives the breath the way the hand-drawn idle has it', () => {
+    // the breath: rows 0-23 a row lower, the hem row 24 tucked under; exactly the hand-drawn idle's frame 1
+    expect(breathOf(MANGAKA_IDLE[0])).toEqual(MANGAKA_IDLE[1])
+    expect(MANGAKA_IDLE[1][24]).toBe(MANGAKA_IDLE[0][23])
+    expect(MANGAKA_IDLE[1].slice(25)).toEqual(MANGAKA_IDLE[0].slice(25))
+  })
+
+  it('draws the task C2 readability gate winner, the generated assistant doze, and keeps the hand-drawn idle', () => {
+    expect(ASSISTANT_DOZE).toEqual(ASSISTANT_DOZE_C2)
+    // fills against the hand-drawn doze it replaced (113, task C2 report)
+    expect(runCount(ASSISTANT_DOZE)).toBe(100)
+    expect(runCount(ASSISTANT_DOZE)).toBeLessThanOrEqual(1.25 * 113)
+    // the doze is a valid, faceless 24x32 frame (the doze never takes the FACES overlay)
+    expect(frameRules(ASSISTANT_DOZE_C2)).toEqual([])
+    // the controller's ruling: the generated idle was retired, the scene draws the hand-drawn standing frame
+    expect(MANGAKA_IDLE.map(runCount)).toEqual([195, 192])
   })
 })

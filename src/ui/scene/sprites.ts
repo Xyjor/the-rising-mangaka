@@ -3,26 +3,12 @@
 // colour in PAL (uppercase the base, lowercase its shade; the light comes from the top left). Every 24x32 frame passes
 // `frameRules` (sprites.test.ts). Facing left; drawSprite mirrors a frame to face right.
 import { LOOK_HAIRS, LOOK_HAIRS_SHADE, LOOK_SHIRTS, LOOK_SHIRTS_SHADE } from '../looks'
+import { ASSISTANT_DOZE_C2 } from './generated/assistant-doze'
 import type { Mood } from './mood'
+import { ANCHOR_HEAD, PAL, type SpriteMap } from './spriteCore'
 
-export type SpriteMap = readonly string[]
-
-export const PAL: Record<string, string> = {
-  L: '#1c1a26',
-  H: '#2b2140', h: '#1d1630',
-  S: '#f4cfa5', s: '#dba57d',
-  E: '#1b1b1b', W: '#f6f6f6', M: '#c0392b', B: '#e8a0a0',
-  R: '#3b6fd6', r: '#2a52a6',
-  J: '#6f7a8c', j: '#525c6b',
-  T: '#2c2c3a', t: '#1f1f2a',
-  O: '#c0392b', o: '#8e2a20',
-  G: '#5b6270', g: '#454a55', N: '#c0392b', P: '#3b3b45',
-  F: '#6d4c33', f: '#4e3622',
-  C: '#e39a4a', c: '#c67d33', Q: '#f0ead6',
-  // the collar (K) and tie (Y, its shade y) on the idle and seated frames: in the hoodie (and on the assistants) they
-  // keep the colours of the cells they replaced (the hoodie J, the shirt's W and R stripes), so nothing changes there
-  K: '#6f7a8c', Y: '#f6f6f6', y: '#3b6fd6',
-}
+export { ANCHOR_HEAD, PAL, faceRules, frameRules } from './spriteCore'
+export type { SpriteMap } from './spriteCore'
 
 /** One palette per assistant look (look 0 is the mangaka's colours), built once so render allocates nothing. */
 export const ASSISTANT_PALS: Record<string, string>[] = LOOK_SHIRTS.map((_, i) => ({
@@ -47,77 +33,37 @@ export const OUTFIT_PALS: Record<Outfit, Record<string, string>> = {
   blazer: { ...PAL, J: '#2e3a78', j: '#222b5c', K: '#f6f6f6', Y: '#c0392b', y: '#8e2a20' },
 }
 
-/** Standing, the style anchor (frame 0) and its breath (frame 1: rows 0-23 a row lower, the hem tucked under), 16 frames each. */
-export const MANGAKA_IDLE: readonly [SpriteMap, SpriteMap] = [
-  [
-    '......LLLLLLLLLL........', // 0
-    '....LLHHHHHHHHHhLL......', // 1
-    '...LHHHHHHHHHHHHhhL.....', // 2
-    '..LHHHHHHHHHHHHHHhhL....', // 3
-    '..LHHHHHHHHHHHHHHhhL....', // 4
-    '..LHHHHHHHHHHHHHHhhL....', // 5
-    '..LHHHSHHHHSHHHHHhhL....', // 6
-    '..LHSSSSSSSSSSSSSShL....', // 7
-    '..LHSSSSSSSSSSSSSSsL....', // 8
-    '..LHSSEESSSSSSEESSsL....', // 9
-    '..LHSSEWSSSSSSEWSSsL....', // 10
-    '..LHSSEESSSSSSEESSsL....', // 11
-    '..LSBBSSSSMMSSSSBBsL....', // 12
-    '...LSSSSSSSSSSSSSSsL....', // 13
-    '....LSSSSSSSSSSSSsL.....', // 14
-    '.....LLsssssssssLL......', // 15
-    '......LJKKsssKKjL.......', // 16
-    '.....LJJJKRYRKJjjL......', // 17
-    '....LJJJJJRYRJJJjjL.....', // 18
-    '....LJJJJJWyWJJJjjL.....', // 19
-    '....LJJLJJRYRJJLjjL.....', // 20
-    '....LJJLJJWyWJJLjjL.....', // 21
-    '....LSSLJJRYRJJLSsL.....', // 22
-    '.....LLLJJJJJJJLLL......', // 23
-    '.......LjjjjjjjjL.......', // 24
-    '.......LTTTTTTTtL.......', // 25
-    '.......LTTTLTTTtL.......', // 26
-    '.......LTTTLTTTtL.......', // 27
-    '.......LTTTLTTttL.......', // 28
-    '.......LtttLttttL.......', // 29
-    '......LOOOLLOOOoL.......', // 30
-    '......LLLLLLLLLLL.......', // 31
-  ],
-  [
-    '........................', // 0
-    '......LLLLLLLLLL........', // 1
-    '....LLHHHHHHHHHhLL......', // 2
-    '...LHHHHHHHHHHHHhhL.....', // 3
-    '..LHHHHHHHHHHHHHHhhL....', // 4
-    '..LHHHHHHHHHHHHHHhhL....', // 5
-    '..LHHHHHHHHHHHHHHhhL....', // 6
-    '..LHHHSHHHHSHHHHHhhL....', // 7
-    '..LHSSSSSSSSSSSSSShL....', // 8
-    '..LHSSSSSSSSSSSSSSsL....', // 9
-    '..LHSSEESSSSSSEESSsL....', // 10
-    '..LHSSEWSSSSSSEWSSsL....', // 11
-    '..LHSSEESSSSSSEESSsL....', // 12
-    '..LSBBSSSSMMSSSSBBsL....', // 13
-    '...LSSSSSSSSSSSSSSsL....', // 14
-    '....LSSSSSSSSSSSSsL.....', // 15
-    '.....LLsssssssssLL......', // 16
-    '......LJKKsssKKjL.......', // 17
-    '.....LJJJKRYRKJjjL......', // 18
-    '....LJJJJJRYRJJJjjL.....', // 19
-    '....LJJJJJWyWJJJjjL.....', // 20
-    '....LJJLJJRYRJJLjjL.....', // 21
-    '....LJJLJJWyWJJLjjL.....', // 22
-    '....LSSLJJRYRJJLSsL.....', // 23
-    '.....LLLJJJJJJJLLL......', // 24
-    '.......LTTTTTTTtL.......', // 25
-    '.......LTTTLTTTtL.......', // 26
-    '.......LTTTLTTTtL.......', // 27
-    '.......LTTTLTTttL.......', // 28
-    '.......LtttLttttL.......', // 29
-    '......LOOOLLOOOoL.......', // 30
-    '......LLLLLLLLLLL.......', // 31
-  ],
-] as const
+/** The breath (as the hand-drawn idle has it): rows 0-23 a row lower, row 24 (the hem) tucked under, rows 25-31 kept. */
+export function breathOf(f: SpriteMap): SpriteMap {
+  return ['.'.repeat(f[0].length), ...f.slice(0, 24), ...f.slice(25)]
+}
+
+/** The standing anchor's body under ANCHOR_HEAD: the hoodie with its collar and tie, the trousers, the shoes. */
+const IDLE_BODY: SpriteMap = [
+  '......LJKKsssKKjL.......', // 16
+  '.....LJJJKRYRKJjjL......', // 17
+  '....LJJJJJRYRJJJjjL.....', // 18
+  '....LJJJJJWyWJJJjjL.....', // 19
+  '....LJJLJJRYRJJLjjL.....', // 20
+  '....LJJLJJWyWJJLjjL.....', // 21
+  '....LSSLJJRYRJJLSsL.....', // 22
+  '.....LLLJJJJJJJLLL......', // 23
+  '.......LjjjjjjjjL.......', // 24
+  '.......LTTTTTTTtL.......', // 25
+  '.......LTTTLTTTtL.......', // 26
+  '.......LTTTLTTTtL.......', // 27
+  '.......LTTTLTTttL.......', // 28
+  '.......LtttLttttL.......', // 29
+  '......LOOOLLOOOoL.......', // 30
+  '......LLLLLLLLLLL.......', // 31
+]
+const IDLE_0: SpriteMap = [...ANCHOR_HEAD, ...IDLE_BODY]
+
+/** Standing, the style anchor (frame 0: ANCHOR_HEAD over IDLE_BODY) and its breath (frame 1: rows 0-23 a row lower,
+ * the hem tucked under, `breathOf`), 16 frames each. Hand-drawn: task C2's generated idle (`sprite/mangaka-front-idle`)
+ * was a near tie and would have switched bodies mid-cycle against the hand-drawn stretch and sip, so it was retired
+ * (its manifest recipe and raw sheet kept, no frame module; DESIGN.md "The sprites"). */
+export const MANGAKA_IDLE: readonly [SpriteMap, SpriteMap] = [IDLE_0, breathOf(IDLE_0)]
 
 /** How far each head-steady pose moves the head (the FACES overlay goes at rows 9-12 + headDy). stretch[1] is a row
  * lower than stretch[0] (MANGAKA_STRETCH[1] leads with a blank row, like MANGAKA_IDLE); sip's two frames share the
@@ -586,42 +532,13 @@ export const MANGAKA_LIE: SpriteMap = [
   'LLLLLLLLLLLL..................', // 13
 ]
 
-/** An assistant asleep at the desk: SIT[0]'s head (rows 0-14) down 6 rows and right 2, resting on the folded arms (rows
- * 21-23), the eyes shut (the rows 9-11 eyes become S, row 10 ss); the lap, shins and shoes are SIT[0]'s rows 24-31. */
-export const ASSISTANT_DOZE: SpriteMap = [
-  '........................', // 0
-  '........................', // 1
-  '........................', // 2
-  '........................', // 3
-  '........................', // 4
-  '........................', // 5
-  '........LLLLLLLLLL......', // 6
-  '......LLHHHHHHHHHhLL....', // 7
-  '.....LHHHHHHHHHHHHhhL...', // 8
-  '....LHHHHHHHHHHHHHHhhL..', // 9
-  '....LHHHHHHHHHHHHHHhhL..', // 10
-  '....LHHHHHHHHHHHHHHhhL..', // 11
-  '....LHHHSHHHHSHHHHHhhL..', // 12
-  '....LHSSSSSSSSSSSSSShL..', // 13
-  '....LHSSSSSSSSSSSSSSsL..', // 14
-  '....LHSSSSSSSSSSSSSSsL..', // 15
-  '....LHSSssSSSSSSssSSsL..', // 16
-  '....LHSSSSSSSSSSSSSSsL..', // 17
-  '....LSBBSSSSMMSSSSBBsL..', // 18
-  '.....LSSSSSSSSSSSSSSsL..', // 19
-  '......LSSSSSSSSSSSSsL...', // 20
-  '.LJJJJJLLsssssssssLLjL..', // 21
-  '.LJJJJJJJJJJJJJJJJJJjL..', // 22
-  '.LLLLLLLJJJJJJJJLLLLLL..', // 23
-  '.LLLLLLLjjjjjjjjL.......', // 24
-  '.LTTTTTTTTTTTTTtL.......', // 25
-  '.LTTTTTTTTTTTTTtL.......', // 26
-  '.LTTTTTTTTTTTTttL.......', // 27
-  '.LttttttttttttttL.......', // 28
-  '.LLLLLLLLLLLLLLLL.......', // 29
-  '.LOOOoL.................', // 30
-  '.LLLLLL.................', // 31
-]
+/**
+ * An assistant asleep at the desk, generated (task C2, art/manifest.json `sprite/assistant-doze`, from the front sheet's
+ * dozing cell fitted to a 20x23 box on the frame's last rows): the head down on the folded arms (rows 10-26, eyes shut,
+ * eight cells touched in the manifest), the arms (J) on rows 27-30. The readability gate found it reads as dozing more
+ * clearly than the hand-drawn frame it replaced (113 fills; now 100). Drawn with the assistant's palette, no mood.
+ */
+export const ASSISTANT_DOZE: SpriteMap = ASSISTANT_DOZE_C2
 
 /**
  * The editor: the anchor in a grey suit (G/g for J/j), a white collar (row 16 cols 9-12), a red tie (col 11 rows
@@ -996,26 +913,6 @@ export const HUMAN_FRAMES: readonly SpriteMap[] = [
   ...MANGAKA_IDLE, ...MANGAKA_WALK, ...MANGAKA_SIT, ...MANGAKA_PANIC, ...MANGAKA_STRETCH, ...MANGAKA_SIP,
   ASSISTANT_DOZE, ...EDITOR_IDLE, ...EDITOR_WALK,
 ]
-
-/**
- * What is wrong with a frame, [] when nothing: every row `w` wide, `h` rows, every key in `pal` (PAL by default), the last row not empty,
- * and a closed outline (on every row with content, the first and last non-'.' character is 'L').
- */
-export function frameRules(map: SpriteMap, w = 24, h = 32, pal: Record<string, string> = PAL): string[] {
-  const out: string[] = []
-  if (map.length !== h) out.push(`${map.length} rows, not ${h}`)
-  map.forEach((row, r) => {
-    if (row.length !== w) out.push(`row ${r} is ${row.length} wide, not ${w}`)
-    for (const ch of row) if (ch !== '.' && !(ch in pal)) out.push(`row ${r} has key ${ch}`)
-    const first = row.search(/[^.]/)
-    if (first < 0) return
-    let last = row.length - 1
-    while (row[last] === '.') last--
-    if (row[first] !== 'L' || row[last] !== 'L') out.push(`row ${r} is open`)
-  })
-  if (map.length && !/[^.]/.test(map[map.length - 1])) out.push('the last row is empty')
-  return out
-}
 
 /**
  * A string-map sprite in canvas space, its top-left at (x, y) rounded: rows `fromRow` to `rows - 1`, mirrored left to

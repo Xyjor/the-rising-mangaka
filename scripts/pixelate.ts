@@ -1,14 +1,29 @@
 // The art pipeline's IO layer: reads a manifest entry's raw source, runs it through the pure pixel operations in
-// src/ui/art/pixelOps.ts, and writes an indexed PNG under src/assets/art/<id>.png. Run with:
+// src/ui/art/pixelOps.ts, and writes an indexed PNG under src/assets/art/<id>.png, or, for a `kind: "sprite"` entry,
+// a string-map frame module under src/ui/scene/generated/<name>.ts (the `--sprite` mode). Run with:
 //   npm run art -- title/hero
 //   npm run art -- --all
-import { readFileSync, mkdirSync } from 'node:fs'
+// `--all` skips a `retired: true` sprite entry (a candidate the readability gate lost: its recipe and raw sheet stay
+// committed, its frame module does not); naming a retired id regenerates its module (to restore or re-inspect it).
+import { readFileSync, mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import sharp from 'sharp'
 import { ART_PALETTE_BASE, ART_PALETTE_SCENE } from '../src/ui/art/palette'
 import {
   addOutline,
+  anchoredPalette,
+  placeInFrame,
   alphaBoundingBox,
+  closeOutline,
+  despeckleGrid,
+  graftRows,
+  outlineToL,
+  padBottomCentred,
+  remapRows,
+  runCount,
+  setCells,
+  snapToKeys,
+  spriteModule,
   despeckle,
   downsampleArea,
   downsampleNearest,
@@ -21,6 +36,7 @@ import {
   snapToPalette,
   type RgbaImage,
 } from '../src/ui/art/pixelOps'
+import { ANCHOR_HEAD, PAL, faceRules, frameRules } from '../src/ui/scene/spriteCore'
 
 const ROOT = join(__dirname, '..')
 const MANIFEST_PATH = join(ROOT, 'art', 'manifest.json')
@@ -83,14 +99,74 @@ interface ManifestEntry {
   sheet?: SheetSpec
 }
 
+/**
+ * A `kind: "sprite"` entry (the `--sprite` mode, 0.11.0): one pose cell of a character sheet turned into a string-map
+ * frame in PAL keys, written to src/ui/scene/generated/<id without "sprite/">.ts as `export const <name>`.
+ */
+interface SpriteEntry {
+  id: string
+  kind: 'sprite'
+  /**
+   * A candidate the scene does not draw (0.11.0's readability gate): `--all` skips it and no frame module is
+   * committed for it, while its recipe and raw sheet stay. Naming its id regenerates the module.
+   */
+  retired?: boolean
+  source: string
+  model: string
+  seed: number | null
+  job?: string
+  prompt: string
+  sheet: { src: string }
+  /** the pose's box on the sheet ([x, y, w, h], from `--measure`) */
+  crop: [number, number, number, number]
+  /** the frame's size: [24, 32] for a person, [30, 14] lying down */
+  frame: [number, number]
+  /** the PAL keys the snap may use, in priority order (the first listed wins a duplicate hex) */
+  keys: string
+  sample: 'area' | 'nearest'
+  /** the exported constant's name */
+  name: string
+  tolerance?: number
+  /** key swaps on a row range, after the snap: the sheet draws the trousers in the hair's colour */
+  remap?: { rows: [number, number]; from: string; to: string }[]
+  /** `anchor-head`: rows 0-15 replaced by the hand-drawn anchor head (ANCHOR_HEAD), for a frame that fails faceRules */
+  graft?: 'anchor-head'
+  /** touched cells [row, col, key], set after the outline and the graft (an eye the downsample lost) */
+  cells?: [number, number, string][]
+  /** a frame that never takes the FACES overlay (walking, panic, lying): faceRules is not reported for it */
+  faceless?: boolean
+  /**
+   * The sheet colour each key stands for (0.11.0 C2, pixelOps `anchoredPalette`): the snap compares against these
+   * instead of PAL's own colours for the listed keys (the sheet's light grey hoodie is J, its navy hair H).
+   */
+  anchors?: Record<string, string>
+  /**
+   * The box [w, h] the cutout is fitted to (aspect kept, unless `stretch`) instead of the whole frame, then placed on
+   * the frame's last rows, centred (pixelOps `placeInFrame`): a body cropped below the sheet's head, fitted to rows
+   * 16-31 under the anchor head graft, or a pose drawn smaller than the frame.
+   */
+  fit?: [number, number]
+  /** Resample the cutout to the `fit` box exactly, without keeping its aspect (a sheet body narrower than the anchor's). */
+  stretch?: boolean
+  /** Mirror the crop left to right first (a sheet that drew the pose facing right; frames face left). */
+  flip?: boolean
+}
+
 /** A raw source path: `name` as given when it carries an extension (the Higgsfield sheets are .png), else `.webp`. */
 function rawPath(name: string): string {
   return join(ROOT, 'art', 'raw', /\.(png|webp)$/.test(name) ? name : `${name}.webp`)
 }
 
-function loadManifest(): ManifestEntry[] {
-  return JSON.parse(readFileSync(MANIFEST_PATH, 'utf8')) as ManifestEntry[]
+type AnyEntry = ManifestEntry | SpriteEntry
+
+function loadManifest(): AnyEntry[] {
+  return JSON.parse(readFileSync(MANIFEST_PATH, 'utf8')) as AnyEntry[]
 }
+
+const isSprite = (e: AnyEntry): e is SpriteEntry => (e as SpriteEntry).kind === 'sprite'
+
+/** A person's frame (24x32) that takes the FACES overlay: the only kind faceRules is reported for. */
+const facedPerson = (e: SpriteEntry) => e.frame[0] === 24 && e.frame[1] === 32 && !e.faceless
 
 async function loadRgba(path: string): Promise<RgbaImage> {
   const { data, info } = await sharp(path).ensureAlpha().raw().toBuffer({ resolveWithObject: true })
@@ -189,6 +265,46 @@ async function processEntry(entry: ManifestEntry): Promise<{ outPath: string; co
   return { outPath, colours: usedColours.size, bytes: buffer.length }
 }
 
+/** The `--sprite` mode's pure steps on an already cropped cell: the frame rows, and what faceRules said before a graft. */
+function spriteFrame(cell: RgbaImage, entry: SpriteEntry): { rows: string[]; faceBefore: string[] } {
+  const [fw, fh] = entry.frame
+  const [bw, bh] = entry.fit ?? entry.frame
+  let working = floodTransparentFromEdges(entry.flip ? flipHorizontal(cell) : cell, entry.tolerance ?? FLOOD_TOLERANCE)
+  const bbox = alphaBoundingBox(working)
+  if (!bbox) throw new Error(`${entry.id}: the cutout is empty`)
+  working = sliceRegion(working, bbox.x, bbox.y, bbox.width, bbox.height)
+  if (!entry.stretch) working = padBottomCentred(working, bw, bh)
+  working = entry.sample === 'nearest' ? downsampleNearest(working, bw, bh) : downsampleArea(working, bw, bh)
+  let rows = snapToKeys(working, entry.keys, anchoredPalette(PAL, entry.keys, entry.anchors))
+  if (entry.fit) rows = placeInFrame(rows, fw, fh)
+  for (const m of entry.remap ?? []) rows = remapRows(rows, m.rows, m.from, m.to)
+  rows = closeOutline(outlineToL(despeckleGrid(rows)))
+  const faceBefore = facedPerson(entry) ? faceRules(rows) : []
+  if (entry.graft === 'anchor-head') rows = closeOutline(graftRows(rows, ANCHOR_HEAD))
+  if (entry.cells) rows = setCells(rows, entry.cells)
+  return { rows, faceBefore }
+}
+
+async function processSprite(entry: SpriteEntry): Promise<{ outPath: string; runs: number; notes: string[] }> {
+  const sheet = await loadRgba(rawPath(entry.sheet.src))
+  const [cx, cy, cw, ch] = entry.crop
+  const { rows, faceBefore } = spriteFrame(sliceRegion(sheet, cx, cy, cw, ch), entry)
+  const [fw, fh] = entry.frame
+  const broken = frameRules(rows, fw, fh)
+  if (broken.length) throw new Error(`${entry.id} breaks frameRules:\n  ${broken.join('\n  ')}\n${rows.join('\n')}`)
+  const notes: string[] = []
+  if (entry.fit) notes.push(`fit: the cutout ${entry.stretch ? 'stretched' : 'fitted'} to ${entry.fit[0]}x${entry.fit[1]} on the frame's last rows`)
+  if (entry.flip) notes.push('flip: the sheet drew the pose facing right')
+  if (entry.graft) notes.push(`graft: ${entry.graft} (rows 0-15 are ANCHOR_HEAD; faceRules failed ${faceBefore.length} cells before it)`)
+  if (entry.cells?.length) notes.push(`cells: ${entry.cells.length} touched in the manifest (art/manifest.json)`)
+  const faceAfter = facedPerson(entry) ? faceRules(rows) : []
+  if (faceAfter.length) console.warn(`${entry.id}: faceRules: ${faceAfter.length} failures, e.g. ${faceAfter.slice(0, 3).join('; ')}`)
+  const outPath = join(ROOT, 'src', 'ui', 'scene', 'generated', `${entry.id.replace(/^sprite\//, '')}.ts`)
+  mkdirSync(dirname(outPath), { recursive: true })
+  writeFileSync(outPath, spriteModule(entry.id, entry.name, rows, notes))
+  return { outPath, runs: runCount(rows), notes }
+}
+
 /** `--measure <sheet> [mergeGap] [minArea]`: prints each object's bounding box on a raw sheet, for committing as crops. */
 async function measure(sheet: string, mergeGap: number, minArea: number) {
   const img = await loadRgba(rawPath(sheet))
@@ -204,7 +320,9 @@ async function main() {
     return
   }
   const manifest = loadManifest()
-  const ids = args.includes('--all') ? manifest.map((e) => e.id) : args.filter((a) => !a.startsWith('--'))
+  const ids = args.includes('--all')
+    ? manifest.filter((e) => !(isSprite(e) && e.retired)).map((e) => e.id)
+    : args.filter((a) => !a.startsWith('--'))
 
   if (ids.length === 0) {
     console.error('Usage: npm run art -- <id> [<id> ...] | npm run art -- --all')
@@ -217,6 +335,12 @@ async function main() {
     if (!entry) {
       console.error(`Unknown art id: ${id}`)
       process.exit(1)
+    }
+    if (isSprite(entry)) {
+      if (entry.retired) console.log(`${id}: retired (the scene does not draw it; --all skips it), regenerating as asked`)
+      const { outPath, runs } = await processSprite(entry)
+      console.log(`${id}: ${outPath} (${runs} fills)`)
+      continue
     }
     const { outPath, colours, bytes } = await processEntry(entry)
     console.log(`${id}: ${outPath} (${bytes} bytes, ${colours} colours)`)
