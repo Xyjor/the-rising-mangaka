@@ -7,6 +7,8 @@ import type { BadgeId } from '../../sim/badges'
 import type {
   AnimeStudioId, AwardId, EquipmentId, EventId, GenreId, MagazineId, MerchItemId, PlaceId, StudioTierId, ThemeId,
 } from '../../sim/types'
+import { PROP_SPRITE } from '../scene/sceneArt'
+import type { ScenePropId } from '../scene/sceneArt'
 
 /** A generated pixel-art asset: its manifest id, the bundled URL, and its native (unscaled) pixel size. */
 export interface ArtRef {
@@ -191,4 +193,30 @@ export const TIER_ART_THUMB: Record<StudioTierId, ArtRef> = {
   apartment: scene('tier/apartment'),
   flat: scene('tier/flat'),
   loft: scene('tier/loft'),
+}
+
+// ---------- the live scene (0.9.0): drawn into the canvas by render through src/ui/scene/sceneImages.ts ----------
+
+/**
+ * Each tier's room shell, 320x180 (walls, beams, floor; no furniture), its wall/floor seam remapped onto canvas row
+ * 114. Until one loads, the tier's code-drawn shell (`drawRoomShell`) paints instead.
+ */
+export const ROOM_ART: Record<StudioTierId, ArtRef> = {
+  apartment: art('room/apartment', 320, 180),
+  flat: art('room/flat', 320, 180),
+  loft: art('room/loft', 320, 180),
+}
+
+/** A structural prop's cutout sprite at its native size (sceneArt.ts `PROP_SPRITE`, placed by render.ts `PROP_BOX`). */
+const sceneProp = (id: ScenePropId) => art(`prop/${id}`, PROP_SPRITE[id][0], PROP_SPRITE[id][1])
+
+/** Each structural prop's sprite. Until one loads, its code-drawn piece paints instead. */
+export const SCENE_PROP_ART: Record<ScenePropId, ArtRef> = {
+  window: sceneProp('window'),
+  door: sceneProp('door'),
+  doorway: sceneProp('doorway'),
+  kitchenette: sceneProp('kitchenette'),
+  bookshelf: sceneProp('bookshelf'),
+  bed: sceneProp('bed'),
+  poster: sceneProp('poster'),
 }

@@ -1,5 +1,8 @@
 // The studio scene's painter: palettes, sprites and their helpers, the snapshot it reads and `render`, one frame of the
 // 320x180 canvas (room-space literals, offset by paint.ts's OX/OY; the wall and floor in canvas space). Pure drawing: no React, no store, and nothing allocated per frame (tables are built once here).
+// Generated images come in as a `SceneArt` (sceneArt.ts): a ready room image replaces the code-drawn shell and a ready
+// prop image replaces its piece at the same footprint and the same place in the draw order. This module never imports
+// the art registry.
 import type { StudioTierId } from '../../sim'
 import { ASSISTANT_SEAT_X } from './actors'
 import type { Actor, ActorTable } from './actors'
@@ -15,12 +18,16 @@ import { BAR_X, paneRect, rawRect, rect, shadow } from './paint'
 import { drawSeasonNight, drawSeasonPane, drawSeasonSill, drawSeasonWall } from './season'
 import type { Season } from './season'
 import {
-  EQUIPMENT_ART, TIER_ART, drawAnimePoster, drawEntrance, drawKitchenette, drawStudioLights, drawTrophies, drawVolumes,
+  DOORWAY_BOX, DOORWAY_FOOTPRINT, DOOR_BOX, DOOR_FOOTPRINT, EQUIPMENT_ART, KITCHENETTE_FOOTPRINT, TIER_ART, TIER_DOOR,
+  drawAnimePoster,
+  drawEntrance, drawKitchenette, drawStudioLights, drawTrophies, drawVolumes,
 } from './studioArt'
 import type { Owned } from './studioArt'
 import {
-  TIER_FRONT, TIER_ROOM, drawAmbient, drawCalendar, drawCorkboard, drawCups, drawFanLetters, drawSeriesPoster,
+  TIER_FRONT, drawAmbient, drawCalendar, drawCorkboard, drawCups, drawFanLetters, drawRoomShell, drawSeriesPoster,
 } from './roomArt'
+import { NO_ART, PROP_SPRITE, ROOM_NIGHT_DIM, drawProp, placeSprite, ready } from './sceneArt'
+import type { Fallback, Footprint, SceneArt, ScenePropId } from './sceneArt'
 import type { StoryLook } from './story'
 
 export const W = 320
@@ -204,6 +211,76 @@ function drawMangaka(
   }
 }
 
+// ---------- the structural props (each a generated sprite when one is ready, else these fills) ----------
+
+/** The window's frame (room 116,10 48x36; canvas x 180-227, y 46-81); the pane, sky, bars and sill paint over it. */
+export const WINDOW_FOOTPRINT: Footprint = { x: 180, y: 46, w: 48, h: 36 }
+function windowFrame(ctx: CanvasRenderingContext2D) {
+  rect(ctx, 116, 10, 48, 36, '#5a4634')
+}
+
+/** The bookshelf (room 8,18 34x58; canvas x 72-105, y 54-111): its frame, back, four boards and the stock books. */
+export const BOOKSHELF_FOOTPRINT: Footprint = { x: 72, y: 54, w: 34, h: 58 }
+function bookshelf(ctx: CanvasRenderingContext2D) {
+  rect(ctx, 8, 18, 34, 58, '#6d4c33')
+  rect(ctx, 10, 20, 30, 54, '#8b6543')
+  for (let shelf = 0; shelf < 4; shelf++) {
+    const y = 22 + shelf * 13
+    rect(ctx, 10, y + 11, 30, 2, '#5a3d28')
+    for (let b = 0; b < 7; b++) {
+      const bh = 7 + ((b * 3 + shelf) % 4)
+      rect(ctx, 11 + b * 4, y + 11 - bh, 3, bh, BOOK_COLS[(b + shelf) % BOOK_COLS.length])
+    }
+  }
+}
+
+/** The stock poster (room 52,14 22x28; canvas x 116-137, y 50-77), while no serial or anime takes its place. */
+export const POSTER_FOOTPRINT: Footprint = { x: 116, y: 50, w: 22, h: 28 }
+function stockPoster(ctx: CanvasRenderingContext2D) {
+  rect(ctx, 52, 14, 22, 28, '#fff'); rect(ctx, 54, 16, 18, 24, '#e5484d'); rect(ctx, 57, 22, 12, 12, '#fff'); rect(ctx, 60, 25, 6, 6, '#16161a')
+}
+
+/** The bed (room 128,66 58x26; canvas x 192-249, y 102-127): its frame, sheet, pillow and blanket with its fold. */
+export const BED_FOOTPRINT: Footprint = { x: 192, y: 102, w: 58, h: 26 }
+function bed(ctx: CanvasRenderingContext2D) {
+  rect(ctx, 128, 66, 58, 26, '#6d4c33')
+  rect(ctx, 130, 68, 54, 20, '#f0ead6')
+  rect(ctx, 168, 70, 14, 8, '#ffffff')
+  rect(ctx, 130, 74, 40, 14, '#c94b4b')
+  rect(ctx, 130, 74, 40, 2, '#a83c3c')
+}
+
+/** Every structural prop's footprint: the box its code-drawn fallback paints in, and the base its sprite is sized and placed on. */
+export const PROP_FOOTPRINT: Record<ScenePropId, Footprint> = {
+  window: WINDOW_FOOTPRINT,
+  door: DOOR_FOOTPRINT,
+  doorway: DOORWAY_FOOTPRINT,
+  kitchenette: KITCHENETTE_FOOTPRINT,
+  bookshelf: BOOKSHELF_FOOTPRINT,
+  bed: BED_FOOTPRINT,
+  poster: POSTER_FOOTPRINT,
+}
+
+/**
+ * Where each prop's generated sprite lands (canvas space): its native size (sceneArt.ts `PROP_SPRITE`) bottom-aligned
+ * and centred on its footprint (`placeSprite`). The code-drawn fallback keeps painting inside `PROP_FOOTPRINT`.
+ */
+export const PROP_BOX: Record<ScenePropId, Footprint> = {
+  window: placeSprite(WINDOW_FOOTPRINT, ...PROP_SPRITE.window),
+  door: DOOR_BOX,
+  doorway: DOORWAY_BOX,
+  kitchenette: placeSprite(KITCHENETTE_FOOTPRINT, ...PROP_SPRITE.kitchenette),
+  bookshelf: placeSprite(BOOKSHELF_FOOTPRINT, ...PROP_SPRITE.bookshelf),
+  bed: placeSprite(BED_FOOTPRINT, ...PROP_SPRITE.bed),
+  poster: placeSprite(POSTER_FOOTPRINT, ...PROP_SPRITE.poster),
+}
+
+/** `drawProp` at the prop's sprite box (its image) or its footprint (its fallback fills, which carry their own coordinates). */
+function prop(ctx: CanvasRenderingContext2D, art: SceneArt, id: ScenePropId, fallback: Fallback) {
+  const b = PROP_BOX[id]
+  drawProp(ctx, art, id, b.x, b.y, b.w, b.h, fallback)
+}
+
 // ---------- sky ----------
 
 const SKY: [number, [number, number, number]][] = [
@@ -282,9 +359,10 @@ export interface Snapshot extends StoryLook {
 
 /**
  * Paints one frame. `t` is the time of day (0..1; night when t > 0.72 or t < 0.06); `frame` drives the animation and
- * is 0 under reduced motion, so everything that moves holds still there.
+ * is 0 under reduced motion, so everything that moves holds still there. `art` holds the generated images; each one
+ * missing or still loading paints its code-drawn piece instead (`NO_ART`, the default, is today's scene exactly).
  */
-export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, frame: number) {
+export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, frame: number, art: SceneArt = NO_ART) {
   const night = t > 0.72 || t < 0.06
   const absent = s.away || s.activity === 'job'
   // busy = seated at the desk (the pose, which actors.ts plans); working = busy and the clock runs (the animation).
@@ -293,13 +371,21 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
   const working = busy && s.running
   const sky = skyColor(t)
 
-  TIER_ROOM[s.tier](ctx, night)
-  drawKitchenette(ctx)
+  const room = art.room[s.tier]
+  if (ready(room)) {
+    ctx.drawImage(room, 0, 0, W, H)
+    if (night) { ctx.fillStyle = ROOM_NIGHT_DIM; ctx.fillRect(0, 0, W, H) }
+  } else drawRoomShell(ctx, s.tier, night)
+  prop(ctx, art, 'kitchenette', drawKitchenette)
+  // the bookshelf's shadow spans its sprite when the image is ready, else the code-drawn shelf (x 72, 35 wide)
+  const shelfReady = ready(art.prop.bookshelf)
+  const shelfX = shelfReady ? PROP_BOX.bookshelf.x : 72
+  const shelfW = shelfReady ? PROP_BOX.bookshelf.w : 35
   // contact shadows on the floor: the fridge, the counter, the bookshelf, the desk and the bed
-  shadow(ctx, 2, 114, 16); shadow(ctx, 20, 114, 42); shadow(ctx, 72, 114, 35); shadow(ctx, 116, 118, 58); shadow(ctx, 192, 128, 58)
+  shadow(ctx, 2, 114, 16); shadow(ctx, 20, 114, 42); shadow(ctx, shelfX, 114, shelfW); shadow(ctx, 116, 118, 58); shadow(ctx, 192, 128, 58)
 
   // window
-  rect(ctx, 116, 10, 48, 36, '#5a4634')
+  prop(ctx, art, 'window', windowFrame)
   rect(ctx, 118, 12, 44, 32, sky)
   if (night) {
     for (let i = 0; i < 9; i++) rect(ctx, 120 + ((i * 37) % 40), 14 + ((i * 23) % 26), 1, 1, '#fff')
@@ -323,16 +409,7 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
   drawTrophies(ctx, s.trophies)
 
   // bookshelf, with the volumes on top and the reference shelf beside it
-  rect(ctx, 8, 18, 34, 58, '#6d4c33')
-  rect(ctx, 10, 20, 30, 54, '#8b6543')
-  for (let shelf = 0; shelf < 4; shelf++) {
-    const y = 22 + shelf * 13
-    rect(ctx, 10, y + 11, 30, 2, '#5a3d28')
-    for (let b = 0; b < 7; b++) {
-      const bh = 7 + ((b * 3 + shelf) % 4)
-      rect(ctx, 11 + b * 4, y + 11 - bh, 3, bh, BOOK_COLS[(b + shelf) % BOOK_COLS.length])
-    }
-  }
+  prop(ctx, art, 'bookshelf', bookshelf)
   drawVolumes(ctx, s.volumes)
   if (s.owned.shelf) EQUIPMENT_ART.shelf(ctx, s, frame, night)
 
@@ -343,17 +420,15 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
   // poster: the anime's key visual while the show is on, else the running serial's cover, else the stock poster
   if (s.animePoster) drawAnimePoster(ctx)
   else if (s.serialOn) drawSeriesPoster(ctx, s.posterHue)
-  else { rect(ctx, 52, 14, 22, 28, '#fff'); rect(ctx, 54, 16, 18, 24, '#e5484d'); rect(ctx, 57, 22, 12, 12, '#fff'); rect(ctx, 60, 25, 6, 6, '#16161a') }
+  else prop(ctx, art, 'poster', stockPoster)
 
   // bed
-  rect(ctx, 128, 66, 58, 26, '#6d4c33')
-  rect(ctx, 130, 68, 54, 20, '#f0ead6')
-  rect(ctx, 168, 70, 14, 8, '#ffffff')
-  rect(ctx, 130, 74, 40, 14, '#c94b4b')
-  rect(ctx, 130, 74, 40, 2, '#a83c3c')
-  // the tier's room: the doorway above the bed's head (before the Zz that rise over it), the loft's plants
+  prop(ctx, art, 'bed', bed)
+  // the tier's room: the door or the doorway above the bed's head (before the Zz that rise over it), the loft's plants
+  const door = TIER_DOOR[s.tier]
+  prop(ctx, art, door.id, door.draw)
   TIER_ART[s.tier](ctx, s, frame, night)
-  drawEntrance(ctx, absent)
+  drawEntrance(ctx, absent, ready(art.prop[door.id]))
   drawFanLetters(ctx, s.fanLevel)
 
   // the assistants (front left, only when staff exists): their stools, each one seated or dozing, then the desk, then
@@ -458,6 +533,6 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
     drawSeasonNight(ctx, s.season, frame)
   }
   // the arm lamp (at night or while working) and the doorway's spill (at night), after the overlay so they glow
-  drawStudioLights(ctx, s, night, working)
+  drawStudioLights(ctx, s, night, working, ready(art.prop.doorway))
   drawAmbient(ctx, s, t, night, working)
 }

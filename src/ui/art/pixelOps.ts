@@ -48,8 +48,14 @@ export function rgbToOklab(r: number, g: number, b: number): [number, number, nu
   ]
 }
 
-/** Index of the nearest palette entry (by OKLab Euclidean distance) to an 8-bit sRGB triple. */
-export function nearestPaletteIndex(r: number, g: number, b: number, paletteLab: readonly [number, number, number][]): number {
+/**
+ * Index of the nearest palette entry (by OKLab Euclidean distance) to an 8-bit sRGB triple. `lightness` weighs the
+ * squared L difference (1, the default, is plain distance): below 1 a colour keeps its hue and chroma at the cost of
+ * its lightness, so a shaded wall snaps to a lighter or darker entry of its own hue instead of a grey.
+ */
+export function nearestPaletteIndex(
+  r: number, g: number, b: number, paletteLab: readonly [number, number, number][], lightness = 1,
+): number {
   const [l, a, bb] = rgbToOklab(r, g, b)
   let best = 0
   let bestDist = Infinity
@@ -58,7 +64,7 @@ export function nearestPaletteIndex(r: number, g: number, b: number, paletteLab:
     const dl = l - pl
     const da = a - pa
     const db = bb - pb
-    const dist = dl * dl + da * da + db * db
+    const dist = dl * dl * lightness + da * da + db * db
     if (dist < bestDist) {
       bestDist = dist
       best = i
@@ -150,8 +156,11 @@ export function downsampleNearest(src: RgbaImage, dstW: number, dstH: number): R
   return out
 }
 
-/** Snaps every opaque pixel to the nearest palette colour (OKLab distance), no dithering. Transparent pixels pass through untouched. */
-export function snapToPalette(img: RgbaImage, palette: readonly string[]): RgbaImage {
+/**
+ * Snaps every opaque pixel to the nearest palette colour (OKLab distance, `lightness` as in nearestPaletteIndex), no
+ * dithering. Transparent pixels pass through untouched.
+ */
+export function snapToPalette(img: RgbaImage, palette: readonly string[], lightness = 1): RgbaImage {
   const lab = toOklabPalette(palette)
   const out = makeImage(img.width, img.height)
   for (let i = 0; i < img.data.length; i += 4) {
@@ -160,7 +169,7 @@ export function snapToPalette(img: RgbaImage, palette: readonly string[]): RgbaI
       out.data[i + 3] = 0
       continue
     }
-    const idx = nearestPaletteIndex(img.data[i], img.data[i + 1], img.data[i + 2], lab)
+    const idx = nearestPaletteIndex(img.data[i], img.data[i + 1], img.data[i + 2], lab, lightness)
     const [r, g, b] = hexToRgb(palette[idx])
     out.data[i] = r
     out.data[i + 1] = g
@@ -173,9 +182,9 @@ export function snapToPalette(img: RgbaImage, palette: readonly string[]): RgbaI
 /**
  * Reduces the image to at most maxColors distinct colours: keeps the maxColors most-used opaque colours and
  * re-snaps every other opaque pixel to the nearest kept colour (OKLab distance). Assumes the image is already
- * snapped to a fixed palette (so "distinct colours" is a small, countable set).
+ * snapped to a fixed palette (so "distinct colours" is a small, countable set). `lightness` as in nearestPaletteIndex.
  */
-export function reduceColors(img: RgbaImage, maxColors: number): RgbaImage {
+export function reduceColors(img: RgbaImage, maxColors: number, lightness = 1): RgbaImage {
   const counts = new Map<string, number>()
   for (let i = 0; i < img.data.length; i += 4) {
     if (img.data[i + 3] === 0) continue
@@ -192,7 +201,7 @@ export function reduceColors(img: RgbaImage, maxColors: number): RgbaImage {
     if (img.data[i + 3] === 0) continue
     const hex = rgbToHex(img.data[i], img.data[i + 1], img.data[i + 2])
     if (kept.includes(hex)) continue
-    const idx = nearestPaletteIndex(img.data[i], img.data[i + 1], img.data[i + 2], keptLab)
+    const idx = nearestPaletteIndex(img.data[i], img.data[i + 1], img.data[i + 2], keptLab, lightness)
     const [r, g, b] = hexToRgb(kept[idx])
     out.data[i] = r
     out.data[i + 1] = g
@@ -477,4 +486,32 @@ export function findBlobs(img: RgbaImage, opts: { tolerance: number; mergeGap: n
     .filter((b) => b.area >= opts.minArea)
     .sort((a, b) => a.y0 - b.y0 || a.x0 - b.x0)
     .map((b) => ({ x: b.x0, y: b.y0, width: b.x1 - b.x0 + 1, height: b.y1 - b.y0 + 1 }))
+}
+
+/** Rows [y0, y1) of an image, copied out. */
+function rowsOf(img: RgbaImage, y0: number, y1: number): RgbaImage {
+  const out = makeImage(img.width, y1 - y0)
+  out.data.set(img.data.subarray(y0 * img.width * 4, y1 * img.width * 4))
+  return out
+}
+
+/**
+ * Resamples a room shell to dstW x dstH so its wall/floor seam lands exactly on destination row `seamDst`: source rows
+ * above `seamSrc` (the wall) fill destination rows 0 to seamDst - 1 and source rows from `seamSrc` (the floor) fill
+ * seamDst to dstH - 1, each side scaled on its own (piecewise-linear vertically, uniform horizontally) with `sample`'s
+ * downsample, so no destination row ever mixes wall and floor. A seam must leave at least one row on each side.
+ */
+export function remapSeam(
+  src: RgbaImage, seamSrc: number, dstW: number, dstH: number, seamDst: number, sample: 'area' | 'nearest',
+): RgbaImage {
+  if (!(seamSrc > 0 && seamSrc < src.height) || !(seamDst > 0 && seamDst < dstH)) {
+    throw new Error(`remapSeam: seam ${seamSrc} -> ${seamDst} must leave a row on each side (${src.height} -> ${dstH})`)
+  }
+  const down = sample === 'nearest' ? downsampleNearest : downsampleArea
+  const wall = down(rowsOf(src, 0, seamSrc), dstW, seamDst)
+  const floor = down(rowsOf(src, seamSrc, src.height), dstW, dstH - seamDst)
+  const out = makeImage(dstW, dstH)
+  out.data.set(wall.data, 0)
+  out.data.set(floor.data, wall.data.length)
+  return out
 }

@@ -1,9 +1,15 @@
 // The scene's render is a pure function of (snapshot, time of day, frame) onto a 2D context: no DOM needed, so this
 // runs in the default node environment against the recording context from src/test/fakeCanvas.ts.
 import { describe, expect, it } from 'vitest'
-import { covers, coversAny, fakeContext, sceneSnapshot } from '../../../test/fakeCanvas'
+import { covers, coversAny, fakeContext, fakeImage, fakeSceneArt, sceneSnapshot } from '../../../test/fakeCanvas'
 import type { FillCall } from '../../../test/fakeCanvas'
-import { H, SKY_LUT, W, render, skyColor } from '../render'
+import type { StudioTierId } from '../../../sim'
+import { H, PROP_BOX, PROP_FOOTPRINT, SKY_LUT, W, render, skyColor } from '../render'
+import type { Snapshot } from '../render'
+import { drawRoomShell } from '../roomArt'
+import { DOORWAY_BOX, DOOR_BOX } from '../studioArt'
+import { NO_ART, PROP_SPRITE, ROOM_NIGHT_DIM, fitSprite, placeSprite, ready } from '../sceneArt'
+import type { SceneArt, ScenePropId } from '../sceneArt'
 import type { Season } from '../season'
 import { newActorTable } from '../actors'
 import { MANGAKA_SIT } from '../sprites'
@@ -26,6 +32,16 @@ import type { Actor, ActorTable } from '../actors'
  */
 const BASELINE_FILLS = 673
 const BUDGET = BASELINE_FILLS * 1.5
+
+/**
+ * fillRect calls for the same reference scene with every generated image ready (`fakeSceneArt`: the apartment's room
+ * image and its six props, 7 drawImage calls), measured the same way (0.9.0 R2): 546. By hand, the 673 less what the
+ * images replace: the apartment's shell 61, the kitchenette 17, the window frame 1, the bookshelf 34, the stock poster
+ * 4, the bed 5 and the plain door 5 (673 - 127 = 546). The night dim adds 1 at night. Every scene with the art ready
+ * must stay under 1.5 times this (its own budget: the images leave fewer fills, so 673's budget would hide growth).
+ */
+const ART_BASELINE_FILLS = 546
+const ART_BUDGET = ART_BASELINE_FILLS * 1.5
 
 describe('render', () => {
   it('paints every pixel from a palette (an unknown sprite key would paint magenta)', () => {
@@ -56,6 +72,33 @@ describe('render', () => {
       expect(log[0], tier).toMatchObject({ x: 0, y: 0, w: 320, h: 114 })
       expect(log.some((c) => c.x === 0 && c.y === 114 && c.w === 320 && c.h === 66), tier).toBe(true)
     }
+  })
+
+  it('stays under 1.5 times its own measured baseline with every generated image ready, in every tier and season', () => {
+    expect(ART_BUDGET).toBe(819)
+    const ref = fakeContext()
+    render(ref.ctx, sceneSnapshot(), 0.3, 100, fakeSceneArt())
+    expect(ref.log).toHaveLength(ART_BASELINE_FILLS)
+    expect(ref.images.map((i) => i.id)).toEqual(['room/apartment', 'kitchenette', 'window', 'bookshelf', 'poster', 'bed', 'door'])
+    for (const tier of ['apartment', 'flat', 'loft'] as StudioTierId[]) {
+      for (const season of ['spring', 'summer', 'autumn', 'winter'] as Season[]) {
+        for (const t of [0.3, 0.9]) {
+          const { ctx, log } = fakeContext()
+          render(ctx, sceneSnapshot({ tier, season }), t, 100, fakeSceneArt())
+          expect(log.length, `${tier} ${season} t ${t}`).toBeLessThan(ART_BUDGET)
+        }
+      }
+    }
+  })
+
+  it("spans the bookshelf's contact shadow over its sprite when the image is ready, and keeps the old one without art", () => {
+    const shadowAt = (log: readonly FillCall[]) => log.find((c) => c.style === 'rgba(40, 24, 16, 0.28)' && c.y === 114 && c.x >= 64 && c.x < 74)
+    const ready = fakeContext()
+    render(ready.ctx, sceneSnapshot(), 0.3, 100, fakeSceneArt())
+    expect(shadowAt(ready.log)).toMatchObject({ x: PROP_BOX.bookshelf.x, w: PROP_BOX.bookshelf.w })
+    const bare = fakeContext()
+    render(bare.ctx, sceneSnapshot(), 0.3, 100)
+    expect(shadowAt(bare.log)).toMatchObject({ x: 72, w: 35 })
   })
 
   it('renders frame 0 the same way twice (a pure function of its inputs)', () => {
@@ -586,5 +629,202 @@ describe('outfits by level (Task 5, Decision 7)', () => {
     const { ctx, log } = fakeContext()
     render(ctx, sceneSnapshot({ level: 10 }), 0.3, 0)
     expect(covers(log, '#6f7a8c', 72, 107)).toBeGreaterThan(-1)
+  })
+})
+
+describe('scene art (0.9.0 R1): generated images with the code-drawn look as the fallback', () => {
+  const TIERS: StudioTierId[] = ['apartment', 'flat', 'loft']
+  const withRoom = (tier: StudioTierId, img: CanvasImageSource): SceneArt => ({ room: { ...NO_ART.room, [tier]: img }, prop: {} })
+  const withProp = (id: ScenePropId, img: CanvasImageSource): SceneArt => ({ room: NO_ART.room, prop: { [id]: img } })
+  function paint(over: Partial<Snapshot>, t: number, art?: SceneArt) {
+    const f = fakeContext()
+    if (art) render(f.ctx, sceneSnapshot(over), t, 100, art)
+    else render(f.ctx, sceneSnapshot(over), t, 100)
+    return f
+  }
+  const loadingImage = (id: string) => ({ ...fakeImage(id, 320, 180), complete: false }) as unknown as CanvasImageSource
+
+  it('accepts only a loaded image', () => {
+    expect(ready(null)).toBe(false)
+    expect(ready(undefined)).toBe(false)
+    expect(ready(fakeImage('a', 4, 4))).toBe(true)
+    expect(ready(loadingImage('a'))).toBe(false)
+    expect(ready({ ...fakeImage('a', 4, 4), naturalWidth: 0 } as unknown as CanvasImageSource)).toBe(false)
+    // anything that is not an <img> counts by its width (a canvas, a bitmap)
+    expect(ready({ width: 8, height: 8 } as unknown as CanvasImageSource)).toBe(true)
+    expect(ready({ width: 0, height: 0 } as unknown as CanvasImageSource)).toBe(false)
+  })
+
+  it('has no art at all in NO_ART, and paints the measured baseline with it (nothing changed)', () => {
+    expect(Object.values(NO_ART.room).every((v) => v === null)).toBe(true)
+    expect(Object.values(NO_ART.prop).every((v) => v === null)).toBe(true)
+    const plain = paint({}, 0.3)
+    const none = paint({}, 0.3, NO_ART)
+    expect(none.log).toHaveLength(BASELINE_FILLS)
+    expect(none.log).toEqual(plain.log)
+    expect(none.images).toEqual([])
+  })
+
+  it("draws a ready room image first, at 0,0,320,180, in place of every one of the shell's fills", () => {
+    for (const tier of TIERS) {
+      const shell = fakeContext()
+      drawRoomShell(shell.ctx, tier, false)
+      expect(shell.log.length, tier).toBeGreaterThan(0)
+      const plain = paint({ tier }, 0.3)
+      const art = paint({ tier }, 0.3, withRoom(tier, fakeImage('room', 320, 180)))
+      expect(art.images[0], tier).toEqual({ id: 'room', x: 0, y: 0, w: 320, h: 180, at: 0 })
+      expect(plain.log.slice(0, shell.log.length), tier).toEqual(shell.log)
+      expect(art.log, tier).toEqual(plain.log.slice(shell.log.length))
+    }
+  })
+
+  it('still paints the sky over the pane after the room image', () => {
+    const art = paint({}, 0.3, withRoom('apartment', fakeImage('room', 320, 180)))
+    expect(covers(art.log, skyColor(0.3), 200, 60)).toBeGreaterThanOrEqual(art.images[0].at)
+  })
+
+  it('dims a room image at night with one fill right after it, and keeps the night overlay on top', () => {
+    const shell = fakeContext()
+    drawRoomShell(shell.ctx, 'apartment', true)
+    const plain = paint({}, 0.9)
+    const art = paint({}, 0.9, withRoom('apartment', fakeImage('room', 320, 180)))
+    expect(ROOM_NIGHT_DIM).toBe('rgba(20,24,60,0.25)')
+    expect(art.images[0].at).toBe(0)
+    expect(art.log[0]).toEqual({ style: ROOM_NIGHT_DIM, x: 0, y: 0, w: 320, h: 180 })
+    expect(art.log.slice(1)).toEqual(plain.log.slice(shell.log.length))
+    expect(art.log.findIndex((c) => c.style === 'rgba(20, 24, 60, 0.28)')).toBeGreaterThan(0)
+    // by day, no dim
+    expect(paint({}, 0.3, withRoom('apartment', fakeImage('room', 320, 180))).log.some((c) => c.style === ROOM_NIGHT_DIM)).toBe(false)
+  })
+
+  it("falls back to the shell's fills while the room image is still loading, or when only another tier has one", () => {
+    const plain = paint({}, 0.3)
+    const art = paint({}, 0.3, withRoom('apartment', loadingImage('room')))
+    expect(art.images).toEqual([])
+    expect(art.log).toEqual(plain.log)
+    const other = paint({}, 0.3, withRoom('loft', fakeImage('room', 320, 180)))
+    expect(other.images).toEqual([])
+    expect(other.log).toEqual(plain.log)
+  })
+
+  it("measures each structural prop's footprint from the code-drawn piece it replaces (canvas space)", () => {
+    expect(PROP_FOOTPRINT).toEqual({
+      window: { x: 180, y: 46, w: 48, h: 36 },
+      door: { x: 258, y: 56, w: 17, h: 58 },
+      doorway: { x: 258, y: 56, w: 17, h: 58 },
+      kitchenette: { x: 2, y: 56, w: 60, h: 58 },
+      bookshelf: { x: 72, y: 54, w: 34, h: 58 },
+      bed: { x: 192, y: 102, w: 58, h: 26 },
+      poster: { x: 116, y: 50, w: 22, h: 28 },
+    })
+  })
+
+  it("sizes a prop sprite by its footprint's height and its own aspect, shrinking it only to a maximum width", () => {
+    const fp = { x: 10, y: 20, w: 10, h: 20 }
+    expect(fitSprite(0.5, fp)).toEqual([10, 20])
+    expect(fitSprite(2, fp)).toEqual([40, 20])
+    expect(fitSprite(0.65, fp)).toEqual([13, 20])
+    expect(fitSprite(2, fp, 30)).toEqual([30, 15])
+    expect(fitSprite(2, fp, 50)).toEqual([40, 20])
+  })
+
+  it('places a prop sprite bottom-aligned on its footprint and centred across it (a half pixel rounds left)', () => {
+    const fp = { x: 10, y: 20, w: 10, h: 20 }
+    expect(placeSprite(fp, 10, 20)).toEqual(fp)
+    expect(placeSprite(fp, 40, 20)).toEqual({ x: -5, y: 20, w: 40, h: 20 })
+    expect(placeSprite(fp, 10, 15)).toEqual({ x: 10, y: 25, w: 10, h: 15 })
+    expect(placeSprite(fp, 13, 20)).toEqual({ x: 8, y: 20, w: 13, h: 20 })
+    expect(placeSprite(fp, 7, 20)).toEqual({ x: 11, y: 20, w: 7, h: 20 })
+  })
+
+  it("places each generated sprite by that rule: its box from PROP_SPRITE on PROP_FOOTPRINT, clear of what it must not hide", () => {
+    for (const id of Object.keys(PROP_FOOTPRINT) as ScenePropId[]) {
+      expect(PROP_BOX[id], id).toEqual(placeSprite(PROP_FOOTPRINT[id], ...PROP_SPRITE[id]))
+    }
+    expect(PROP_BOX).toEqual({
+      window: { x: 180, y: 46, w: 48, h: 36 },
+      door: { x: 250, y: 64, w: 33, h: 50 },
+      doorway: { x: 250, y: 73, w: 33, h: 41 },
+      kitchenette: { x: 3, y: 56, w: 58, h: 58 },
+      bookshelf: { x: 64, y: 54, w: 50, h: 58 },
+      bed: { x: 192, y: 105, w: 58, h: 23 },
+      poster: { x: 116, y: 50, w: 22, h: 28 },
+    })
+    // the doormat (drawn at DOOR_BOX's columns) must sit under the doorway sprite too
+    expect([DOOR_BOX.x, DOOR_BOX.w]).toEqual([DOORWAY_BOX.x, DOORWAY_BOX.w])
+    const right = (b: { x: number; w: number }) => b.x + b.w
+    // the door and the doorway are drawn after the bed: they stop short of it (the coat rack at x 283 is drawn after them)
+    expect(PROP_BOX.door.x).toBeGreaterThanOrEqual(right(PROP_BOX.bed))
+    expect(PROP_BOX.doorway.x).toBeGreaterThanOrEqual(right(PROP_BOX.bed))
+    expect(right(PROP_BOX.door)).toBeLessThanOrEqual(283)
+    expect(right(PROP_BOX.doorway)).toBeLessThanOrEqual(283)
+    // the bookshelf is drawn after the kitchenette, and clear of it; the poster clear of the corkboard (x 140)
+    expect(PROP_BOX.bookshelf.x).toBeGreaterThanOrEqual(right(PROP_BOX.kitchenette))
+    expect(right(PROP_BOX.poster)).toBeLessThanOrEqual(140)
+    // every sprite stands on its footprint's bottom row
+    for (const id of Object.keys(PROP_BOX) as ScenePropId[]) {
+      expect(PROP_BOX[id].y + PROP_BOX[id].h, id).toBe(PROP_FOOTPRINT[id].y + PROP_FOOTPRINT[id].h)
+    }
+  })
+
+  /** Each prop and a scene that shows it: the door is the apartment's, the doorway the flat's and the loft's. */
+  const CASES: [ScenePropId, Partial<Snapshot>][] = [
+    ['window', {}], ['door', {}], ['doorway', { tier: 'flat' }], ['doorway', { tier: 'loft' }], ['kitchenette', {}],
+    ['bookshelf', {}], ['bed', {}], ['poster', {}],
+  ]
+
+  it("draws each ready prop at its sprite's box, in its fallback's place in the draw order, skipping its fallback fills (all inside the old footprint)", () => {
+    for (const t of [0.3, 0.9]) {
+      for (const [id, over] of CASES) {
+        const label = `${id} ${over.tier ?? 'apartment'} t ${t}`
+        const plain = paint(over, t)
+        const art = paint(over, t, withProp(id, fakeImage(id, 1, 1)))
+        const box = PROP_FOOTPRINT[id]
+        expect(art.images, label).toHaveLength(1)
+        const { at } = art.images[0]
+        expect(art.images[0], label).toEqual({ id, ...PROP_BOX[id], at })
+        const skipped = plain.log.length - art.log.length
+        expect(skipped, label).toBeGreaterThan(0)
+        // the same fills in the same order before and after; the skipped block lies inside the footprint
+        // a ready door or doorway also moves the doormat and the doorway's night light onto its sprite (same fill counts;
+        // studioArt.test checks where they go), so those are compared by style only
+        // (a ready bookshelf likewise widens its contact shadow onto its sprite)
+        const moved = (c: FillCall) => (id === 'bookshelf' && c.style === 'rgba(40, 24, 16, 0.28)' && c.y === 114 && c.x >= 64 && c.x < 74) || (id === 'door' || id === 'doorway') && (
+          (c.style === '#c94b4b' && c.y === 114 && c.h === 3) || (c.style === '#a83c3c' && c.y === 115 && c.h === 1) ||
+          c.style === 'rgba(255,214,150,0.12)' || c.style === 'rgba(255,214,150,0.35)')
+        const sameFill = (c: FillCall) => (moved(c) ? { style: c.style } : c)
+        expect(art.log.slice(0, at).map(sameFill), label).toEqual(plain.log.slice(0, at).map(sameFill))
+        expect(art.log.slice(at).map(sameFill), label).toEqual(plain.log.slice(at + skipped).map(sameFill))
+        for (const c of plain.log.slice(at, at + skipped)) {
+          const inside = c.x >= box.x && c.y >= box.y && c.x + c.w <= box.x + box.w && c.y + c.h <= box.y + box.h
+          expect(inside, `${label} ${JSON.stringify(c)}`).toBe(true)
+        }
+      }
+    }
+  })
+
+  it('keeps the bed image under the sleeping mangaka and the window image under the sky', () => {
+    const table = newActorTable()
+    Object.assign(table.mangaka, { x: 216, y: 106, targetX: 216, targetY: 106, state: 'sleeping', goal: 'sleeping' })
+    const bed = paint({ activity: 'rest', phase: 'idle', actors: table }, 0.3, withProp('bed', fakeImage('bed', 1, 1)))
+    const blanket = covers(bed.log, '#c94b4b', 200, 116)
+    expect(blanket).toBeGreaterThan(-1)
+    expect(bed.images[0].at).toBeLessThanOrEqual(blanket)
+    const win = paint({}, 0.3, withProp('window', fakeImage('window', 1, 1)))
+    expect(win.images[0].at).toBeLessThanOrEqual(covers(win.log, skyColor(0.3), 200, 60))
+  })
+
+  it('draws a prop image only where its piece shows: no door in the flat, no stock poster under a serial or an anime', () => {
+    expect(paint({ tier: 'flat' }, 0.3, withProp('door', fakeImage('door', 1, 1))).images).toEqual([])
+    expect(paint({ tier: 'apartment' }, 0.3, withProp('doorway', fakeImage('doorway', 1, 1))).images).toEqual([])
+    expect(paint({ serialOn: true }, 0.3, withProp('poster', fakeImage('poster', 1, 1))).images).toEqual([])
+    expect(paint({ animePoster: true }, 0.3, withProp('poster', fakeImage('poster', 1, 1))).images).toEqual([])
+  })
+
+  it("falls back to a prop's own fills while its image is still loading", () => {
+    const plain = paint({}, 0.3)
+    const art = paint({}, 0.3, withProp('bed', loadingImage('bed')))
+    expect(art.images).toEqual([])
+    expect(art.log).toEqual(plain.log)
   })
 })

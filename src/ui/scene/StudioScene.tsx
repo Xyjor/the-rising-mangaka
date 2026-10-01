@@ -8,6 +8,7 @@ import { useStore } from '../../state/store'
 import { prefersReducedMotion } from '../motion'
 import { anyWalking, newActorTable, planActors, settleActors, stepActors } from './actors'
 import { H, W, render } from './render'
+import { onSceneImageLoad, sceneImages } from './sceneImages'
 import type { Snapshot } from './render'
 import { seasonOf } from './season'
 import { NO_STORY, storyLook } from './story'
@@ -73,6 +74,8 @@ export function StudioScene({ running }: { running: boolean }) {
   // the characters: planned from the game below, walked every loop step, read by render
   // (one table for the component's life, mutated in place: useState's lazy initialiser, so render may read it)
   const [actors] = useState(newActorTable)
+  // the generated room and prop images (built once for the app, each drawn once it has loaded)
+  const [art] = useState(sceneImages)
   const saveLoads = useStore((s) => s.saveLoads)
   const reason = useStore((s) => visitorReasonOf(s.game))
   // Walks everyone for dtMs; the editor coming to a stand is an arrival, and knocks (never in a read-only tab or while
@@ -130,13 +133,13 @@ export function StudioScene({ running }: { running: boolean }) {
     if (reduceMotion.current && ctxRef.current) {
       advance(0, true)
       const t = useClock.getState().t
-      render(ctxRef.current, snap.current, t, 0)
+      render(ctxRef.current, snap.current, t, 0, art)
       placeBubbles()
       lastT.current = t
       lastFrame.current = 0
       lastSnap.current = snap.current
     }
-  }, [actors, advance, placeBubbles, phase, activity, progress, stamina, level, running, trip, assistants, season, look, reason, late, cheer, story])
+  }, [actors, advance, art, placeBubbles, phase, activity, progress, stamina, level, running, trip, assistants, season, look, reason, late, cheer, story])
 
   // A new daily line (info, not a toast, today, not from a loaded save) is said by the mangaka, when they are home.
   useEffect(() => {
@@ -222,7 +225,7 @@ export function StudioScene({ running }: { running: boolean }) {
       const t = useClock.getState().t
       const f = reduce ? 0 : Math.floor(frame.current)
       if (moving || t !== lastT.current || f !== lastFrame.current || s !== lastSnap.current) {
-        render(ctx, s, t, f)
+        render(ctx, s, t, f, art)
         placeBubbles()
         lastT.current = t
         lastFrame.current = f
@@ -239,14 +242,17 @@ export function StudioScene({ running }: { running: boolean }) {
     start()
     document.addEventListener('visibilitychange', start)
     const unsub = useStore.subscribe(start)
+    // an image that finishes loading shows on the next step: forget the last painted snapshot so the loop repaints
+    const unsubArt = onSceneImageLoad(() => { lastSnap.current = null; start() })
     return () => {
       cancelAnimationFrame(raf)
       raf = 0
       unsub()
+      unsubArt()
       document.removeEventListener('visibilitychange', start)
       ctxRef.current = null
     }
-  }, [actors, advance, placeBubbles])
+  }, [actors, advance, art, placeBubbles])
 
   const status =
     trip ? `Away at the ${placeById(trip.placeId).name}` :

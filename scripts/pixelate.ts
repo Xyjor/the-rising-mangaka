@@ -5,7 +5,7 @@
 import { readFileSync, mkdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import sharp from 'sharp'
-import { ART_PALETTE } from '../src/ui/art/palette'
+import { ART_PALETTE_BASE, ART_PALETTE_SCENE } from '../src/ui/art/palette'
 import {
   addOutline,
   alphaBoundingBox,
@@ -16,6 +16,7 @@ import {
   floodTransparentFromEdges,
   padToAspect,
   reduceColors,
+  remapSeam,
   snapToPalette,
   type RgbaImage,
 } from '../src/ui/art/pixelOps'
@@ -52,7 +53,20 @@ interface ManifestEntry {
   cutout: boolean
   outline: boolean
   colors?: number
+  /** which palette to snap to: `base` (the default, frozen, every pre-0.9.0 asset) or `scene` (base plus the room colours) */
+  palette?: 'base' | 'scene'
+  /**
+   * The palette snap's OKLab lightness weight (pixelOps `nearestPaletteIndex`), 1 when absent: below 1 a shaded wall
+   * keeps its hue (the flat's teal stays teal) and its lighting flattens to fewer steps, as cel-shaded pixel art does.
+   */
+  lightness?: number
   crop?: [number, number, number, number]
+  /**
+   * A room shell's wall/floor seam: `src` is the first floor row of the raw image (after `crop`), `dst` the canvas row
+   * it must land on (114). The wall and the floor are then resampled separately (pixelOps `remapSeam`); not for a
+   * cutout.
+   */
+  seam?: { src: number; dst: number }
   sheet?: SheetSpec
 }
 
@@ -111,13 +125,19 @@ async function processEntry(entry: ManifestEntry): Promise<{ outPath: string; co
   }
 
   const [nativeW, nativeH] = entry.native
-  working =
-    entry.sample === 'nearest'
-      ? downsampleNearest(working, nativeW, nativeH)
-      : downsampleArea(working, nativeW, nativeH)
-  working = snapToPalette(working, ART_PALETTE)
+  if (entry.seam) {
+    if (entry.cutout) throw new Error(`${entry.id}: a seam remap is for a room shell, not a cutout`)
+    working = remapSeam(working, entry.seam.src, nativeW, nativeH, entry.seam.dst, entry.sample)
+  } else {
+    working =
+      entry.sample === 'nearest'
+        ? downsampleNearest(working, nativeW, nativeH)
+        : downsampleArea(working, nativeW, nativeH)
+  }
+  const palette = entry.palette === 'scene' ? ART_PALETTE_SCENE : ART_PALETTE_BASE
+  working = snapToPalette(working, palette, entry.lightness ?? 1)
   // The outline colour counts toward the cap, so leave it a slot.
-  working = reduceColors(working, (entry.colors ?? DEFAULT_COLORS) - (entry.outline ? 1 : 0))
+  working = reduceColors(working, (entry.colors ?? DEFAULT_COLORS) - (entry.outline ? 1 : 0), entry.lightness ?? 1)
   working = despeckle(working)
   if (entry.outline) {
     working = addOutline(working, OUTLINE_HEX)
@@ -137,9 +157,9 @@ async function processEntry(entry: ManifestEntry): Promise<{ outPath: string; co
   const fs = await import('node:fs/promises')
   await fs.writeFile(outPath, buffer)
 
-  // Re-read and verify every pixel colour is in ART_PALETTE.
+  // Re-read and verify every pixel colour is in the entry's palette.
   const { data: verifyData } = await sharp(outPath).ensureAlpha().raw().toBuffer({ resolveWithObject: true })
-  const paletteSet = new Set(ART_PALETTE)
+  const paletteSet = new Set(palette)
   const usedColours = new Set<string>()
   for (let i = 0; i < verifyData.length; i += 4) {
     if (verifyData[i + 3] === 0) continue
@@ -148,7 +168,7 @@ async function processEntry(entry: ManifestEntry): Promise<{ outPath: string; co
       .join('')}`
     usedColours.add(hex)
     if (!paletteSet.has(hex)) {
-      throw new Error(`${entry.id}: pixel colour ${hex} is not in ART_PALETTE`)
+      throw new Error(`${entry.id}: pixel colour ${hex} is not in its ${entry.palette ?? 'base'} palette`)
     }
   }
 

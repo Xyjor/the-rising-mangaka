@@ -93,7 +93,13 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   192×108 layout, offset by `OX 64, OY 36` into canvas space by `rect`; `rawRect` for the wall, floor, kitchenette,
   entrance and door, drawn straight in canvas space) and its `PANE_X/Y/W/H`/`BAR_X` and `paneRect` clipped to the
   window pane; `render.ts` holds the palettes, string-map sprites and `render`, one frame painted from a `Snapshot`
-  with nothing allocated per frame (`Snapshot.late` turns the seated mangaka to the panic frames); `sprites.ts` the
+  with nothing allocated per frame (`Snapshot.late` turns the seated mangaka to the panic frames); `sceneArt.ts`
+  `SceneArt` (render's last argument, default `NO_ART`): generated room shells and structural-prop sprites drawn with
+  `drawImage` (`ready`, `drawProp`; a sprite keeps its aspect at `PROP_SPRITE`, placed by `placeSprite` at render.ts's
+  `PROP_BOX`, the fallback inside `PROP_FOOTPRINT`), each falling back to its code-drawn piece
+  (`drawRoomShell`, the window frame, `TIER_DOOR`, ...) while missing or loading; `sceneImages.ts` builds them once from
+  the registry's `ROOM_ART`/`SCENE_PROP_ART` (render.ts never imports the registry) and `StudioScene` repaints on a
+  load; characters stay string maps; `sprites.ts` the
   palette (uppercase base, lowercase shade, `L` outline), the 24×32 chibi string-map frames (head rows 0-15, body
   16-31), the run-length `drawSprite`, `frameRules` (closed outline, feet on the last row, every key in the palette),
   `FACES`/`MARKS` (the mood overlay and its mark above the head, drawn by `drawMood`) and `outfitOf`/`OUTFIT_PALS`
@@ -112,15 +118,17 @@ canvas space; `story.ts` `storyLook`, the story props' five snapshot inputs read
   and `Pops.tsx` the DOM speech bubbles and floating money/fans/xp numbers, styled by `scene.css`;
   `StudioScene.tsx` is the component and its 24 fps frame loop (reading `studioLook` through `useShallow`, lighting
   from the presentation clock, playing the `knock` and `pop` cues); every render is checked against a hand-measured
-  fillRect baseline (`render.test.ts` 673, `studioArt.test.ts` 1079) and must stay under 1.5x it),
+  fillRect baseline (`render.test.ts` 673, `studioArt.test.ts` 1079; with every scene image ready, 546 and 953)
+  and must stay under 1.5x it),
   `components.tsx` (Bar, Pips, Modal, RankChart), `format.ts` (money/compact/plural formatters), `Icon.tsx`
   (inline SVG icon set), `SaveFileSection.tsx` and `useSaveFile.ts` (export and load, in Settings and on the
   title screen), and
   `ErrorBoundary.tsx` (wraps `App` in `main.tsx`; a render crash shows a recovery screen that exports the stored save
   and starts over, or in a tab that does not own the save, reloads). Tests live in `src/ui/__tests__` and
   `src/ui/scene/__tests__`; see the UI-test docblock rule under Commands above.
-- `src/ui/art/` — the generated-art layer: `palette.ts` (`ART_PALETTE`, every colour also literal in `src/ui/scene/*.ts`
-  or `src/styles/tokens.css`), `pixelOps.ts` (the pure pixel math `scripts/pixelate.ts` runs), `registry.ts` (typed
+- `src/ui/art/` — the generated-art layer: `palette.ts` (`ART_PALETTE_BASE`, frozen, the default snap so old assets regenerate byte for byte; `ART_PALETTE_SCENE` for manifest `"palette": "scene"` entries; `ART_PALETTE` their union, every colour also literal in `src/ui/scene/*.ts`
+  or `src/styles/tokens.css`), `pixelOps.ts` (the pure pixel math `scripts/pixelate.ts` runs; a room shell's manifest
+  `seam` lands its wall/floor line on canvas row 114 via `remapSeam`, and `lightness` keeps a shaded wall's hue in the snap), `registry.ts` (typed
   `ArtRef` lookups over the PNGs in `src/assets/art/`, eagerly globbed by Vite) and `PixelArt.tsx` (the `<img>`
   wrapper every component uses to mount one). `art/manifest.json` and `art/raw/` at the repo root hold each asset's
   generation recipe and committed raw source (two hosts: a Hugging Face Space with seeds, Higgsfield `z_image` with job ids); see DESIGN.md's "Art" section.
@@ -137,7 +145,7 @@ canvas space; `story.ts` `storyLook`, the story props' five snapshot inputs read
 - `src/test/` — shared test-only helpers: `dom.ts` (happy-dom setup, imported for side effects), `fixtures.ts`
   (game-state builders such as `withPendingResult`, shared across UI test files), `fakeSound.ts` (a recording
   sound engine for `connectSound` or `installSound`) and `fakeCanvas.ts` (a recording 2D context that logs each
-  fillRect with its fillStyle, `covers`/`coversAny`, how many fills paint a pixel, and `sceneSnapshot`, the scene's reference state, for `render` tests).
+  fillRect with its fillStyle, and each drawImage apart in `images` with `fakeImage` to feed it, `covers`/`coversAny`, how many fills paint a pixel, and `sceneSnapshot`, the scene's reference state, for `render` tests).
 - `src/styles/tokens.css` (design tokens, light + dark), `base.css` (primitives), `app.css` (layout and panels),
   `cards.css` (desk cards; on phones they follow the project card), `stage.css` (the full-bleed stage layout),
   `hud.css` (the corner overlays, rail and status card).
