@@ -323,7 +323,7 @@ at `CAT_BED` (4 fills, drawn just before it).
   `graft: "anchor-head"`). `GENERATED_MANGAKA` assembles the generated frames from the 2026-09-30 probe sheet the way
   the scene would use them (`withCollar` re-applies `COLLAR_CELLS`, the K/Y/y cells at the hand-drawn coordinates;
   `breathOf` is the idle's breath, rows 0-23 a row lower, `breathOf(MANGAKA_IDLE[0])` being exactly
-  `MANGAKA_IDLE[1]`; `pressOf` panic's frame 1). **None is drawn yet**: the readability gate (`sprites-C1.png`, every
+  `MANGAKA_IDLE[1]`; `pressOf` panic's frame 1). **None of the C1 frames is drawn**: the readability gate (`sprites-C1.png`, every
   frame next to its hand-drawn one, 8x, three outfits, every mood) found the idle (a narrow column, no arms or
   shoes), the two seated frames (the stool baked in, no pen arm, two unrelated cells that jitter when they alternate),
   panic (mush) and the bed (a front view peeking over a blue mound, nothing like the pillow pose) read worse at 24x32,
@@ -334,8 +334,29 @@ at `CAT_BED` (4 fills, drawn just before it).
   does not (its flung arms leave the avatar crop), which is harmless: render draws only the mood mark on the stretch
   and the sip (`faceSteady` false), never the face. `spriteCore.ts` holds `PAL`, `SpriteMap`, `ANCHOR_HEAD`,
   `frameRules` and `faceRules` as a leaf module with no imports (sprites.ts re-exports them), so the pipeline checks a
-  frame without loading the generated frames or the scene; `MANGAKA_IDLE[0]` is built from `ANCHOR_HEAD` (one source
-  for the head) and frame 1 is `breathOf` it.
+  frame without loading the generated frames or the scene.
+- **Generated frames in the scene** (0.11.0, task C2). Four retry sheets (Higgsfield `z_image`, 2026-10-01: a front
+  mangaka sheet, a side mangaka sheet, the editor and the cat, all in `art/raw/sprites/`) went through the same gate
+  (`sprites-C2.png`: each candidate next to the hand-drawn frame it would replace, 8x at the actor's own spot on the
+  apartment shell, the three outfits or three assistant looks, the real render in the scene at 4x, and every mood's
+  face and mark on the head-steady frames; `walk-C2.gif` and `walk-C2-strip.png` show the cycles in motion). Two
+  sets won and are drawn now. **The standing idle** (`MANGAKA_IDLE`, `sprite/mangaka-front-idle`): the front sheet's
+  body, cropped below its head, stretched to a 16x16 box (`fit`, `stretch`) on rows 16-31 under the grafted
+  `ANCHOR_HEAD`, three neck cells touched (`cells`), the collar and tie re-applied (`withCollar`), frame 1 its
+  `breathOf`. It reads as well as the hand-drawn body in all three outfits and the faces land as before, since the head
+  is the anchor (195 and 192 fills before, 167 and 166 now). **The assistants' doze** (`ASSISTANT_DOZE`,
+  `sprite/assistant-doze`): the front sheet's dozing cell fitted to a 20x23 box on the frame's last rows, the head down
+  on folded arms, eyes shut, eight cells touched (three stray specks, the right eye's shut line). It reads as asleep
+  more clearly than the hand-drawn head on a block (113 fills before, 100 now). Kept hand-drawn: the walk (the side
+  sheet's four steps all keep the legs apart, with no pass frame and no bob, so in motion it slides, and the side
+  facing contradicts the front-facing set); the seated pair (a front-facing floor pose whose red shoes sit beside the
+  desk in sit 0 and vanish in sit 1, blinking every 8 frames, with no arm to the page); the stretch (a side-view
+  one-arm reach) and the sip (a clear mug, but both turn the front idle to profile mid-cycle); the editor (the glasses
+  and hair snap into a mask on the idle, and the walk's three-quarter steps carry red specks and no shoes); and the cat
+  (at 12x8 each cell is a 5-7 column blob with no eye or ears). The losers' modules stay generated and validated in
+  `sprites.test` (frame rules, the seated pair's face rules, fills at most 1.25x the frame each would replace), imported
+  only by the test, so the bundle carries none of them. The stretch and sip keep the hand-drawn body, so the idle
+  cycle's body changes slightly for those 120 of 360 frames (the pocket line gives way to the shirt stripes).
 
 The frame sets: idle 2 frames (`frame/16 % 2`), walk 4 (`anim/100 % 4`), sit 2 (`frame/8 % 2` while working, frame 0
 otherwise), panic 2 (for 40 of every 240 frames while working on a late chapter, `Snapshot.late`), a 30x14 lying
@@ -386,6 +407,10 @@ image's night dim), each with a 1.5x budget (819 and 1429.5) that every tier, se
 The 0.10.0 props (P1) moved them to 521 and 928 (-25 each): the stock chair 4, the stock desk 7 and the apartment's
 front row (the zabuton 4, the boxes 6, the bin 4) are sprites in both scenes (each contact shadow is still one fill,
 moved across its sprite; the bin's crumpled pages stay code-drawn); budgets 781.5 and 1392.
+The 0.11.0 generated frames (task C2) move none of the four: both reference scenes draw the mangaka and an assistant
+seated at frame 100, never the standing idle or the doze, so 673/1079 and 521/928 stay as they are (re-measured: the
+exact-count tests still pass). Where they do show, the generated frames cost fewer fills than the hand-drawn ones (the
+standing idle 28 and 26 fewer, the doze 13 fewer).
 
 ### Art
 The live scene is code-drawn `fillRect` (`render.ts`, `roomArt.ts`, `studioArt.ts`, `sprites.ts`), and since 0.9.0 it
@@ -426,8 +451,14 @@ afterward that every pixel it wrote is a literal `ART_PALETTE` colour.
 illustration: `npm run art -- sprite/<name>` turns it into a string-map frame in `PAL` keys and writes
 `src/ui/scene/generated/<name>.ts` (a header says it is generated by `npm run art` and never edited by hand, then
 `export const <name>: string[]`). The entry names its `sheet`, the pose's `crop` (from `--measure`), the `frame`
-(`[24, 32]` for a person, `[30, 14]` lying down), `keys` (the PAL keys the snap may use, in priority order), `sample`,
-the exported `name`, and optionally `remap` (key swaps on a row range after the snap: the probe sheet draws the
+(`[24, 32]` for a person, `[30, 14]` lying down, `[12, 8]` the cat), `keys` (the PAL keys the snap may use, in priority order), `sample`,
+the exported `name`, and optionally `anchors` (task C2: the sheet colour each key stands for, so the snap compares
+the sheet's light grey hoodie against `J` and its navy hair against `H` while only listed keys come out;
+`anchoredPalette` refuses an anchor for an unlisted key or a colour that is not `#rrggbb`), `fit` (a `[w, h]` box the
+cutout is fitted to instead of the whole frame, then placed on the frame's last rows, centred, by `placeInFrame`: a
+body cropped below the sheet's head fitted to rows 16-31 under the graft, or a pose drawn smaller), `stretch` (resample
+to the `fit` box exactly, for a sheet body narrower than the anchor's), `flip` (mirror the crop first, for a sheet that
+drew the pose facing right), `remap` (key swaps on a row range after the snap: the probe sheet draws the
 trousers in exactly the hair's colour, so `H/h` below the head become `T/t`), `graft: "anchor-head"`, `cells`
 (`[row, col, key]` touches set after the outline and the graft, such as a one-pixel eye the downsample loses, kept in
 the manifest so regeneration reproduces them), `faceless` (walking, panic, lying: no faceRules report) and

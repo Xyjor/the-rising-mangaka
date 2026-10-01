@@ -433,8 +433,8 @@ describe('the assistants, the wall clock and the cat (Task 2.5)', () => {
 
   it('dozes a sleeping assistant, head on the folded arms, with the Z, and seats a working one upright', () => {
     const rest = at({ activity: 'rest' }, 0.3, 0)
-    // DOZE row 8 col 10 is hair (the head down 6 and right 2); the Z at (66 + 18, 89 - 6)
-    expect(covers(rest, '#2b2140', 76, 97)).toBeGreaterThan(-1)
+    // DOZE (generated, task C2) row 11 col 9 is hair (the head down on the arms); the Z at (66 + 18, 89 - 6)
+    expect(covers(rest, '#2b2140', 75, 100)).toBeGreaterThan(-1)
     expect(covers(rest, '#2f5ecf', 85, 83)).toBeGreaterThan(-1)
     expect(page(rest)).toBe(-1)
     // no hair where the upright head's row 2 col 8 would be
@@ -615,7 +615,7 @@ describe('the assistants, the wall clock and the cat (Task 2.5)', () => {
 })
 
 describe('outfits by level (Task 5, Decision 7)', () => {
-  // standing at MANGAKA_STAND (170, 81): the anchor's row 18 col 6 'J' -> (170+6, 81+18) = (176, 99)
+  // standing at MANGAKA_STAND (170, 81): the standing frame's row 19 col 6 'J' -> (170+6, 81+19) = (176, 100)
   it('dresses the standing mangaka in the outfit for their level', () => {
     const table = newActorTable()
     Object.assign(table.mangaka, { x: 170, y: 81, targetX: 170, targetY: 81, state: 'standing', goal: 'standing' })
@@ -624,9 +624,9 @@ describe('outfits by level (Task 5, Decision 7)', () => {
       render(ctx, sceneSnapshot({ level, actors: table }), 0.3, 0)
       return log
     }
-    expect(covers(at(1), '#6f7a8c', 176, 99)).toBeGreaterThan(-1)
-    expect(covers(at(5), '#c9a24a', 176, 99)).toBeGreaterThan(-1)
-    expect(covers(at(10), '#2e3a78', 176, 99)).toBeGreaterThan(-1)
+    expect(covers(at(1), '#6f7a8c', 176, 100)).toBeGreaterThan(-1)
+    expect(covers(at(5), '#c9a24a', 176, 100)).toBeGreaterThan(-1)
+    expect(covers(at(10), '#2e3a78', 176, 100)).toBeGreaterThan(-1)
   })
 
   it('leaves an assistant\'s look palette unaffected by the player\'s level', () => {
