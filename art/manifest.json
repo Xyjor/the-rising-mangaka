@@ -3353,5 +3353,387 @@
       239,
       224
     ]
+  },
+  {
+    "id": "sprite/mangaka-idle",
+    "kind": "sprite",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "seed": null,
+    "job": "5552cbb3-ecfc-4759-ac88-9ee55036be41",
+    "prompt": "Pixel art character sprite sheet on a flat light grey background, the same chibi manga artist in every frame, two heads tall, messy dark hair, grey hoodie, dark trousers, 16-bit Kairosoft style, thick dark outline, evenly spaced in one row, all facing left: 1) standing idle; 2) walking step one; 3) walking step two; 4) sitting on a stool drawing, seen from the side; 5) panicking with both hands on head; 6) asleep lying under a blanket. Consistent proportions and colours across frames, crisp pixels, no text, no letters.",
+    "sheet": {
+      "src": "sprites/mangaka-probe.png"
+    },
+    "crop": [
+      95,
+      96,
+      265,
+      509
+    ],
+    "frame": [
+      24,
+      32
+    ],
+    "keys": "LHhSsEWMBJjTt",
+    "sample": "nearest",
+    "name": "MANGAKA_IDLE_GEN",
+    "remap": [
+      {
+        "rows": [
+          16,
+          31
+        ],
+        "from": "Hh",
+        "to": "Tt"
+      }
+    ],
+    "graft": "anchor-head"
+  },
+  {
+    "id": "sprite/mangaka-walk-1",
+    "kind": "sprite",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "seed": null,
+    "job": "5552cbb3-ecfc-4759-ac88-9ee55036be41",
+    "prompt": "Pixel art character sprite sheet on a flat light grey background, the same chibi manga artist in every frame, two heads tall, messy dark hair, grey hoodie, dark trousers, 16-bit Kairosoft style, thick dark outline, evenly spaced in one row, all facing left: 1) standing idle; 2) walking step one; 3) walking step two; 4) sitting on a stool drawing, seen from the side; 5) panicking with both hands on head; 6) asleep lying under a blanket. Consistent proportions and colours across frames, crisp pixels, no text, no letters.",
+    "sheet": {
+      "src": "sprites/mangaka-probe.png"
+    },
+    "crop": [
+      482,
+      91,
+      265,
+      513
+    ],
+    "frame": [
+      24,
+      32
+    ],
+    "keys": "LHhSsEWMBJjTt",
+    "sample": "nearest",
+    "name": "MANGAKA_WALK_GEN_0",
+    "remap": [
+      {
+        "rows": [
+          16,
+          31
+        ],
+        "from": "Hh",
+        "to": "Tt"
+      }
+    ],
+    "faceless": true,
+    "cells": [
+      [
+        10,
+        8,
+        "E"
+      ],
+      [
+        11,
+        8,
+        "E"
+      ]
+    ]
+  },
+  {
+    "id": "sprite/mangaka-walk-2",
+    "kind": "sprite",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "seed": null,
+    "job": "5552cbb3-ecfc-4759-ac88-9ee55036be41",
+    "prompt": "Pixel art character sprite sheet on a flat light grey background, the same chibi manga artist in every frame, two heads tall, messy dark hair, grey hoodie, dark trousers, 16-bit Kairosoft style, thick dark outline, evenly spaced in one row, all facing left: 1) standing idle; 2) walking step one; 3) walking step two; 4) sitting on a stool drawing, seen from the side; 5) panicking with both hands on head; 6) asleep lying under a blanket. Consistent proportions and colours across frames, crisp pixels, no text, no letters.",
+    "sheet": {
+      "src": "sprites/mangaka-probe.png"
+    },
+    "crop": [
+      882,
+      90,
+      268,
+      516
+    ],
+    "frame": [
+      24,
+      32
+    ],
+    "keys": "LHhSsEWMBJjTt",
+    "sample": "nearest",
+    "name": "MANGAKA_WALK_GEN_1",
+    "remap": [
+      {
+        "rows": [
+          16,
+          31
+        ],
+        "from": "Hh",
+        "to": "Tt"
+      }
+    ],
+    "faceless": true,
+    "cells": [
+      [
+        10,
+        8,
+        "E"
+      ],
+      [
+        11,
+        8,
+        "E"
+      ],
+      [
+        10,
+        10,
+        "S"
+      ],
+      [
+        10,
+        11,
+        "S"
+      ]
+    ]
+  },
+  {
+    "id": "sprite/mangaka-walk-3",
+    "kind": "sprite",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "seed": null,
+    "job": "5552cbb3-ecfc-4759-ac88-9ee55036be41",
+    "prompt": "Pixel art character sprite sheet on a flat light grey background, the same chibi manga artist in every frame, two heads tall, messy dark hair, grey hoodie, dark trousers, 16-bit Kairosoft style, thick dark outline, evenly spaced in one row, all facing left: 1) standing idle; 2) walking step one; 3) walking step two; 4) sitting on a stool drawing, seen from the side; 5) panicking with both hands on head; 6) asleep lying under a blanket. Consistent proportions and colours across frames, crisp pixels, no text, no letters.",
+    "sheet": {
+      "src": "sprites/mangaka-probe.png"
+    },
+    "crop": [
+      1291,
+      90,
+      271,
+      515
+    ],
+    "frame": [
+      24,
+      32
+    ],
+    "keys": "LHhSsEWMBJjTt",
+    "sample": "nearest",
+    "name": "MANGAKA_WALK_GEN_2",
+    "remap": [
+      {
+        "rows": [
+          16,
+          31
+        ],
+        "from": "Hh",
+        "to": "Tt"
+      }
+    ],
+    "faceless": true,
+    "cells": [
+      [
+        10,
+        8,
+        "E"
+      ],
+      [
+        11,
+        8,
+        "E"
+      ],
+      [
+        10,
+        10,
+        "S"
+      ],
+      [
+        10,
+        11,
+        "S"
+      ]
+    ]
+  },
+  {
+    "id": "sprite/mangaka-walk-4",
+    "kind": "sprite",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "seed": null,
+    "job": "5552cbb3-ecfc-4759-ac88-9ee55036be41",
+    "prompt": "Pixel art character sprite sheet on a flat light grey background, the same chibi manga artist in every frame, two heads tall, messy dark hair, grey hoodie, dark trousers, 16-bit Kairosoft style, thick dark outline, evenly spaced in one row, all facing left: 1) standing idle; 2) walking step one; 3) walking step two; 4) sitting on a stool drawing, seen from the side; 5) panicking with both hands on head; 6) asleep lying under a blanket. Consistent proportions and colours across frames, crisp pixels, no text, no letters.",
+    "sheet": {
+      "src": "sprites/mangaka-probe.png"
+    },
+    "crop": [
+      1702,
+      89,
+      267,
+      516
+    ],
+    "frame": [
+      24,
+      32
+    ],
+    "keys": "LHhSsEWMBJjTt",
+    "sample": "nearest",
+    "name": "MANGAKA_WALK_GEN_3",
+    "remap": [
+      {
+        "rows": [
+          16,
+          31
+        ],
+        "from": "Hh",
+        "to": "Tt"
+      }
+    ],
+    "faceless": true,
+    "cells": [
+      [
+        10,
+        8,
+        "E"
+      ],
+      [
+        11,
+        8,
+        "E"
+      ]
+    ]
+  },
+  {
+    "id": "sprite/mangaka-sit",
+    "kind": "sprite",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "seed": null,
+    "job": "5552cbb3-ecfc-4759-ac88-9ee55036be41",
+    "prompt": "Pixel art character sprite sheet on a flat light grey background, the same chibi manga artist in every frame, two heads tall, messy dark hair, grey hoodie, dark trousers, 16-bit Kairosoft style, thick dark outline, evenly spaced in one row, all facing left: 1) standing idle; 2) walking step one; 3) walking step two; 4) sitting on a stool drawing, seen from the side; 5) panicking with both hands on head; 6) asleep lying under a blanket. Consistent proportions and colours across frames, crisp pixels, no text, no letters.",
+    "sheet": {
+      "src": "sprites/mangaka-probe.png"
+    },
+    "crop": [
+      101,
+      682,
+      241,
+      383
+    ],
+    "frame": [
+      24,
+      32
+    ],
+    "keys": "LHhSsEWMBJjTt",
+    "sample": "nearest",
+    "name": "MANGAKA_SIT_GEN_0",
+    "remap": [
+      {
+        "rows": [
+          18,
+          31
+        ],
+        "from": "Hh",
+        "to": "Tt"
+      }
+    ],
+    "graft": "anchor-head"
+  },
+  {
+    "id": "sprite/mangaka-draw",
+    "kind": "sprite",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "seed": null,
+    "job": "5552cbb3-ecfc-4759-ac88-9ee55036be41",
+    "prompt": "Pixel art character sprite sheet on a flat light grey background, the same chibi manga artist in every frame, two heads tall, messy dark hair, grey hoodie, dark trousers, 16-bit Kairosoft style, thick dark outline, evenly spaced in one row, all facing left: 1) standing idle; 2) walking step one; 3) walking step two; 4) sitting on a stool drawing, seen from the side; 5) panicking with both hands on head; 6) asleep lying under a blanket. Consistent proportions and colours across frames, crisp pixels, no text, no letters.",
+    "sheet": {
+      "src": "sprites/mangaka-probe.png"
+    },
+    "crop": [
+      439,
+      681,
+      300,
+      383
+    ],
+    "frame": [
+      24,
+      32
+    ],
+    "keys": "LHhSsEWMBJjTt",
+    "sample": "nearest",
+    "name": "MANGAKA_SIT_GEN_1",
+    "remap": [
+      {
+        "rows": [
+          18,
+          31
+        ],
+        "from": "Hh",
+        "to": "Tt"
+      }
+    ],
+    "graft": "anchor-head"
+  },
+  {
+    "id": "sprite/mangaka-panic",
+    "kind": "sprite",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "seed": null,
+    "job": "5552cbb3-ecfc-4759-ac88-9ee55036be41",
+    "prompt": "Pixel art character sprite sheet on a flat light grey background, the same chibi manga artist in every frame, two heads tall, messy dark hair, grey hoodie, dark trousers, 16-bit Kairosoft style, thick dark outline, evenly spaced in one row, all facing left: 1) standing idle; 2) walking step one; 3) walking step two; 4) sitting on a stool drawing, seen from the side; 5) panicking with both hands on head; 6) asleep lying under a blanket. Consistent proportions and colours across frames, crisp pixels, no text, no letters.",
+    "sheet": {
+      "src": "sprites/mangaka-probe.png"
+    },
+    "crop": [
+      862,
+      681,
+      276,
+      384
+    ],
+    "frame": [
+      24,
+      32
+    ],
+    "keys": "LHhSsEWMBJjTt",
+    "sample": "nearest",
+    "name": "MANGAKA_PANIC_GEN",
+    "remap": [
+      {
+        "rows": [
+          22,
+          31
+        ],
+        "from": "Hh",
+        "to": "Tt"
+      }
+    ],
+    "faceless": true
+  },
+  {
+    "id": "sprite/mangaka-lie",
+    "kind": "sprite",
+    "source": "higgsfield:z_image",
+    "model": "z_image",
+    "seed": null,
+    "job": "5552cbb3-ecfc-4759-ac88-9ee55036be41",
+    "prompt": "Pixel art character sprite sheet on a flat light grey background, the same chibi manga artist in every frame, two heads tall, messy dark hair, grey hoodie, dark trousers, 16-bit Kairosoft style, thick dark outline, evenly spaced in one row, all facing left: 1) standing idle; 2) walking step one; 3) walking step two; 4) sitting on a stool drawing, seen from the side; 5) panicking with both hands on head; 6) asleep lying under a blanket. Consistent proportions and colours across frames, crisp pixels, no text, no letters.",
+    "sheet": {
+      "src": "sprites/mangaka-probe.png"
+    },
+    "crop": [
+      1191,
+      686,
+      441,
+      375
+    ],
+    "frame": [
+      30,
+      14
+    ],
+    "keys": "LHhSsEWMBJjTtRr",
+    "sample": "nearest",
+    "name": "MANGAKA_LIE_GEN",
+    "faceless": true
   }
 ]

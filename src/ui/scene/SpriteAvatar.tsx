@@ -1,8 +1,8 @@
-// The staff portrait: the anchor frame's head (rows 0-15, cols 2-19, 18x16) in an assistant's colours.
+// The staff portrait: the hand-drawn anchor head (rows 0-15, cols 2-19, 18x16) in an assistant's colours.
 import { AVATAR_CROP, spriteRects } from './spriteSvg'
-import { ASSISTANT_PALS, MANGAKA_IDLE } from './sprites'
+import { ANCHOR_HEAD, ASSISTANT_PALS } from './sprites'
 
-const AVATAR_RECTS = ASSISTANT_PALS.map((pal) => spriteRects(MANGAKA_IDLE[0], pal, AVATAR_CROP))
+const AVATAR_RECTS = ASSISTANT_PALS.map((pal) => spriteRects(ANCHOR_HEAD, pal, AVATAR_CROP))
 
 export function SpriteAvatar({ look }: { look: number }) {
   const rects = AVATAR_RECTS[look % AVATAR_RECTS.length]

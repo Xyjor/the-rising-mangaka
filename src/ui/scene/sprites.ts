@@ -4,6 +4,15 @@
 // `frameRules` (sprites.test.ts). Facing left; drawSprite mirrors a frame to face right.
 import { LOOK_HAIRS, LOOK_HAIRS_SHADE, LOOK_SHIRTS, LOOK_SHIRTS_SHADE } from '../looks'
 import type { Mood } from './mood'
+import { MANGAKA_IDLE_GEN } from './generated/mangaka-idle'
+import { MANGAKA_WALK_GEN_0 } from './generated/mangaka-walk-1'
+import { MANGAKA_WALK_GEN_1 } from './generated/mangaka-walk-2'
+import { MANGAKA_WALK_GEN_2 } from './generated/mangaka-walk-3'
+import { MANGAKA_WALK_GEN_3 } from './generated/mangaka-walk-4'
+import { MANGAKA_SIT_GEN_0 } from './generated/mangaka-sit'
+import { MANGAKA_SIT_GEN_1 } from './generated/mangaka-draw'
+import { MANGAKA_PANIC_GEN } from './generated/mangaka-panic'
+import { MANGAKA_LIE_GEN } from './generated/mangaka-lie'
 
 export type SpriteMap = readonly string[]
 
@@ -46,6 +55,30 @@ export const OUTFIT_PALS: Record<Outfit, Record<string, string>> = {
   cardigan: { ...PAL, J: '#c9a24a', j: '#a8832f', K: '#f6f6f6', Y: '#c0392b', y: '#8e2a20' },
   blazer: { ...PAL, J: '#2e3a78', j: '#222b5c', K: '#f6f6f6', Y: '#c0392b', y: '#8e2a20' },
 }
+
+/**
+ * The hand-drawn anchor head (rows 0-15 of the original standing frame): the staff portrait (`SpriteAvatar`) draws it,
+ * and the `--sprite` pipeline grafts it onto a generated frame whose own head fails `faceRules` (manifest
+ * `graft: "anchor-head"`), so the FACES overlay and the mark always land where they were drawn for.
+ */
+export const ANCHOR_HEAD: SpriteMap = [
+  '......LLLLLLLLLL........', // 0
+  '....LLHHHHHHHHHhLL......', // 1
+  '...LHHHHHHHHHHHHhhL.....', // 2
+  '..LHHHHHHHHHHHHHHhhL....', // 3
+  '..LHHHHHHHHHHHHHHhhL....', // 4
+  '..LHHHHHHHHHHHHHHhhL....', // 5
+  '..LHHHSHHHHSHHHHHhhL....', // 6
+  '..LHSSSSSSSSSSSSSShL....', // 7
+  '..LHSSSSSSSSSSSSSSsL....', // 8
+  '..LHSSEESSSSSSEESSsL....', // 9
+  '..LHSSEWSSSSSSEWSSsL....', // 10
+  '..LHSSEESSSSSSEESSsL....', // 11
+  '..LSBBSSSSMMSSSSBBsL....', // 12
+  '...LSSSSSSSSSSSSSSsL....', // 13
+  '....LSSSSSSSSSSSSsL.....', // 14
+  '.....LLsssssssssLL......', // 15
+]
 
 /** Standing, the style anchor (frame 0) and its breath (frame 1: rows 0-23 a row lower, the hem tucked under), 16 frames each. */
 export const MANGAKA_IDLE: readonly [SpriteMap, SpriteMap] = [
@@ -991,6 +1024,50 @@ export const MARKS: Record<Exclude<Mood, 'neutral'>, SpriteMap> = {
   sleepy: ['LLL', '..L', '.L.', 'L..', 'LLL'],
 }
 
+// ---------- the generated frames (0.11.0, art/manifest.json `sprite/*`, written by `npm run art`) ----------
+
+/** The breath (as the hand-drawn idle has it): rows 0-23 a row lower, row 24 (the hem) tucked under, rows 25-31 kept. */
+export function breathOf(f: SpriteMap): SpriteMap {
+  return ['.'.repeat(f[0].length), ...f.slice(0, 24), ...f.slice(25)]
+}
+
+/** Where the hand-drawn idle and seated frames have the collar (K) and the tie (Y, its shade y), [row, col, key]. */
+export const COLLAR_CELLS: readonly (readonly [number, number, 'K' | 'Y' | 'y'])[] = [
+  [16, 8, 'K'], [16, 9, 'K'], [16, 13, 'K'], [16, 14, 'K'], [17, 9, 'K'], [17, 13, 'K'],
+  [17, 11, 'Y'], [18, 11, 'Y'], [19, 11, 'y'], [20, 11, 'Y'], [21, 11, 'y'], [22, 11, 'Y'],
+]
+
+/** A frame with the collar and tie cells re-applied (K/Y/y show only in the cardigan and the blazer). */
+export function withCollar(f: SpriteMap): SpriteMap {
+  const rows = f.map((r) => [...r])
+  for (const [r, c, k] of COLLAR_CELLS) rows[r][c] = k
+  return rows.map((r) => r.join(''))
+}
+
+/** Panic's frame 1: the hands pressed a row lower (rows 0-3 a row down, row 4 dropped under them). */
+export function pressOf(f: SpriteMap): SpriteMap {
+  return ['.'.repeat(f[0].length), ...f.slice(0, 4), ...f.slice(5)]
+}
+
+/**
+ * The generated mangaka frames (0.11.0, Task C1), assembled the way the scene would use them: the idle with its collar
+ * and its breath, the four walk frames, the two seated frames with their collar, panic and its press, the bed pose.
+ * Not drawn: the readability gate (sprites-C1.png) found most of them read worse at 24x32 than the hand-drawn frames,
+ * so the scene keeps MANGAKA_IDLE/WALK/SIT/PANIC/LIE above; these stay validated (sprites.test) as the sheet's
+ * candidates for the owner's decision and the reference for a hand redraw.
+ */
+export const GENERATED_MANGAKA = {
+  // the calls are marked pure so the bundle drops the whole set while the scene draws none of it
+  idle: [/* @__PURE__ */ withCollar(MANGAKA_IDLE_GEN), /* @__PURE__ */ breathOf(/* @__PURE__ */ withCollar(MANGAKA_IDLE_GEN))],
+  walk: [MANGAKA_WALK_GEN_0, MANGAKA_WALK_GEN_1, MANGAKA_WALK_GEN_2, MANGAKA_WALK_GEN_3],
+  sit: [/* @__PURE__ */ withCollar(MANGAKA_SIT_GEN_0), /* @__PURE__ */ withCollar(MANGAKA_SIT_GEN_1)],
+  panic: [MANGAKA_PANIC_GEN, /* @__PURE__ */ pressOf(MANGAKA_PANIC_GEN)],
+  lie: MANGAKA_LIE_GEN,
+} as const satisfies {
+  idle: readonly [SpriteMap, SpriteMap]; walk: readonly [SpriteMap, SpriteMap, SpriteMap, SpriteMap]
+  sit: readonly [SpriteMap, SpriteMap]; panic: readonly [SpriteMap, SpriteMap]; lie: SpriteMap
+}
+
 /** Every exported 24x32 frame, for the frame-rules test. */
 export const HUMAN_FRAMES: readonly SpriteMap[] = [
   ...MANGAKA_IDLE, ...MANGAKA_WALK, ...MANGAKA_SIT, ...MANGAKA_PANIC, ...MANGAKA_STRETCH, ...MANGAKA_SIP,
@@ -1014,6 +1091,29 @@ export function frameRules(map: SpriteMap, w = 24, h = 32, pal: Record<string, s
     if (row[first] !== 'L' || row[last] !== 'L') out.push(`row ${r} is open`)
   })
   if (map.length && !/[^.]/.test(map[map.length - 1])) out.push('the last row is empty')
+  return out
+}
+
+/** The keys a face may show inside the FACES window: skin and its shade, the eyes and their white, mouth, blush, outline. */
+const FACE_KEYS = 'SsEWMBL'
+
+/**
+ * What stops a head-steady frame taking the mood overlay, [] when nothing: rows 9-12, cols 4-17 (where `FACES` lands)
+ * hold only face keys, so the overlay paints over a face; rows 0-2, cols 20-22 (the mark slot) are clear; and the head
+ * (rows 0-15) stays inside cols 2-19, the `SpriteAvatar` crop. The `--sprite` pipeline grafts the anchor head onto a
+ * generated frame that fails it.
+ */
+export function faceRules(map: SpriteMap): string[] {
+  const out: string[] = []
+  for (let r = 0; r <= 15 && r < map.length; r++) {
+    for (let c = 0; c < map[r].length; c++) {
+      const ch = map[r][c]
+      if (ch === '.') continue
+      if (r >= 9 && r <= 12 && c >= 4 && c <= 17 && !FACE_KEYS.includes(ch)) out.push(`row ${r} col ${c} is ${ch}, not a face key`)
+      if (r <= 2 && c >= 20 && c <= 22) out.push(`row ${r} col ${c} is in the mark slot`)
+      else if (c < 2 || c > 19) out.push(`row ${r} col ${c} is outside the avatar crop`)
+    }
+  }
   return out
 }
 
@@ -1043,3 +1143,4 @@ export function drawSprite(
     }
   }
 }
+

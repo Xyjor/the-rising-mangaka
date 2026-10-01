@@ -2,11 +2,14 @@
 // the outline closed on every row. Pure data, the default node environment.
 import { describe, expect, it } from 'vitest'
 import {
+  ANCHOR_HEAD, COLLAR_CELLS, GENERATED_MANGAKA, breathOf, pressOf, withCollar,
   ASSISTANT_DOZE, ASSISTANT_PALS, CAT_GROOM, CAT_SIT, CAT_SLEEP, CAT_STRETCH, CAT_WALK, EDITOR_IDLE, EDITOR_WALK, HUMAN_FRAMES,
   MANGAKA_IDLE, MANGAKA_LIE, MANGAKA_PANIC, MANGAKA_SIP, MANGAKA_SIT, MANGAKA_STRETCH, MANGAKA_WALK, OUTFIT_PALS, PAL,
-  PROP_CONTRACT, PROP_ENVELOPE, PROP_LETTER, PROP_PAL, PROP_TROPHY, frameRules, outfitOf,
+  PROP_CONTRACT, PROP_ENVELOPE, PROP_LETTER, PROP_PAL, PROP_TROPHY, faceRules, frameRules, outfitOf,
 } from '../sprites'
+import type { SpriteMap } from '../sprites'
 import { LOOK_HAIRS, LOOK_HAIRS_SHADE, LOOK_SHIRTS, LOOK_SHIRTS_SHADE } from '../../looks'
+import { runCount } from '../../art/pixelOps'
 
 describe('the sprites', () => {
   it('passes the frame rules for every 24x32 frame, the 30x14 bed pose and the 12x8 cat', () => {
@@ -28,6 +31,22 @@ describe('the sprites', () => {
     expect(frameRules(PROP_TROPHY, 5, 6, PROP_PAL)).toEqual([])
     // a prop key is not a person's
     expect(frameRules(PROP_ENVELOPE, 6, 4)).not.toEqual([]) // its paper-line l
+  })
+
+  it('faceRules: the FACES window holds only face keys, the mark slot is clear, the head stays in the avatar crop', () => {
+    expect(faceRules(MANGAKA_IDLE[0])).toEqual([])
+    // hair inside the FACES window (rows 9-12, cols 4-17)
+    const hair = MANGAKA_IDLE[0].slice()
+    hair[10] = hair[10].slice(0, 5) + 'H' + hair[10].slice(6)
+    expect(faceRules(hair)).toEqual(['row 10 col 5 is H, not a face key'])
+    // something in the mark slot (rows 0-2, cols 20-22)
+    const mark = MANGAKA_IDLE[0].slice()
+    mark[1] = mark[1].slice(0, 21) + 'L' + mark[1].slice(22)
+    expect(faceRules(mark)).toContain('row 1 col 21 is in the mark slot')
+    // the head spilling out of the avatar crop (rows 0-15, cols 2-19)
+    const wide = MANGAKA_IDLE[0].slice()
+    wide[4] = 'L' + wide[4].slice(1)
+    expect(faceRules(wide)).toEqual(['row 4 col 0 is outside the avatar crop'])
   })
 
   it('reports a short row, an unknown key and an empty last row', () => {
@@ -129,5 +148,51 @@ describe('the sprites', () => {
     expect(OUTFIT_PALS.cardigan.j).toBe('#a8832f')
     expect(OUTFIT_PALS.blazer.J).toBe('#2e3a78')
     expect(OUTFIT_PALS.blazer.j).toBe('#222b5c')
+  })
+
+  it('keeps the anchor head (the graft and the staff portrait) equal to the standing frame rows 0-15', () => {
+    expect(ANCHOR_HEAD).toEqual(MANGAKA_IDLE[0].slice(0, 16))
+    expect(faceRules(ANCHOR_HEAD.concat(MANGAKA_IDLE[0].slice(16)))).toEqual([])
+  })
+
+  it('derives the breath, the collar and the press the way the hand-drawn frames have them', () => {
+    // the breath: rows 0-23 a row lower, the hem row 24 tucked under; exactly the hand-drawn idle's frame 1
+    expect(breathOf(MANGAKA_IDLE[0])).toEqual(MANGAKA_IDLE[1])
+    // the collar and tie cells are where the hand-drawn idle and seated frames have them
+    for (const f of [MANGAKA_IDLE[0], MANGAKA_SIT[0], MANGAKA_SIT[1]]) expect(withCollar(f)).toEqual(f)
+    for (const [r, c, k] of COLLAR_CELLS) expect(MANGAKA_IDLE[0][r][c], `row ${r} col ${c}`).toBe(k)
+    // the press: rows 0-3 a row lower, row 4 dropped, the rest unchanged
+    const p = pressOf(MANGAKA_PANIC[0])
+    expect([p[0], p[1], p.slice(5)]).toEqual(['.'.repeat(24), MANGAKA_PANIC[0][0], MANGAKA_PANIC[0].slice(5)])
+  })
+
+  it('validates the generated mangaka frames (the --sprite candidates) against the frame and face rules', () => {
+    const { idle, walk, sit, panic, lie } = GENERATED_MANGAKA
+    ;[...idle, ...walk, ...sit, ...panic].forEach((f, i) => expect(frameRules(f), `generated frame ${i}`).toEqual([]))
+    expect(frameRules(lie, 30, 14)).toEqual([])
+    // the head-steady ones take the FACES overlay (grafted: art/manifest.json graft "anchor-head")
+    for (const f of [...idle, ...sit]) expect(faceRules(f)).toEqual([])
+    for (const f of [idle[0], ...sit]) expect(f.slice(0, 16)).toEqual(ANCHOR_HEAD)
+    expect(idle[1].slice(1, 17)).toEqual(ANCHOR_HEAD) // the breath, a row lower
+    // the hoodie snapped to J/j (so the outfits swap it), the trousers to T/t; the collar and tie re-applied
+    for (const f of [...idle, ...walk, ...sit]) expect(f.join('')).toMatch(/J[^]*T/)
+    for (const f of [...idle, ...sit]) for (const k of ['K', 'Y', 'y']) expect(f.join('')).toContain(k)
+  })
+
+  it('keeps every generated frame within 1.25x the fills of the hand-drawn frame it would replace', () => {
+    // recorded in the task C1 report: idle 159/195 and 156/192, walk 144/198 139/178 137/198 122/178,
+    // sit 198/184 and 197/187, panic 210/254 and 205/250, bed 48/72
+    const pairs: [SpriteMap, SpriteMap][] = [
+      ...GENERATED_MANGAKA.idle.map((f, i) => [f, MANGAKA_IDLE[i]] as [SpriteMap, SpriteMap]),
+      ...GENERATED_MANGAKA.walk.map((f, i) => [f, MANGAKA_WALK[i]] as [SpriteMap, SpriteMap]),
+      ...GENERATED_MANGAKA.sit.map((f, i) => [f, MANGAKA_SIT[i]] as [SpriteMap, SpriteMap]),
+      ...GENERATED_MANGAKA.panic.map((f, i) => [f, MANGAKA_PANIC[i]] as [SpriteMap, SpriteMap]),
+      [GENERATED_MANGAKA.lie, MANGAKA_LIE],
+    ]
+    for (const [gen, hand] of pairs) expect(runCount(gen)).toBeLessThanOrEqual(1.25 * runCount(hand))
+    expect(pairs.map(([g, h]) => [runCount(g), runCount(h)])).toEqual([
+      [159, 195], [156, 192], [144, 198], [139, 178], [137, 198], [122, 178], [198, 184], [197, 187], [210, 254],
+      [205, 250], [48, 72],
+    ])
   })
 })

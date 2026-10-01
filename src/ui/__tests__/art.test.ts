@@ -37,8 +37,33 @@ interface ManifestEntry {
   sheet?: { src: string }
 }
 
+/** A `kind: "sprite"` entry: a pose cell the `--sprite` mode turns into a string-map frame module, not a PNG. */
+interface SpriteEntry {
+  id: string
+  kind: 'sprite'
+  source: string
+  seed: number | null
+  job?: string
+  sheet: { src: string }
+  crop: [number, number, number, number]
+  frame: [number, number]
+  keys: string
+  name: string
+  graft?: string
+  cells?: [number, number, string][]
+}
+
+function loadAll(): (ManifestEntry | SpriteEntry)[] {
+  return JSON.parse(readFileSync(MANIFEST_PATH, 'utf8')) as (ManifestEntry | SpriteEntry)[]
+}
+
+/** The image entries (every one a PNG under src/assets/art); the sprite entries are checked on their own. */
 function loadManifest(): ManifestEntry[] {
-  return JSON.parse(readFileSync(MANIFEST_PATH, 'utf8')) as ManifestEntry[]
+  return loadAll().filter((e) => (e as SpriteEntry).kind !== 'sprite') as ManifestEntry[]
+}
+
+function loadSprites(): SpriteEntry[] {
+  return loadAll().filter((e) => (e as SpriteEntry).kind === 'sprite') as SpriteEntry[]
 }
 
 function pngPathFor(id: string): string {
@@ -116,12 +141,12 @@ describe('art manifest', () => {
   const manifest = loadManifest()
 
   it('has unique ids', () => {
-    const ids = manifest.map((e) => e.id)
+    const ids = loadAll().map((e) => e.id)
     expect(new Set(ids).size).toBe(ids.length)
   })
 
   it('names its host: a Hugging Face Space with a seed, or a Higgsfield job id instead of a seed', () => {
-    for (const entry of manifest) {
+    for (const entry of loadAll()) {
       if (entry.source === 'hf-space:mcp-tools/Z-Image-Turbo') {
         expect(typeof entry.seed, `${entry.id} seed`).toBe('number')
       } else {
@@ -192,6 +217,25 @@ describe('art manifest', () => {
     expect(manifest.filter((e) => e.holes !== undefined).map((e) => [e.id, e.holes])).toEqual([['prop/chair', [[193, 254]]]])
     for (const e of manifest.filter((x) => x.holes)) {
       for (const [hx, hy] of e.holes!) expect(hx >= 0 && hy >= 0 && hx < e.crop![2] && hy < e.crop![3], e.id).toBe(true)
+    }
+  })
+
+  it('turns each sprite entry into a generated frame module (the --sprite mode), from a committed raw sheet', () => {
+    const sprites = loadSprites()
+    expect(sprites.length).toBeGreaterThan(0)
+    for (const e of sprites) {
+      expect(e.id, e.id).toMatch(/^sprite\/[a-z0-9-]+$/)
+      expect(statSync(join(ROOT, 'art', 'raw', e.sheet.src)).isFile(), `raw sheet for ${e.id}`).toBe(true)
+      expect([[24, 32], [30, 14]], `${e.id} frame`).toContainEqual(e.frame)
+      expect(e.keys, `${e.id} keys`).toMatch(/^[A-Za-z]+$/)
+      expect(e.keys, `${e.id} keys has the outline`).toContain('L')
+      expect([undefined, 'anchor-head'], `${e.id} graft`).toContain(e.graft)
+      const [cx, cy, cw, ch] = e.crop
+      expect(cx >= 0 && cy >= 0 && cx + cw <= 2048 && cy + ch <= 1152, `${e.id} crop`).toBe(true)
+      const mod = readFileSync(join(SCENE_DIR, 'generated', `${e.id.slice(7)}.ts`), 'utf8')
+      expect(mod, e.id).toContain(`npm run art -- ${e.id}`)
+      expect(mod, e.id).toContain(`export const ${e.name}: string[] = [`)
+      expect(mod.includes('graft: anchor-head'), `${e.id} records its graft`).toBe(e.graft === 'anchor-head')
     }
   })
 
