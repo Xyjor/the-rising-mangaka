@@ -95,7 +95,7 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   window pane; `render.ts` holds the palettes, string-map sprites and `render`, one frame painted from a `Snapshot`
   with nothing allocated per frame (`Snapshot.late` turns the seated mangaka to the panic frames); `sceneArt.ts`
   `SceneArt` (render's last argument, default `NO_ART`): generated room shells and prop sprites (structural, furniture, front row) drawn with
-  `drawImage` (`ready`, `drawProp`; a sprite keeps its aspect at `PROP_SPRITE`, placed by `placeSprite` (a desk by `hangSprite`) at render.ts's
+  `drawImage` (`ready`, `drawProp`; a sprite keeps its aspect at `PROP_SPRITE`, placed by `spriteBox` (`placeSprite` under `PROP_ALIGN`, sized by `PROP_SPRITE`/`PROP_MIN_H`/`PROP_MAX_W`; a desk by `hangSprite`) at render.ts's
   `PROP_BOX`, the fallback inside `PROP_FOOTPRINT`), each falling back to its code-drawn piece
   (`drawRoomShell`, the window frame, `TIER_DOOR`, ...) while missing or loading; `sceneImages.ts` builds them once from
   the registry's `ROOM_ART`/`SCENE_PROP_ART` (render.ts never imports the registry) and `StudioScene` repaints on a

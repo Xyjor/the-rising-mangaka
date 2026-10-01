@@ -473,7 +473,7 @@ apartment's `zabuton` and `boxes`, the flat's `fern` and `books`, the loft's `fl
 `bin`). The chairs draw before the seated mangaka (he sits in front of the backrest), the desk after him and before
 the pages, the lamp after the desk. The small pieces stay code-drawn (the ink pot, the pen and the mug, the pen
 tablet, the trophies, the pages, the bin's crumpled pages, the stock desk lamp), and so does the assistants' desk: it
-is a bench whose width grows with the staff (28 to 68 px, 12 high), which one fixed-aspect sprite cannot fill.
+is a bench whose width grows with the staff (28 to 68 px, 12 high), which one fixed-aspect sprite cannot fill. A working assistant's page and its ink lines go on after the active desk sprite whenever its box overlaps the sprite's box and the image is ready (the drafting table's left leg covers seat 3's page); otherwise they stay before it.
 
 The desks are the one exception to the rule. At the footprint's height (20 px) a desk sprite, drawn with its top in
 perspective, would be 35 px wide (the drafting table 45) under a 58 px desk top, and the pages (from x 121), the ink
@@ -1319,3 +1319,4 @@ generated sprites (see "The furniture" under "Scene images"):
 - The assistants' bench stays code-drawn (its width follows the staff); the pen tablet and the other small desk
   pieces too.
 - Art baselines 546/953 move to 521/928 (budgets 781.5 and 1392); 673/1079 are unchanged.
+- Final review (controller ruling): with the drafting table's image ready its left leg (x 111-122, y ~120-123) hid seat 3's page and ink lines, so a seated assistant's page is drawn after the active desk sprite when its box overlaps the sprite's box and the sprite is ready (`PAGE_UNDER_DESK`, precomputed per seat); with no image the order is unchanged. Same fill counts, baselines unchanged.

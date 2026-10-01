@@ -325,6 +325,36 @@ export const PROP_BOX: Record<ScenePropId, Footprint> = {
   bin: FRONT_BOX.bin,
 }
 
+const PAGE_X = 3
+const PAGE_Y = 120
+const PAGE_W = 6
+const PAGE_H = 4
+function pagesOverlap(box: Footprint): boolean[] {
+  return ASSISTANT_SEAT_X.map((x) => x + PAGE_X < box.x + box.w && x + PAGE_X + PAGE_W > box.x
+    && PAGE_Y < box.y + box.h && PAGE_Y + PAGE_H > box.y)
+}
+/** Per seat: its page (and ink lines) overlaps the desk sprite's box, so the sprite would cover it. */
+const PAGE_UNDER_DESK: Record<'desk' | 'drafting-table', boolean[]> = {
+  desk: pagesOverlap(PROP_BOX.desk),
+  'drafting-table': pagesOverlap(PROP_BOX['drafting-table']),
+}
+
+/**
+ * The working assistants' pages and their ink lines. A page the ready desk sprite would cover is drawn after the
+ * desk (`afterDesk`), the rest before it, as always; without the sprite every page is drawn before.
+ */
+function drawPages(ctx: CanvasRenderingContext2D, s: Snapshot, shown: number, afterDesk: boolean, deskSpriteReady: boolean) {
+  const under = PAGE_UNDER_DESK[s.owned['drafting-table'] ? 'drafting-table' : 'desk']
+  const inked = Math.round(s.progress * 3)
+  for (let i = 0; i < shown; i++) {
+    const actor = s.actors.assistants[i]
+    if (actor.state !== 'seated') continue
+    if ((deskSpriteReady && under[i]) !== afterDesk) continue
+    rawRect(ctx, actor.x + PAGE_X, PAGE_Y, PAGE_W, PAGE_H, PROP_PAPER)
+    for (let k = 0; k < inked; k++) rawRect(ctx, actor.x + 4, 121 + k, 4, 1, PROP_LINE)
+  }
+}
+
 /** `drawProp` at the prop's sprite box (its image) or its footprint (its fallback fills, which carry their own coordinates). */
 function prop(ctx: CanvasRenderingContext2D, art: SceneArt, id: ScenePropId, fallback: Fallback) {
   const b = PROP_BOX[id]
@@ -338,6 +368,7 @@ function prop(ctx: CanvasRenderingContext2D, art: SceneArt, id: ScenePropId, fal
 function equipment(
   ctx: CanvasRenderingContext2D, s: Snapshot, art: SceneArt, id: EquipmentId, frame: number, night: boolean,
 ) {
+  // mirrors drawProp's ready-or-fallback rule (equipment fallbacks take (s, frame, night), so drawProp cannot be used)
   const sprite = EQUIPMENT_SPRITE[id]
   const img = sprite === null ? null : art.prop[sprite]
   if (sprite !== null && ready(img)) {
@@ -450,9 +481,10 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
   // whichever stands there), else under the code-drawn desk (x 116, 58 wide, y 118)
   const deskId: ScenePropId = s.owned['drafting-table'] ? 'drafting-table' : 'desk'
   const deskBox = PROP_BOX[deskId]
+  const deskSpriteReady = ready(art.prop[deskId])
   // contact shadows on the floor: the fridge, the counter, the bookshelf, the desk and the bed
   shadow(ctx, 2, 114, 16); shadow(ctx, 20, 114, 42); shadow(ctx, shelfX, 114, shelfW)
-  if (ready(art.prop[deskId])) shadow(ctx, deskBox.x, deskBox.y + deskBox.h, deskBox.w)
+  if (deskSpriteReady) shadow(ctx, deskBox.x, deskBox.y + deskBox.h, deskBox.w)
   else shadow(ctx, 116, 118, 58)
   shadow(ctx, 192, 128, 58)
 
@@ -527,15 +559,7 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
     const dw = 8 + 20 * shown
     shadow(ctx, 62, 132, dw)
     rawRect(ctx, 62, 120, dw, 3, '#8b5a2b'); rawRect(ctx, 62, 123, dw, 9, '#70461f')
-    if (working) {
-      const inked = Math.round(s.progress * 3)
-      for (let i = 0; i < shown; i++) {
-        const actor = s.actors.assistants[i]
-        if (actor.state !== 'seated') continue
-        rawRect(ctx, actor.x + 3, 120, 6, 4, PROP_PAPER)
-        for (let k = 0; k < inked; k++) rawRect(ctx, actor.x + 4, 121 + k, 4, 1, PROP_LINE)
-      }
-    }
+    if (working) drawPages(ctx, s, shown, false, deskSpriteReady)
   }
   // chair (before the player: they sit in it)
   if (s.owned.chair) equipment(ctx, s, art, 'chair', frame, night)
@@ -547,6 +571,8 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
   // desk (or the drafting table in its place) and the lamp
   if (s.owned['drafting-table']) equipment(ctx, s, art, 'drafting-table', frame, night)
   else prop(ctx, art, 'desk', stockDesk)
+  // the pages the desk sprite would cover (its box overlaps theirs) go on top of it
+  if (working && s.assistants.length) drawPages(ctx, s, Math.min(3, s.assistants.length), true, deskSpriteReady)
   if (s.owned.lamp) equipment(ctx, s, art, 'lamp', frame, night)
   else { rect(ctx, 100, 50, 1, 12, '#3b3b45'); rect(ctx, 96, 47, 9, 4, '#3fa66c'); if (night || working) rect(ctx, 97, 51, 7, 2, '#fff2a8') }
   const stack = Math.round(1 + s.progress * 8)

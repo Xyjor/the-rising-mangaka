@@ -946,6 +946,26 @@ describe('furniture, equipment and the front row as sprites (0.10.0 P1)', () => 
     return i!.at
   }
 
+  it('draws seat 3 page and its ink lines after the drafting table sprite that overlaps them, and keeps the old order otherwise', () => {
+    const crew = [{ look: 0, stamina: 80 }, { look: 1, stamina: 80 }, { look: 2, stamina: 80 }]
+    const owned = { ...NONE, 'drafting-table': true }
+    const isPage = (f: FillCall) => f.style === '#fdfcf7' && f.x === 109 && f.y === 120 && f.w === 6 && f.h === 4
+    const isLine = (f: FillCall) => f.style === '#b8b2a5' && f.x === 110 && f.w === 4 && f.h === 1 && f.y >= 121
+    const { log, images } = paint({ owned, assistants: crew, progress: 1 })
+    const d = imageAt(images, 'drafting-table')
+    const page = log.findIndex(isPage)
+    expect(page).toBeGreaterThanOrEqual(d)
+    log.forEach((f, i) => { if (isLine(f)) expect(i).toBeGreaterThanOrEqual(d) })
+    expect(log.filter(isLine)).toHaveLength(3)
+    // the desk image is drawn once, so nothing of it lands after the page
+    expect(images.filter((im) => im.id === 'drafting-table')).toHaveLength(1)
+    // the drafting table still loading: pages before the (code-drawn) desk, as before
+    const loading = { ...fakeSceneArt(), prop: { ...fakeSceneArt().prop, 'drafting-table': null } }
+    const old = paint({ owned, assistants: crew, progress: 1 }, 0.3, loading)
+    expect(old.log.findIndex(isPage)).toBeGreaterThan(-1)
+    expect(old.log.findIndex(isPage)).toBeLessThan(old.log.findIndex((f) => f.style === '#fdfcf7' && f.x === 121))
+  })
+
   it('draws the chair before the seated mangaka and the desk after him, before the pages, the stock pieces and the owned ones alike', () => {
     for (const [owned, chair, desk] of [[NONE, 'chair', 'desk'], [ALL, 'tall-chair', 'drafting-table']] as const) {
       const { log, images } = paint({ owned })
