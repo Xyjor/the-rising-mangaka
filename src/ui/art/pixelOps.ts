@@ -515,3 +515,19 @@ export function remapSeam(
   out.data.set(floor.data, wall.data.length)
   return out
 }
+
+/**
+ * Mirrors an image left to right (a new image; the source is untouched). For a sheet object drawn facing the wrong way
+ * for its place in the scene, such as the arm lamp, whose shade must lean left over the page.
+ */
+export function flipHorizontal(src: RgbaImage): RgbaImage {
+  const out = makeImage(src.width, src.height)
+  for (let y = 0; y < src.height; y++) {
+    for (let x = 0; x < src.width; x++) {
+      const from = (y * src.width + x) * 4
+      const to = (y * src.width + (src.width - 1 - x)) * 4
+      out.data.set(src.data.subarray(from, from + 4), to)
+    }
+  }
+  return out
+}

@@ -6,6 +6,7 @@ import {
   downsampleArea,
   downsampleNearest,
   findBlobs,
+  flipHorizontal,
   floodTransparentFromEdges,
   makeImage,
   nearestPaletteIndex,
@@ -446,5 +447,27 @@ describe('remapSeam', () => {
     expect(() => remapSeam(src, 0, 4, 10, 5, 'area')).toThrow()
     expect(() => remapSeam(src, 10, 4, 10, 5, 'area')).toThrow()
     expect(() => remapSeam(src, 5, 4, 10, 10, 'area')).toThrow()
+  })
+})
+
+describe('flipHorizontal', () => {
+  it('mirrors every row left to right, alpha included, and leaves the source alone', () => {
+    const src = makeImage(3, 2)
+    setPixel(src, 0, 0, 255, 0, 0)
+    setPixel(src, 1, 0, 0, 255, 0, 128)
+    setPixel(src, 2, 1, 0, 0, 255)
+    const out = flipHorizontal(src)
+    expect([out.width, out.height]).toEqual([3, 2])
+    expect(Array.from(out.data.slice(8, 12))).toEqual([255, 0, 0, 255])
+    expect(Array.from(out.data.slice(4, 8))).toEqual([0, 255, 0, 128])
+    expect(Array.from(out.data.slice(0, 4))).toEqual([0, 0, 0, 0])
+    expect(Array.from(out.data.slice(12, 16))).toEqual([0, 0, 255, 255])
+    expect(Array.from(src.data.slice(0, 4))).toEqual([255, 0, 0, 255])
+  })
+
+  it('is its own inverse', () => {
+    const src = makeImage(5, 3)
+    for (let i = 0; i < src.data.length; i++) src.data[i] = (i * 37) % 256
+    expect(Array.from(flipHorizontal(flipHorizontal(src)).data)).toEqual(Array.from(src.data))
   })
 })
