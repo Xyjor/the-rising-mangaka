@@ -63,7 +63,7 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   `saveFile.ts` owns `SAVE_VERSION`, the saved log length and the save file (`serializeSave`; `parseSave`, strict,
   every refusal a `SaveFileError`; `saveFileName`; `storedSaveFile` for the recovery screen); the store's `loadSave`
   installs a parsed file (refused in a tab that does not own the save), bumps `saveLoads` and writes at once.
-  `slots.ts` holds the three save slots: `rising-mangaka-save-1/-2/-3` (the career: game, tips step, run speed), the
+  `slots.ts` holds the three save slots: `rising-mangaka-save-1/-2/-3` (the career: game, tutorial step, run speed), the
   index `rising-mangaka-slots` (`{ active }` only) and `rising-mangaka-prefs` (theme, sound, shared by every slot);
   `migrateLegacy` runs once before the store hydrates and copies the 0.5.0 key `rising-mangaka-save` into an empty
   slot 1 (verified byte for byte, rolled back on any failure, which falls back to the old key for that run; never
@@ -73,7 +73,15 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   (flush, switch, rehydrate), `startInSlot`, `backToTitle` (Settings' "Back to the title screen"), `deleteSlot`
   (never the legacy key or the open slot), `loadSaveIntoSlot`; all refused in a read-only tab, which follows the
   owner's index and slot through its `storage` listener. `slotSummary` (`saveFile.ts`) reads a slot card's summary.
-  Sim commands go through the `apply()` helper so toasts and auto-resume stay consistent. `setWindowHidden` (from
+  Sim commands go through the `apply()` helper so toasts and auto-resume stay consistent. `tutorial.ts` is the guided
+  first career, pure: `STEPS` (twelve steps, each an anchor, the editor's line, the trigger that finishes it, its
+  phase), `stepAfter`, `resumeTutorialStep` (run by the persist `merge`, `parseSave` and `loadSave`) and
+  `firstStepFor`; the persisted `tutorialStep` is the step index per career, -1 done (a new game starts at 0). The
+  store moves it through `withTutorial(patch, trigger)`: `apply`'s optional trigger (startProject, submitProject,
+  dismissResult), `openModal`/`closeModal` on the wizard and the pitch window, `setSpeed`/`togglePause` running the
+  clock, and `advanceTutorial(trigger)` (the guide's Next); entering a step pauses through `pauseForDecision`, the
+  patch `tick`'s auto-pause uses. `skipTutorial` ends it, `replayTutorial` (Settings' Help) restarts it at the
+  game's phase. The 0.7.0 getting-started coach note (`CoachNote`, `COACH`) is gone. `setWindowHidden` (from
   the page's `visibilitychange` and the desktop shell's minimise) stops the clock and suspends the sound; the
   non-persisted `windowHidden` flag keeps that pause silent. `flushSave` writes the debounced save at once. The tab
   lock (`tabLock.ts`) runs in a browser only; the desktop app calls `disableTabLock()` (one window, single instance).

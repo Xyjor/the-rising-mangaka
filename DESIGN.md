@@ -1056,7 +1056,7 @@ included, and its right-click menu everywhere except text fields; only `npm run 
 development.
 
 **Where a career lives.** There are three careers, one per slot, each in `localStorage` under its own key,
-`rising-mangaka-save-1`, `-2` and `-3` (the game, the tips step and the run speed, the same payload and
+`rising-mangaka-save-1`, `-2` and `-3` (the game, the tutorial step and the run speed, the same payload and
 `SAVE_VERSION` as before). The index `rising-mangaka-slots` holds only `{ active: 1 | 2 | 3 | null }`, the open
 career; the device's preferences (the theme and the sound: muted, volume, music) live apart in
 `rising-mangaka-prefs`, shared by every career. The title screen lists the three slots: a filled one shows the pen
@@ -1101,6 +1101,42 @@ The clock stops whenever the game needs a decision: a manuscript becomes ready, 
 serialisation offer lands, a serial is cancelled (the desk empties), a trip ends, a random event lands, or an anime
 offer lands. Menus always pause. The year end is not a decision: it toasts and leaves a desk card, and the clock keeps
 running.
+
+### Tutorial
+A new career is walked through its first one-shot by the editor, one step at a time (`src/state/tutorial.ts`, `STEPS`;
+the guide overlay is release 0.8.0 Task A2). Each step points at one control (its anchor) and is finished by one
+trigger: the player doing the thing, or the guide's Next button (`next`). The store's `tutorialStep` is the index of
+the current step, saved per career, -1 once it is done or skipped; a new game starts at 0.
+
+| # | Step | Anchor | Finished by | Phase |
+| - | ---- | ------ | ----------- | ----- |
+| 0 | plan | the Plan a new manga button | opening the wizard | idle |
+| 1 | wizard | the wizard's steps | starting the project | idle |
+| 2 | today | the Activity control | Next | drawing |
+| 3 | stamina | the stamina badge | Next | drawing |
+| 4 | clock | the speed controls | running the clock | drawing |
+| 5 | pitch | the Pitch button | opening the pitch window | ready |
+| 6 | forecast | the magazine forecasts | submitting | ready |
+| 7 | why | the results breakdown | dismissing the result | submitted |
+| 8 | notebook | the rail's Notebook | Next | any |
+| 9 | stats | the rail's Stats | Next | any |
+| 10 | rail | the rail | Next | any |
+| 11 | goal | the next goal on the desk | Next (ends the tutorial) | any |
+
+Closing the wizard at step 1 steps back to 0, and closing the pitch window at step 6 steps back to 5 (`stepAfter`).
+Every step holds: entering one stops the clock and shows the desk, as `tick`'s auto-pause does (`pauseForDecision`),
+overriding the resume of the command that finished the step before (starting a project leaves the clock stopped on
+step 2); the one exception is running the clock, which step 4 asks for and which entering step 5 does not undo (the
+manuscript's own auto-pause stops it at step 5). Nothing locks the speed controls. With the tutorial done every
+command behaves as before.
+
+A saved step resumes against its game (`resumeTutorialStep`, on a reload, a slot opened and a save file loaded): step
+0 only on a fresh career (day 0, no history, nothing on the desk, no serial), so an old save's leftover 0 ends the
+tutorial; another step stays when its phase is the game's or any, else moves to the first later step written for the
+game's own phase, else ends. A missing or broken value reads as -1. Settings' Help section replays the tutorial
+(`replayTutorial`) from the first step for the game's phase, stopped and with the window closed; it is refused with a
+result or an offer waiting, and hidden in a read-only tab. The 0.7.0 getting-started coach note above the status
+card is gone; the tutorial replaces it.
 
 ## Roadmap
 0. Money sinks. Shipped: hiring needs two weeks of that salary in the bank; a week that ends below zero makes
@@ -1402,3 +1438,13 @@ generated sprites (see "The furniture" under "Scene images"):
   pieces too.
 - Art baselines 546/953 move to 521/928 (budgets 781.5 and 1392); 673/1079 are unchanged.
 - Final review (controller ruling): with the drafting table's image ready its left leg (x 111-122, y ~120-123) hid seat 3's page and ink lines, so a seated assistant's page is drawn after the active desk sprite when its box overlaps the sprite's box and the sprite is ready (`PAGE_UNDER_DESK`, precomputed per seat); with no image the order is unchanged. Same fill counts, baselines unchanged.
+
+**2026-10-02, the tutorial.** Release 0.8.0 Task A1 adds the guided first career's state (see "Tutorial"):
+
+- A tutorial step is a decision: entering one pauses the clock the way `tick` does (`pauseForDecision`: speed 0, the
+  desk shown) and never locks the speed controls. A trigger that runs the clock (`clock-run`) is not undone by the
+  step it opens.
+- Steps wait silently while their control is off screen.
+- `tutorialStep` is the step index per career, -1 done; `SAVE_VERSION` stays 2, and a saved step resumes through
+  `resumeTutorialStep`, whose later-step search only takes a step of the game's own phase (an `any` step never ends a
+  phase early: step 5 on an idle game ends the tutorial).
