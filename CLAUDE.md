@@ -132,7 +132,9 @@ canvas space; `story.ts` `storyLook`, the story props' five snapshot inputs read
   drawn, plus the kitchenette, the entrance, the volumes, anime poster, trophies and lights); `actors.ts` the cast as a
   table of actors (position, target, facing, pose, which axis it walks first) driven by `planActors`/`stepActors`/
   `settleActors` at `WALK_PX_PER_S`, and `EDITOR_WALK_MS`; `visitor.ts` the editor's reason for visiting, its prop and
-  its greeting; `sceneAnchor.ts` `sceneToCss` mapping scene pixels to the canvas's cover-fit CSS box; `Bubble.tsx`
+  its greeting (`sceneReasonOf` adds `tutorial`, the lowest reason: the editor stands at the spot while a tutorial step
+  is open, empty-handed and silent, walking in on a new career's step 0 through `actors.ts` `editorWalksIn`, and the
+  scene's greeting bubble hides while the guide shows); `sceneAnchor.ts` `sceneToCss` mapping scene pixels to the canvas's cover-fit CSS box; `Bubble.tsx`
   and `Pops.tsx` the DOM speech bubbles and floating money/fans/xp numbers, styled by `scene.css`;
   `StudioScene.tsx` is the component and its 24 fps frame loop (reading `studioLook` through `useShallow`, lighting
   from the presentation clock, playing the `knock` and `pop` cues); every render is checked against a hand-measured
@@ -141,7 +143,12 @@ canvas space; `story.ts` `storyLook`, the story props' five snapshot inputs read
   `render.test.ts` 509) and must stay under 1.5x it),
   `components.tsx` (Bar, Pips, Modal, RankChart), `format.ts` (money/compact/plural formatters), `Icon.tsx`
   (inline SVG icon set), `SaveFileSection.tsx` and `useSaveFile.ts` (export and load, in Settings and on the
-  title screen), and
+  title screen), `TutorialGuide.tsx` (the tutorial's overlay, mounted after `<Toasts />`: it finds the current
+  step's control by its `data-tutorial` anchor, the `TutorialAnchor` names in `state/tutorial.ts`, and draws a
+  click-through spotlight plus the editor's bubble, portalled into the dialog when the anchor is inside one; a missing
+  anchor shows nothing and the step waits; the bubble's placement is the pure `tutorialPlace.ts`; styles in
+  `tutorial.css`; a renamed or moved control keeps its anchor:
+  `TutorialGuide.test` fails otherwise), and
   `ErrorBoundary.tsx` (wraps `App` in `main.tsx`; a render crash shows a recovery screen that exports the stored save
   and starts over, or in a tab that does not own the save, reloads). Tests live in `src/ui/__tests__` and
   `src/ui/scene/__tests__`; see the UI-test docblock rule under Commands above.
@@ -207,6 +214,8 @@ canvas space; `story.ts` `storyLook`, the story props' five snapshot inputs read
 - Touch targets are at least 44px on coarse pointers (`base.css` handles `.btn`, `.seg button`, `.steps button`,
   `.toast button`, `.rail .btn` and `.badge-hud.as-button`).
 - Colours come from tokens (`var(--accent)` etc.), never raw hex in components. Both themes must work.
+- Stacking uses the z tokens (`tokens.css`): `--z-hud` 5, `--z-toast` 40, `--z-guide` 50 (the tutorial guide);
+  open dialogs sit in the browser's top layer above all of them. `--scrim` is the guide's dim.
 - Charts: one axis, thin marks, direct label on the last point, hover tooltip, a table view alongside.
 - Every result explains itself (the "show the why" pillar). Never add a hidden modifier without a UI hint.
 - On phones (<= 640 px) the studio scene collapses to a fixed 38vh band above the desk tray (`stage.css`); DOM order,

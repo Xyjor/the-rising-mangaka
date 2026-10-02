@@ -1104,7 +1104,7 @@ running.
 
 ### Tutorial
 A new career is walked through its first one-shot by the editor, one step at a time (`src/state/tutorial.ts`, `STEPS`;
-the guide overlay is release 0.8.0 Task A2). Each step points at one control (its anchor) and is finished by one
+the guide overlay is `src/ui/TutorialGuide.tsx`, below). Each step points at one control (its anchor) and is finished by one
 trigger: the player doing the thing, or the guide's Next button (`next`). The store's `tutorialStep` is the index of
 the current step, saved per career, -1 once it is done or skipped; a new game starts at 0.
 
@@ -1145,6 +1145,36 @@ the tutorial (`replayTutorial`) from the first step for the game's phase, stoppe
 refused with a result or an offer waiting, and hidden in a read-only tab. A tutorial replayed on a played career's
 empty desk starts at step 0, which only a fresh career keeps on resume, so it ends if the game is reloaded before the
 wizard opens. The 0.7.0 getting-started coach note above the status card is gone; the tutorial replaces it.
+
+**The guide** (`TutorialGuide.tsx`, `tutorial.css`, mounted after the toasts while a step is open, a game is loaded
+and the tab owns the save). Each step's control carries `data-tutorial="<anchor>"` (the Plan button, both of them, the
+wizard's steps, the Activity control, the stamina badge, the speed controls, the Pitch button, the magazine list, the
+score breakdown, the rail's Notebook and Stats, the rail, the next goal); the guide finds it, and re-finds it once a
+frame at most after a store update, a resize, a scroll, a node added or removed, a dialog or the desk changing, or an
+animation ending. Over the studio a fixed layer (`--z-guide`) cuts a hole at the control: a 3px gold ring with hard
+corners whose spread shadow is the dim (`--scrim`). The layer takes no clicks, so the studio, the hotkeys and the rail
+stay usable; nothing is locked. When the control is inside an open dialog (steps 1, 6, 7) the guide is portalled into
+that dialog after its body (so the window's autofocus never lands on it) and draws only the ring, since the backdrop
+already dims. The editor's bubble (pixel frame, "Editor", the step's line) sits above the control, below it when there
+is no room, beside it when neither fits (beside first on the desktop's vertical rail, so it never covers the next
+buttons; `tutorialPlace.ts`), kept 12px inside the viewport or the dialog, with a tail toward the control; it carries "Skip the
+tutorial" always and "Next" (or "Done" on the last step) on the steps Next finishes. Enter in the bubble is Next; an
+info step hands focus to Next on entry, an action step leaves focus alone; there is no global Escape.
+
+*The waiting rule:* a step whose control is not on screen shows nothing and waits: the control is not rendered
+(the pitch step before the manuscript is ready), it sits in the tucked-away desk, or it is on the page behind another
+window the player opened. The guide never pops anything up to make its control appear.
+
+*Phones* (640 px and below): on entering a step the control scrolls into view, the bubble docks as a bottom sheet
+(12px from the sides and the bottom; in a dialog, just above its footer, which holds the step's own button), and the
+toasts, bottom-docked on phones, move up by the sheet's height (`.app[data-tutorial]`, `--tutorial-sheet`).
+
+*The editor's visit:* `tutorial` is the lowest `VisitorReason` (`sceneReasonOf`): while a step is open and nothing else
+brings the editor, they walk in at step 0 (a new career's scene mounts with them outside the door, `editorWalksIn`;
+a replay walks them in too) and knock on arrival, empty-handed, stand there through the tutorial (a reload on a later
+step finds them already standing), and walk out when it ends or is skipped. Any real reason (results, offer, a ready manuscript, a card) takes
+the visit as before, and the results and offer still mount off the real reasons only. The scene's greeting bubble
+hides while a step shows: the guide's bubble speaks for the editor.
 
 ## Roadmap
 0. Money sinks. Shipped: hiring needs two weeks of that salary in the bank; a week that ends below zero makes
