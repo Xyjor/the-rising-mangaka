@@ -264,6 +264,17 @@ describe('art manifest', () => {
     }
   })
 
+  it('remaps the doze\'s folded arms (rows 27-30) from the torso J to the sleeves j, as the mangaka\'s body (task B3)', () => {
+    const doze = loadSprites().find((e) => e.id === 'sprite/assistant-doze')
+    expect(doze?.remap).toEqual([{ rows: [27, 30], from: 'J', to: 'j' }])
+    // and the generated module carries it: no J on those rows (the eight manifest cells touch none of them)
+    const mod = readFileSync(join(SCENE_DIR, 'generated', 'assistant-doze.ts'), 'utf8')
+    const rows = [...mod.matchAll(/^\s+'([.A-Za-z]{24})', \/\/ (\d+)$/gm)].map((m) => [Number(m[2]), m[1]] as const)
+    expect(rows).toHaveLength(32)
+    for (const [r, row] of rows) if (r >= 27 && r <= 30) expect(row, `row ${r}`).not.toContain('J')
+    expect(rows.filter(([r]) => r >= 27 && r <= 30).some(([, row]) => row.includes('j'))).toBe(true)
+  })
+
   it('has no generated frame module without a non-retired sprite entry', () => {
     const live = new Set(loadSprites().filter((e) => !e.retired).map((e) => `${e.id.slice(7)}.ts`))
     const onDisk = readdirSync(join(SCENE_DIR, 'generated')).filter((f) => f.endsWith('.ts'))

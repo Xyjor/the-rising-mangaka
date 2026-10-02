@@ -264,159 +264,95 @@ export const MANGAKA_WALK: readonly [SpriteMap, SpriteMap, SpriteMap, SpriteMap]
   [...ANCHOR_HEAD, ...WALK_CONTACT_0], WALK_PASS, [...ANCHOR_HEAD, ...WALK_CONTACT_2], WALK_PASS,
 ]
 
+/** The seated lap and legs (rows 25-31, task B3), shared by both sit frames and the panic: the thighs F forward to the
+ * desk (left) with their underside in shade f, the knee at the left end, the shins dropping under it at cols 1-6 to
+ * the shoe O/o on its L sole. Rows 29-30 stay inside cols 1-6, clear of the pen tablet (render.test's tablet box). */
+const SIT_LAP: SpriteMap = [
+  '.LFFFFFFFFFFFFFfL.......', // 25
+  '.LFFFFFFFFFFFFFfL.......', // 26
+  '.LFFFFFfffffffffL.......', // 27
+  '.LFFFfLLLLLLLLLLL.......', // 28
+  '.LFFFfL.................', // 29
+  '.LOOOoL.................', // 30
+  '.LLLLLL.................', // 31
+]
+
 /**
- * Seated at the desk: the anchor's head and body, the leading arm out along rows 21-23 to the pen (col 0), the lap on
- * rows 24-29 toward the desk, the shins and shoes at cols 1-6. Frame 1 is the stroke: the hand a row lower.
+ * Seated at the desk (task B3): ANCHOR_HEAD over the idle's shoulders (rows 16-19: the K collar, the R V, the Y
+ * drawstring, both sleeves j at the shoulders), then the leading arm bends out along the desk on rows 20-21 to the hand
+ * round the pen (row 22, S with its s beside the pen's L at col 0, the pen's tip two rows above the fist), the trailing
+ * sleeve hanging as the idle's to its hand on row 22, and the hem over the lap (SIT_LAP) toward the desk. Frame 1 is
+ * the stroke: the forearm, the hand and the pen a row lower (rows 20-24), everything else shared, so only the hand
+ * moves. No y shade on the drawstring (PAL.y is blue, which would speckle the hoodie's white cord; the idle has none).
  */
+const SIT_0: SpriteMap = [
+  ...ANCHOR_HEAD,
+  ...IDLE_BODY.slice(0, 4), // 16-19: the shoulders, collar, V and the sleeves at the shoulders, as the idle
+  'L.LjjjjLJJJYJJjLjjjL....', // 20 the pen's tip; the leading forearm turns out along the desk
+  'LLjjjjjLJJJYJJjLjjjL....', // 21
+  'LSSsLLLLJJJYJJjLSSsL....', // 22 the hand round the pen (its L at col 0); the trailing hand, as the idle's
+  'LLLL...LJJJJJJjLLLL.....', // 23
+  '.LLLLLLLjjjjjjjjL.......', // 24 the hem over the lap's top edge, out to the knee
+  ...SIT_LAP,
+]
 export const MANGAKA_SIT: readonly [SpriteMap, SpriteMap] = [
+  SIT_0,
   [
-    '......LLLLLLLLLL........', // 0
-    '....LLHHHHHHHHHhLL......', // 1
-    '...LHHHHHHHHHHHHhhL.....', // 2
-    '..LHHHHHHHHHHHHHHhhL....', // 3
-    '..LHHHHHHHHHHHHHHhhL....', // 4
-    '..LHHHHHHHHHHHHHHhhL....', // 5
-    '..LHHHSHHHHSHHHHHhhL....', // 6
-    '..LHSSSSSSSSSSSSSShL....', // 7
-    '..LHSSSSSSSSSSSSSSsL....', // 8
-    '..LHSSEESSSSSSEESSsL....', // 9
-    '..LHSSEWSSSSSSEWSSsL....', // 10
-    '..LHSSEESSSSSSEESSsL....', // 11
-    '..LSBBSSSSMMSSSSBBsL....', // 12
-    '...LSSSSSSSSSSSSSSsL....', // 13
-    '....LSSSSSSSSSSSSsL.....', // 14
-    '.....LLsssssssssLL......', // 15
-    '......LJKKsssKKjL.......', // 16
-    '.....LJJJKRYRKJjjL......', // 17
-    '....LJJJJJRYRJJJjjL.....', // 18
-    '....LJJJJJWyWJJJjjL.....', // 19
-    'L...LJJLJJRYRJJLjjL.....', // 20
-    'LLLLLJJLJJWyWJJLjjL.....', // 21
-    'LSSJJJJLJJRYRJJLSsL.....', // 22
-    'LLLLLLLLJJJJJJJLLL......', // 23
-    '.LLLLLLLjjjjjjjjL.......', // 24
-    '.LTTTTTTTTTTTTTtL.......', // 25
-    '.LTTTTTTTTTTTTTtL.......', // 26
-    '.LTTTTTTTTTTTTttL.......', // 27
-    '.LttttttttttttttL.......', // 28
-    '.LLLLLLLLLLLLLLLL.......', // 29
-    '.LOOOoL.................', // 30
-    '.LLLLLL.................', // 31
+    ...SIT_0.slice(0, 20),
+    '...LjjjLJJJYJJjLjjjL....', // 20 the sleeve hangs a row longer
+    'L.LjjjjLJJJYJJjLjjjL....', // 21 the pen's tip; the forearm turns out a row lower
+    'LLjjjjjLJJJYJJjLSSsL....', // 22 the trailing hand stays
+    'LSSsLLLLJJJJJJjLLLL.....', // 23 the hand round the pen, a row lower: the stroke
+    'LLLLLLLLjjjjjjjjL.......', // 24 the pen's end on the lap's top edge
+    ...SIT_LAP,
   ],
-  [
-    '......LLLLLLLLLL........', // 0
-    '....LLHHHHHHHHHhLL......', // 1
-    '...LHHHHHHHHHHHHhhL.....', // 2
-    '..LHHHHHHHHHHHHHHhhL....', // 3
-    '..LHHHHHHHHHHHHHHhhL....', // 4
-    '..LHHHHHHHHHHHHHHhhL....', // 5
-    '..LHHHSHHHHSHHHHHhhL....', // 6
-    '..LHSSSSSSSSSSSSSShL....', // 7
-    '..LHSSSSSSSSSSSSSSsL....', // 8
-    '..LHSSEESSSSSSEESSsL....', // 9
-    '..LHSSEWSSSSSSEWSSsL....', // 10
-    '..LHSSEESSSSSSEESSsL....', // 11
-    '..LSBBSSSSMMSSSSBBsL....', // 12
-    '...LSSSSSSSSSSSSSSsL....', // 13
-    '....LSSSSSSSSSSSSsL.....', // 14
-    '.....LLsssssssssLL......', // 15
-    '......LJKKsssKKjL.......', // 16
-    '.....LJJJKRYRKJjjL......', // 17
-    '....LJJJJJRYRJJJjjL.....', // 18
-    '....LJJJJJWyWJJJjjL.....', // 19
-    'L...LJJLJJRYRJJLjjL.....', // 20
-    'L...LJJLJJWyWJJLjjL.....', // 21
-    'LLLLLJJLJJRYRJJLSsL.....', // 22
-    'LSSJJJJLJJJJJJJLLL......', // 23
-    'LLLLLLLLjjjjjjjjL.......', // 24
-    '.LTTTTTTTTTTTTTtL.......', // 25
-    '.LTTTTTTTTTTTTTtL.......', // 26
-    '.LTTTTTTTTTTTTttL.......', // 27
-    '.LttttttttttttttL.......', // 28
-    '.LLLLLLLLLLLLLLLL.......', // 29
-    '.LOOOoL.................', // 30
-    '.LLLLLL.................', // 31
-  ],
-] as const
+]
 
 /**
  * Seated, late on a chapter: both hands clamped on top of the head (the hands meet the hair at rows 1-3, the forearms
  * run down and out over the hair's edge, the elbows out at cols 0-3 and 20-23), ringed eyes, the mouth open. This
  * replaces the earlier ruling's fists beside the head (rows 5-8): with the arms raised and the elbows out, the hands
- * on top read as hands, not ears. Frame 1 presses them a row lower (rows 2-3).
+ * on top read as hands, not ears. Task B3 made the raised arms j sleeves (a cuff under each hand on row 3, the upper
+ * arms out along row 16 over the collar, closed under by row 17) and put the stretch's lone torso (rows 18-23) over
+ * SIT_LAP under them. Frame 1 presses the hands a row lower (rows 2-3); rows 4-31 are frame 0's.
  */
+const PANIC_0: SpriteMap = [
+  '..LLLLLLLLLLLLLLLLLL....', // 0
+  '..LSSLHHHHHHHHHHLSsL....', // 1  the hands on top of the head
+  '.LSSSLHHHHHHHHHHhLSsL...', // 2
+  '.LjjLHHHHHHHHHHHHhLjjL..', // 3  the cuffs: the sleeves run down beside the head
+  'LjjLHHHHHHHHHHHHHhhLjjL.', // 4
+  'LjjLHHHHHHHHHHHHHhhLLjjL', // 5
+  'LjjLHHSHHHHSHHHHHhhLLjjL', // 6
+  'LjjLSSSSSSSSSSSSSShLLjjL', // 7
+  'LjjLSSSSSSSSSSSSSSsLLjjL', // 8
+  'LjLHSWWWSSSSSWWWSSsLLjjL', // 9  the ringed eyes
+  'LjLHSWEWSSSSSWEWSSsLLjjL', // 10
+  'LjLHSWWWSSSSSWWWSSsLLjjL', // 11
+  'LjLSBBSSSLMMLSSSBBsLLjjL', // 12 the mouth open
+  'LjLLSSSSSSSSSSSSSSsLLjjL', // 13
+  'LjL.LSSSSSSSSSSSSsL.LjjL', // 14
+  'LjL..LLsssssssssLL..LjjL', // 15
+  'LjjjjjLjKKsssKKjLjjjjjjL', // 16 the upper arms out to the elbows, over the hood's shadow and the collar
+  'LLLLLLLLJKRRRKjLLLLLLLL.', // 17 the arms' undersides closed; the V
+  '......LJJJRYRJJjL.......', // 18 the torso alone under the raised arms, as the stretch's
+  ...STRETCH_0.slice(19, 24), // 19-23
+  '.LLLLLLLjjjjjjjjL.......', // 24 the hem over the lap's top edge, as the sit
+  ...SIT_LAP,
+]
 export const MANGAKA_PANIC: readonly [SpriteMap, SpriteMap] = [
-  [
-    '..LLLLLLLLLLLLLLLLLL....', // 0
-    '..LSSLHHHHHHHHHHLSsL....', // 1
-    '.LSSSLHHHHHHHHHHhLSsL...', // 2
-    '.LJJLHHHHHHHHHHHHhLJjL..', // 3
-    'LJJLHHHHHHHHHHHHHhhLJjL.', // 4
-    'LJJLHHHHHHHHHHHHHhhLLJjL', // 5
-    'LJJLHHSHHHHSHHHHHhhLLJjL', // 6
-    'LJJLSSSSSSSSSSSSSShLLJjL', // 7
-    'LJJLSSSSSSSSSSSSSSsLLJjL', // 8
-    'LJLHSWWWSSSSSWWWSSsLLJjL', // 9
-    'LJLHSWEWSSSSSWEWSSsLLJjL', // 10
-    'LJLHSWWWSSSSSWWWSSsLLJjL', // 11
-    'LJLSBBSSSLMMLSSSBBsLLJjL', // 12
-    'LJLLSSSSSSSSSSSSSSsLLJjL', // 13
-    'LJL.LSSSSSSSSSSSSsL.LJjL', // 14
-    'LJL..LLsssssssssLL..LJjL', // 15
-    'LJJJJJLJJJsssJJjLJJJJJjL', // 16
-    'LLLLLLJJJJRWRJJjjLLLLLLL', // 17
-    '....LJJJJJRWRJJJjjL.....', // 18
-    '....LJJJJJWRWJJJjjL.....', // 19
-    '....LJJJJJRWRJJJjjL.....', // 20
-    '....LJJJJJWRWJJJjjL.....', // 21
-    '....LJJJJJRWRJJJjjL.....', // 22
-    '.....LLLJJJJJJJLLL......', // 23
-    '.LLLLLLLjjjjjjjjL.......', // 24
-    '.LTTTTTTTTTTTTTtL.......', // 25
-    '.LTTTTTTTTTTTTTtL.......', // 26
-    '.LTTTTTTTTTTTTttL.......', // 27
-    '.LttttttttttttttL.......', // 28
-    '.LLLLLLLLLLLLLLLL.......', // 29
-    '.LOOOoL.................', // 30
-    '.LLLLLL.................', // 31
-  ],
+  PANIC_0,
   [
     '......LLLLLLLLLL........', // 0
     '..LLLLHHHHHHHHHhLLLL....', // 1
-    '..LSSLHHHHHHHHHHhLSsL...', // 2
+    '..LSSLHHHHHHHHHHhLSsL...', // 2  the hands pressed a row lower
     '.LSSSLHHHHHHHHHHHhLSsL..', // 3
-    'LJJLHHHHHHHHHHHHHhhLJjL.', // 4
-    'LJJLHHHHHHHHHHHHHhhLLJjL', // 5
-    'LJJLHHSHHHHSHHHHHhhLLJjL', // 6
-    'LJJLSSSSSSSSSSSSSShLLJjL', // 7
-    'LJJLSSSSSSSSSSSSSSsLLJjL', // 8
-    'LJLHSWWWSSSSSWWWSSsLLJjL', // 9
-    'LJLHSWEWSSSSSWEWSSsLLJjL', // 10
-    'LJLHSWWWSSSSSWWWSSsLLJjL', // 11
-    'LJLSBBSSSLMMLSSSBBsLLJjL', // 12
-    'LJLLSSSSSSSSSSSSSSsLLJjL', // 13
-    'LJL.LSSSSSSSSSSSSsL.LJjL', // 14
-    'LJL..LLsssssssssLL..LJjL', // 15
-    'LJJJJJLJJJsssJJjLJJJJJjL', // 16
-    'LLLLLLJJJJRWRJJjjLLLLLLL', // 17
-    '....LJJJJJRWRJJJjjL.....', // 18
-    '....LJJJJJWRWJJJjjL.....', // 19
-    '....LJJJJJRWRJJJjjL.....', // 20
-    '....LJJJJJWRWJJJjjL.....', // 21
-    '....LJJJJJRWRJJJjjL.....', // 22
-    '.....LLLJJJJJJJLLL......', // 23
-    '.LLLLLLLjjjjjjjjL.......', // 24
-    '.LTTTTTTTTTTTTTtL.......', // 25
-    '.LTTTTTTTTTTTTTtL.......', // 26
-    '.LTTTTTTTTTTTTttL.......', // 27
-    '.LttttttttttttttL.......', // 28
-    '.LLLLLLLLLLLLLLLL.......', // 29
-    '.LOOOoL.................', // 30
-    '.LLLLLL.................', // 31
+    ...PANIC_0.slice(4), // 4-31
   ],
-] as const
+]
 
-/** Asleep in bed (30x14): the chibi head on the pillow (cols 12-29, eyes shut), the shoulders under the blanket. */
+/** Asleep in bed (30x14): the chibi head on the pillow (cols 12-29, eyes shut), the shoulders under the blanket: the
+ * hood's shadow j over the hoodie J, its underside in shade (task B3). */
 export const MANGAKA_LIE: SpriteMap = [
   '..............................', // 0
   '................LLLLLLLLLL....', // 1
@@ -427,18 +363,20 @@ export const MANGAKA_LIE: SpriteMap = [
   '............LHSSSSSSSSSSSSSShL', // 6
   '............LHSSSSSSSSSSSSSSsL', // 7
   'LLLLLLLLLLLLLHSSSSSSSSSSSSSSsL', // 8
-  'LJJJJJJJJJJJLHSSssSSSSSSssSSsL', // 9
-  'LJJJJJJJJJJJLSBBSSSSMMSSSSBBsL', // 10
-  'LjjjjjjjjjjL..LSSSSSSSSSSSSsL.', // 11
-  'LjjjjjjjjjjL...LLsssssssssLL..', // 12
+  'LjjjjjjjjjjjLHSSssSSSSSSssSSsL', // 9  the hood's shadow over the shoulders
+  'LJJJJJJJJJJJLSBBSSSSMMSSSSBBsL', // 10 the hoodie
+  'LJJJJJJJJJJL..LSSSSSSSSSSSSsL.', // 11
+  'LjjjjjjjjjjL...LLsssssssssLL..', // 12 its underside in shade
   'LLLLLLLLLLLL..................', // 13
 ]
 
 /**
  * An assistant asleep at the desk, generated (task C2, art/manifest.json `sprite/assistant-doze`, from the front sheet's
  * dozing cell fitted to a 20x23 box on the frame's last rows): the head down on the folded arms (rows 10-26, eyes shut,
- * eight cells touched in the manifest), the arms (J) on rows 27-30. The readability gate found it reads as dozing more
- * clearly than the hand-drawn frame it replaced (113 fills; now 100). Drawn with the assistant's palette, no mood.
+ * eight cells touched in the manifest), the arms on rows 27-30, sleeves (j) since task B3's manifest remap of their J
+ * (so they match the seated body's darker sleeves). The readability gate found it reads as dozing more clearly than
+ * the hand-drawn frame it replaced (113 fills; 100 at the gate, 91 with the remap). Drawn with the assistant's palette,
+ * no mood.
  */
 export const ASSISTANT_DOZE: SpriteMap = ASSISTANT_DOZE_C2
 

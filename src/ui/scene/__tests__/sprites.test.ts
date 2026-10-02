@@ -138,7 +138,7 @@ describe('the sprites', () => {
     // panic: both hands on top of the head, meeting the hair at rows 1-3, the raised arms' elbows out at cols 0 and 23
     expect([MANGAKA_PANIC[0][1][3], MANGAKA_PANIC[0][1][17], MANGAKA_PANIC[0][1][6]]).toEqual(['S', 'S', 'H'])
     expect([MANGAKA_PANIC[1][2][3], MANGAKA_PANIC[1][3][19], MANGAKA_PANIC[1][1][3]]).toEqual(['S', 'S', 'L'])
-    expect([MANGAKA_PANIC[0][6][1], MANGAKA_PANIC[0][6][22], MANGAKA_PANIC[0][6][0]]).toEqual(['J', 'j', 'L'])
+    expect([MANGAKA_PANIC[0][6][1], MANGAKA_PANIC[0][6][22], MANGAKA_PANIC[0][6][0]]).toEqual(['j', 'j', 'L'])
     for (const f of MANGAKA_PANIC) for (let r = 4; r <= 15; r++) expect(f[r].slice(0, 3), `row ${r}`).not.toContain('S')
     // the bed pose: 30x14, the first hair cell row 2 col 16
     expect(MANGAKA_LIE).toHaveLength(14)
@@ -148,9 +148,10 @@ describe('the sprites', () => {
     const e = EDITOR_IDLE[0]
     expect([e[2][8], e[10][5], e[17][11], e[18][5], e[24][20]]).toEqual(['H', 'P', 'N', 'G', 'F'])
     // the doze (generated, task C2): the head down on the folded arms, the hair from row 11, the arms on rows 27-30
+    // (sleeves, j, since task B3's manifest remap)
     expect(ASSISTANT_DOZE[11][9]).toBe('H')
     expect(ASSISTANT_DOZE.slice(0, 10).every((r) => r === '.'.repeat(24))).toBe(true)
-    expect(ASSISTANT_DOZE[28][4]).toBe('J')
+    expect(ASSISTANT_DOZE[28][4]).toBe('j')
     expect([CAT_SIT[3][3], CAT_WALK[1][6][1], CAT_WALK[0][6][1]]).toEqual(['E', 'C', 'L'])
     expect([PROP_ENVELOPE[1][2], PROP_TROPHY[1][2]]).toEqual(['W', 'Y'])
   })
@@ -167,8 +168,11 @@ describe('the sprites', () => {
     for (const o of ['cardigan', 'blazer'] as const) {
       expect([OUTFIT_PALS[o].K, OUTFIT_PALS[o].Y]).toEqual(['#f6f6f6', '#c0392b'])
     }
-    // the collar points either side of the neck, the tie down the middle of the shirt
-    expect([MANGAKA_SIT[0][16].slice(8, 15), MANGAKA_SIT[0][17][11], MANGAKA_SIT[0][19][11]]).toEqual(['KKsssKK', 'Y', 'y'])
+    // the collar points either side of the neck, the tie down the middle of the shirt from row 18 (row 17 is the V's R,
+    // as the idle's); no y on the seated frames since task B3: PAL.y is blue (the old shirt stripe), which would speckle
+    // the hoodie's white drawstring, and the idle has none either
+    expect([MANGAKA_SIT[0][16].slice(8, 15), MANGAKA_SIT[0][18][11], MANGAKA_SIT[0][22][11]]).toEqual(['KKsssKK', 'Y', 'Y'])
+    for (const f of MANGAKA_SIT) expect(f.join('')).not.toContain('y')
   })
 
   // Task B1: the standing body. Written from the brief's rules, not from cell literals, so a later touch-up that keeps
@@ -297,6 +301,53 @@ describe('the sprites', () => {
     expect([s2[0][1], s2[1][1]]).toEqual([s0[1][1], s0[0][1]])
   })
 
+  // Task B3: the sit, panic and bed on that body. Written from the brief's rules, not from cell literals; RED against
+  // the 0.8.0 sets (T/t laps, J arms on the panic, a flat J block under the bed's blanket).
+  it('seats and panics the mangaka in brown trousers (F) and red shoes (O), never the old near-black T/t', () => {
+    for (const [name, frames] of [['sit', MANGAKA_SIT], ['panic', MANGAKA_PANIC]] as const) {
+      frames.forEach((f, i) => {
+        expect(f.join(''), `${name}[${i}]`).not.toMatch(/[Tt]/)
+        for (let r = 25; r <= 28; r++) expect(f[r], `${name}[${i}] row ${r}`).toContain('F')
+        expect(f[30], `${name}[${i}] row 30`).toContain('O')
+      })
+    }
+    expect(MANGAKA_LIE.join('')).not.toMatch(/[Tt]/)
+  })
+
+  it('moves only the pen hand between the seated frames: rows 0-19 and 25-31 are shared, rows 20-24 differ', () => {
+    expect(MANGAKA_SIT[0].slice(0, 20)).toEqual(MANGAKA_SIT[1].slice(0, 20))
+    expect(MANGAKA_SIT[0].slice(25)).toEqual(MANGAKA_SIT[1].slice(25))
+    expect(MANGAKA_SIT[0].slice(20, 25)).not.toEqual(MANGAKA_SIT[1].slice(20, 25))
+    // the hand (S) beside the pen's L at col 0, a row lower on the stroke frame
+    expect(handRow(MANGAKA_SIT[1], 1, 3)).toBe(handRow(MANGAKA_SIT[0], 1, 3) + 1)
+    expect(MANGAKA_SIT[0][handRow(MANGAKA_SIT[0], 1, 3)][0]).toBe('L')
+  })
+
+  it('raises the panic\'s arms as sleeves (j) down the sides, the hands (S) on top of the head', () => {
+    MANGAKA_PANIC.forEach((f, i) => {
+      // the forearms beside the head: j in the elbow columns on rows 4-8, and never the torso's J there on rows 3-16
+      for (let r = 4; r <= 8; r++) {
+        expect(f[r].slice(0, 3), `panic[${i}] row ${r} left`).toContain('j')
+        expect(f[r].slice(21), `panic[${i}] row ${r} right`).toContain('j')
+      }
+      for (let r = 3; r <= 16; r++) {
+        expect(f[r].slice(0, 4), `panic[${i}] row ${r} left`).not.toContain('J')
+        expect(f[r].slice(20), `panic[${i}] row ${r} right`).not.toContain('J')
+      }
+      // the hands on the hair: rows 1-2 (frame 0), a row lower on frame 1
+      for (const r of i === 0 ? [1, 2] : [2, 3]) {
+        expect(f[r].slice(1, 5), `panic[${i}] row ${r} left hand`).toContain('S')
+        expect(f[r].slice(17, 21), `panic[${i}] row ${r} right hand`).toContain('S')
+      }
+    })
+  })
+
+  it('shows the hoodie\'s shoulders (j) over the body (J) under the bed\'s blanket', () => {
+    // a j shoulder band on row 8 or 9 at cols 1-10, with the J body row right under it
+    const band = [8, 9].some((r) => [...MANGAKA_LIE[r].slice(1, 11)].some((ch, c) => ch === 'j' && MANGAKA_LIE[r + 1][c + 1] === 'J'))
+    expect(band).toBe(true)
+  })
+
   it('gives the cat a cream chest patch wherever its chest shows (not curled asleep)', () => {
     for (const cat of [CAT_SIT, ...CAT_WALK, ...CAT_GROOM, CAT_STRETCH]) expect(cat.join('')).toContain('Q')
     expect(CAT_SLEEP.join('')).not.toContain('Q')
@@ -357,8 +408,9 @@ describe('the sprites', () => {
 
   it('draws the task C2 readability gate winner, the generated assistant doze, and keeps the hand-drawn idle', () => {
     expect(ASSISTANT_DOZE).toEqual(ASSISTANT_DOZE_C2)
-    // fills against the hand-drawn doze it replaced (113, task C2 report)
-    expect(runCount(ASSISTANT_DOZE)).toBe(100)
+    // fills against the hand-drawn doze it replaced (113, task C2 report); task B3's remap of the folded arms' J to j
+    // (sleeves) merged runs: 100 before it
+    expect(runCount(ASSISTANT_DOZE)).toBe(91)
     expect(runCount(ASSISTANT_DOZE)).toBeLessThanOrEqual(1.25 * 113)
     // the doze is a valid, faceless 24x32 frame (the doze never takes the FACES overlay)
     expect(frameRules(ASSISTANT_DOZE_C2)).toEqual([])
