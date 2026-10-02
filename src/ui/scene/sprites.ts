@@ -79,83 +79,55 @@ export const HEAD_DY = { idle: [0, 1], sit: [0, 0], stretch: [0, 1], sip: [0, 0]
 }
 
 /**
- * The idle cycle's stretch (Decision 6): the anchor with the arms flung out and up beside the head, eyes closed.
- * STRETCH[1] is the breath (rows 0-23 a row lower, headDy = 1), as MANGAKA_IDLE[1] is to MANGAKA_IDLE[0].
+ * The idle cycle's stretch (Decision 6): the standing body with both arms flung out and up beside the head, eyes closed.
+ * Each sleeve rises from its shoulder cap (row 17, as the idle) a column further out per row to a fist beside the cheek
+ * (rows 12-14, one wide at the fingertips and three at the wrist, its one s at the bottom corner); the arms leave the
+ * avatar crop, which is why the stretch is exempt from faceRules. Under the shoulders the torso stands alone, two
+ * columns wider than the chest between the idle's seams, closed under each sleeve by an L row. STRETCH[1] is the
+ * breath (`breathOf`: rows 0-23 a row lower, the hem tucked, headDy = 1), as MANGAKA_IDLE[1] is to MANGAKA_IDLE[0].
  */
-export const MANGAKA_STRETCH: readonly [SpriteMap, SpriteMap] = [
-  [
-    '......LLLLLLLLLL........', // 0
-    '....LLHHHHHHHHHhLL......', // 1
-    '...LHHHHHHHHHHHHhhL.....', // 2
-    '..LHHHHHHHHHHHHHHhhL....', // 3
-    '..LHHHHHHHHHHHHHHhhL....', // 4
-    '..LHHHHHHHHHHHHHHhhL....', // 5
-    '..LHHHSHHHHSHHHHHhhL....', // 6
-    '..LHSSSSSSSSSSSSSShL....', // 7
-    '..LHSSSSSSSSSSSSSSsL....', // 8
-    '..LHSSSSSSSSSSSSSSsL....', // 9  eyes closed
-    '..LHSSssSSSSSSssSSsL....', // 10 eyes closed
-    '..LHSSSSSSSSSSSSSSsL....', // 11 eyes closed
-    '.LLSBBSSSSMMSSSSBBsL..L.', // 12 arms: hands beside the head
-    'LSLLSSSSSSSSSSSSSSsL.LSL', // 13
-    'LSL.LSSSSSSSSSSSSsL..LSL', // 14
-    'LJL..LLsssssssssLL...LJL', // 15
-    'LJL...LJJJsssJJjL....LJL', // 16
-    '.....LJJJJRWRJJjjL......', // 17
-    '....LJJJJJRWRJJJjjL.....', // 18
-    '....LJJJJJWRWJJJjjL.....', // 19
-    '....LJJJJJRWRJJJjjL.....', // 20 no arm-line L (cols 7, 15)
-    '....LJJJJJWRWJJJjjL.....', // 21 no arm-line L (cols 7, 15)
-    '....LJJJJJRWRJJJJjL.....', // 22 hands become JJ
-    '.....LLLJJJJJJJLLL......', // 23
-    '.......LjjjjjjjjL.......', // 24
-    '.......LTTTTTTTtL.......', // 25
-    '.......LTTTLTTTtL.......', // 26
-    '.......LTTTLTTTtL.......', // 27
-    '.......LTTTLTTttL.......', // 28
-    '.......LtttLttttL.......', // 29
-    '......LOOOLLOOOoL.......', // 30
-    '......LLLLLLLLLLL.......', // 31
-  ],
-  [
-    '........................', // 0
-    '......LLLLLLLLLL........', // 1
-    '....LLHHHHHHHHHhLL......', // 2
-    '...LHHHHHHHHHHHHhhL.....', // 3
-    '..LHHHHHHHHHHHHHHhhL....', // 4
-    '..LHHHHHHHHHHHHHHhhL....', // 5
-    '..LHHHHHHHHHHHHHHhhL....', // 6
-    '..LHHHSHHHHSHHHHHhhL....', // 7
-    '..LHSSSSSSSSSSSSSShL....', // 8
-    '..LHSSSSSSSSSSSSSSsL....', // 9
-    '..LHSSSSSSSSSSSSSSsL....', // 10 eyes closed
-    '..LHSSssSSSSSSssSSsL....', // 11 eyes closed
-    '..LHSSSSSSSSSSSSSSsL....', // 12 eyes closed
-    '.LLSBBSSSSMMSSSSBBsL..L.', // 13
-    'LSLLSSSSSSSSSSSSSSsL.LSL', // 14
-    'LSL.LSSSSSSSSSSSSsL..LSL', // 15
-    'LJL..LLsssssssssLL...LJL', // 16
-    'LJL...LJJJsssJJjL....LJL', // 17
-    '.....LJJJJRWRJJjjL......', // 18
-    '....LJJJJJRWRJJJjjL.....', // 19
-    '....LJJJJJWRWJJJjjL.....', // 20
-    '....LJJJJJRWRJJJjjL.....', // 21
-    '....LJJJJJWRWJJJjjL.....', // 22
-    '....LJJJJJRWRJJJJjL.....', // 23
-    '.....LLLJJJJJJJLLL......', // 24
-    '.......LTTTTTTTtL.......', // 25
-    '.......LTTTLTTTtL.......', // 26
-    '.......LTTTLTTTtL.......', // 27
-    '.......LTTTLTTttL.......', // 28
-    '.......LtttLttttL.......', // 29
-    '......LOOOLLOOOoL.......', // 30
-    '......LLLLLLLLLLL.......', // 31
-  ],
-] as const
+const STRETCH_0: SpriteMap = [
+  '......LLLLLLLLLL........', // 0
+  '....LLHHHHHHHHHhLL......', // 1
+  '...LHHHHHHHHHHHHhhL.....', // 2
+  '..LHHHHHHHHHHHHHHhhL....', // 3
+  '..LHHHHHHHHHHHHHHhhL....', // 4
+  '..LHHHHHHHHHHHHHHhhL....', // 5
+  '..LHHHSHHHHSHHHHHhhL....', // 6
+  '..LHSSSSSSSSSSSSSShL....', // 7
+  '..LHSSSSSSSSSSSSSSsL....', // 8
+  '..LHSSSSSSSSSSSSSSsL....', // 9  eyes closed
+  '..LHSSssSSSSSSssSSsL....', // 10 eyes closed
+  '..LHSSSSSSSSSSSSSSsL....', // 11 eyes closed
+  'LSLSBBSSSSMMSSSSBBsLSL..', // 12 the fingertips beside the cheeks
+  'LSSLSSSSSSSSSSSSSSsLSSL.', // 13
+  'LSSsLSSSSSSSSSSSSsLSSsL.', // 14 the fists, three wide at the wrist, one s each
+  '.LjjjLLsssssssssLLjjjL..', // 15 the raised sleeves, a column in per row down to the shoulders
+  '..LjjjLjKKsssKKjLjjjL...', // 16
+  '...LjjjLJKRRRKjLjjjL....', // 17 the shoulder caps, as the idle
+  '....LLLJJJRYRJJjLLL.....', // 18 the sleeves' undersides closed; the torso alone below, no arm-line L
+  '......LJJJJYJJJjL.......', // 19
+  '......LJJJJYJJJjL.......', // 20
+  '......LJJJJYJJJjL.......', // 21
+  '......LJJJJYJJJjL.......', // 22
+  '......LLJJJJJJjLL.......', // 23
+  '.......LjjjjjjjjL.......', // 24
+  '.......LFFFFFFFfL.......', // 25
+  '.......LFFFLFFFfL.......', // 26
+  '.......LFFFLFFFfL.......', // 27
+  '.......LFFFLFFFfL.......', // 28
+  '.......LFFfLFfffL.......', // 29
+  '......LOOoLLOOOoL.......', // 30
+  '......LLLLLLLLLLL.......', // 31
+]
+export const MANGAKA_STRETCH: readonly [SpriteMap, SpriteMap] = [STRETCH_0, breathOf(STRETCH_0)]
 
 /**
- * The idle cycle's sip (Decision 6): the anchor with the leading hand raised, a mug at the mouth (rows 12-14, the
- * rim then the hand). SIP[1] closes the eyes, otherwise unchanged.
+ * The idle cycle's sip (Decision 6): the standing body with the leading (left) arm raised, a mug at the mouth (rows
+ * 12-14: the W rim in its L outline, then the hand holding it, S with its s). The sleeve stands where the idle's hangs
+ * (cols 4-6) but ends at row 19, closed by an L row at 20, and its forearm turns in along row 15 under the chin to the
+ * hand; the other arm hangs as the idle's. The mug's cells are face keys, so both frames pass faceRules and a mood
+ * paints over it. SIP[1] closes the eyes, otherwise unchanged.
  */
 export const MANGAKA_SIP: readonly [SpriteMap, SpriteMap] = [
   [
@@ -172,24 +144,24 @@ export const MANGAKA_SIP: readonly [SpriteMap, SpriteMap] = [
     '..LHSSEWSSSSSSEWSSsL....', // 10
     '..LHSSEESSSSSSEESSsL....', // 11
     '..LSBBSSLWWLSSSSBBsL....', // 12 the mug rim
-    '...LSSSSLWWLSSSSSSsL....', // 13 the mug rim
-    '....LSSSLSSLSSSSSsL.....', // 14 the hand
-    '.....LLsssssssssLL......', // 15
-    '......LJJJsssJJjL.......', // 16
-    '.....LJJJJRWRJJjjL......', // 17
-    '....LJJJJJRWRJJJjjL.....', // 18
-    '....LJJJJJWRWJJJjjL.....', // 19
-    '....LJJLJJRWRJJLjjL.....', // 20
-    '....LJJLJJWRWJJLjjL.....', // 21
-    '....LJJLJJRWRJJLSsL.....', // 22 the left hand becomes JJ
-    '.....LLLJJJJJJJLLL......', // 23
+    '...LSSSSLWWLSSSSSSsL....', // 13 the mug
+    '....LSSSLSsLSSSSSsL.....', // 14 the hand on the mug
+    '...LjjjjjjLsssssLL......', // 15 the forearm, in along the chin to the hand
+    '...LjjjLKKsssKKjjLL.....', // 16 the raised sleeve over the hood's shadow
+    '...LjjjLJKRRRKjLjjjL....', // 17
+    '...LjjjLJJRYRJjLjjjL....', // 18
+    '...LjjjLJJJYJJjLjjjL....', // 19
+    '....LLLLJJJYJJjLjjjL....', // 20 the raised sleeve's underside; the other arm hangs as the idle
+    '.......LJJJYJJjLjjjL....', // 21
+    '.......LJJJYJJjLSSsL....', // 22
+    '.......LJJJJJJjLLLL.....', // 23
     '.......LjjjjjjjjL.......', // 24
-    '.......LTTTTTTTtL.......', // 25
-    '.......LTTTLTTTtL.......', // 26
-    '.......LTTTLTTTtL.......', // 27
-    '.......LTTTLTTttL.......', // 28
-    '.......LtttLttttL.......', // 29
-    '......LOOOLLOOOoL.......', // 30
+    '.......LFFFFFFFfL.......', // 25
+    '.......LFFFLFFFfL.......', // 26
+    '.......LFFFLFFFfL.......', // 27
+    '.......LFFFLFFFfL.......', // 28
+    '.......LFFfLFfffL.......', // 29
+    '......LOOoLLOOOoL.......', // 30
     '......LLLLLLLLLLL.......', // 31
   ],
   [
@@ -207,166 +179,90 @@ export const MANGAKA_SIP: readonly [SpriteMap, SpriteMap] = [
     '..LHSSSSSSSSSSSSSSsL....', // 11 eyes closed
     '..LSBBSSLWWLSSSSBBsL....', // 12
     '...LSSSSLWWLSSSSSSsL....', // 13
-    '....LSSSLSSLSSSSSsL.....', // 14
-    '.....LLsssssssssLL......', // 15
-    '......LJJJsssJJjL.......', // 16
-    '.....LJJJJRWRJJjjL......', // 17
-    '....LJJJJJRWRJJJjjL.....', // 18
-    '....LJJJJJWRWJJJjjL.....', // 19
-    '....LJJLJJRWRJJLjjL.....', // 20
-    '....LJJLJJWRWJJLjjL.....', // 21
-    '....LJJLJJRWRJJLSsL.....', // 22
-    '.....LLLJJJJJJJLLL......', // 23
+    '....LSSSLSsLSSSSSsL.....', // 14
+    '...LjjjjjjLsssssLL......', // 15
+    '...LjjjLKKsssKKjjLL.....', // 16
+    '...LjjjLJKRRRKjLjjjL....', // 17
+    '...LjjjLJJRYRJjLjjjL....', // 18
+    '...LjjjLJJJYJJjLjjjL....', // 19
+    '....LLLLJJJYJJjLjjjL....', // 20
+    '.......LJJJYJJjLjjjL....', // 21
+    '.......LJJJYJJjLSSsL....', // 22
+    '.......LJJJJJJjLLLL.....', // 23
     '.......LjjjjjjjjL.......', // 24
-    '.......LTTTTTTTtL.......', // 25
-    '.......LTTTLTTTtL.......', // 26
-    '.......LTTTLTTTtL.......', // 27
-    '.......LTTTLTTttL.......', // 28
-    '.......LtttLttttL.......', // 29
-    '......LOOOLLOOOoL.......', // 30
+    '.......LFFFFFFFfL.......', // 25
+    '.......LFFFLFFFfL.......', // 26
+    '.......LFFFLFFFfL.......', // 27
+    '.......LFFFLFFFfL.......', // 28
+    '.......LFFfLFfffL.......', // 29
+    '......LOOoLLOOOoL.......', // 30
     '......LLLLLLLLLLL.......', // 31
   ],
 ] as const
 
-/** The walk, 100 ms a frame: contact, pass (a row lower), contact with the legs and arms swapped, pass again. */
+/** The walk's first contact under ANCHOR_HEAD: the leading (left) arm swung forward and up, its sleeve three rows
+ * and the fist at row 20, the trailing arm hanging as the idle's; the hem as the idle's; the left leg stepping out, a
+ * column further per row to a long shoe whose toe reaches two columns past it, the right leg straight under the hip,
+ * the crotch line (L) on the hip row above the gap. */
+const WALK_CONTACT_0: SpriteMap = [
+  '....LLjjKKsssKKjjLL.....', // 16
+  '...LjjjLJKRRRKjLjjjL....', // 17
+  '...LjjjLJJRYRJjLjjjL....', // 18
+  '...LjjjLJJJYJJjLjjjL....', // 19
+  '...LSSsLJJJYJJjLjjjL....', // 20 the leading fist, forward and up
+  '....LLLLJJJYJJjLjjjL....', // 21
+  '.......LJJJYJJjLSSsL....', // 22 the trailing hand, as the idle
+  '.......LJJJJJJjLLLL.....', // 23
+  '.......LjjjjjjjjL.......', // 24 the hem, as the idle
+  '......LFFFFLFFFfL.......', // 25 the hips, a column out on the stepping side
+  '......LFFFL.LFFfL.......', // 26 the left leg steps out, the right stays under
+  '.....LFFFL..LFFfL.......', // 27
+  '....LFFFL...LFFfL.......', // 28
+  '....LFFfL...LfffL.......', // 29
+  '..LOOOOoL...LOOoL.......', // 30 the forward shoe reaches its toe out
+  '..LLLLLLL...LLLLL.......', // 31
+]
+
+/** The walk's second contact under ANCHOR_HEAD: WALK_CONTACT_0 with the legs and arms swapped (the right leg steps
+ * out to the right, the right arm swings up), the shade still on the right of every run. */
+const WALK_CONTACT_2: SpriteMap = [
+  '....LLjjKKsssKKjjLL.....', // 16
+  '...LjjjLJKRRRKjLjjjL....', // 17
+  '...LjjjLJJRYRJjLjjjL....', // 18
+  '...LjjjLJJJYJJjLjjjL....', // 19
+  '...LjjjLJJJYJJjLSSsL....', // 20 the leading fist, forward and up
+  '...LjjjLJJJYJJjLLLL.....', // 21
+  '...LSSsLJJJYJJjL........', // 22 the trailing hand, as the idle
+  '....LLLLJJJJJJjL........', // 23
+  '.......LjjjjjjjjL.......', // 24 the hem, as the idle
+  '.......LFFFFLFFFfL......', // 25 the hips, a column out on the stepping side
+  '.......LFFfL.LFFfL......', // 26 the left leg stays under, the right steps out
+  '.......LFFfL..LFFfL.....', // 27
+  '.......LFFfL...LFFfL....', // 28
+  '.......LFffL...LfffL....', // 29
+  '.......LOOoL...LOOOOoL..', // 30 the stepping shoe reaches out
+  '.......LLLLL...LLLLLLL..', // 31
+]
+
+/** The walk's pass: the idle a row lower down to and including the hem (row 25, so the hem never blinks at the walk's
+ * ten frames a second), then the legs together, a row shorter, one shoe. */
+const WALK_PASS: SpriteMap = [
+  '.'.repeat(24), // 0
+  ...IDLE_0.slice(0, 25), // 1-25: rows 0-24 of the idle
+  '........LFFFFFfL........', // 26 the legs together, passing
+  '........LFFFFFfL........', // 27
+  '........LFFFFFfL........', // 28
+  '........LFFffffL........', // 29
+  '........LOOOOOoL........', // 30
+  '........LLLLLLLL........', // 31
+]
+
+/** The walk, 100 ms a frame: contact, pass (a row lower), contact with the legs and arms swapped, pass again. The
+ * contact frames lead with different legs (the left foot reaching out on frame 0, the right on frame 2, the long shoe
+ * the forward one), so the cycle steps rather than slides; the pass frames are one map. */
 export const MANGAKA_WALK: readonly [SpriteMap, SpriteMap, SpriteMap, SpriteMap] = [
-  [
-    '......LLLLLLLLLL........', // 0
-    '....LLHHHHHHHHHhLL......', // 1
-    '...LHHHHHHHHHHHHhhL.....', // 2
-    '..LHHHHHHHHHHHHHHhhL....', // 3
-    '..LHHHHHHHHHHHHHHhhL....', // 4
-    '..LHHHHHHHHHHHHHHhhL....', // 5
-    '..LHHHSHHHHSHHHHHhhL....', // 6
-    '..LHSSSSSSSSSSSSSShL....', // 7
-    '..LHSSSSSSSSSSSSSSsL....', // 8
-    '..LHSSEESSSSSSEESSsL....', // 9
-    '..LHSSEWSSSSSSEWSSsL....', // 10
-    '..LHSSEESSSSSSEESSsL....', // 11
-    '..LSBBSSSSMMSSSSBBsL....', // 12
-    '...LSSSSSSSSSSSSSSsL....', // 13
-    '....LSSSSSSSSSSSSsL.....', // 14
-    '.....LLsssssssssLL......', // 15
-    '......LJJJsssJJjL.......', // 16
-    '.....LJJJJRWRJJjjL......', // 17
-    '....LJJJJJRWRJJJjjL.....', // 18
-    '....LJJJJJWRWJJJjjL.....', // 19
-    '....LJJLJJRWRJJLjjL.....', // 20
-    '....LSSLJJWRWJJLjjL.....', // 21
-    '....LLLLJJRWRJJLjjL.....', // 22
-    '.....LLLJJJJJJJLSsL.....', // 23
-    '.......LjjjjjjjjLLL.....', // 24
-    '......LTTTTTTTTTtL......', // 25
-    '.....LTTTL...LTTTtL.....', // 26
-    '.....LTTTL...LTTTtL.....', // 27
-    '.....LTTTL...LTTttL.....', // 28
-    '.....LtttL...LttttL.....', // 29
-    '....LOOOOL...LOOOoL.....', // 30
-    '....LLLLLL...LLLLLL.....', // 31
-  ],
-  [
-    '........................', // 0
-    '......LLLLLLLLLL........', // 1
-    '....LLHHHHHHHHHhLL......', // 2
-    '...LHHHHHHHHHHHHhhL.....', // 3
-    '..LHHHHHHHHHHHHHHhhL....', // 4
-    '..LHHHHHHHHHHHHHHhhL....', // 5
-    '..LHHHHHHHHHHHHHHhhL....', // 6
-    '..LHHHSHHHHSHHHHHhhL....', // 7
-    '..LHSSSSSSSSSSSSSShL....', // 8
-    '..LHSSSSSSSSSSSSSSsL....', // 9
-    '..LHSSEESSSSSSEESSsL....', // 10
-    '..LHSSEWSSSSSSEWSSsL....', // 11
-    '..LHSSEESSSSSSEESSsL....', // 12
-    '..LSBBSSSSMMSSSSBBsL....', // 13
-    '...LSSSSSSSSSSSSSSsL....', // 14
-    '....LSSSSSSSSSSSSsL.....', // 15
-    '.....LLsssssssssLL......', // 16
-    '......LJJJsssJJjL.......', // 17
-    '.....LJJJJRWRJJjjL......', // 18
-    '....LJJJJJRWRJJJjjL.....', // 19
-    '....LJJJJJWRWJJJjjL.....', // 20
-    '....LJJLJJRWRJJLjjL.....', // 21
-    '....LJJLJJWRWJJLjjL.....', // 22
-    '....LSSLJJRWRJJLSsL.....', // 23
-    '.....LLLJJJJJJJLLL......', // 24
-    '.......LjjjjjjjjL.......', // 25
-    '........LTTTTTtL........', // 26
-    '........LTTTTTtL........', // 27
-    '........LTTTTTtL........', // 28
-    '........LttttttL........', // 29
-    '........LOOOOOoL........', // 30
-    '........LLLLLLLL........', // 31
-  ],
-  [
-    '......LLLLLLLLLL........', // 0
-    '....LLHHHHHHHHHhLL......', // 1
-    '...LHHHHHHHHHHHHhhL.....', // 2
-    '..LHHHHHHHHHHHHHHhhL....', // 3
-    '..LHHHHHHHHHHHHHHhhL....', // 4
-    '..LHHHHHHHHHHHHHHhhL....', // 5
-    '..LHHHSHHHHSHHHHHhhL....', // 6
-    '..LHSSSSSSSSSSSSSShL....', // 7
-    '..LHSSSSSSSSSSSSSSsL....', // 8
-    '..LHSSEESSSSSSEESSsL....', // 9
-    '..LHSSEWSSSSSSEWSSsL....', // 10
-    '..LHSSEESSSSSSEESSsL....', // 11
-    '..LSBBSSSSMMSSSSBBsL....', // 12
-    '...LSSSSSSSSSSSSSSsL....', // 13
-    '....LSSSSSSSSSSSSsL.....', // 14
-    '.....LLsssssssssLL......', // 15
-    '......LJJJsssJJjL.......', // 16
-    '.....LJJJJRWRJJjjL......', // 17
-    '....LJJJJJRWRJJJjjL.....', // 18
-    '....LJJJJJWRWJJJjjL.....', // 19
-    '....LJJLJJRWRJJLjjL.....', // 20
-    '....LJJLJJWRWJJLSsL.....', // 21
-    '....LJJLJJRWRJJLLLL.....', // 22
-    '....LSSLJJJJJJJLLL......', // 23
-    '....LLLLjjjjjjjjL.......', // 24
-    '......LTTTTTTTTTtL......', // 25
-    '.....LTTTTL...LTTtL.....', // 26
-    '.....LTTTTL...LTTtL.....', // 27
-    '.....LTTTTL...LTttL.....', // 28
-    '.....LttttL...LtttL.....', // 29
-    '.....LOOOL...LOOOOoL....', // 30
-    '.....LLLLL...LLLLLLL....', // 31
-  ],
-  [
-    '........................', // 0
-    '......LLLLLLLLLL........', // 1
-    '....LLHHHHHHHHHhLL......', // 2
-    '...LHHHHHHHHHHHHhhL.....', // 3
-    '..LHHHHHHHHHHHHHHhhL....', // 4
-    '..LHHHHHHHHHHHHHHhhL....', // 5
-    '..LHHHHHHHHHHHHHHhhL....', // 6
-    '..LHHHSHHHHSHHHHHhhL....', // 7
-    '..LHSSSSSSSSSSSSSShL....', // 8
-    '..LHSSSSSSSSSSSSSSsL....', // 9
-    '..LHSSEESSSSSSEESSsL....', // 10
-    '..LHSSEWSSSSSSEWSSsL....', // 11
-    '..LHSSEESSSSSSEESSsL....', // 12
-    '..LSBBSSSSMMSSSSBBsL....', // 13
-    '...LSSSSSSSSSSSSSSsL....', // 14
-    '....LSSSSSSSSSSSSsL.....', // 15
-    '.....LLsssssssssLL......', // 16
-    '......LJJJsssJJjL.......', // 17
-    '.....LJJJJRWRJJjjL......', // 18
-    '....LJJJJJRWRJJJjjL.....', // 19
-    '....LJJJJJWRWJJJjjL.....', // 20
-    '....LJJLJJRWRJJLjjL.....', // 21
-    '....LJJLJJWRWJJLjjL.....', // 22
-    '....LSSLJJRWRJJLSsL.....', // 23
-    '.....LLLJJJJJJJLLL......', // 24
-    '.......LjjjjjjjjL.......', // 25
-    '........LTTTTTtL........', // 26
-    '........LTTTTTtL........', // 27
-    '........LTTTTTtL........', // 28
-    '........LttttttL........', // 29
-    '........LOOOOOoL........', // 30
-    '........LLLLLLLL........', // 31
-  ],
-] as const
+  [...ANCHOR_HEAD, ...WALK_CONTACT_0], WALK_PASS, [...ANCHOR_HEAD, ...WALK_CONTACT_2], WALK_PASS,
+]
 
 /**
  * Seated at the desk: the anchor's head and body, the leading arm out along rows 21-23 to the pen (col 0), the lap on

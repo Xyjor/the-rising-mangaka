@@ -304,8 +304,8 @@ describe('the characters, from the actor table', () => {
   })
 
   it('walks the mangaka with the four-frame cycle, mirrored when facing right', () => {
-    // contact (anim 0): WALK[0] row 30 '....LOOOOL...LOOOoL.....', the leading shoe's O at cols 5-8 (col 5 at x 155);
-    // pass (anim 100): the shoes together at cols 8-14, nothing at col 5
+    // contact (anim 0): WALK[0] row 30 '..LOOOOoL...LOOoL.......', the forward shoe's O at cols 3-6 (col 5 at x 155);
+    // pass (anim 100): the shoes together at cols 9-14, nothing at col 5
     expect(has(paintWith(walking({})), '#c0392b', 155, 111)).toBe(true)
     expect(has(paintWith(walking({ anim: 100 })), '#c0392b', 155, 111)).toBe(false)
     // facing right, col 5 mirrors to x 150 + 23 - 5 = 168

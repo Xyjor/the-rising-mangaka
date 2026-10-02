@@ -219,6 +219,84 @@ describe('the sprites', () => {
     for (let r = 18; r <= 22; r++) expect(MANGAKA_IDLE[0][r][11], `row ${r}`).toMatch(/^[Yy]$/)
   })
 
+  // Task B2: the stretch, sip and walk on that body. Written from the brief's rules, not from cell literals; RED against
+  // the 0.8.0 sets (T/t trousers, two-wide J arms, the stretch's floating arms, the sip's hand that never left the hip,
+  // a walk whose contact frames differed by one column).
+  it('dresses the stretch, sip and walk in brown trousers (F) and red shoes (O), never the old near-black T/t', () => {
+    for (const [name, frames] of [['stretch', MANGAKA_STRETCH], ['sip', MANGAKA_SIP], ['walk', MANGAKA_WALK]] as const) {
+      frames.forEach((f, i) => {
+        expect(f.join(''), `${name}[${i}]`).not.toMatch(/[Tt]/)
+        // the walk's pass frames carry the hem a row lower, on row 25, so their trousers start on row 26
+        const from = name === 'walk' && i % 2 === 1 ? 26 : 25
+        for (let r = from; r <= 29; r++) expect(f[r], `${name}[${i}] row ${r}`).toContain('F')
+        expect(f[30], `${name}[${i}] row 30`).toContain('O')
+      })
+    }
+  })
+
+  it('keeps the standing body under the stretch, sip and walk wherever the pose does not move it', () => {
+    const idle = MANGAKA_IDLE[0]
+    // the stretch: the shoulder caps (row 17) and everything from the hem down; rows 16 and 18-23 differ because the
+    // raised sleeves leave the shoulders and the torso stands alone under them; frame 1 is the breath, as the idle's
+    expect(MANGAKA_STRETCH[0][17]).toBe(idle[17])
+    expect(MANGAKA_STRETCH[0].slice(24)).toEqual(idle.slice(24))
+    expect(MANGAKA_STRETCH[1]).toEqual(breathOf(MANGAKA_STRETCH[0]))
+    // the sip: the head above the mug, both sleeves at the shoulders (rows 17-19) and everything from the hem down;
+    // rows 12-15 hold the mug and the forearm, row 16 the raised sleeve over the hood's shadow, rows 20-23 lose the
+    // hanging arm the sip raised; frame 1 only closes the eyes
+    expect(MANGAKA_SIP[0].slice(0, 12)).toEqual(idle.slice(0, 12))
+    expect(MANGAKA_SIP[0].slice(17, 20)).toEqual(idle.slice(17, 20))
+    expect(MANGAKA_SIP[0].slice(24)).toEqual(idle.slice(24))
+    expect(MANGAKA_SIP[1].slice(0, 9)).toEqual(idle.slice(0, 9))
+    expect(MANGAKA_SIP[1].slice(12)).toEqual(MANGAKA_SIP[0].slice(12))
+    expect(MANGAKA_SIP[1].slice(9, 12)).not.toEqual(MANGAKA_SIP[0].slice(9, 12))
+    // the walk's contact frames: the head and shoulders (rows 0-19) and the hem (row 24); the trailing arm hangs as the
+    // idle's (frame 0's right, cols 15-23; frame 2's left, cols 0-7) while the leading one swings up; the legs stride
+    const [c0, p1, c2, p3] = MANGAKA_WALK
+    for (const c of [c0, c2]) {
+      expect(c.slice(0, 20)).toEqual(idle.slice(0, 20))
+      expect(c[24]).toBe(idle[24])
+    }
+    for (let r = 20; r <= 23; r++) {
+      expect(c0[r].slice(15), `frame 0 row ${r}`).toBe(idle[r].slice(15))
+      expect(c2[r].slice(0, 8), `frame 2 row ${r}`).toBe(idle[r].slice(0, 8))
+    }
+    // the pass frames: the idle a row lower down to and including the hem, then the legs together
+    expect(p1).toEqual(p3)
+    expect(p1.slice(0, 26)).toEqual(['.'.repeat(24), ...idle.slice(0, 25)])
+  })
+
+  it('raises sleeves (j) that end in hands (S) on the stretch and the sip', () => {
+    // the stretch: both flung arms show skin and sleeve on rows 12-16 beyond the head (cols 0-3, cols 20-23), one s each
+    for (const [from, to] of [[0, 3], [20, 23]] as const) {
+      const side = MANGAKA_STRETCH[0].slice(12, 17).map((row) => row.slice(from, to + 1)).join('')
+      expect(side, `cols ${from}-${to}`).toContain('S')
+      expect(side, `cols ${from}-${to}`).toContain('j')
+      expect(side.match(/s/g) ?? [], `cols ${from}-${to}`).toHaveLength(1)
+    }
+    // the sip: the mug's rim (W in its L outline) on rows 12-13, the hand (S) holding it on row 14, cols 8-11 as today,
+    // and the raised sleeve j on rows 15-19 at the leading arm's columns (the idle's left sleeve, cols 4-6)
+    const sip = MANGAKA_SIP[0]
+    expect(sip[12].slice(8, 12)).toBe('LWWL')
+    expect(sip[13].slice(8, 12)).toBe('LWWL')
+    expect(sip[14].slice(8, 12)).toMatch(/^L[Ss]{2}L$/)
+    for (let r = 15; r <= 19; r++) expect(sip[r].slice(4, 7), `row ${r}`).toContain('j')
+  })
+
+  it('steps rather than slides: the contact frames lead with different legs on row 30', () => {
+    // the shoe runs on row 30 (O with its o shade), [start, width] each
+    const shoes = (f: SpriteMap) => [...f[30].matchAll(/[Oo]+/g)].map((m) => [m.index, m[0].length] as const)
+    const [s0, s2] = [shoes(MANGAKA_WALK[0]), shoes(MANGAKA_WALK[2])]
+    expect(s0).toHaveLength(2)
+    expect(s2).toHaveLength(2)
+    // the rule: frame 0's left shoe starts further left than frame 2's left shoe, or the shoe widths swap; the drawing
+    // does both (the forward foot reaches out and is the long one), so each is asserted
+    expect(s0[0][0]).toBeLessThan(s2[0][0])
+    expect(s0[0][1]).toBeGreaterThan(s0[1][1])
+    expect(s2[1][1]).toBeGreaterThan(s2[0][1])
+    expect([s2[0][1], s2[1][1]]).toEqual([s0[1][1], s0[0][1]])
+  })
+
   it('gives the cat a cream chest patch wherever its chest shows (not curled asleep)', () => {
     for (const cat of [CAT_SIT, ...CAT_WALK, ...CAT_GROOM, CAT_STRETCH]) expect(cat.join('')).toContain('Q')
     expect(CAT_SLEEP.join('')).not.toContain('Q')
