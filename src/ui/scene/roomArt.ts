@@ -149,7 +149,7 @@ function flatFloor(ctx: CanvasRenderingContext2D, night: boolean) {
 /**
  * The loft's wall: pale plaster with an exposed brick accent between the window and the door (x 230-253: mortar rows
  * every 5 px, the joints alternating), the wood-beam frame (its right post over the brick's last two columns), a steel
- * baseboard and the trim.
+ * baseboard and the trim. 53 fills.
  */
 function loftWall(ctx: CanvasRenderingContext2D, night: boolean) {
   rawRect(ctx, 0, 0, 320, 114, night ? '#7e7b86' : '#dcd8cf')
@@ -165,7 +165,7 @@ function loftWall(ctx: CanvasRenderingContext2D, night: boolean) {
   trim(ctx)
 }
 
-/** The loft's floor: polished concrete (a sheen band, expansion joints) under an indigo rug. */
+/** The loft's floor: polished concrete (a sheen band, expansion joints) under an indigo rug. 17 fills. */
 function loftFloor(ctx: CanvasRenderingContext2D, night: boolean) {
   rawRect(ctx, 0, 114, 320, 66, night ? '#6c6a72' : '#bdb8ae')
   rawRect(ctx, 0, 150, 320, 3, night ? '#77757e' : '#cbc7bf')

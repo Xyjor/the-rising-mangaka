@@ -7,6 +7,7 @@ import {
   downsampleNearest,
   findBlobs,
   flattenToMode,
+  modalColour,
   flipHorizontal,
   floodTransparentFromEdges,
   makeImage,
@@ -541,6 +542,46 @@ describe('flattenToMode', () => {
     const src = makeImage(3, 2)
     setPixel(src, 1, 1, 90, 80, 70, 0)
     expect(Array.from(flattenToMode(src, 0.5).data)).toEqual(Array.from(src.data))
+  })
+
+  it('counts only fully opaque pixels toward the mode, and leaves transparent ones untouched', () => {
+    // a guard: four transparent pixels of grey outnumber three opaque cream ones, yet the cream is the mode
+    const src = makeImage(4, 2)
+    for (let x = 0; x < 4; x++) setPixel(src, x, 0, 120, 120, 120, 0)
+    setPixel(src, 0, 1, 200, 180, 150)
+    setPixel(src, 1, 1, 200, 180, 150)
+    setPixel(src, 2, 1, 200, 180, 150)
+    setPixel(src, 3, 1, 190, 172, 142)
+    const out = flattenToMode(src, 0.05)
+    expect(pixel(out, 3, 1)).toEqual([200, 180, 150, 255])
+    for (let x = 0; x < 4; x++) expect(pixel(out, x, 0)).toEqual([120, 120, 120, 0])
+  })
+})
+
+describe('modalColour', () => {
+  it("gives the modal fully opaque colour's hex and its share of the fully opaque pixels", () => {
+    const img = makeImage(4, 2)
+    fill(img, 200, 180, 150)
+    setPixel(img, 0, 0, 190, 172, 142)
+    setPixel(img, 2, 1, 60, 40, 20)
+    // two transparent and one half-transparent pixel of another colour, all excluded from the count
+    setPixel(img, 1, 0, 1, 2, 3, 0)
+    setPixel(img, 2, 0, 1, 2, 3, 0)
+    setPixel(img, 3, 0, 1, 2, 3, 128)
+    expect(modalColour(img)).toEqual({ hex: '#c8b496', share: 3 / 5 })
+  })
+
+  it('zero-pads the hex', () => {
+    const img = makeImage(1, 1)
+    setPixel(img, 0, 0, 0, 10, 5)
+    expect(modalColour(img)).toEqual({ hex: '#000a05', share: 1 })
+  })
+
+  it('is null with no fully opaque pixel', () => {
+    const img = makeImage(2, 1)
+    setPixel(img, 0, 0, 9, 9, 9, 0)
+    setPixel(img, 1, 0, 9, 9, 9, 254)
+    expect(modalColour(img)).toBeNull()
   })
 })
 

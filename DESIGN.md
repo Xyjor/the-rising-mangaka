@@ -656,7 +656,7 @@ wall/floor seams landed at 76-87% of the height, not the scene's 63%, and a crop
 image, so the pipeline remaps them: a manifest `seam: { src, dst: 114 }` (src, the first floor row of the raw image
 after its crop, measured from row brightness) resamples the wall rows into canvas rows 0-113 and the floor rows into
 114-179, each side on its own, piecewise-linear vertically and area-averaged (`pixelOps.ts` `remapSeam`), so no row
-mixes wall and floor and the seam lands exactly on row 114. The apartment is cropped to x 196-1813 (its angled side
+mixes wall and floor and the seam lands exactly on row 114. The apartment (the 0.9.0 crops and seams; see "The walls") is cropped to x 196-1813 (its angled side
 walls trimmed to the two pillars; seam 882), the flat to x 230-2047 (its dark left corner; seam 1008), the loft uncropped
 (seam 1002, the floor below the steel baseboard). The generations are softly lit (a light pool, dark corners), and a
 plain OKLab snap turns those mid-tones grey (the flat's dusty teal fell to the palette's greys, the apartment's
@@ -691,10 +691,12 @@ faces (and, on the loft, puts the brick column at the scene's x 230-253, where t
 
 The prompts asked for flat light and the apartment's still came back a vignette (a light pool the snap banded into two
 creams), so a manifest `flatten: { radius }` (`pixelOps.ts` `flattenToMode`, run after `wallOnly` and before the
-palette snap) turns every opaque pixel within that OKLab radius of the image's modal colour (the most frequent exact
-RGB) into that colour, while the wood, far from the mode, keeps its shading. It is allowed only on a `floor: "code"`
+palette snap) turns every fully opaque pixel within that OKLab radius of the image's modal colour (`modalColour`, the
+most frequent exact RGB among the fully opaque pixels) into that colour, while the wood, far from the mode, keeps its shading. It is allowed only on a `floor: "code"`
 entry, radius in (0, 1] (`art.test.ts`), and it needs the plaster to be the wall's most frequent exact colour: on the
-flat it would merge the two stripe tones, so the flat sets none. The apartment's 0.25 is the smallest radius that
+flat it would merge the two stripe tones, so the flat sets none. `npm run art` prints the mode and its share for
+each flattened wall (`room/apartment: flatten mode #..., N% of the wall`), so a regeneration where the wood or a stripe
+wins the count shows at the console. The apartment's 0.25 is the smallest radius that
 clears the vignette's corners with the beam and pillars whole (the baseboard's lit row joins the plaster); the loft's
 0.2 removes the shadow band under its beam, the bricks, beam and baseboard unchanged. The plaster's colours, counted
 in plaster-only boxes: before (the R2 walls cut to 320x114) the apartment 3 (`#c9b48a`, `#b88d62`, `#9c7550`), the

@@ -179,12 +179,8 @@ describe('art manifest', () => {
     for (const e of rooms) {
       // the scene draws every floor in code (TIER_FLOOR), so each room image is its wall, canvas rows 0-113
       expect(e.floor, `${e.id} floor`).toBe('code')
-      if (e.floor === 'code') {
-        expect(e.native, e.id).toEqual([320, 114])
-        expect(e.seam?.dst, `${e.id} seam dst`).toBe(e.native[1])
-      } else {
-        expect(e.native, e.id).toEqual([320, 180])
-      }
+      expect(e.native, e.id).toEqual([320, 114])
+      expect(e.seam?.dst, `${e.id} seam dst`).toBe(e.native[1])
       expect(e.cutout, e.id).toBe(false)
       expect(e.palette, e.id).toBe('scene')
       expect(e.colors, e.id).toBe(32)

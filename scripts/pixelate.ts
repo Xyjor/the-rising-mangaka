@@ -29,6 +29,7 @@ import {
   downsampleNearest,
   findBlobs,
   flattenToMode,
+  modalColour,
   flipHorizontal,
   floodTransparentFromEdges,
   padToAspect,
@@ -240,7 +241,12 @@ async function processEntry(entry: ManifestEntry): Promise<{ outPath: string; co
     working = entry.floor === 'code'
       ? wallOnly(working, entry.seam.src, nativeW, nativeH, entry.sample)
       : remapSeam(working, entry.seam.src, nativeW, nativeH, entry.seam.dst, entry.sample)
-    if (entry.flatten) working = flattenToMode(working, entry.flatten.radius)
+    if (entry.flatten) {
+      // the mode must be the plaster: a regeneration where the wood or a stripe wins the count shows here
+      const modal = modalColour(working)
+      console.log(`${entry.id}: flatten mode ${modal ? `${modal.hex}, ${Math.round(modal.share * 100)}% of the wall` : 'none (no fully opaque pixel)'}`)
+      working = flattenToMode(working, entry.flatten.radius)
+    }
   } else {
     working =
       entry.sample === 'nearest'
