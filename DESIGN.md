@@ -342,7 +342,7 @@ at `CAT_BED` (4 fills, drawn just before it).
   one generated frame drawn is the assistants' doze** (`ASSISTANT_DOZE`, `sprite/assistant-doze`): the front sheet's
   dozing cell fitted to a 20x23 box on the frame's last rows, the head down on folded arms, eyes shut, eight cells
   touched (three stray specks, the right eye's shut line). It reads as asleep more clearly than the hand-drawn head
-  on a block (113 fills before, 100 now). Every other pose stays hand-drawn. The standing idle
+  on a block (113 fills before, 100 then; 91 since the 0.9.0 remap). Every other pose stays hand-drawn. The standing idle
   (`sprite/mangaka-front-idle`: the front sheet's body stretched to a 16x16 box on rows 16-31 under the grafted
   `ANCHOR_HEAD`, three neck cells touched, 167 and 166 fills against 195 and 192) was a near tie, and the controller
   ruled it off: drawn, it would switch bodies mid-cycle against the hand-drawn stretch and sip, breaking one look per
@@ -360,6 +360,23 @@ at `CAT_BED` (4 fills, drawn just before it).
   the module anyway), then drop the flag and import the module. art.test checks a retired entry only for its raw
   sheet and a crop inside it (read from the IHDR), requires a module for every other sprite entry, and fails on any
   `generated/*.ts` without a non-retired entry, so `generated/` holds exactly `assistant-doze.ts`.
+- **The cast redraw** (0.9.0, Release B). Every string-map frame but `ANCHOR_HEAD` is hand-redrawn by Claude in the
+  same format, with the four Higgsfield sheets in `art/raw/sprites/` used as reference for proportions, colours and
+  poses only. The mangaka's body is a `J` torso with `j` sleeves and hood shadow (so `OUTFIT_PALS` gives darker gold
+  and navy sleeves), the `R` shirt as a V under the `K` collar, the `Y` column (a drawstring in the hoodie, a tie in
+  the other outfits), `S/s` hands on 3-wide arms, `F/f` brown trousers and `O/o` shoes; `T/t` are no longer on the
+  mangaka. The frames share pieces (`IDLE_BODY`, `WALK_PASS`, `SIT_LAP`, `EDITOR_BODY`, `EDITOR_PASS`), and each hand
+  is one skin row closed by `L`, so `breathOf` still drops row 24 cleanly. The editor's suit `G/g` is recoloured to
+  `#3a3d4c`/`#2c3656`, with two-lens `P` glasses (a one-cell bridge at col 10), a `W` collar, an `N` tie, `E` shoes
+  and the `F/f` briefcase in the trailing hand, which is two wide; its breath frame is hand-drawn so the case keeps
+  its seven rows. The cat is a tabby (`c` stripes, the `Q` chest, an `E` eye, 1-px ears) with a tail on its walk.
+  The doze stays the generated frame, its folded arms remapped `J` to `j` (sleeves) in the manifest, 100 runs to 91.
+  The gate is `scripts/spriteSheet.ts` (`npm run sprites -- <out.png> [--walk]`): an 8x contact sheet (the cat at 16x)
+  of each frame beside its HEAD frame, plus the cardigan, blazer and assistant looks and the four moods' faces and
+  marks (new only), and the walk strips (`--walk` writes only those). The run-count caps are `RUN_CAPS` in sprites.test.ts, 1.3x each frame's
+  pre-redraw count, which keeps every fill baseline inside its 1.5x budget by construction. The ruling: **`ANCHOR_HEAD` is
+  untouched**. The sheets' 2:1 head cannot fit the `FACES`, mark-slot and avatar-crop contract, and the hand-drawn
+  head is the part that already read, so the staff portraits do not change.
 
 The frame sets: idle 2 frames (`frame/16 % 2`), walk 4 (`anim/100 % 4`), sit 2 (`frame/8 % 2` while working, frame 0
 otherwise), panic 2 (for 40 of every 240 frames while working on a late chapter, `Snapshot.late`), a 30x14 lying
@@ -413,10 +430,16 @@ moved across its sprite; the bin's crumpled pages stay code-drawn); budgets 781.
 The 0.11.0 generated frames (task C2) move none of the four: both reference scenes draw the mangaka and an assistant
 seated at frame 100, never the doze (the one generated frame drawn), so 673/1079 and 521/928 stay as they are
 (re-measured: the exact-count tests still pass). Where it does show, the doze costs 13 fewer fills than the hand-drawn
-one. The rest scene (`sceneSnapshot({ activity: 'rest' })`, the mangaka in bed, the cat sitting in the kitchen, the
+one (22 fewer since the 0.9.0 remap: 91 runs). The rest scene (`sceneSnapshot({ activity: 'rest' })`, the mangaka in bed, the cat sitting in the kitchen, the
 assistant dozing under its Z) has its own pin, 509 at t 0.3 frame 100 (derived by hand from the 673 in render.test's
 `REST_BASELINE_FILLS`), with a 1.5x budget (763.5) every season by day and night stays under. The doze's Z sits at
 the frame's y - 2, just above the head on the arms (row 10), not y - 6 where an upright head's mark goes.
+The 0.9.0 cast redraw (Release B) moved all five pins, each re-measured by hand in its test's docblock: task B3's
+seated frame (`MANGAKA_SIT[0]` 184 to 194 runs, `[1]` 187 to 195) added 20 to the reference scene and its art twin
+and 38 to `BARE_FULL` and its art twin, and took the rest scene from 509 to 500 (the doze's remap, 100 to 91 runs,
+against the redrawn seat it replaces); task B5's tabby (`CAT_SLEEP` 31 to 39, `CAT_SIT` 34 to 40) added 8 to each of
+the four and 6 to the rest scene. The pins are now 701 and 1125 (budgets 1051.5 and 1687.5), 549 and 974 with the art
+ready (823.5 and 1461), and the rest scene 506 (759).
 
 ### Art
 The live scene is code-drawn `fillRect` (`render.ts`, `roomArt.ts`, `studioArt.ts`, `sprites.ts`), and since 0.9.0 it
@@ -642,8 +665,8 @@ overlay leave the flat a slate teal and the loft a warm grey-pink, both still re
 result to `render`, and each image's load clears the loop's last-painted snapshot so the next step repaints it.
 `render.ts` never imports the registry. In tests, `fakeCanvas.ts` records each `drawImage` in `images` (with `at`, the
 fill log's length at the call, for order checks) and `fakeImage(id, w, h)` makes an image `ready` accepts; the fill
-`log` stays fillRect-only, so the 673/1079 baselines measure what is still code-drawn (with `NO_ART` they are
-unchanged), and `fakeSceneArt()` readies every image at once for the art baselines (521/928 since 0.10.0). `ART_PALETTE_SCENE` (for `"palette": "scene"` entries) holds the room shells' day colours (the plasters, the tatami, the planks, the concrete, the
+`log` stays fillRect-only, so the 701/1125 baselines measure what is still code-drawn (with `NO_ART` they are
+unchanged), and `fakeSceneArt()` readies every image at once for the art baselines (549/974 since the 0.9.0 cast redraw). `ART_PALETTE_SCENE` (for `"palette": "scene"` entries) holds the room shells' day colours (the plasters, the tatami, the planks, the concrete, the
 woods, the brick, the rugs and the flat's teal wallpaper), so a generated shell snaps to the drawn room's colours.
 
 **The title hero** (`TitleScreen.tsx`) renders `TITLE_ART` (manifest id `title/hero`, native 320x180) directly rather
@@ -1509,3 +1532,16 @@ generated sprites (see "The furniture" under "Scene images"):
   milestone is left (`settleStep`); Settings' Help offers "Skip the tutorial" while a step is open; the guide speaks
   through a live node mounted empty (Next and Skip described by the line), takes focus back on an info step when its
   control returns and focus is on the page, and `place()` reads every size before it writes a style.
+
+**2026-10-02, the cast redraw.** Release 0.9.0's Release B hand-redraws the cast (see "The cast redraw" under "The
+sprites"). The 0.9.0 to 0.11.0 labels elsewhere in this file are the scene-art plan's numbering, which shipped inside
+0.7.0; the 2026-10-02 plan's releases restart after the 0.7.0 tag at 0.8.0 (the tutorial), 0.9.0 (the cast) and
+0.10.0 (the rooms). Its rulings:
+
+- `ANCHOR_HEAD` stays byte for byte, and so does every frame contract: the frame sizes and counts (21 human 24x32
+  frames, the 30x14 lie, 7 cat frames at 12x8), the `faceRules` set (both idle, both sit and both sip frames),
+  `HEAD_DY`, and `breathOf(MANGAKA_IDLE[0])` being exactly `MANGAKA_IDLE[1]`.
+- Each frame's run count is capped at 1.3x its pre-redraw count (`RUN_CAPS`), and a cap is never raised.
+- Each set is gated on the contact sheet (`npm run sprites`) and the running scene before its commit.
+- The exact fill baselines are re-measured by hand, never budgeted up: 673 to 701, 1079 to 1125, the art scenes 521
+  to 549 and 928 to 974, the rest scene 509 to 506.

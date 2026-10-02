@@ -30,9 +30,9 @@ export const ASSISTANT_DOZE_C2: string[] = [
   '.....LSSSSSSSSSSSSSL....', // 24
   '.....LSSSSSSSSSSSSSL....', // 25
   '....LLLLSSSSSSSSLLL.....', // 26
-  '...LJJJJjLLLLLLJJJJL....', // 27
-  '...LJJJJJjLLjJJJJJJL....', // 28
-  '...LJJJJJjSSjJJJJJjL....', // 29
-  '...LjjjJJjLSSJJJJjjL....', // 30
+  '...LjjjjjLLLLLLjjjjL....', // 27
+  '...LjjjjjjLLjjjjjjjL....', // 28
+  '...LjjjjjjSSjjjjjjjL....', // 29
+  '...LjjjjjjLSSjjjjjjL....', // 30
   '....LLLLLLLLLLLLLLL.....', // 31
 ]

@@ -38,23 +38,29 @@ export function breathOf(f: SpriteMap): SpriteMap {
   return ['.'.repeat(f[0].length), ...f.slice(0, 24), ...f.slice(25)]
 }
 
-/** The standing anchor's body under ANCHOR_HEAD: the hoodie with its collar and tie, the trousers, the shoes. */
+/** The standing anchor's body under ANCHOR_HEAD (task B1, after art/raw/sprites/mangaka-front.png): the hoodie's
+ * torso J with its hood shadow j over the shoulders and down the right, the collar K either side of the neck over a
+ * shirt V (R, the assistants' shirt colour) that the drawstring Y hangs from, three-wide darker sleeves j seamed from
+ * the torso by an L and ending in a hand S (one s on its shaded side) closed by its own outline on row 23, so the
+ * breath (`breathOf`, which tucks row 24, the hem j) never opens it; brown trousers F/f with the gap between the legs,
+ * and red shoes O/o on an L sole. Sleeve and hand are separate runs, so OUTFIT_PALS' darker j gives the cardigan and
+ * blazer darker sleeves for free. */
 const IDLE_BODY: SpriteMap = [
-  '......LJKKsssKKjL.......', // 16
-  '.....LJJJKRYRKJjjL......', // 17
-  '....LJJJJJRYRJJJjjL.....', // 18
-  '....LJJJJJWyWJJJjjL.....', // 19
-  '....LJJLJJRYRJJLjjL.....', // 20
-  '....LJJLJJWyWJJLjjL.....', // 21
-  '....LSSLJJRYRJJLSsL.....', // 22
-  '.....LLLJJJJJJJLLL......', // 23
+  '....LLjjKKsssKKjjLL.....', // 16
+  '...LjjjLJKRRRKjLjjjL....', // 17
+  '...LjjjLJJRYRJjLjjjL....', // 18
+  '...LjjjLJJJYJJjLjjjL....', // 19
+  '...LjjjLJJJYJJjLjjjL....', // 20
+  '...LjjjLJJJYJJjLjjjL....', // 21
+  '...LSSsLJJJYJJjLSSsL....', // 22
+  '....LLLLJJJJJJjLLLL.....', // 23
   '.......LjjjjjjjjL.......', // 24
-  '.......LTTTTTTTtL.......', // 25
-  '.......LTTTLTTTtL.......', // 26
-  '.......LTTTLTTTtL.......', // 27
-  '.......LTTTLTTttL.......', // 28
-  '.......LtttLttttL.......', // 29
-  '......LOOOLLOOOoL.......', // 30
+  '.......LFFFFFFFfL.......', // 25
+  '.......LFFFLFFFfL.......', // 26
+  '.......LFFFLFFFfL.......', // 27
+  '.......LFFFLFFFfL.......', // 28
+  '.......LFFfLFfffL.......', // 29
+  '......LOOoLLOOOoL.......', // 30
   '......LLLLLLLLLLL.......', // 31
 ]
 const IDLE_0: SpriteMap = [...ANCHOR_HEAD, ...IDLE_BODY]
@@ -73,83 +79,55 @@ export const HEAD_DY = { idle: [0, 1], sit: [0, 0], stretch: [0, 1], sip: [0, 0]
 }
 
 /**
- * The idle cycle's stretch (Decision 6): the anchor with the arms flung out and up beside the head, eyes closed.
- * STRETCH[1] is the breath (rows 0-23 a row lower, headDy = 1), as MANGAKA_IDLE[1] is to MANGAKA_IDLE[0].
+ * The idle cycle's stretch (Decision 6): the standing body with both arms flung out and up beside the head, eyes closed.
+ * Each sleeve rises from its shoulder cap (row 17, as the idle) a column further out per row to a fist beside the cheek
+ * (rows 12-14, one wide at the fingertips and three at the wrist, its one s at the bottom corner); the arms leave the
+ * avatar crop, which is why the stretch is exempt from faceRules. Under the shoulders the torso stands alone, two
+ * columns wider than the chest between the idle's seams, closed under each sleeve by an L row. STRETCH[1] is the
+ * breath (`breathOf`: rows 0-23 a row lower, the hem tucked, headDy = 1), as MANGAKA_IDLE[1] is to MANGAKA_IDLE[0].
  */
-export const MANGAKA_STRETCH: readonly [SpriteMap, SpriteMap] = [
-  [
-    '......LLLLLLLLLL........', // 0
-    '....LLHHHHHHHHHhLL......', // 1
-    '...LHHHHHHHHHHHHhhL.....', // 2
-    '..LHHHHHHHHHHHHHHhhL....', // 3
-    '..LHHHHHHHHHHHHHHhhL....', // 4
-    '..LHHHHHHHHHHHHHHhhL....', // 5
-    '..LHHHSHHHHSHHHHHhhL....', // 6
-    '..LHSSSSSSSSSSSSSShL....', // 7
-    '..LHSSSSSSSSSSSSSSsL....', // 8
-    '..LHSSSSSSSSSSSSSSsL....', // 9  eyes closed
-    '..LHSSssSSSSSSssSSsL....', // 10 eyes closed
-    '..LHSSSSSSSSSSSSSSsL....', // 11 eyes closed
-    '.LLSBBSSSSMMSSSSBBsL..L.', // 12 arms: hands beside the head
-    'LSLLSSSSSSSSSSSSSSsL.LSL', // 13
-    'LSL.LSSSSSSSSSSSSsL..LSL', // 14
-    'LJL..LLsssssssssLL...LJL', // 15
-    'LJL...LJJJsssJJjL....LJL', // 16
-    '.....LJJJJRWRJJjjL......', // 17
-    '....LJJJJJRWRJJJjjL.....', // 18
-    '....LJJJJJWRWJJJjjL.....', // 19
-    '....LJJJJJRWRJJJjjL.....', // 20 no arm-line L (cols 7, 15)
-    '....LJJJJJWRWJJJjjL.....', // 21 no arm-line L (cols 7, 15)
-    '....LJJJJJRWRJJJJjL.....', // 22 hands become JJ
-    '.....LLLJJJJJJJLLL......', // 23
-    '.......LjjjjjjjjL.......', // 24
-    '.......LTTTTTTTtL.......', // 25
-    '.......LTTTLTTTtL.......', // 26
-    '.......LTTTLTTTtL.......', // 27
-    '.......LTTTLTTttL.......', // 28
-    '.......LtttLttttL.......', // 29
-    '......LOOOLLOOOoL.......', // 30
-    '......LLLLLLLLLLL.......', // 31
-  ],
-  [
-    '........................', // 0
-    '......LLLLLLLLLL........', // 1
-    '....LLHHHHHHHHHhLL......', // 2
-    '...LHHHHHHHHHHHHhhL.....', // 3
-    '..LHHHHHHHHHHHHHHhhL....', // 4
-    '..LHHHHHHHHHHHHHHhhL....', // 5
-    '..LHHHHHHHHHHHHHHhhL....', // 6
-    '..LHHHSHHHHSHHHHHhhL....', // 7
-    '..LHSSSSSSSSSSSSSShL....', // 8
-    '..LHSSSSSSSSSSSSSSsL....', // 9
-    '..LHSSSSSSSSSSSSSSsL....', // 10 eyes closed
-    '..LHSSssSSSSSSssSSsL....', // 11 eyes closed
-    '..LHSSSSSSSSSSSSSSsL....', // 12 eyes closed
-    '.LLSBBSSSSMMSSSSBBsL..L.', // 13
-    'LSLLSSSSSSSSSSSSSSsL.LSL', // 14
-    'LSL.LSSSSSSSSSSSSsL..LSL', // 15
-    'LJL..LLsssssssssLL...LJL', // 16
-    'LJL...LJJJsssJJjL....LJL', // 17
-    '.....LJJJJRWRJJjjL......', // 18
-    '....LJJJJJRWRJJJjjL.....', // 19
-    '....LJJJJJWRWJJJjjL.....', // 20
-    '....LJJJJJRWRJJJjjL.....', // 21
-    '....LJJJJJWRWJJJjjL.....', // 22
-    '....LJJJJJRWRJJJJjL.....', // 23
-    '.....LLLJJJJJJJLLL......', // 24
-    '.......LTTTTTTTtL.......', // 25
-    '.......LTTTLTTTtL.......', // 26
-    '.......LTTTLTTTtL.......', // 27
-    '.......LTTTLTTttL.......', // 28
-    '.......LtttLttttL.......', // 29
-    '......LOOOLLOOOoL.......', // 30
-    '......LLLLLLLLLLL.......', // 31
-  ],
-] as const
+const STRETCH_0: SpriteMap = [
+  '......LLLLLLLLLL........', // 0
+  '....LLHHHHHHHHHhLL......', // 1
+  '...LHHHHHHHHHHHHhhL.....', // 2
+  '..LHHHHHHHHHHHHHHhhL....', // 3
+  '..LHHHHHHHHHHHHHHhhL....', // 4
+  '..LHHHHHHHHHHHHHHhhL....', // 5
+  '..LHHHSHHHHSHHHHHhhL....', // 6
+  '..LHSSSSSSSSSSSSSShL....', // 7
+  '..LHSSSSSSSSSSSSSSsL....', // 8
+  '..LHSSSSSSSSSSSSSSsL....', // 9  eyes closed
+  '..LHSSssSSSSSSssSSsL....', // 10 eyes closed
+  '..LHSSSSSSSSSSSSSSsL....', // 11 eyes closed
+  'LSLSBBSSSSMMSSSSBBsLSL..', // 12 the fingertips beside the cheeks
+  'LSSLSSSSSSSSSSSSSSsLSSL.', // 13
+  'LSSsLSSSSSSSSSSSSsLSSsL.', // 14 the fists, three wide at the wrist, one s each
+  '.LjjjLLsssssssssLLjjjL..', // 15 the raised sleeves, a column in per row down to the shoulders
+  '..LjjjLjKKsssKKjLjjjL...', // 16
+  '...LjjjLJKRRRKjLjjjL....', // 17 the shoulder caps, as the idle
+  '....LLLJJJRYRJJjLLL.....', // 18 the sleeves' undersides closed; the torso alone below, no arm-line L
+  '......LJJJJYJJJjL.......', // 19
+  '......LJJJJYJJJjL.......', // 20
+  '......LJJJJYJJJjL.......', // 21
+  '......LJJJJYJJJjL.......', // 22
+  '......LLJJJJJJjLL.......', // 23
+  '.......LjjjjjjjjL.......', // 24
+  '.......LFFFFFFFfL.......', // 25
+  '.......LFFFLFFFfL.......', // 26
+  '.......LFFFLFFFfL.......', // 27
+  '.......LFFFLFFFfL.......', // 28
+  '.......LFFfLFfffL.......', // 29
+  '......LOOoLLOOOoL.......', // 30
+  '......LLLLLLLLLLL.......', // 31
+]
+export const MANGAKA_STRETCH: readonly [SpriteMap, SpriteMap] = [STRETCH_0, breathOf(STRETCH_0)]
 
 /**
- * The idle cycle's sip (Decision 6): the anchor with the leading hand raised, a mug at the mouth (rows 12-14, the
- * rim then the hand). SIP[1] closes the eyes, otherwise unchanged.
+ * The idle cycle's sip (Decision 6): the standing body with the leading (left) arm raised, a mug at the mouth (rows
+ * 12-14: the W rim in its L outline, then the hand holding it, S with its s). The sleeve stands where the idle's hangs
+ * (cols 4-6) but ends at row 19, closed by an L row at 20, and its forearm turns in along row 15 under the chin to the
+ * hand; the other arm hangs as the idle's. The mug's cells are face keys, so both frames pass faceRules and a mood
+ * paints over it. SIP[1] closes the eyes, otherwise unchanged.
  */
 export const MANGAKA_SIP: readonly [SpriteMap, SpriteMap] = [
   [
@@ -166,24 +144,24 @@ export const MANGAKA_SIP: readonly [SpriteMap, SpriteMap] = [
     '..LHSSEWSSSSSSEWSSsL....', // 10
     '..LHSSEESSSSSSEESSsL....', // 11
     '..LSBBSSLWWLSSSSBBsL....', // 12 the mug rim
-    '...LSSSSLWWLSSSSSSsL....', // 13 the mug rim
-    '....LSSSLSSLSSSSSsL.....', // 14 the hand
-    '.....LLsssssssssLL......', // 15
-    '......LJJJsssJJjL.......', // 16
-    '.....LJJJJRWRJJjjL......', // 17
-    '....LJJJJJRWRJJJjjL.....', // 18
-    '....LJJJJJWRWJJJjjL.....', // 19
-    '....LJJLJJRWRJJLjjL.....', // 20
-    '....LJJLJJWRWJJLjjL.....', // 21
-    '....LJJLJJRWRJJLSsL.....', // 22 the left hand becomes JJ
-    '.....LLLJJJJJJJLLL......', // 23
+    '...LSSSSLWWLSSSSSSsL....', // 13 the mug
+    '....LSSSLSsLSSSSSsL.....', // 14 the hand on the mug
+    '...LjjjjjjLsssssLL......', // 15 the forearm, in along the chin to the hand
+    '...LjjjLKKsssKKjjLL.....', // 16 the raised sleeve over the hood's shadow
+    '...LjjjLJKRRRKjLjjjL....', // 17
+    '...LjjjLJJRYRJjLjjjL....', // 18
+    '...LjjjLJJJYJJjLjjjL....', // 19
+    '....LLLLJJJYJJjLjjjL....', // 20 the raised sleeve's underside; the other arm hangs as the idle
+    '.......LJJJYJJjLjjjL....', // 21
+    '.......LJJJYJJjLSSsL....', // 22
+    '.......LJJJJJJjLLLL.....', // 23
     '.......LjjjjjjjjL.......', // 24
-    '.......LTTTTTTTtL.......', // 25
-    '.......LTTTLTTTtL.......', // 26
-    '.......LTTTLTTTtL.......', // 27
-    '.......LTTTLTTttL.......', // 28
-    '.......LtttLttttL.......', // 29
-    '......LOOOLLOOOoL.......', // 30
+    '.......LFFFFFFFfL.......', // 25
+    '.......LFFFLFFFfL.......', // 26
+    '.......LFFFLFFFfL.......', // 27
+    '.......LFFFLFFFfL.......', // 28
+    '.......LFFfLFfffL.......', // 29
+    '......LOOoLLOOOoL.......', // 30
     '......LLLLLLLLLLL.......', // 31
   ],
   [
@@ -201,320 +179,180 @@ export const MANGAKA_SIP: readonly [SpriteMap, SpriteMap] = [
     '..LHSSSSSSSSSSSSSSsL....', // 11 eyes closed
     '..LSBBSSLWWLSSSSBBsL....', // 12
     '...LSSSSLWWLSSSSSSsL....', // 13
-    '....LSSSLSSLSSSSSsL.....', // 14
-    '.....LLsssssssssLL......', // 15
-    '......LJJJsssJJjL.......', // 16
-    '.....LJJJJRWRJJjjL......', // 17
-    '....LJJJJJRWRJJJjjL.....', // 18
-    '....LJJJJJWRWJJJjjL.....', // 19
-    '....LJJLJJRWRJJLjjL.....', // 20
-    '....LJJLJJWRWJJLjjL.....', // 21
-    '....LJJLJJRWRJJLSsL.....', // 22
-    '.....LLLJJJJJJJLLL......', // 23
+    '....LSSSLSsLSSSSSsL.....', // 14
+    '...LjjjjjjLsssssLL......', // 15
+    '...LjjjLKKsssKKjjLL.....', // 16
+    '...LjjjLJKRRRKjLjjjL....', // 17
+    '...LjjjLJJRYRJjLjjjL....', // 18
+    '...LjjjLJJJYJJjLjjjL....', // 19
+    '....LLLLJJJYJJjLjjjL....', // 20
+    '.......LJJJYJJjLjjjL....', // 21
+    '.......LJJJYJJjLSSsL....', // 22
+    '.......LJJJJJJjLLLL.....', // 23
     '.......LjjjjjjjjL.......', // 24
-    '.......LTTTTTTTtL.......', // 25
-    '.......LTTTLTTTtL.......', // 26
-    '.......LTTTLTTTtL.......', // 27
-    '.......LTTTLTTttL.......', // 28
-    '.......LtttLttttL.......', // 29
-    '......LOOOLLOOOoL.......', // 30
+    '.......LFFFFFFFfL.......', // 25
+    '.......LFFFLFFFfL.......', // 26
+    '.......LFFFLFFFfL.......', // 27
+    '.......LFFFLFFFfL.......', // 28
+    '.......LFFfLFfffL.......', // 29
+    '......LOOoLLOOOoL.......', // 30
     '......LLLLLLLLLLL.......', // 31
   ],
 ] as const
 
-/** The walk, 100 ms a frame: contact, pass (a row lower), contact with the legs and arms swapped, pass again. */
+/** The walk's first contact under ANCHOR_HEAD: the leading (left) arm swung forward and up, its sleeve three rows
+ * and the fist at row 20, the trailing arm hanging as the idle's; the hem as the idle's; the left leg stepping out, a
+ * column further per row to a long shoe whose toe reaches two columns past it, the right leg straight under the hip,
+ * the crotch line (L) on the hip row above the gap. */
+const WALK_CONTACT_0: SpriteMap = [
+  '....LLjjKKsssKKjjLL.....', // 16
+  '...LjjjLJKRRRKjLjjjL....', // 17
+  '...LjjjLJJRYRJjLjjjL....', // 18
+  '...LjjjLJJJYJJjLjjjL....', // 19
+  '...LSSsLJJJYJJjLjjjL....', // 20 the leading fist, forward and up
+  '....LLLLJJJYJJjLjjjL....', // 21
+  '.......LJJJYJJjLSSsL....', // 22 the trailing hand, as the idle
+  '.......LJJJJJJjLLLL.....', // 23
+  '.......LjjjjjjjjL.......', // 24 the hem, as the idle
+  '......LFFFFLFFFfL.......', // 25 the hips, a column out on the stepping side
+  '......LFFFL.LFFfL.......', // 26 the left leg steps out, the right stays under
+  '.....LFFFL..LFFfL.......', // 27
+  '....LFFFL...LFFfL.......', // 28
+  '....LFFfL...LfffL.......', // 29
+  '..LOOOOoL...LOOoL.......', // 30 the forward shoe reaches its toe out
+  '..LLLLLLL...LLLLL.......', // 31
+]
+
+/** The walk's second contact under ANCHOR_HEAD: WALK_CONTACT_0 with the legs and arms swapped (the right leg steps
+ * out to the right, the right arm swings up), the shade still on the right of every run. */
+const WALK_CONTACT_2: SpriteMap = [
+  '....LLjjKKsssKKjjLL.....', // 16
+  '...LjjjLJKRRRKjLjjjL....', // 17
+  '...LjjjLJJRYRJjLjjjL....', // 18
+  '...LjjjLJJJYJJjLjjjL....', // 19
+  '...LjjjLJJJYJJjLSSsL....', // 20 the leading fist, forward and up
+  '...LjjjLJJJYJJjLLLL.....', // 21
+  '...LSSsLJJJYJJjL........', // 22 the trailing hand, as the idle
+  '....LLLLJJJJJJjL........', // 23
+  '.......LjjjjjjjjL.......', // 24 the hem, as the idle
+  '.......LFFFFLFFFfL......', // 25 the hips, a column out on the stepping side
+  '.......LFFFL.LFFfL......', // 26 the left leg stays under, the right steps out
+  '.......LFFFL..LFFfL.....', // 27
+  '.......LFFFL...LFFfL....', // 28
+  '.......LFffL...LfffL....', // 29
+  '.......LOOoL...LOOOOoL..', // 30 the stepping shoe reaches out
+  '.......LLLLL...LLLLLLL..', // 31
+]
+
+/** The walk's pass: the idle a row lower down to and including the hem (row 25, so the hem never blinks at the walk's
+ * ten frames a second), then the legs together, a row shorter, one shoe. */
+const WALK_PASS: SpriteMap = [
+  '.'.repeat(24), // 0
+  ...IDLE_0.slice(0, 25), // 1-25: rows 0-24 of the idle
+  '........LFFFFFfL........', // 26 the legs together, passing
+  '........LFFFFFfL........', // 27
+  '........LFFFFFfL........', // 28
+  '........LFFffffL........', // 29
+  '........LOOOOOoL........', // 30
+  '........LLLLLLLL........', // 31
+]
+
+/** The walk, 100 ms a frame: contact, pass (a row lower), contact with the legs and arms swapped, pass again. The
+ * contact frames lead with different legs (the left foot reaching out on frame 0, the right on frame 2, the long shoe
+ * the forward one), so the cycle steps rather than slides; the pass frames are one map. */
 export const MANGAKA_WALK: readonly [SpriteMap, SpriteMap, SpriteMap, SpriteMap] = [
-  [
-    '......LLLLLLLLLL........', // 0
-    '....LLHHHHHHHHHhLL......', // 1
-    '...LHHHHHHHHHHHHhhL.....', // 2
-    '..LHHHHHHHHHHHHHHhhL....', // 3
-    '..LHHHHHHHHHHHHHHhhL....', // 4
-    '..LHHHHHHHHHHHHHHhhL....', // 5
-    '..LHHHSHHHHSHHHHHhhL....', // 6
-    '..LHSSSSSSSSSSSSSShL....', // 7
-    '..LHSSSSSSSSSSSSSSsL....', // 8
-    '..LHSSEESSSSSSEESSsL....', // 9
-    '..LHSSEWSSSSSSEWSSsL....', // 10
-    '..LHSSEESSSSSSEESSsL....', // 11
-    '..LSBBSSSSMMSSSSBBsL....', // 12
-    '...LSSSSSSSSSSSSSSsL....', // 13
-    '....LSSSSSSSSSSSSsL.....', // 14
-    '.....LLsssssssssLL......', // 15
-    '......LJJJsssJJjL.......', // 16
-    '.....LJJJJRWRJJjjL......', // 17
-    '....LJJJJJRWRJJJjjL.....', // 18
-    '....LJJJJJWRWJJJjjL.....', // 19
-    '....LJJLJJRWRJJLjjL.....', // 20
-    '....LSSLJJWRWJJLjjL.....', // 21
-    '....LLLLJJRWRJJLjjL.....', // 22
-    '.....LLLJJJJJJJLSsL.....', // 23
-    '.......LjjjjjjjjLLL.....', // 24
-    '......LTTTTTTTTTtL......', // 25
-    '.....LTTTL...LTTTtL.....', // 26
-    '.....LTTTL...LTTTtL.....', // 27
-    '.....LTTTL...LTTttL.....', // 28
-    '.....LtttL...LttttL.....', // 29
-    '....LOOOOL...LOOOoL.....', // 30
-    '....LLLLLL...LLLLLL.....', // 31
-  ],
-  [
-    '........................', // 0
-    '......LLLLLLLLLL........', // 1
-    '....LLHHHHHHHHHhLL......', // 2
-    '...LHHHHHHHHHHHHhhL.....', // 3
-    '..LHHHHHHHHHHHHHHhhL....', // 4
-    '..LHHHHHHHHHHHHHHhhL....', // 5
-    '..LHHHHHHHHHHHHHHhhL....', // 6
-    '..LHHHSHHHHSHHHHHhhL....', // 7
-    '..LHSSSSSSSSSSSSSShL....', // 8
-    '..LHSSSSSSSSSSSSSSsL....', // 9
-    '..LHSSEESSSSSSEESSsL....', // 10
-    '..LHSSEWSSSSSSEWSSsL....', // 11
-    '..LHSSEESSSSSSEESSsL....', // 12
-    '..LSBBSSSSMMSSSSBBsL....', // 13
-    '...LSSSSSSSSSSSSSSsL....', // 14
-    '....LSSSSSSSSSSSSsL.....', // 15
-    '.....LLsssssssssLL......', // 16
-    '......LJJJsssJJjL.......', // 17
-    '.....LJJJJRWRJJjjL......', // 18
-    '....LJJJJJRWRJJJjjL.....', // 19
-    '....LJJJJJWRWJJJjjL.....', // 20
-    '....LJJLJJRWRJJLjjL.....', // 21
-    '....LJJLJJWRWJJLjjL.....', // 22
-    '....LSSLJJRWRJJLSsL.....', // 23
-    '.....LLLJJJJJJJLLL......', // 24
-    '.......LjjjjjjjjL.......', // 25
-    '........LTTTTTtL........', // 26
-    '........LTTTTTtL........', // 27
-    '........LTTTTTtL........', // 28
-    '........LttttttL........', // 29
-    '........LOOOOOoL........', // 30
-    '........LLLLLLLL........', // 31
-  ],
-  [
-    '......LLLLLLLLLL........', // 0
-    '....LLHHHHHHHHHhLL......', // 1
-    '...LHHHHHHHHHHHHhhL.....', // 2
-    '..LHHHHHHHHHHHHHHhhL....', // 3
-    '..LHHHHHHHHHHHHHHhhL....', // 4
-    '..LHHHHHHHHHHHHHHhhL....', // 5
-    '..LHHHSHHHHSHHHHHhhL....', // 6
-    '..LHSSSSSSSSSSSSSShL....', // 7
-    '..LHSSSSSSSSSSSSSSsL....', // 8
-    '..LHSSEESSSSSSEESSsL....', // 9
-    '..LHSSEWSSSSSSEWSSsL....', // 10
-    '..LHSSEESSSSSSEESSsL....', // 11
-    '..LSBBSSSSMMSSSSBBsL....', // 12
-    '...LSSSSSSSSSSSSSSsL....', // 13
-    '....LSSSSSSSSSSSSsL.....', // 14
-    '.....LLsssssssssLL......', // 15
-    '......LJJJsssJJjL.......', // 16
-    '.....LJJJJRWRJJjjL......', // 17
-    '....LJJJJJRWRJJJjjL.....', // 18
-    '....LJJJJJWRWJJJjjL.....', // 19
-    '....LJJLJJRWRJJLjjL.....', // 20
-    '....LJJLJJWRWJJLSsL.....', // 21
-    '....LJJLJJRWRJJLLLL.....', // 22
-    '....LSSLJJJJJJJLLL......', // 23
-    '....LLLLjjjjjjjjL.......', // 24
-    '......LTTTTTTTTTtL......', // 25
-    '.....LTTTTL...LTTtL.....', // 26
-    '.....LTTTTL...LTTtL.....', // 27
-    '.....LTTTTL...LTttL.....', // 28
-    '.....LttttL...LtttL.....', // 29
-    '.....LOOOL...LOOOOoL....', // 30
-    '.....LLLLL...LLLLLLL....', // 31
-  ],
-  [
-    '........................', // 0
-    '......LLLLLLLLLL........', // 1
-    '....LLHHHHHHHHHhLL......', // 2
-    '...LHHHHHHHHHHHHhhL.....', // 3
-    '..LHHHHHHHHHHHHHHhhL....', // 4
-    '..LHHHHHHHHHHHHHHhhL....', // 5
-    '..LHHHHHHHHHHHHHHhhL....', // 6
-    '..LHHHSHHHHSHHHHHhhL....', // 7
-    '..LHSSSSSSSSSSSSSShL....', // 8
-    '..LHSSSSSSSSSSSSSSsL....', // 9
-    '..LHSSEESSSSSSEESSsL....', // 10
-    '..LHSSEWSSSSSSEWSSsL....', // 11
-    '..LHSSEESSSSSSEESSsL....', // 12
-    '..LSBBSSSSMMSSSSBBsL....', // 13
-    '...LSSSSSSSSSSSSSSsL....', // 14
-    '....LSSSSSSSSSSSSsL.....', // 15
-    '.....LLsssssssssLL......', // 16
-    '......LJJJsssJJjL.......', // 17
-    '.....LJJJJRWRJJjjL......', // 18
-    '....LJJJJJRWRJJJjjL.....', // 19
-    '....LJJJJJWRWJJJjjL.....', // 20
-    '....LJJLJJRWRJJLjjL.....', // 21
-    '....LJJLJJWRWJJLjjL.....', // 22
-    '....LSSLJJRWRJJLSsL.....', // 23
-    '.....LLLJJJJJJJLLL......', // 24
-    '.......LjjjjjjjjL.......', // 25
-    '........LTTTTTtL........', // 26
-    '........LTTTTTtL........', // 27
-    '........LTTTTTtL........', // 28
-    '........LttttttL........', // 29
-    '........LOOOOOoL........', // 30
-    '........LLLLLLLL........', // 31
-  ],
-] as const
+  [...ANCHOR_HEAD, ...WALK_CONTACT_0], WALK_PASS, [...ANCHOR_HEAD, ...WALK_CONTACT_2], WALK_PASS,
+]
+
+/** The seated lap and legs (rows 25-31, task B3), shared by both sit frames and the panic: the thighs F forward to the
+ * desk (left) with their underside in shade f, the knee at the left end, the shins dropping under it at cols 1-6 to
+ * the shoe O/o on its L sole. Rows 29-30 stay inside cols 1-6, clear of the pen tablet (render.test's tablet box). */
+const SIT_LAP: SpriteMap = [
+  '.LFFFFFFFFFFFFFfL.......', // 25
+  '.LFFFFFFFFFFFFFfL.......', // 26
+  '.LFFFFFfffffffffL.......', // 27
+  '.LFFFfLLLLLLLLLLL.......', // 28
+  '.LFFFfL.................', // 29
+  '.LOOOoL.................', // 30
+  '.LLLLLL.................', // 31
+]
 
 /**
- * Seated at the desk: the anchor's head and body, the leading arm out along rows 21-23 to the pen (col 0), the lap on
- * rows 24-29 toward the desk, the shins and shoes at cols 1-6. Frame 1 is the stroke: the hand a row lower.
+ * Seated at the desk (task B3): ANCHOR_HEAD over the idle's shoulders (rows 16-19: the K collar, the R V, the Y
+ * drawstring, both sleeves j at the shoulders), then the leading arm bends out along the desk on rows 20-21 to the hand
+ * round the pen (row 22, S with its s beside the pen's L at col 0, the pen's tip two rows above the fist), the trailing
+ * sleeve hanging as the idle's to its hand on row 22, and the hem over the lap (SIT_LAP) toward the desk. Frame 1 is
+ * the stroke: the forearm, the hand and the pen a row lower (rows 20-24), everything else shared, so only the hand
+ * moves. No y shade on the drawstring (PAL.y is blue, which would speckle the hoodie's white cord; the idle has none).
  */
+const SIT_0: SpriteMap = [
+  ...ANCHOR_HEAD,
+  ...IDLE_BODY.slice(0, 4), // 16-19: the shoulders, collar, V and the sleeves at the shoulders, as the idle
+  'L.LjjjjLJJJYJJjLjjjL....', // 20 the pen's tip; the leading forearm turns out along the desk
+  'LLjjjjjLJJJYJJjLjjjL....', // 21
+  'LSSsLLLLJJJYJJjLSSsL....', // 22 the hand round the pen (its L at col 0); the trailing hand, as the idle's
+  'LLLL...LJJJJJJjLLLL.....', // 23
+  '.LLLLLLLjjjjjjjjL.......', // 24 the hem over the lap's top edge, out to the knee
+  ...SIT_LAP,
+]
 export const MANGAKA_SIT: readonly [SpriteMap, SpriteMap] = [
+  SIT_0,
   [
-    '......LLLLLLLLLL........', // 0
-    '....LLHHHHHHHHHhLL......', // 1
-    '...LHHHHHHHHHHHHhhL.....', // 2
-    '..LHHHHHHHHHHHHHHhhL....', // 3
-    '..LHHHHHHHHHHHHHHhhL....', // 4
-    '..LHHHHHHHHHHHHHHhhL....', // 5
-    '..LHHHSHHHHSHHHHHhhL....', // 6
-    '..LHSSSSSSSSSSSSSShL....', // 7
-    '..LHSSSSSSSSSSSSSSsL....', // 8
-    '..LHSSEESSSSSSEESSsL....', // 9
-    '..LHSSEWSSSSSSEWSSsL....', // 10
-    '..LHSSEESSSSSSEESSsL....', // 11
-    '..LSBBSSSSMMSSSSBBsL....', // 12
-    '...LSSSSSSSSSSSSSSsL....', // 13
-    '....LSSSSSSSSSSSSsL.....', // 14
-    '.....LLsssssssssLL......', // 15
-    '......LJKKsssKKjL.......', // 16
-    '.....LJJJKRYRKJjjL......', // 17
-    '....LJJJJJRYRJJJjjL.....', // 18
-    '....LJJJJJWyWJJJjjL.....', // 19
-    'L...LJJLJJRYRJJLjjL.....', // 20
-    'LLLLLJJLJJWyWJJLjjL.....', // 21
-    'LSSJJJJLJJRYRJJLSsL.....', // 22
-    'LLLLLLLLJJJJJJJLLL......', // 23
-    '.LLLLLLLjjjjjjjjL.......', // 24
-    '.LTTTTTTTTTTTTTtL.......', // 25
-    '.LTTTTTTTTTTTTTtL.......', // 26
-    '.LTTTTTTTTTTTTttL.......', // 27
-    '.LttttttttttttttL.......', // 28
-    '.LLLLLLLLLLLLLLLL.......', // 29
-    '.LOOOoL.................', // 30
-    '.LLLLLL.................', // 31
+    ...SIT_0.slice(0, 20),
+    '...LjjjLJJJYJJjLjjjL....', // 20 the sleeve hangs a row longer
+    'L.LjjjjLJJJYJJjLjjjL....', // 21 the pen's tip; the forearm turns out a row lower
+    'LLjjjjjLJJJYJJjLSSsL....', // 22 the trailing hand stays
+    'LSSsLLLLJJJJJJjLLLL.....', // 23 the hand round the pen, a row lower: the stroke
+    'LLLLLLLLjjjjjjjjL.......', // 24 the pen's end on the lap's top edge
+    ...SIT_LAP,
   ],
-  [
-    '......LLLLLLLLLL........', // 0
-    '....LLHHHHHHHHHhLL......', // 1
-    '...LHHHHHHHHHHHHhhL.....', // 2
-    '..LHHHHHHHHHHHHHHhhL....', // 3
-    '..LHHHHHHHHHHHHHHhhL....', // 4
-    '..LHHHHHHHHHHHHHHhhL....', // 5
-    '..LHHHSHHHHSHHHHHhhL....', // 6
-    '..LHSSSSSSSSSSSSSShL....', // 7
-    '..LHSSSSSSSSSSSSSSsL....', // 8
-    '..LHSSEESSSSSSEESSsL....', // 9
-    '..LHSSEWSSSSSSEWSSsL....', // 10
-    '..LHSSEESSSSSSEESSsL....', // 11
-    '..LSBBSSSSMMSSSSBBsL....', // 12
-    '...LSSSSSSSSSSSSSSsL....', // 13
-    '....LSSSSSSSSSSSSsL.....', // 14
-    '.....LLsssssssssLL......', // 15
-    '......LJKKsssKKjL.......', // 16
-    '.....LJJJKRYRKJjjL......', // 17
-    '....LJJJJJRYRJJJjjL.....', // 18
-    '....LJJJJJWyWJJJjjL.....', // 19
-    'L...LJJLJJRYRJJLjjL.....', // 20
-    'L...LJJLJJWyWJJLjjL.....', // 21
-    'LLLLLJJLJJRYRJJLSsL.....', // 22
-    'LSSJJJJLJJJJJJJLLL......', // 23
-    'LLLLLLLLjjjjjjjjL.......', // 24
-    '.LTTTTTTTTTTTTTtL.......', // 25
-    '.LTTTTTTTTTTTTTtL.......', // 26
-    '.LTTTTTTTTTTTTttL.......', // 27
-    '.LttttttttttttttL.......', // 28
-    '.LLLLLLLLLLLLLLLL.......', // 29
-    '.LOOOoL.................', // 30
-    '.LLLLLL.................', // 31
-  ],
-] as const
+]
 
 /**
  * Seated, late on a chapter: both hands clamped on top of the head (the hands meet the hair at rows 1-3, the forearms
  * run down and out over the hair's edge, the elbows out at cols 0-3 and 20-23), ringed eyes, the mouth open. This
  * replaces the earlier ruling's fists beside the head (rows 5-8): with the arms raised and the elbows out, the hands
- * on top read as hands, not ears. Frame 1 presses them a row lower (rows 2-3).
+ * on top read as hands, not ears. Task B3 made the raised arms j sleeves (a cuff under each hand on row 3, the upper
+ * arms out along row 16 over the collar, closed under by row 17) and put the stretch's lone torso (rows 18-23) over
+ * SIT_LAP under them. Frame 1 presses the hands a row lower (rows 2-3); rows 4-31 are frame 0's.
  */
+const PANIC_0: SpriteMap = [
+  '..LLLLLLLLLLLLLLLLLL....', // 0
+  '..LSSLHHHHHHHHHHLSsL....', // 1  the hands on top of the head
+  '.LSSSLHHHHHHHHHHhLSsL...', // 2
+  '.LjjLHHHHHHHHHHHHhLjjL..', // 3  the cuffs: the sleeves run down beside the head
+  'LjjLHHHHHHHHHHHHHhhLjjL.', // 4
+  'LjjLHHHHHHHHHHHHHhhLLjjL', // 5
+  'LjjLHHSHHHHSHHHHHhhLLjjL', // 6
+  'LjjLSSSSSSSSSSSSSShLLjjL', // 7
+  'LjjLSSSSSSSSSSSSSSsLLjjL', // 8
+  'LjLHSWWWSSSSSWWWSSsLLjjL', // 9  the ringed eyes
+  'LjLHSWEWSSSSSWEWSSsLLjjL', // 10
+  'LjLHSWWWSSSSSWWWSSsLLjjL', // 11
+  'LjLSBBSSSLMMLSSSBBsLLjjL', // 12 the mouth open
+  'LjLLSSSSSSSSSSSSSSsLLjjL', // 13
+  'LjL.LSSSSSSSSSSSSsL.LjjL', // 14
+  'LjL..LLsssssssssLL..LjjL', // 15
+  'LjjjjjLjKKsssKKjLjjjjjjL', // 16 the upper arms out to the elbows, over the hood's shadow and the collar
+  'LLLLLLLLJKRRRKjLLLLLLLL.', // 17 the arms' undersides closed; the V
+  '......LJJJRYRJJjL.......', // 18 the torso alone under the raised arms, as the stretch's
+  ...STRETCH_0.slice(19, 24), // 19-23
+  '.LLLLLLLjjjjjjjjL.......', // 24 the hem over the lap's top edge, as the sit
+  ...SIT_LAP,
+]
 export const MANGAKA_PANIC: readonly [SpriteMap, SpriteMap] = [
-  [
-    '..LLLLLLLLLLLLLLLLLL....', // 0
-    '..LSSLHHHHHHHHHHLSsL....', // 1
-    '.LSSSLHHHHHHHHHHhLSsL...', // 2
-    '.LJJLHHHHHHHHHHHHhLJjL..', // 3
-    'LJJLHHHHHHHHHHHHHhhLJjL.', // 4
-    'LJJLHHHHHHHHHHHHHhhLLJjL', // 5
-    'LJJLHHSHHHHSHHHHHhhLLJjL', // 6
-    'LJJLSSSSSSSSSSSSSShLLJjL', // 7
-    'LJJLSSSSSSSSSSSSSSsLLJjL', // 8
-    'LJLHSWWWSSSSSWWWSSsLLJjL', // 9
-    'LJLHSWEWSSSSSWEWSSsLLJjL', // 10
-    'LJLHSWWWSSSSSWWWSSsLLJjL', // 11
-    'LJLSBBSSSLMMLSSSBBsLLJjL', // 12
-    'LJLLSSSSSSSSSSSSSSsLLJjL', // 13
-    'LJL.LSSSSSSSSSSSSsL.LJjL', // 14
-    'LJL..LLsssssssssLL..LJjL', // 15
-    'LJJJJJLJJJsssJJjLJJJJJjL', // 16
-    'LLLLLLJJJJRWRJJjjLLLLLLL', // 17
-    '....LJJJJJRWRJJJjjL.....', // 18
-    '....LJJJJJWRWJJJjjL.....', // 19
-    '....LJJJJJRWRJJJjjL.....', // 20
-    '....LJJJJJWRWJJJjjL.....', // 21
-    '....LJJJJJRWRJJJjjL.....', // 22
-    '.....LLLJJJJJJJLLL......', // 23
-    '.LLLLLLLjjjjjjjjL.......', // 24
-    '.LTTTTTTTTTTTTTtL.......', // 25
-    '.LTTTTTTTTTTTTTtL.......', // 26
-    '.LTTTTTTTTTTTTttL.......', // 27
-    '.LttttttttttttttL.......', // 28
-    '.LLLLLLLLLLLLLLLL.......', // 29
-    '.LOOOoL.................', // 30
-    '.LLLLLL.................', // 31
-  ],
+  PANIC_0,
   [
     '......LLLLLLLLLL........', // 0
     '..LLLLHHHHHHHHHhLLLL....', // 1
-    '..LSSLHHHHHHHHHHhLSsL...', // 2
+    '..LSSLHHHHHHHHHHhLSsL...', // 2  the hands pressed a row lower
     '.LSSSLHHHHHHHHHHHhLSsL..', // 3
-    'LJJLHHHHHHHHHHHHHhhLJjL.', // 4
-    'LJJLHHHHHHHHHHHHHhhLLJjL', // 5
-    'LJJLHHSHHHHSHHHHHhhLLJjL', // 6
-    'LJJLSSSSSSSSSSSSSShLLJjL', // 7
-    'LJJLSSSSSSSSSSSSSSsLLJjL', // 8
-    'LJLHSWWWSSSSSWWWSSsLLJjL', // 9
-    'LJLHSWEWSSSSSWEWSSsLLJjL', // 10
-    'LJLHSWWWSSSSSWWWSSsLLJjL', // 11
-    'LJLSBBSSSLMMLSSSBBsLLJjL', // 12
-    'LJLLSSSSSSSSSSSSSSsLLJjL', // 13
-    'LJL.LSSSSSSSSSSSSsL.LJjL', // 14
-    'LJL..LLsssssssssLL..LJjL', // 15
-    'LJJJJJLJJJsssJJjLJJJJJjL', // 16
-    'LLLLLLJJJJRWRJJjjLLLLLLL', // 17
-    '....LJJJJJRWRJJJjjL.....', // 18
-    '....LJJJJJWRWJJJjjL.....', // 19
-    '....LJJJJJRWRJJJjjL.....', // 20
-    '....LJJJJJWRWJJJjjL.....', // 21
-    '....LJJJJJRWRJJJjjL.....', // 22
-    '.....LLLJJJJJJJLLL......', // 23
-    '.LLLLLLLjjjjjjjjL.......', // 24
-    '.LTTTTTTTTTTTTTtL.......', // 25
-    '.LTTTTTTTTTTTTTtL.......', // 26
-    '.LTTTTTTTTTTTTttL.......', // 27
-    '.LttttttttttttttL.......', // 28
-    '.LLLLLLLLLLLLLLLL.......', // 29
-    '.LOOOoL.................', // 30
-    '.LLLLLL.................', // 31
+    ...PANIC_0.slice(4), // 4-31
   ],
-] as const
+]
 
-/** Asleep in bed (30x14): the chibi head on the pillow (cols 12-29, eyes shut), the shoulders under the blanket. */
+/** Asleep in bed (30x14): the chibi head on the pillow (cols 12-29, eyes shut), the shoulders under the blanket: the
+ * hood's shadow j over the hoodie J, its underside in shade (task B3). */
 export const MANGAKA_LIE: SpriteMap = [
   '..............................', // 0
   '................LLLLLLLLLL....', // 1
@@ -525,329 +363,255 @@ export const MANGAKA_LIE: SpriteMap = [
   '............LHSSSSSSSSSSSSSShL', // 6
   '............LHSSSSSSSSSSSSSSsL', // 7
   'LLLLLLLLLLLLLHSSSSSSSSSSSSSSsL', // 8
-  'LJJJJJJJJJJJLHSSssSSSSSSssSSsL', // 9
-  'LJJJJJJJJJJJLSBBSSSSMMSSSSBBsL', // 10
-  'LjjjjjjjjjjL..LSSSSSSSSSSSSsL.', // 11
-  'LjjjjjjjjjjL...LLsssssssssLL..', // 12
+  'LjjjjjjjjjjjLHSSssSSSSSSssSSsL', // 9  the hood's shadow over the shoulders
+  'LJJJJJJJJJJJLSBBSSSSMMSSSSBBsL', // 10 the hoodie
+  'LJJJJJJJJJJL..LSSSSSSSSSSSSsL.', // 11
+  'LjjjjjjjjjjL...LLsssssssssLL..', // 12 its underside in shade
   'LLLLLLLLLLLL..................', // 13
 ]
 
 /**
  * An assistant asleep at the desk, generated (task C2, art/manifest.json `sprite/assistant-doze`, from the front sheet's
  * dozing cell fitted to a 20x23 box on the frame's last rows): the head down on the folded arms (rows 10-26, eyes shut,
- * eight cells touched in the manifest), the arms (J) on rows 27-30. The readability gate found it reads as dozing more
- * clearly than the hand-drawn frame it replaced (113 fills; now 100). Drawn with the assistant's palette, no mood.
+ * eight cells touched in the manifest), the arms on rows 27-30, sleeves (j) since task B3's manifest remap of their J
+ * (so they match the seated body's darker sleeves). The readability gate found it reads as dozing more clearly than
+ * the hand-drawn frame it replaced (113 fills; 100 at the gate, 91 with the remap). Drawn with the assistant's palette,
+ * no mood.
  */
 export const ASSISTANT_DOZE: SpriteMap = ASSISTANT_DOZE_C2
 
 /**
- * The editor: the anchor in a grey suit (G/g for J/j), a white collar (row 16 cols 9-12), a red tie (col 11 rows
- * 17-21), glasses across row 10 cols 5-16 (the eyes show on rows 9 and 11) and a 6x7 briefcase at cols 18-23 rows
- * 22-28 in the trailing hand. Frame 1 is the breath, as MANGAKA_IDLE[1] (rows 0-23 a row lower).
+ * The editor's head (task B4): ANCHOR_HEAD with square glasses over the eyes, two 4x3 P frames (rows 9-11, cols 6-9
+ * and 11-14) joined by one P cell on row 10, each with the eye E and its W highlight inside and skin either side, so
+ * they read as two lenses rather than the dark bar the 0.8.0 frame wore. The hair rows 0-8 and the blush, mouth and
+ * chin rows 12-15 are the anchor's. The editor never takes the mood overlay (render.ts draws moods on the mangaka
+ * only), so the P inside the FACES window is fine: the editor stays exempt from faceRules.
+ */
+const EDITOR_HEAD: SpriteMap = [
+  ...ANCHOR_HEAD.slice(0, 9), // 0-8: the hair and brow, as the anchor's
+  '..LHSSPPPPSPPPPSSSsL....', // 9  the lenses' top edges
+  '..LHSSPEWPPPEWPSSSsL....', // 10 the eyes inside the frames, the bridge between
+  '..LHSSPPPPSPPPPSSSsL....', // 11 the lenses' bottom edges
+  ...ANCHOR_HEAD.slice(12), // 12-15: the blush, mouth and chin, as the anchor's
+]
+
+/**
+ * The editor's standing body under EDITOR_HEAD: IDLE_BODY's construction (three-wide sleeves seamed from the torso by
+ * an L, a hand S/s closed by its own outline under each, the hem on row 24, the gap between the legs, the shoes on an L
+ * sole) dressed as a navy suit (G, its g shade down the right of the torso, on each sleeve's right column and as the
+ * jacket's hem over the G trousers), after art/raw/sprites/editor.png: the collar W either side of the neck narrowing
+ * to the knot of the tie N (col 11, rows 17-21), the shirt W showing beside the knot on rows 17-18, black shoes E, and
+ * the 6x7 briefcase (F with its f underside in an L box, cols 18-23, rows 22-28) hanging from the trailing hand, whose
+ * outline is the case's top-left corner, so that hand is two wide (S/s) where the leading one is three.
+ */
+const EDITOR_BODY: SpriteMap = [
+  '....LLGGWWsssWWGgLL.....', // 16 the collar points either side of the neck
+  '...LGGgLGWWNWWgLGGgL....', // 17 the collar narrows to the tie's knot; the shirt beside it
+  '...LGGgLGGWNWGgLGGgL....', // 18
+  '...LGGgLGGGNGGgLGGgL....', // 19 the tie down the jacket's closure
+  '...LGGgLGGGNGGgLGGgL....', // 20
+  '...LGGgLGGGNGGgLGGgL....', // 21
+  '...LSSsLGGGGGGgLSsLLLLLL', // 22 the hands; the trailing one holds the briefcase's top edge
+  '....LLLLGGGGGGgLLLLFFFfL', // 23
+  '.......LggggggggL.LFFFfL', // 24 the jacket's hem
+  '.......LGGGGGGGgL.LFFFfL', // 25 the trousers
+  '.......LGGGLGGGgL.LFFFfL', // 26
+  '.......LGGGLGGGgL.LffffL', // 27 the case's underside
+  '.......LGGGLGGGgL.LLLLLL', // 28
+  '.......LGGgLGgggL.......', // 29
+  '......LEEELLEEEEL.......', // 30 black shoes
+  '......LLLLLLLLLLL.......', // 31
+]
+const EDITOR_0: SpriteMap = [...EDITOR_HEAD, ...EDITOR_BODY]
+
+/**
+ * The editor standing at the spot: frame 0 EDITOR_HEAD over EDITOR_BODY, frame 1 the breath, rows 0-23 a row lower
+ * with the hem tucked under as `breathOf` has it, but hand-drawn below the hem so the briefcase comes down whole with
+ * the hand that holds it (rows 23-29, as on the walk's pass frames) instead of losing a row to the tuck.
  */
 export const EDITOR_IDLE: readonly [SpriteMap, SpriteMap] = [
+  EDITOR_0,
   [
-    '......LLLLLLLLLL........', // 0
-    '....LLHHHHHHHHHhLL......', // 1
-    '...LHHHHHHHHHHHHhhL.....', // 2
-    '..LHHHHHHHHHHHHHHhhL....', // 3
-    '..LHHHHHHHHHHHHHHhhL....', // 4
-    '..LHHHHHHHHHHHHHHhhL....', // 5
-    '..LHHHSHHHHSHHHHHhhL....', // 6
-    '..LHSSSSSSSSSSSSSShL....', // 7
-    '..LHSSSSSSSSSSSSSSsL....', // 8
-    '..LHSSEESSSSSSEESSsL....', // 9
-    '..LHSPPPPPPPPPPPPSsL....', // 10
-    '..LHSSEESSSSSSEESSsL....', // 11
-    '..LSBBSSSSMMSSSSBBsL....', // 12
-    '...LSSSSSSSSSSSSSSsL....', // 13
-    '....LSSSSSSSSSSSSsL.....', // 14
-    '.....LLsssssssssLL......', // 15
-    '......LGGWWWWGGgL.......', // 16
-    '.....LGGGGWNWGGggL......', // 17
-    '....LGGGGGWNWGGGggL.....', // 18
-    '....LGGGGGWNWGGGggL.....', // 19
-    '....LGGLGGWNWGGLggL.....', // 20
-    '....LGGLGGWNWGGLggL.....', // 21
-    '....LSSLGGGGGGGLSsLLLLLL', // 22
-    '.....LLLGGGGGGGLLLLFFFfL', // 23
-    '.......LggggggggL.LFFFfL', // 24
-    '.......LTTTTTTTtL.LFFFfL', // 25
-    '.......LTTTLTTTtL.LFFFfL', // 26
-    '.......LTTTLTTTtL.LffffL', // 27
-    '.......LTTTLTTttL.LLLLLL', // 28
-    '.......LtttLttttL.......', // 29
-    '......LOOOLLOOOoL.......', // 30
+    '.'.repeat(24), // 0
+    ...EDITOR_0.slice(0, 24), // 1-24: rows 0-23 a row lower, the case's top edge and first row with them
+    '.......LGGGGGGGgL.LFFFfL', // 25 the trousers, as frame 0's; the case a row lower beside them
+    '.......LGGGLGGGgL.LFFFfL', // 26
+    '.......LGGGLGGGgL.LFFFfL', // 27
+    '.......LGGGLGGGgL.LffffL', // 28 the case's underside
+    '.......LGGgLGgggL.LLLLLL', // 29
+    '......LEEELLEEEEL.......', // 30
     '......LLLLLLLLLLL.......', // 31
   ],
-  [
-    '........................', // 0
-    '......LLLLLLLLLL........', // 1
-    '....LLHHHHHHHHHhLL......', // 2
-    '...LHHHHHHHHHHHHhhL.....', // 3
-    '..LHHHHHHHHHHHHHHhhL....', // 4
-    '..LHHHHHHHHHHHHHHhhL....', // 5
-    '..LHHHHHHHHHHHHHHhhL....', // 6
-    '..LHHHSHHHHSHHHHHhhL....', // 7
-    '..LHSSSSSSSSSSSSSShL....', // 8
-    '..LHSSSSSSSSSSSSSSsL....', // 9
-    '..LHSSEESSSSSSEESSsL....', // 10
-    '..LHSPPPPPPPPPPPPSsL....', // 11
-    '..LHSSEESSSSSSEESSsL....', // 12
-    '..LSBBSSSSMMSSSSBBsL....', // 13
-    '...LSSSSSSSSSSSSSSsL....', // 14
-    '....LSSSSSSSSSSSSsL.....', // 15
-    '.....LLsssssssssLL......', // 16
-    '......LGGWWWWGGgL.......', // 17
-    '.....LGGGGWNWGGggL......', // 18
-    '....LGGGGGWNWGGGggL.....', // 19
-    '....LGGGGGWNWGGGggL.....', // 20
-    '....LGGLGGWNWGGLggL.....', // 21
-    '....LGGLGGWNWGGLggL.....', // 22
-    '....LSSLGGGGGGGLSsLLLLLL', // 23
-    '.....LLLGGGGGGGLLLLFFFfL', // 24
-    '.......LTTTTTTTtL.LFFFfL', // 25
-    '.......LTTTLTTTtL.LFFFfL', // 26
-    '.......LTTTLTTTtL.LffffL', // 27
-    '.......LTTTLTTttL.LLLLLL', // 28
-    '.......LtttLttttL.......', // 29
-    '......LOOOLLOOOoL.......', // 30
-    '......LLLLLLLLLLL.......', // 31
-  ],
-] as const
+]
 
-/** The editor's walk: MANGAKA_WALK dressed the same way, the briefcase a row lower on the pass frames. */
+/**
+ * The editor's walk: MANGAKA_WALK's timing and legs (WALK_CONTACT_0, WALK_CONTACT_2 and WALK_PASS, row for row) in
+ * the suit. The briefcase keeps its idle place on both contact frames (rows 22-28): under the trailing hand on frame
+ * 0, and on frame 2, where the right arm swings up, hung from the raised fist's closure row by a short L handle, the
+ * stepping leg passing behind it on row 28. The pass frames are one map: the idle a row lower down to and including
+ * the hem (so the case drops a row with the hand), then the legs together beside it.
+ */
+const EDITOR_PASS: SpriteMap = [
+  '.'.repeat(24), // 0
+  ...EDITOR_0.slice(0, 25), // 1-25: rows 0-24 of the idle, the case's top three rows with them
+  '........LGGGGGgL..LFFFfL', // 26 the legs together, passing; the case a row lower
+  '........LGGGGGgL..LFFFfL', // 27
+  '........LGGGGGgL..LffffL', // 28
+  '........LGGggggL..LLLLLL', // 29
+  '........LEEEEEEL........', // 30
+  '........LLLLLLLL........', // 31
+]
 export const EDITOR_WALK: readonly [SpriteMap, SpriteMap, SpriteMap, SpriteMap] = [
   [
-    '......LLLLLLLLLL........', // 0
-    '....LLHHHHHHHHHhLL......', // 1
-    '...LHHHHHHHHHHHHhhL.....', // 2
-    '..LHHHHHHHHHHHHHHhhL....', // 3
-    '..LHHHHHHHHHHHHHHhhL....', // 4
-    '..LHHHHHHHHHHHHHHhhL....', // 5
-    '..LHHHSHHHHSHHHHHhhL....', // 6
-    '..LHSSSSSSSSSSSSSShL....', // 7
-    '..LHSSSSSSSSSSSSSSsL....', // 8
-    '..LHSSEESSSSSSEESSsL....', // 9
-    '..LHSPPPPPPPPPPPPSsL....', // 10
-    '..LHSSEESSSSSSEESSsL....', // 11
-    '..LSBBSSSSMMSSSSBBsL....', // 12
-    '...LSSSSSSSSSSSSSSsL....', // 13
-    '....LSSSSSSSSSSSSsL.....', // 14
-    '.....LLsssssssssLL......', // 15
-    '......LGGWWWWGGgL.......', // 16
-    '.....LGGGGWNWGGggL......', // 17
-    '....LGGGGGWNWGGGggL.....', // 18
-    '....LGGGGGWNWGGGggL.....', // 19
-    '....LGGLGGWNWGGLggL.....', // 20
-    '....LSSLGGWNWGGLggL.....', // 21
-    '....LLLLGGGGGGGLggLLLLLL', // 22
-    '.....LLLGGGGGGGLSsLFFFfL', // 23
-    '.......LggggggggLLLFFFfL', // 24
-    '......LTTTTTTTTTtLLFFFfL', // 25
-    '.....LTTTL...LTTTtLFFFfL', // 26
-    '.....LTTTL...LTTTtLffffL', // 27
-    '.....LTTTL...LTTttLLLLLL', // 28
-    '.....LtttL...LttttL.....', // 29
-    '....LOOOOL...LOOOoL.....', // 30
-    '....LLLLLL...LLLLLL.....', // 31
+    ...EDITOR_HEAD,
+    '....LLGGWWsssWWGgLL.....', // 16
+    '...LGGgLGWWNWWgLGGgL....', // 17
+    '...LGGgLGGWNWGgLGGgL....', // 18
+    '...LGGgLGGGNGGgLGGgL....', // 19
+    '...LSSsLGGGNGGgLGGgL....', // 20 the leading fist, forward and up
+    '....LLLLGGGNGGgLGGgL....', // 21
+    '.......LGGGGGGgLSsLLLLLL', // 22 the trailing hand on the briefcase, as the idle
+    '.......LGGGGGGgLLLLFFFfL', // 23
+    '.......LggggggggL.LFFFfL', // 24 the hem, as the idle
+    '......LGGGGLGGGgL.LFFFfL', // 25 the hips, a column out on the stepping side
+    '......LGGGL.LGGgL.LFFFfL', // 26 the left leg steps out, the right stays under
+    '.....LGGGL..LGGgL.LffffL', // 27
+    '....LGGGL...LGGgL.LLLLLL', // 28
+    '....LGGgL...LgggL.......', // 29
+    '..LEEEEEL...LEEEL.......', // 30 the forward shoe reaches its toe out
+    '..LLLLLLL...LLLLL.......', // 31
   ],
+  EDITOR_PASS,
   [
-    '........................', // 0
-    '......LLLLLLLLLL........', // 1
-    '....LLHHHHHHHHHhLL......', // 2
-    '...LHHHHHHHHHHHHhhL.....', // 3
-    '..LHHHHHHHHHHHHHHhhL....', // 4
-    '..LHHHHHHHHHHHHHHhhL....', // 5
-    '..LHHHHHHHHHHHHHHhhL....', // 6
-    '..LHHHSHHHHSHHHHHhhL....', // 7
-    '..LHSSSSSSSSSSSSSShL....', // 8
-    '..LHSSSSSSSSSSSSSSsL....', // 9
-    '..LHSSEESSSSSSEESSsL....', // 10
-    '..LHSPPPPPPPPPPPPSsL....', // 11
-    '..LHSSEESSSSSSEESSsL....', // 12
-    '..LSBBSSSSMMSSSSBBsL....', // 13
-    '...LSSSSSSSSSSSSSSsL....', // 14
-    '....LSSSSSSSSSSSSsL.....', // 15
-    '.....LLsssssssssLL......', // 16
-    '......LGGWWWWGGgL.......', // 17
-    '.....LGGGGWNWGGggL......', // 18
-    '....LGGGGGWNWGGGggL.....', // 19
-    '....LGGGGGWNWGGGggL.....', // 20
-    '....LGGLGGWNWGGLggL.....', // 21
-    '....LGGLGGWNWGGLggL.....', // 22
-    '....LSSLGGGGGGGLSsLLLLLL', // 23
-    '.....LLLGGGGGGGLLLLFFFfL', // 24
-    '.......LggggggggL.LFFFfL', // 25
-    '........LTTTTTtL..LFFFfL', // 26
-    '........LTTTTTtL..LFFFfL', // 27
-    '........LTTTTTtL..LffffL', // 28
-    '........LttttttL..LLLLLL', // 29
-    '........LOOOOOoL........', // 30
-    '........LLLLLLLL........', // 31
+    ...EDITOR_HEAD,
+    '....LLGGWWsssWWGgLL.....', // 16
+    '...LGGgLGWWNWWgLGGgL....', // 17
+    '...LGGgLGGWNWGgLGGgL....', // 18
+    '...LGGgLGGGNGGgLGGgL....', // 19
+    '...LGGgLGGGNGGgLSSsL....', // 20 the leading fist, forward and up
+    '...LGGgLGGGNGGgLLLL.....', // 21
+    '...LSSsLGGGGGGgLLLLLLLLL', // 22 the trailing hand, as the idle; the case hangs from the fist by its handle
+    '....LLLLGGGGGGgL..LFFFfL', // 23
+    '.......LggggggggL.LFFFfL', // 24 the hem, as the idle
+    '.......LGGGGLGGGgLLFFFfL', // 25 the hips, a column out on the stepping side
+    '.......LGGgL.LGGgLLFFFfL', // 26 the left leg stays under, the right steps out
+    '.......LGGgL..LGGgLffffL', // 27
+    '.......LGGgL...LGGLLLLLL', // 28 the stepping leg passes behind the case
+    '.......LGggL...LgggL....', // 29
+    '.......LEEEL...LEEEEEL..', // 30 the stepping shoe reaches out
+    '.......LLLLL...LLLLLLL..', // 31
   ],
-  [
-    '......LLLLLLLLLL........', // 0
-    '....LLHHHHHHHHHhLL......', // 1
-    '...LHHHHHHHHHHHHhhL.....', // 2
-    '..LHHHHHHHHHHHHHHhhL....', // 3
-    '..LHHHHHHHHHHHHHHhhL....', // 4
-    '..LHHHHHHHHHHHHHHhhL....', // 5
-    '..LHHHSHHHHSHHHHHhhL....', // 6
-    '..LHSSSSSSSSSSSSSShL....', // 7
-    '..LHSSSSSSSSSSSSSSsL....', // 8
-    '..LHSSEESSSSSSEESSsL....', // 9
-    '..LHSPPPPPPPPPPPPSsL....', // 10
-    '..LHSSEESSSSSSEESSsL....', // 11
-    '..LSBBSSSSMMSSSSBBsL....', // 12
-    '...LSSSSSSSSSSSSSSsL....', // 13
-    '....LSSSSSSSSSSSSsL.....', // 14
-    '.....LLsssssssssLL......', // 15
-    '......LGGWWWWGGgL.......', // 16
-    '.....LGGGGWNWGGggL......', // 17
-    '....LGGGGGWNWGGGggL.....', // 18
-    '....LGGGGGWNWGGGggL.....', // 19
-    '....LGGLGGWNWGGLggL.....', // 20
-    '....LGGLGGWNWGGLSsL.....', // 21
-    '....LGGLGGGGGGGLLLLLLLLL', // 22
-    '....LSSLGGGGGGGLLLLFFFfL', // 23
-    '....LLLLggggggggL.LFFFfL', // 24
-    '......LTTTTTTTTTtLLFFFfL', // 25
-    '.....LTTTTL...LTTtLFFFfL', // 26
-    '.....LTTTTL...LTTtLffffL', // 27
-    '.....LTTTTL...LTttLLLLLL', // 28
-    '.....LttttL...LtttL.....', // 29
-    '.....LOOOL...LOOOOoL....', // 30
-    '.....LLLLL...LLLLLLL....', // 31
-  ],
-  [
-    '........................', // 0
-    '......LLLLLLLLLL........', // 1
-    '....LLHHHHHHHHHhLL......', // 2
-    '...LHHHHHHHHHHHHhhL.....', // 3
-    '..LHHHHHHHHHHHHHHhhL....', // 4
-    '..LHHHHHHHHHHHHHHhhL....', // 5
-    '..LHHHHHHHHHHHHHHhhL....', // 6
-    '..LHHHSHHHHSHHHHHhhL....', // 7
-    '..LHSSSSSSSSSSSSSShL....', // 8
-    '..LHSSSSSSSSSSSSSSsL....', // 9
-    '..LHSSEESSSSSSEESSsL....', // 10
-    '..LHSPPPPPPPPPPPPSsL....', // 11
-    '..LHSSEESSSSSSEESSsL....', // 12
-    '..LSBBSSSSMMSSSSBBsL....', // 13
-    '...LSSSSSSSSSSSSSSsL....', // 14
-    '....LSSSSSSSSSSSSsL.....', // 15
-    '.....LLsssssssssLL......', // 16
-    '......LGGWWWWGGgL.......', // 17
-    '.....LGGGGWNWGGggL......', // 18
-    '....LGGGGGWNWGGGggL.....', // 19
-    '....LGGGGGWNWGGGggL.....', // 20
-    '....LGGLGGWNWGGLggL.....', // 21
-    '....LGGLGGWNWGGLggL.....', // 22
-    '....LSSLGGGGGGGLSsLLLLLL', // 23
-    '.....LLLGGGGGGGLLLLFFFfL', // 24
-    '.......LggggggggL.LFFFfL', // 25
-    '........LTTTTTtL..LFFFfL', // 26
-    '........LTTTTTtL..LFFFfL', // 27
-    '........LTTTTTtL..LffffL', // 28
-    '........LttttttL..LLLLLL', // 29
-    '........LOOOOOoL........', // 30
-    '........LLLLLLLL........', // 31
-  ],
-] as const
+  EDITOR_PASS,
+]
 
-/** The cat curled asleep (12x8, facing left, eyes closed). */
+/**
+ * The cat curled asleep (12x8, facing left, eyes closed): the head hump at the front, the haunch behind, the tail wrapped
+ * under. A tabby asleep is still a tabby: two stripes down the curled back (`c` between fur, cols 5 and 8 on rows 4-5), the
+ * chest hidden in the curl (no `Q`), as every other cat frame reads it (task B5).
+ */
 export const CAT_SLEEP: SpriteMap = [
   '............',
   '.LL....LL...',
   'LCcL..LCcL..',
   'LCCCLLLCCCcL',
-  'LCcCCCCCCCcL',
-  'LCCCCCCCCCcL',
+  'LCcCCcCCcCcL', // 4 two stripes down the curled back, under the dip and on the haunch
+  'LCCCCcCCcCcL', // 5 both reach the belly
   '.LCCCCCCCccL',
   '..LLLLLLLLL.',
 ]
 
 /**
- * The cat sitting up (12x8, facing left), the eye at row 3 col 3, the tail curled round at the back, and a cream chest
- * patch (`Q`, rows 4-5 at the front) as in every frame where the chest shows (not asleep: curled, it is hidden).
+ * The cat sitting up (12x8, facing left): the ears two single `L` tips over fur either side of the ridge, the eye at
+ * row 3 col 2 (fur above it, so it never merges with the ridge) with the cream muzzle in front of it (`Q`, row 3 col 1)
+ * running into the cream chest patch (`Q`, rows 4-5 at the front) as in every frame where the chest shows (not asleep:
+ * curled, it is hidden), two stripes down the back (`c` between fur: col 5 on rows 5-6, col 7 on row 5) and the tail
+ * curled round at the back (task B5: the stripes, the muzzle, the eye a column forward from the old frame's row 3 col 3).
  */
 export const CAT_SIT: SpriteMap = [
-  '.L..L.......',
-  'LCLLCL......',
-  'LCCCcL......',
-  'LCCEcL......',
-  '.LQCcLLLL...',
-  '.LQQCCCCcLL.',
-  '.LcCCCCCcLCL',
-  '..LLLLLLLLL.',
+  '.L..L.......', // 0 the ear tips
+  'LCLLCL......', // 1 the ears, the ridge between them
+  'LCCCcL......', // 2 the forehead
+  'LQECcL......', // 3 the eye, the cream muzzle in front of it
+  '.LQCcLLLL...', // 4 the chest, the back's top edge
+  '.LQQCcCcCLL.', // 5 two stripes hang from the back
+  '.LcCCcCCcLCL', // 6 the first reaches the belly; the tail's tip curls round at the back
+  '..LLLLLLLLL.', // 7
 ]
 
-/** The cat's walk (12x8, facing left), 125 ms a frame: the legs apart, then crossing. */
+/**
+ * The cat's walk (12x8, facing left), 125 ms a frame: the legs apart, then crossing. The ears two single `L` tips
+ * over fur (no ridge: the eye at row 2 col 2 sits under fur, a fur cell in front of it so it merges with neither the
+ * outline nor the ear line), the muzzle under it, two stripes hanging from the back (cols 5 and 8) and the tail up
+ * behind, three rows tall at col 10 (task B5).
+ */
 export const CAT_WALK: readonly [SpriteMap, SpriteMap] = [
   [
-    '.L.L........',
-    'LCLCL.......',
-    'LECCLLLLLLL.',
-    'LCCCCCCCCccL',
-    '.LQCCCCCCccL',
-    '.LQCCCCCCccL',
-    '.LCL.LCL.LcL',
-    '.LLL.LLL.LLL',
+    '.L.L......L.', // 0 the ear tips, the tail's tip
+    'LCCCL....LCL', // 1 the ears over fur; the tail up behind
+    'LCECLLLLLLCL', // 2 the eye, the back's top edge, the tail
+    'LQCCCcCCcCCL', // 3 the muzzle; two stripes hang from the back, the tail joins the rump
+    '.LQCCCCCCCcL', // 4 the chest
+    '.LQCCCCCCCcL', // 5
+    '.LCL.LCL.LcL', // 6 the legs apart
+    '.LLL.LLL.LLL', // 7
   ],
   [
-    '.L.L........',
-    'LCLCL.......',
-    'LECCLLLLLLL.',
-    'LCCCCCCCCccL',
-    '.LQCCCCCCccL',
-    '.LQCCCCCCccL',
-    'LCL..LCLLcL.',
-    'LLL..LLLLLL.',
+    '.L.L......L.',
+    'LCCCL....LCL',
+    'LCECLLLLLLCL',
+    'LQCCCcCCcCCL',
+    '.LQCCCCCCCcL',
+    '.LQCCCCCCCcL',
+    'LCL..LCLLcL.', // 6 the legs crossing
+    'LLL..LLLLLL.', // 7
   ],
 ] as const
 
 /**
  * The idle cycle's groom (Decision 6, 12x8), redrawn (fix round 1: the first draft's paw was a bare colour swap on
- * top of CAT_SIT's own cells, unreadable at scene scale). CAT_SIT with the eye closed (row 3 col 3, the socket
- * shaded `c` rather than hidden) and a raised paw that fills the gap between the ears with two `C` cells and a `c`
- * toe, clearly not the plain `L` ridge or `C` cheek CAT_SIT has at those cells. Frame 1 moves the paw one row up
- * (into the ear gap itself, row 0) so the two frames visibly alternate.
+ * top of CAT_SIT's own cells, unreadable at scene scale). CAT_SIT with the eye closed (row 3 col 2, the socket
+ * shaded `c` rather than hidden) and a raised paw that fills the gap between the ears with two `C` cells, clearly not
+ * the plain `L` ridge CAT_SIT has at those cells. Frame 1 moves the paw one row up (into the ear gap itself, row 0,
+ * its underside a `c` cell on the ridge row) so the two frames visibly alternate. The stripes and the muzzle are the
+ * sit's (task B5).
  */
 export const CAT_GROOM: readonly [SpriteMap, SpriteMap] = [
   [
     '.L..L.......',
-    'LCCCCL......', // the paw fills the ear gap (cols 2-3 were L, L in CAT_SIT)
-    'LCcCcL......', // the paw's toe, a shade lower (col 2 was C in CAT_SIT)
-    'LCCccL......', // the eye closed: a shade line, not hidden (col 3 was E in CAT_SIT)
+    'LCCCCL......', // the paw fills the ear gap (cols 2-3 are L, L in CAT_SIT)
+    'LCCCcL......',
+    'LQcCcL......', // the eye closed: a shade cell, not hidden (col 2 is E in CAT_SIT)
     '.LQCcLLLL...',
-    '.LQQCCCCcLL.',
-    '.LcCCCCCcLCL',
+    '.LQQCcCcCLL.',
+    '.LcCCcCCcLCL',
     '..LLLLLLLLL.',
   ],
   [
-    '.LCCL.......', // the paw one row up, in the ear gap itself (cols 2-3 were . , . in CAT_SIT)
-    'LCcCcL......', // the paw's toe (as frame 0, one row higher)
+    '.LCCL.......', // the paw one row up, in the ear gap itself (cols 2-3 are . , . in CAT_SIT)
+    'LCCcCL......', // the paw's underside, a shade cell on the ridge row
     'LCCCcL......',
-    'LCCccL......', // the eye closed
+    'LQcCcL......', // the eye closed
     '.LQCcLLLL...',
-    '.LQQCCCCcLL.',
-    '.LcCCCCCcLCL',
+    '.LQQCcCcCLL.',
+    '.LcCCcCCcLCL',
     '..LLLLLLLLL.',
   ],
 ] as const
 
-/** The idle cycle's stretch (Decision 6, 12x8): the body stretched long and low, the head at cols 0-3, the tail up
- * at cols 9-11. */
+/**
+ * The idle cycle's stretch (Decision 6, 12x8): the body stretched long and low, the head at cols 0-4 with its ears
+ * laid back as two single `L` tips on row 3 and the eye at row 4 col 3, the tail up at cols 9-11, two stripes down the
+ * back (col 6, and col 9 at the tail's root) (task B5: the ears and the stripes).
+ */
 export const CAT_STRETCH: SpriteMap = [
   '............',
-  '.........LCL',
-  '.........LCL',
-  '.........LCL',
-  'LCCECCCCCCCL',
-  '.LQQCCCCCCcL',
-  '.LcCCCCCCcLL',
-  '..LLLLLLLLL.',
+  '.........LCL', // 1 the tail up
+  '.........LCL', // 2
+  '.L..L....LCL', // 3 the ear tips, laid back along the low head
+  'LCCECCcCCcCL', // 4 the eye; two stripes down the back, the second at the tail's root
+  '.LQQCCCCCCcL', // 5 the chest
+  '.LcCCCCCCcLL', // 6
+  '..LLLLLLLLL.', // 7
 ]
 
 /** The editor's props: their own palette (paper, its lines, the contract's blue and red, gold, the trophy's wood). */
@@ -899,7 +663,8 @@ export const FACES: Record<Exclude<Mood, 'neutral'>, SpriteMap> = {
 /** The mood marks' own palette: a white highlight, a pale blue sweat drop, gold for the sparkle, the outline. */
 export const MARK_PAL: Record<string, string> = { W: '#f6f6f6', R: '#8fd3ff', Y: '#f5b700', L: '#1c1a26' }
 
-/** The mark above the head at (x+11, y-8), 3 wide x 5 tall, in MARK_PAL: a sweat drop (tired), a sparkle (happy), and
+/** The mark at the head's top-right edge, at (x+20, y-2) (render.ts `markX`, `MARK_DY`: cols 20-22, rows -2 to 2),
+ * 3 wide x 5 tall, in MARK_PAL: a sweat drop (tired), a sparkle (happy), and
  * the existing '!'/'z' glyph shapes (surprised/sleepy) recoloured to MARK_PAL's L. */
 export const MARKS: Record<Exclude<Mood, 'neutral'>, SpriteMap> = {
   tired: ['.W.', 'WRW', 'WRW', '.W.', '...'],

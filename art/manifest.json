@@ -3943,6 +3943,16 @@
     "keys": "LHhSsBJj",
     "sample": "nearest",
     "name": "ASSISTANT_DOZE_C2",
+    "remap": [
+      {
+        "rows": [
+          27,
+          30
+        ],
+        "from": "J",
+        "to": "j"
+      }
+    ],
     "anchors": {
       "L": "#040404",
       "H": "#1c2444",

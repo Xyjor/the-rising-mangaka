@@ -29,9 +29,9 @@ import type { Actor, ActorTable } from '../actors'
  * pixels and two hands), the cat's two 8x6 frames 30 pixels in place of the placeholder's 20 (+10) and the assistant's
  * page 3 (the sheet and round(0.5 * 3) = 2 ink lines). Task A (0.2.1) re-measured it the same way at 281 once
  * drawSprite merged each horizontal run of one key into one fillRect (the art unchanged, the same pixels painted): the
- * sprites' 1x1 pixels became runs (the hero, the assistant, the clock and the cat). Task B (0.2.1) re-measured it the same way at 430: the mangaka a 24x32 sprite and the stock chair's new back. Task C (0.2.1) re-measured it the same way at 596: the assistant a 24x32 seated frame, its stool and the page's wider lines, the cat's 12x8 sleeping frame. Upgrade 0.3.0 re-measured it the same way at 649: the tatami room 61 in place of the striped room's 58 (+3), five floor shadows and the staff desk's (+6), the corkboard 10 (board 2, four cards at 2), the calendar 7, the apartment's front row 12 and the bin 7 (5 and two crumpled pages), and the light 8 (the daylight shaft 4, the vignette 4). Upgrade 0.4.0's chibi cast (Task 6) re-measured it the same way at 659 (+10): redrawing MANGAKA_SIT[0] to the chibi proportions (an 18-wide, 16-row head in place of the old frame's narrower crown) costs 5 more fillRect runs than the old frame, and the reference scene paints two seated figures from that map at frame 100 (the mangaka and its one assistant, both landing on index 0: `floor(100/8)%2` for the mangaka, `floor((100+0*3)/8)%2` for the assistant) — 5 + 5 = 10. The mood overlay adds nothing here: the reference scene's mood is neutral (home, no editor, no cheer, stamina 80), and `drawMood` returns early for `neutral`. Upgrade 0.5.0 Task 6.1 re-measured it the same way at 659 (+0): the daylight shaft keeps its four steps, each now wider and fainter. Upgrade 0.5.0 Task 6.2 re-measured it the same way at 659 (+0): the wood-beam frame is the flat's and the loft's, and this scene is the apartment. Upgrade 0.5.0 Task 6.3 re-measured it the same way at 665 (+6): the reference scene is spring, and the cherry now spills past the pane onto the wall (`drawSeasonWall`: a branch, a twig and four blossom clusters, 6 fills). Upgrade 0.5.0 Task 6.4 re-measured it the same way at 663 (-2): the corkboard pins a card per sixth of the pages (a 2x3 grid), so half the pages drawn shows 3 cards in place of 4, at 2 fills each. Upgrade 0.5.0 Task 6.5 re-measured it the same way at 667 (+4): the cat sleeps on a round cushion (4 fills: its top, body, rim and bottom); its cream chest patch is only in the frames where the chest shows, never the curled `CAT_SLEEP` this scene draws. Upgrade 0.5.0 Task 6.6 re-measured it the same way at 667 (+0): `MANGAKA_PANIC`'s hands-on-head redraw only paints while a chapter is late, and this scene is not. Upgrade 0.5.0 Task 6.7 re-measured it the same way at 667 (+0): the mood marks move to the head's top-right edge (x+20, y-2), and this scene's neutral mood draws none. Upgrade 0.5.0 Task 6.8 re-measured it the same way at 673 (+6): the collar (K) and tie (Y/y) split each `MANGAKA_SIT` frame's neckline into 3 more runs (row 16 +1, the collar points on row 17 +2; the tie keeps the stripe's run count), and this scene draws two seated figures (the mangaka and its assistant): 3 + 3 = 6. drawSprite merges runs by key, so the hoodie's K painted in J's colour still costs its own fills. Every scene must stay under 1.5 times this.
+ * sprites' 1x1 pixels became runs (the hero, the assistant, the clock and the cat). Task B (0.2.1) re-measured it the same way at 430: the mangaka a 24x32 sprite and the stock chair's new back. Task C (0.2.1) re-measured it the same way at 596: the assistant a 24x32 seated frame, its stool and the page's wider lines, the cat's 12x8 sleeping frame. Upgrade 0.3.0 re-measured it the same way at 649: the tatami room 61 in place of the striped room's 58 (+3), five floor shadows and the staff desk's (+6), the corkboard 10 (board 2, four cards at 2), the calendar 7, the apartment's front row 12 and the bin 7 (5 and two crumpled pages), and the light 8 (the daylight shaft 4, the vignette 4). Upgrade 0.4.0's chibi cast (Task 6) re-measured it the same way at 659 (+10): redrawing MANGAKA_SIT[0] to the chibi proportions (an 18-wide, 16-row head in place of the old frame's narrower crown) costs 5 more fillRect runs than the old frame, and the reference scene paints two seated figures from that map at frame 100 (the mangaka and its one assistant, both landing on index 0: `floor(100/8)%2` for the mangaka, `floor((100+0*3)/8)%2` for the assistant) — 5 + 5 = 10. The mood overlay adds nothing here: the reference scene's mood is neutral (home, no editor, no cheer, stamina 80), and `drawMood` returns early for `neutral`. Upgrade 0.5.0 Task 6.1 re-measured it the same way at 659 (+0): the daylight shaft keeps its four steps, each now wider and fainter. Upgrade 0.5.0 Task 6.2 re-measured it the same way at 659 (+0): the wood-beam frame is the flat's and the loft's, and this scene is the apartment. Upgrade 0.5.0 Task 6.3 re-measured it the same way at 665 (+6): the reference scene is spring, and the cherry now spills past the pane onto the wall (`drawSeasonWall`: a branch, a twig and four blossom clusters, 6 fills). Upgrade 0.5.0 Task 6.4 re-measured it the same way at 663 (-2): the corkboard pins a card per sixth of the pages (a 2x3 grid), so half the pages drawn shows 3 cards in place of 4, at 2 fills each. Upgrade 0.5.0 Task 6.5 re-measured it the same way at 667 (+4): the cat sleeps on a round cushion (4 fills: its top, body, rim and bottom); its cream chest patch is only in the frames where the chest shows, never the curled `CAT_SLEEP` this scene draws. Upgrade 0.5.0 Task 6.6 re-measured it the same way at 667 (+0): `MANGAKA_PANIC`'s hands-on-head redraw only paints while a chapter is late, and this scene is not. Upgrade 0.5.0 Task 6.7 re-measured it the same way at 667 (+0): the mood marks move to the head's top-right edge (x+20, y-2), and this scene's neutral mood draws none. Upgrade 0.5.0 Task 6.8 re-measured it the same way at 673 (+6): the collar (K) and tie (Y/y) split each `MANGAKA_SIT` frame's neckline into 3 more runs (row 16 +1, the collar points on row 17 +2; the tie keeps the stripe's run count), and this scene draws two seated figures (the mangaka and its assistant): 3 + 3 = 6. drawSprite merges runs by key, so the hoodie's K painted in J's colour still costs its own fills. Upgrade 0.9.0 Task B3 re-measured it the same way at 693 (+20): MANGAKA_SIT[0] goes from 184 to 194 runs (task B3's seat on task B1's standing body: rows 17-19 +7, each sleeve its own j run seamed from the torso by an L with the V narrowing to RYR between them; rows 20-22 -3, the old frame's W/y stripe cells gone from the plain Y drawstring column; row 23 +2, the forearm's transparent gap splitting the outline run (+1) and the new j cell (+1); rows 28-29 +4, the shins L,F,f,L under the knee in place of one L line and the thighs' bottom outline), and this scene draws two seated figures from that map at frame 100 (the mangaka and its assistant, both landing on index 0): 10 + 10 = 20. Upgrade 0.9.0 Task B5 re-measured it the same way at 701 (+8): CAT_SLEEP goes from 31 to 39 runs (two stripes down the curled back, `c` between fur at cols 5 and 8 on rows 4-5: each row's one fur run splits into fur, stripe, fur, stripe, fur, +4 a row), and every reference scene draws the cat asleep on its cushion. Every scene must stay under 1.5 times this.
  */
-const BASELINE_FILLS = 673
+const BASELINE_FILLS = 701
 const BUDGET = BASELINE_FILLS * 1.5
 
 /**
@@ -41,10 +41,13 @@ const BUDGET = BASELINE_FILLS * 1.5
  * 4, the bed 5 and the plain door 5 (673 - 127 = 546). The night dim adds 1 at night. 0.10.0 P1 re-measured it the
  * same way at 521 (-25, 14 drawImage calls): the stock chair 4 and the stock desk 7, and the apartment's front row, the
  * zabuton 4, the boxes 6 and the bin 4 (each piece's contact shadow is still one fill, moved across its sprite, and the
- * bin's crumpled pages stay code-drawn): 546 - 25 = 521. Every scene with the art ready must stay under 1.5 times this
- * (781.5; its own budget: the images leave fewer fills, so 673's budget would hide growth).
+ * bin's crumpled pages stay code-drawn): 546 - 25 = 521. Upgrade 0.9.0 Task B3 re-measured it the same way at 541
+ * (+20): the two seated figures from MANGAKA_SIT[0], 184 to 194 runs each, as the 693's +20 (the images replace no
+ * sprite): 521 + 20 = 541. Upgrade 0.9.0 Task B5 re-measured it the same way at 549 (+8): CAT_SLEEP 31 to 39, as the
+ * 701's +8 (the images replace no sprite): 541 + 8 = 549. Every scene with the art ready must stay under 1.5 times this
+ * (823.5; its own budget: the images leave fewer fills, so 701's budget would hide growth).
  */
-const ART_BASELINE_FILLS = 521
+const ART_BASELINE_FILLS = 549
 const ART_BUDGET = ART_BASELINE_FILLS * 1.5
 
 /**
@@ -54,9 +57,17 @@ const ART_BUDGET = ART_BASELINE_FILLS * 1.5
  * and its fold 2 and frame 100's three Zs at 9 each, 101 in), the cat leaves its cushion for the kitchen (the cushion
  * 4 and CAT_SLEEP 31 out; frame 100 is catFrame's sit, CAT_SIT 34 in), the assistant dozes (MANGAKA_SIT[0] 184 and its
  * page 3 out; ASSISTANT_DOZE 100 and its Z 9 in), and nobody works (the lamp's glow and the mug's steam, 2 out):
- * 673 - 184 + 101 - 35 + 34 - 187 + 109 - 2 = 509. Every rest scene must stay under 1.5 times this (763.5).
+ * 673 - 184 + 101 - 35 + 34 - 187 + 109 - 2 = 509. Upgrade 0.9.0 Task B3 re-measured it the same way at 500 (-9):
+ * ASSISTANT_DOZE goes from 100 to 91 runs (the manifest's remap of its folded arms' J to j, sleeves, merges the J and j
+ * runs on rows 27-30: -1, -2, -3, -3), MANGAKA_LIE keeps 72 (its j shoulder band, J body and j underside are one run a
+ * row, as the old J and j rows were) and CAT_SIT 34; the seated frame this scene replaces is the redrawn one (194,
+ * with its page 3): 693 - 194 + 101 - 35 + 34 - 197 + 100 - 2 = 500. Upgrade 0.9.0 Task B5 re-measured it the same way
+ * at 506 (+6): the cushion and the redrawn CAT_SLEEP (39) leave together, 43 out, and CAT_SIT goes from 34 to 40 (row 3
+ * +1, the eye a column forward with the cream muzzle in front of it, L,Q,E,C,c,L in place of L,CC,E,c,L; row 5 +3, two
+ * stripes hang from the back, L,QQ,C,c,C,c,C,LL in place of L,QQ,CCCC,c,LL; row 6 +2, the first stripe reaching the
+ * belly): 701 - 194 + 101 - 43 + 40 - 197 + 100 - 2 = 506. Every rest scene must stay under 1.5 times this (759).
  */
-const REST_BASELINE_FILLS = 509
+const REST_BASELINE_FILLS = 506
 const REST_BUDGET = REST_BASELINE_FILLS * 1.5
 
 describe('render', () => {
@@ -91,7 +102,7 @@ describe('render', () => {
   })
 
   it('stays under 1.5 times its own measured baseline with every generated image ready, in every tier and season', () => {
-    expect(ART_BUDGET).toBe(781.5)
+    expect(ART_BUDGET).toBe(823.5)
     const ref = fakeContext()
     render(ref.ctx, sceneSnapshot(), 0.3, 100, fakeSceneArt())
     expect(ref.log).toHaveLength(ART_BASELINE_FILLS)
@@ -128,7 +139,7 @@ describe('render', () => {
   })
 
   it('stays under 1.5 times the measured baseline of fillRect calls in every season, by day and by night', () => {
-    expect(BUDGET).toBe(1009.5)
+    expect(BUDGET).toBe(1051.5)
     const ref = fakeContext()
     render(ref.ctx, sceneSnapshot(), 0.3, 100)
     expect(ref.log).toHaveLength(BASELINE_FILLS)
@@ -142,9 +153,9 @@ describe('render', () => {
   })
 
   it('stays under 1.5 times the measured rest-scene baseline, the assistant dozing, in every season, by day and by night', () => {
-    expect(REST_BUDGET).toBe(763.5)
+    expect(REST_BUDGET).toBe(759)
     // the by-hand terms (see REST_BASELINE_FILLS)
-    expect([MANGAKA_SIT[0], MANGAKA_LIE, CAT_SLEEP, CAT_SIT, ASSISTANT_DOZE].map(runCount)).toEqual([184, 72, 31, 34, 100])
+    expect([MANGAKA_SIT[0], MANGAKA_LIE, CAT_SLEEP, CAT_SIT, ASSISTANT_DOZE].map(runCount)).toEqual([194, 72, 39, 40, 91])
     const ref = fakeContext()
     const rest = sceneSnapshot({ activity: 'rest' })
     expect([rest.actors.mangaka.state, rest.actors.cat.state, rest.actors.assistants[0].state]).toEqual(['sleeping', 'sitting', 'sleeping'])
@@ -304,8 +315,8 @@ describe('the characters, from the actor table', () => {
   })
 
   it('walks the mangaka with the four-frame cycle, mirrored when facing right', () => {
-    // contact (anim 0): WALK[0] row 30 '....LOOOOL...LOOOoL.....', the leading shoe's O at cols 5-8 (col 5 at x 155);
-    // pass (anim 100): the shoes together at cols 8-14, nothing at col 5
+    // contact (anim 0): WALK[0] row 30 '..LOOOOoL...LOOoL.......', the forward shoe's O at cols 3-6 (col 5 at x 155);
+    // pass (anim 100): the shoes together at cols 9-14, nothing at col 5
     expect(has(paintWith(walking({})), '#c0392b', 155, 111)).toBe(true)
     expect(has(paintWith(walking({ anim: 100 })), '#c0392b', 155, 111)).toBe(false)
     // facing right, col 5 mirrors to x 150 + 23 - 5 = 168
@@ -348,17 +359,18 @@ describe('the characters, from the actor table', () => {
   }
 
   it('paints the editor at the spot, mirrored when facing right', () => {
-    // (198, 85): the suit at row 18 col 5, hair row 2 col 8, glasses row 10 col 5, the briefcase row 24 col 20
+    // (198, 85): the suit (task B4's navy G) at row 18 col 5, hair row 2 col 8, the glasses' left lens frame row 10
+    // col 6 (col 5 is skin beside it since task B4), the briefcase row 24 col 20
     const left = paintWith(editorAt(-1), { visitor: 'editor' })
-    expect(has(left, '#5b6270', 203, 103)).toBe(true)
+    expect(has(left, '#3a3d4c', 203, 103)).toBe(true)
     expect(has(left, '#2b2140', 206, 87)).toBe(true)
-    expect(has(left, '#3b3b45', 203, 95)).toBe(true)
+    expect(has(left, '#3b3b45', 204, 95)).toBe(true)
     // (the bed frame behind is the same brown, so the case is found by its exact run: row 24's FFF, cols 19-21)
     expect(left).toContainEqual({ style: '#6d4c33', x: 217, y: 109, w: 3, h: 1 })
     // facing right, col 5 mirrors to x 198 + 23 - 5 = 216; x 203 is then row 18's col 18, the outline, so no suit there
     const log = paintWith(editorAt(1), { visitor: 'editor' })
-    expect(has(log, '#5b6270', 216, 103)).toBe(true)
-    expect(has(log, '#5b6270', 203, 103)).toBe(false)
+    expect(has(log, '#3a3d4c', 216, 103)).toBe(true)
+    expect(has(log, '#3a3d4c', 203, 103)).toBe(false)
   })
 
   it('walks the editor with their own four frames, the briefcase bobbing a row on the pass', () => {
@@ -408,10 +420,10 @@ describe('the characters, from the actor table', () => {
     expect(log).toContainEqual({ style: '#2b2140', x: 138, y: 68, w: 9, h: 1 })
     expect(log).not.toContainEqual({ style: '#2b2140', x: 139, y: 68, w: 1, h: 1 })
     // the editor facing right at (198, 85), row 24 '.......LggggggggL.LFFFfL' mirrored: FFF (cols 19-21) at x 200-202,
-    // the suit's shade hem (cols 8-15) at x 206-213
+    // the suit's shade hem (cols 8-15, task B4's navy g) at x 206-213
     const ed = paintWith(editorAt(1), { visitor: 'editor' })
     expect(ed).toContainEqual({ style: '#6d4c33', x: 200, y: 109, w: 3, h: 1 })
-    expect(ed).toContainEqual({ style: '#454a55', x: 206, y: 109, w: 8, h: 1 })
+    expect(ed).toContainEqual({ style: '#2c3656', x: 206, y: 109, w: 8, h: 1 })
   })
 
   it('paints no prop while the editor walks', () => {
@@ -504,8 +516,9 @@ describe('the assistants, the wall clock and the cat (Task 2.5)', () => {
     expect(covers(ref, '#a8832f', 200, 127)).toBeGreaterThan(-1)
     const rest = at({ activity: 'rest' })
     expect(rest.some((c) => c.style === '#c9a24a')).toBe(false)
-    // CAT_SIT at (44, 150): the eye row 3 col 3, fur row 1 col 1
-    expect(covers(rest, '#1b1b1b', 47, 153)).toBeGreaterThan(-1)
+    // CAT_SIT at (44, 150): the eye row 3 col 2 (task B5, a column forward, the cream muzzle in front of it), fur row 1
+    // col 1
+    expect(covers(rest, '#1b1b1b', 46, 153)).toBeGreaterThan(-1)
     expect(covers(rest, '#e39a4a', 45, 151)).toBeGreaterThan(-1)
   })
 
@@ -648,7 +661,8 @@ describe('the assistants, the wall clock and the cat (Task 2.5)', () => {
 })
 
 describe('outfits by level (Task 5, Decision 7)', () => {
-  // standing at MANGAKA_STAND (170, 81): the anchor's row 18 col 6 'J' -> (170+6, 81+18) = (176, 99)
+  // standing at MANGAKA_STAND (170, 81): the anchor's row 19 col 10 'J' (a torso cell on either facing; task B1 made
+  // row 18 col 6 a sleeve, j) -> (170+10, 81+19) = (180, 100)
   it('dresses the standing mangaka in the outfit for their level', () => {
     const table = newActorTable()
     Object.assign(table.mangaka, { x: 170, y: 81, targetX: 170, targetY: 81, state: 'standing', goal: 'standing' })
@@ -657,16 +671,17 @@ describe('outfits by level (Task 5, Decision 7)', () => {
       render(ctx, sceneSnapshot({ level, actors: table }), 0.3, 0)
       return log
     }
-    expect(covers(at(1), '#6f7a8c', 176, 99)).toBeGreaterThan(-1)
-    expect(covers(at(5), '#c9a24a', 176, 99)).toBeGreaterThan(-1)
-    expect(covers(at(10), '#2e3a78', 176, 99)).toBeGreaterThan(-1)
+    expect(covers(at(1), '#6f7a8c', 180, 100)).toBeGreaterThan(-1)
+    expect(covers(at(5), '#c9a24a', 180, 100)).toBeGreaterThan(-1)
+    expect(covers(at(10), '#2e3a78', 180, 100)).toBeGreaterThan(-1)
   })
 
   it('leaves an assistant\'s look palette unaffected by the player\'s level', () => {
-    // the assistant seated at (66, 89): the same anchor cell -> (66+6, 89+18) = (72, 107)
+    // the assistant seated at (66, 89): the same torso cell, row 19 col 10 (task B3 made the seated frame's row 18 col 6
+    // a sleeve, j, as the standing frame's) -> (66+10, 89+19) = (76, 108)
     const { ctx, log } = fakeContext()
     render(ctx, sceneSnapshot({ level: 10 }), 0.3, 0)
-    expect(covers(log, '#6f7a8c', 72, 107)).toBeGreaterThan(-1)
+    expect(covers(log, '#6f7a8c', 76, 108)).toBeGreaterThan(-1)
   })
 })
 

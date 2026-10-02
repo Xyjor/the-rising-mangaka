@@ -63,8 +63,18 @@ const EVERYTHING: Partial<Snapshot> = {
  * plain `S`; row 1 is 5 runs, `S,LL,S,LL,S`; row 3 is 5 runs, `BB,S,M,S,BB`), and `MARKS.sleepy` (3x5, only the `L`
  * cells drawn, `.` skipped) is 5 runs, one per row — 12 + 5 = 17. The three assistants stay neutral (Decision 5:
  * assistants never go sleepy), so nothing else in the scene changes. Upgrade 0.5.0 Task 6.1 re-measured it the same way at 1065 (+0): the wider daylight shaft keeps its four steps, and it does not paint at night anyway.
+ * Upgrade 0.9.0 Task B3 re-measured it the same way at 1117 (+38, from the 1079 the constant held): MANGAKA_SIT[0]
+ * goes from 184 to 194 runs (task B3's seat on task B1's standing body: rows 17-19 +7, each sleeve its own j run
+ * seamed from the torso by an L with the V narrowing to RYR between them; rows 20-22 -3, the old frame's W/y stripe
+ * cells gone from the plain Y drawstring column; row 23 +2, the forearm's transparent gap splitting the outline run (+1) and the new j cell (+1); rows
+ * 28-29 +4, the shins L,F,f,L under the knee in place of one L line and the thighs' bottom outline),
+ * and MANGAKA_SIT[1] from 187 to 195 (rows 17-19 +7 and rows 28-29 +4 as frame 0's, rows 20-22 -4, row 23 +1: the
+ * stroke frame's pen hand sits on row 23 beside the torso). `BARE_FULL` draws three seated figures from index 0 (the
+ * mangaka and assistants 0-1) and one from index 1 (the third assistant), as the 0.4.0 term: 10 + 10 + 10 + 8 = 38.
+ * Upgrade 0.9.0 Task B5 re-measured it the same way at 1125 (+8): CAT_SLEEP goes from 31 to 39 runs (two stripes down
+ * the curled back, `c` between fur at cols 5 and 8 on rows 4-5, each row +4), and `BARE_FULL` draws the cat asleep.
  */
-const FULL_BASELINE = 1079
+const FULL_BASELINE = 1125
 
 /**
  * fillRect calls for `BARE_FULL` at night, t 0.9, frame 100, with every generated image ready (`fakeSceneArt`),
@@ -72,10 +82,13 @@ const FULL_BASELINE = 1079
  * the kitchenette 17, the window frame 1, the bookshelf 34, the stock poster 4, the bed 5, the plain door 5: 127), plus
  * the room image's night dim (1): 1079 - 127 + 1 = 953. 0.10.0 P1 re-measured it the same way at 928 (-25): the stock
  * chair 4, the stock desk 7, the zabuton 4, the boxes 6 and the bin 4 are sprites now (their contact shadows stay one
- * fill each, the bin's pages stay code-drawn): 953 - 25 = 928. The full scene with the art ready must stay under 1.5
- * times this (its own budget, 1392).
+ * fill each, the bin's pages stay code-drawn): 953 - 25 = 928. Upgrade 0.9.0 Task B3 re-measured it the same way at
+ * 966 (+38): the four seated figures (three from MANGAKA_SIT[0], 184 to 194, one from MANGAKA_SIT[1], 187 to 195), as
+ * the 1117's +38 (the images replace no sprite): 928 + 38 = 966. Upgrade 0.9.0 Task B5 re-measured it the same way at
+ * 974 (+8): CAT_SLEEP 31 to 39, as the 1125's +8 (the images replace no sprite): 966 + 8 = 974. The full scene with the
+ * art ready must stay under 1.5 times this (its own budget, 1461).
  */
-const FULL_ART_BASELINE = 928
+const FULL_ART_BASELINE = 974
 
 function paint(over: Partial<Snapshot> = {}, t = 0.3, frame = 100): FillCall[] {
   const { ctx, log } = fakeContext()
@@ -180,13 +193,13 @@ describe('the studio in the scene', () => {
     expect(key(paint({ trophies: 2 }))).not.toBe(key(paint({ trophies: 1 })))
   })
 
-  it('paints the scene with no studio look in its measured 1079 fills', () => {
+  it('paints the scene with no studio look in its measured 1125 fills', () => {
     expect(paint(BARE_FULL, 0.9, 100)).toHaveLength(FULL_BASELINE)
   })
 
   it('keeps the full scene inside the canvas, free of magenta and under 1.5 times its own baseline', () => {
     const budget = FULL_BASELINE * 1.5
-    expect(budget).toBe(1618.5)
+    expect(budget).toBe(1687.5)
     for (const [t, frame, visiting] of [[0.9, 100, 0], [0.9, 0, 0], [0.3, 100, 0], [0.9, 100, 1]]) {
       const log = paint(visiting ? { ...EVERYTHING, visitor: 'editor', visitorProp: 'contract' } : EVERYTHING, t, frame)
       expect(log.some((c) => c.style === '#f0f'), `t ${t} frame ${frame}`).toBe(false)
@@ -206,7 +219,7 @@ describe('the studio in the scene', () => {
     render(bare.ctx, sceneSnapshot(BARE_FULL), 0.9, 100, art)
     expect(bare.log).toHaveLength(FULL_ART_BASELINE)
     const budget = FULL_ART_BASELINE * 1.5
-    expect(budget).toBe(1392)
+    expect(budget).toBe(1461)
     for (const [t, frame, visiting] of [[0.9, 100, 0], [0.9, 0, 0], [0.3, 100, 0], [0.9, 100, 1]]) {
       const { ctx, log, images } = fakeContext()
       render(ctx, sceneSnapshot(visiting ? { ...EVERYTHING, visitor: 'editor', visitorProp: 'contract' } : EVERYTHING), t, frame, art)
