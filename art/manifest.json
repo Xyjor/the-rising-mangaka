@@ -2655,14 +2655,13 @@
   },
   {
     "id": "room/flat",
-    "source": "higgsfield:z_image",
-    "model": "z_image",
-    "resolution": "2048x1152",
-    "seed": null,
-    "job": "326e6ef5-c711-45a9-9d04-4a693cfd77f7",
-    "steps": null,
-    "shift": null,
-    "prompt": "Completely empty 16-bit pixel art video game background, straight-on orthographic view of the back wall of a small studio flat, no perspective, no side walls, no furniture, no window, no door, no rug, no objects, no people. Top: white ceiling with a thin wooden crown moulding. Middle: dusty teal striped wallpaper above a honey wood wainscot panel on the lower third of the wall, with a wooden rail on top of the wainscot. The wall meets the floor in a perfectly straight horizontal line at 63 percent of the image height. Bottom: honey-coloured wooden plank floor with long horizontal planks. Soft warm daylight from the top left, limited palette, crisp pixels, no text.",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
+    "model": "Z-Image-Turbo",
+    "resolution": "2048x1152 ( 16:9 )",
+    "seed": 243842,
+    "steps": 8,
+    "shift": 3,
+    "prompt": "Completely empty 16-bit pixel art video game background, straight-on orthographic view of the back wall of a small studio flat, no perspective, no side walls, no furniture, no window, no door, no rug, no objects, no people. Top: white ceiling with a thin wooden crown moulding. Middle: wallpaper with bold two-tone vertical stripes, a saturated teal stripe alternating with a pale grey-teal stripe, every stripe the same width, above a honey wood wainscot panel on the lower third of the wall, with a wooden rail on top of the wainscot. The wall meets the floor in a perfectly straight horizontal line at 80 percent of the image height; the floor may be cut off. Bottom: a thin strip of honey-coloured wooden plank floor. Perfectly flat even lighting, no vignette, no gradient, no light pool, no shadows, uniform colours, limited palette, crisp pixels, no text.",
     "preamble": "none",
     "native": [
       320,
@@ -2678,13 +2677,13 @@
     },
     "lightness": 0.15,
     "crop": [
-      230,
+      53,
       0,
-      1818,
+      1995,
       1152
     ],
     "seam": {
-      "src": 1008,
+      "src": 1106,
       "dst": 114
     },
     "floor": "code"
