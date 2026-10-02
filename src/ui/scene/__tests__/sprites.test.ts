@@ -45,6 +45,49 @@ function oneSpan(row: string): boolean {
   return !/[^.]\.+[^.]/.test(row)
 }
 
+/** The cat's frames where it is awake and its head shows, by name (the curled sleep hides its chest, ears and eye). */
+const CAT_AWAKE: readonly [string, SpriteMap][] = [
+  ['CAT_SIT', CAT_SIT], ['CAT_WALK[0]', CAT_WALK[0]], ['CAT_WALK[1]', CAT_WALK[1]],
+  ['CAT_GROOM[0]', CAT_GROOM[0]], ['CAT_GROOM[1]', CAT_GROOM[1]], ['CAT_STRETCH', CAT_STRETCH],
+]
+
+/**
+ * How many tabby stripes a cat frame has: a `c` cell with `C` on both sides on its row. The shade down the right edge
+ * of the body (`c` against the `L` outline) and a `c` blob (two shade cells side by side) are not stripes.
+ */
+function stripes(f: SpriteMap): number {
+  let n = 0
+  for (const row of f) for (let c = 1; c < row.length - 1; c++) if (row[c] === 'c' && row[c - 1] === 'C' && row[c + 1] === 'C') n++
+  return n
+}
+
+/**
+ * What stops a cat frame's ears reading as points, [] when nothing: on the head's first painted row (the first row with
+ * content in cols 0-5, the head's half of the 12-wide frame, so the stretch's raised tail does not count), the `L` cells
+ * are exactly two single-cell runs (the tips, each with no `L` beside it), each over a painted cell on the row below,
+ * and nothing else is painted outside them: between them only `.`, or the groom's raised paw in fur (`C`).
+ */
+function earTips(f: SpriteMap): string[] {
+  const r = f.findIndex((row) => /[^.]/.test(row.slice(0, 6)))
+  if (r < 0) return ['no head']
+  const row = f[r].slice(0, 6)
+  const out: string[] = []
+  const tips: number[] = []
+  for (let c = 0; c < row.length; c++) {
+    if (row[c] !== 'L') continue
+    if (row[c - 1] === 'L' || row[c + 1] === 'L') out.push(`row ${r} col ${c}: an L run wider than one cell`)
+    else tips.push(c)
+  }
+  if (tips.length !== 2) out.push(`row ${r}: ${tips.length} ear tips, not 2`)
+  for (const c of tips) if (!f[r + 1] || f[r + 1][c] === '.') out.push(`row ${r} col ${c}: a tip over nothing`)
+  if (tips.length === 2) {
+    const [a, b] = tips
+    if (/[^.]/.test(row.slice(0, a)) || /[^.]/.test(row.slice(b + 1))) out.push(`row ${r}: painted outside the ear tips`)
+    if (/[^.C]/.test(row.slice(a + 1, b))) out.push(`row ${r}: something other than the paw between the ears`)
+  }
+  return out
+}
+
 describe('the sprites', () => {
   it('passes the frame rules for every 24x32 frame, the 30x14 bed pose and the 12x8 cat', () => {
     expect(HUMAN_FRAMES).toHaveLength(
@@ -159,7 +202,8 @@ describe('the sprites', () => {
     expect(ASSISTANT_DOZE[11][9]).toBe('H')
     expect(ASSISTANT_DOZE.slice(0, 10).every((r) => r === '.'.repeat(24))).toBe(true)
     expect(ASSISTANT_DOZE[28][4]).toBe('j')
-    expect([CAT_SIT[3][3], CAT_WALK[1][6][1], CAT_WALK[0][6][1]]).toEqual(['E', 'C', 'L'])
+    // the cat (task B5): the sit's eye row 3 col 2 (render.test reads it at (46, 153) in the kitchen), the walk's paw
+    expect([CAT_SIT[3][2], CAT_WALK[1][6][1], CAT_WALK[0][6][1]]).toEqual(['E', 'C', 'L'])
     expect([PROP_ENVELOPE[1][2], PROP_TROPHY[1][2]]).toEqual(['W', 'Y'])
   })
 
@@ -447,10 +491,25 @@ describe('the sprites', () => {
     expect(CAT_SIT[0][2]).toBe('.')
     expect(CAT_GROOM[1][0][2]).toBe('C')
     expect(CAT_GROOM[1][0][2]).not.toBe(CAT_SIT[0][2])
-    // the eye closes to a shade line in both frames, not hidden: CAT_SIT's E at row 3 col 3 becomes c
-    expect(CAT_SIT[3][3]).toBe('E')
-    expect(CAT_GROOM[0][3][3]).toBe('c')
-    expect(CAT_GROOM[1][3][3]).toBe('c')
+    // the eye closes to a shade cell in both frames, not hidden: CAT_SIT's E at row 3 col 2 (task B5 moved it a column
+    // forward from row 3 col 3, the muzzle in front of it) becomes c
+    expect(CAT_SIT[3][2]).toBe('E')
+    expect(CAT_GROOM[0][3][2]).toBe('c')
+    expect(CAT_GROOM[1][3][2]).toBe('c')
+  })
+
+  it('stripes the tabby: two or more c cells with fur either side on every frame but the curled sleep (B5)', () => {
+    for (const [name, f] of CAT_AWAKE) expect(stripes(f), name).toBeGreaterThanOrEqual(2)
+  })
+
+  it('points the ears: two single L tips on the first row of the head, each over fur, on every frame but the sleep (B5)', () => {
+    for (const [name, f] of CAT_AWAKE) expect(earTips(f), name).toEqual([])
+  })
+
+  it('gives the cat one dark eye awake, and none asleep or grooming (B5)', () => {
+    const eyes = (f: SpriteMap) => f.join('').split('E').length - 1
+    for (const f of [CAT_SIT, ...CAT_WALK, CAT_STRETCH]) expect(eyes(f)).toBe(1)
+    for (const f of [CAT_SLEEP, ...CAT_GROOM]) expect(eyes(f)).toBe(0)
   })
 
   it('dresses each assistant in their look, with its shade', () => {

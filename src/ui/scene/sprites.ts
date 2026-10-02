@@ -504,98 +504,114 @@ export const EDITOR_WALK: readonly [SpriteMap, SpriteMap, SpriteMap, SpriteMap] 
   EDITOR_PASS,
 ]
 
-/** The cat curled asleep (12x8, facing left, eyes closed). */
+/**
+ * The cat curled asleep (12x8, facing left, eyes closed): the head hump at the front, the haunch behind, the tail wrapped
+ * under. A tabby asleep is still a tabby: two stripes down the curled back (`c` between fur, cols 5 and 8 on rows 4-5), the
+ * chest hidden in the curl (no `Q`), as every other cat frame reads it (task B5).
+ */
 export const CAT_SLEEP: SpriteMap = [
   '............',
   '.LL....LL...',
   'LCcL..LCcL..',
   'LCCCLLLCCCcL',
-  'LCcCCCCCCCcL',
-  'LCCCCCCCCCcL',
+  'LCcCCcCCcCcL', // 4 two stripes down the curled back, under the dip and on the haunch
+  'LCCCCcCCcCcL', // 5 both reach the belly
   '.LCCCCCCCccL',
   '..LLLLLLLLL.',
 ]
 
 /**
- * The cat sitting up (12x8, facing left), the eye at row 3 col 3, the tail curled round at the back, and a cream chest
- * patch (`Q`, rows 4-5 at the front) as in every frame where the chest shows (not asleep: curled, it is hidden).
+ * The cat sitting up (12x8, facing left): the ears two single `L` tips over fur either side of the ridge, the eye at
+ * row 3 col 2 (fur above it, so it never merges with the ridge) with the cream muzzle in front of it (`Q`, row 3 col 1)
+ * running into the cream chest patch (`Q`, rows 4-5 at the front) as in every frame where the chest shows (not asleep:
+ * curled, it is hidden), two stripes down the back (`c` between fur: col 5 on rows 5-6, col 7 on row 5) and the tail
+ * curled round at the back (task B5: the stripes, the muzzle, the eye a column forward from the old frame's row 3 col 3).
  */
 export const CAT_SIT: SpriteMap = [
-  '.L..L.......',
-  'LCLLCL......',
-  'LCCCcL......',
-  'LCCEcL......',
-  '.LQCcLLLL...',
-  '.LQQCCCCcLL.',
-  '.LcCCCCCcLCL',
-  '..LLLLLLLLL.',
+  '.L..L.......', // 0 the ear tips
+  'LCLLCL......', // 1 the ears, the ridge between them
+  'LCCCcL......', // 2 the forehead
+  'LQECcL......', // 3 the eye, the cream muzzle in front of it
+  '.LQCcLLLL...', // 4 the chest, the back's top edge
+  '.LQQCcCcCLL.', // 5 two stripes hang from the back
+  '.LcCCcCCcLCL', // 6 the first reaches the belly; the tail's tip curls round at the back
+  '..LLLLLLLLL.', // 7
 ]
 
-/** The cat's walk (12x8, facing left), 125 ms a frame: the legs apart, then crossing. */
+/**
+ * The cat's walk (12x8, facing left), 125 ms a frame: the legs apart, then crossing. The ears two single `L` tips
+ * over fur (no ridge: the eye at row 2 col 2 sits under fur, a fur cell in front of it so it merges with neither the
+ * outline nor the ear line), the muzzle under it, two stripes hanging from the back (cols 5 and 8) and the tail up
+ * behind, three rows tall at col 10 (task B5).
+ */
 export const CAT_WALK: readonly [SpriteMap, SpriteMap] = [
   [
-    '.L.L........',
-    'LCLCL.......',
-    'LECCLLLLLLL.',
-    'LCCCCCCCCccL',
-    '.LQCCCCCCccL',
-    '.LQCCCCCCccL',
-    '.LCL.LCL.LcL',
-    '.LLL.LLL.LLL',
+    '.L.L......L.', // 0 the ear tips, the tail's tip
+    'LCCCL....LCL', // 1 the ears over fur; the tail up behind
+    'LCECLLLLLLCL', // 2 the eye, the back's top edge, the tail
+    'LQCCCcCCcCCL', // 3 the muzzle; two stripes hang from the back, the tail joins the rump
+    '.LQCCCCCCCcL', // 4 the chest
+    '.LQCCCCCCCcL', // 5
+    '.LCL.LCL.LcL', // 6 the legs apart
+    '.LLL.LLL.LLL', // 7
   ],
   [
-    '.L.L........',
-    'LCLCL.......',
-    'LECCLLLLLLL.',
-    'LCCCCCCCCccL',
-    '.LQCCCCCCccL',
-    '.LQCCCCCCccL',
-    'LCL..LCLLcL.',
-    'LLL..LLLLLL.',
+    '.L.L......L.',
+    'LCCCL....LCL',
+    'LCECLLLLLLCL',
+    'LQCCCcCCcCCL',
+    '.LQCCCCCCCcL',
+    '.LQCCCCCCCcL',
+    'LCL..LCLLcL.', // 6 the legs crossing
+    'LLL..LLLLLL.', // 7
   ],
 ] as const
 
 /**
  * The idle cycle's groom (Decision 6, 12x8), redrawn (fix round 1: the first draft's paw was a bare colour swap on
- * top of CAT_SIT's own cells, unreadable at scene scale). CAT_SIT with the eye closed (row 3 col 3, the socket
- * shaded `c` rather than hidden) and a raised paw that fills the gap between the ears with two `C` cells and a `c`
- * toe, clearly not the plain `L` ridge or `C` cheek CAT_SIT has at those cells. Frame 1 moves the paw one row up
- * (into the ear gap itself, row 0) so the two frames visibly alternate.
+ * top of CAT_SIT's own cells, unreadable at scene scale). CAT_SIT with the eye closed (row 3 col 2, the socket
+ * shaded `c` rather than hidden) and a raised paw that fills the gap between the ears with two `C` cells, clearly not
+ * the plain `L` ridge CAT_SIT has at those cells. Frame 1 moves the paw one row up (into the ear gap itself, row 0,
+ * its underside a `c` cell on the ridge row) so the two frames visibly alternate. The stripes and the muzzle are the
+ * sit's (task B5).
  */
 export const CAT_GROOM: readonly [SpriteMap, SpriteMap] = [
   [
     '.L..L.......',
-    'LCCCCL......', // the paw fills the ear gap (cols 2-3 were L, L in CAT_SIT)
-    'LCcCcL......', // the paw's toe, a shade lower (col 2 was C in CAT_SIT)
-    'LCCccL......', // the eye closed: a shade line, not hidden (col 3 was E in CAT_SIT)
+    'LCCCCL......', // the paw fills the ear gap (cols 2-3 are L, L in CAT_SIT)
+    'LCCCcL......',
+    'LQcCcL......', // the eye closed: a shade cell, not hidden (col 2 is E in CAT_SIT)
     '.LQCcLLLL...',
-    '.LQQCCCCcLL.',
-    '.LcCCCCCcLCL',
+    '.LQQCcCcCLL.',
+    '.LcCCcCCcLCL',
     '..LLLLLLLLL.',
   ],
   [
-    '.LCCL.......', // the paw one row up, in the ear gap itself (cols 2-3 were . , . in CAT_SIT)
-    'LCcCcL......', // the paw's toe (as frame 0, one row higher)
+    '.LCCL.......', // the paw one row up, in the ear gap itself (cols 2-3 are . , . in CAT_SIT)
+    'LCCcCL......', // the paw's underside, a shade cell on the ridge row
     'LCCCcL......',
-    'LCCccL......', // the eye closed
+    'LQcCcL......', // the eye closed
     '.LQCcLLLL...',
-    '.LQQCCCCcLL.',
-    '.LcCCCCCcLCL',
+    '.LQQCcCcCLL.',
+    '.LcCCcCCcLCL',
     '..LLLLLLLLL.',
   ],
 ] as const
 
-/** The idle cycle's stretch (Decision 6, 12x8): the body stretched long and low, the head at cols 0-3, the tail up
- * at cols 9-11. */
+/**
+ * The idle cycle's stretch (Decision 6, 12x8): the body stretched long and low, the head at cols 0-4 with its ears
+ * laid back as two single `L` tips on row 3 and the eye at row 4 col 3, the tail up at cols 9-11, two stripes down the
+ * back (col 6, and col 9 at the tail's root) (task B5: the ears and the stripes).
+ */
 export const CAT_STRETCH: SpriteMap = [
   '............',
-  '.........LCL',
-  '.........LCL',
-  '.........LCL',
-  'LCCECCCCCCCL',
-  '.LQQCCCCCCcL',
-  '.LcCCCCCCcLL',
-  '..LLLLLLLLL.',
+  '.........LCL', // 1 the tail up
+  '.........LCL', // 2
+  '.L..L....LCL', // 3 the ear tips, laid back along the low head
+  'LCCECCcCCcCL', // 4 the eye; two stripes down the back, the second at the tail's root
+  '.LQQCCCCCCcL', // 5 the chest
+  '.LcCCCCCCcLL', // 6
+  '..LLLLLLLLL.', // 7
 ]
 
 /** The editor's props: their own palette (paper, its lines, the contract's blue and red, gold, the trophy's wood). */
