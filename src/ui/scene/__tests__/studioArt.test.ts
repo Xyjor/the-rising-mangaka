@@ -85,10 +85,13 @@ const FULL_BASELINE = 1125
  * fill each, the bin's pages stay code-drawn): 953 - 25 = 928. Upgrade 0.9.0 Task B3 re-measured it the same way at
  * 966 (+38): the four seated figures (three from MANGAKA_SIT[0], 184 to 194, one from MANGAKA_SIT[1], 187 to 195), as
  * the 1117's +38 (the images replace no sprite): 928 + 38 = 966. Upgrade 0.9.0 Task B5 re-measured it the same way at
- * 974 (+8): CAT_SLEEP 31 to 39, as the 1125's +8 (the images replace no sprite): 966 + 8 = 974. The full scene with the
- * art ready must stay under 1.5 times this (its own budget, 1461).
+ * 974 (+8): CAT_SLEEP 31 to 39, as the 1125's +8 (the images replace no sprite): 966 + 8 = 974. Upgrade 0.10.0 Task C0
+ * re-measured it the same way at 1009 (+35): the room image is the wall alone now, and the apartment's code-drawn
+ * floor paints under it (`TIER_FLOOR`: the tatami fill 1, the weave lines 21, the three heri 3 and the seams 10), as
+ * the 584's +35: 974 + 35 = 1009. The full scene with the art ready must stay under 1.5 times this (its own budget,
+ * 1513.5).
  */
-const FULL_ART_BASELINE = 974
+const FULL_ART_BASELINE = 1009
 
 function paint(over: Partial<Snapshot> = {}, t = 0.3, frame = 100): FillCall[] {
   const { ctx, log } = fakeContext()
@@ -219,7 +222,7 @@ describe('the studio in the scene', () => {
     render(bare.ctx, sceneSnapshot(BARE_FULL), 0.9, 100, art)
     expect(bare.log).toHaveLength(FULL_ART_BASELINE)
     const budget = FULL_ART_BASELINE * 1.5
-    expect(budget).toBe(1461)
+    expect(budget).toBe(1513.5)
     for (const [t, frame, visiting] of [[0.9, 100, 0], [0.9, 0, 0], [0.3, 100, 0], [0.9, 100, 1]]) {
       const { ctx, log, images } = fakeContext()
       render(ctx, sceneSnapshot(visiting ? { ...EVERYTHING, visitor: 'editor', visitorProp: 'contract' } : EVERYTHING), t, frame, art)

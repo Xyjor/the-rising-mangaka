@@ -31,6 +31,10 @@ interface ManifestEntry {
   outline: boolean
   crop?: [number, number, number, number]
   seam?: { src: number; dst: number }
+  /** `code`: the scene draws this room's floor, so the image is the wall alone, the rows above the seam */
+  floor?: 'code'
+  /** a wall's plaster flattened to its modal colour within an OKLab radius, before the palette snap */
+  flatten?: { radius: number }
   tolerance?: number
   holes?: [number, number][]
   flip?: boolean
@@ -169,11 +173,14 @@ describe('art manifest', () => {
     }
   })
 
-  it("makes every tier's room shell a 320x180 scene-palette image of at most 32 colours, its seam landing on row 114", () => {
+  it("makes every tier's room a 320x114 scene-palette wall of at most 32 colours, the raw's rows above its seam", () => {
     const rooms = manifest.filter((e) => e.id.startsWith('room/'))
     expect(rooms.map((e) => e.id).sort()).toEqual(['room/apartment', 'room/flat', 'room/loft'])
     for (const e of rooms) {
-      expect(e.native, e.id).toEqual([320, 180])
+      // the scene draws every floor in code (TIER_FLOOR), so each room image is its wall, canvas rows 0-113
+      expect(e.floor, `${e.id} floor`).toBe('code')
+      expect(e.native, e.id).toEqual([320, 114])
+      expect(e.seam?.dst, `${e.id} seam dst`).toBe(e.native[1])
       expect(e.cutout, e.id).toBe(false)
       expect(e.palette, e.id).toBe('scene')
       expect(e.colors, e.id).toBe(32)
@@ -188,10 +195,16 @@ describe('art manifest', () => {
         expect(e.crop[0] + e.crop[2] <= raw.width && e.crop[1] + e.crop[3] <= raw.height, `${e.id} crop`).toBe(true)
       }
     }
-    // only a room shell is seam-remapped; a lightness weight, where set, is in (0, 1]
+    // only a room is seam-remapped or code-floored; a lightness weight, where set, is in (0, 1]; a flatten radius,
+    // where set, is in (0, 1] and only on a code-floored wall
     for (const e of manifest) {
       if (!e.id.startsWith('room/')) expect(e.seam, `${e.id} seam`).toBeUndefined()
+      if (!e.id.startsWith('room/')) expect(e.floor, `${e.id} floor`).toBeUndefined()
       if (e.lightness !== undefined) expect(e.lightness > 0 && e.lightness <= 1, `${e.id} lightness`).toBe(true)
+      if (e.flatten !== undefined) {
+        expect(e.flatten.radius > 0 && e.flatten.radius <= 1, `${e.id} flatten radius`).toBe(true)
+        expect(e.floor, `${e.id} flatten needs floor "code"`).toBe('code')
+      }
     }
   })
 
@@ -312,7 +325,7 @@ describe('generated PNGs', () => {
       // the apartment: sand plaster and its streaks, the wood molding, beam and pillars, the baseboard, the tatami
       '#e6d3a8', '#ecdcb6', '#9c7550', '#c9b48a', '#b88d62', '#7a5a3e', '#cdbd7c', '#bfae6c', '#3d4a3a', '#a8984f',
       // the flat: teal wallpaper and its stripes, the wainscot and its rail, the dark wood frame, honey planks, the rug
-      '#8fb5ac', '#9dc2b9', '#8a5f3a', '#b98a5c', '#a0764c', '#6e4a2c', '#c8894e', '#a86d3a', '#b04a3f', '#e0b25a',
+      '#8fb5ac', '#6f9a90', '#8a5f3a', '#b98a5c', '#a0764c', '#6e4a2c', '#c8894e', '#a86d3a', '#b04a3f', '#e0b25a',
       // the loft: pale plaster and its molding, brick and mortar, the frame, the steel baseboard, concrete, the rug
       '#dcd8cf', '#a9a59c', '#b5574a', '#d9b7a5', '#6b4a32', '#4a4a55', '#bdb8ae', '#cbc7bf', '#a9a49a', '#3f4f7a',
       '#8aa0c8',

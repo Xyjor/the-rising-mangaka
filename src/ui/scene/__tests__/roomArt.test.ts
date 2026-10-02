@@ -8,7 +8,7 @@ import { shadow } from '../paint'
 import { render } from '../render'
 import type { Snapshot } from '../render'
 import {
-  TIER_FRONT, TIER_ROOM, drawAmbient, drawBin, drawCalendar, drawCorkboard, drawCups, drawFanLetters, drawSeriesPoster,
+  TIER_FLOOR, TIER_FRONT, TIER_ROOM, TIER_WALL, drawAmbient, drawBin, drawCalendar, drawCorkboard, drawCups, drawFanLetters, drawSeriesPoster,
 } from '../roomArt'
 import { NO_ART } from '../sceneArt'
 
@@ -90,6 +90,27 @@ describe('each tier\'s room', () => {
     }
     // the tatami's cloth edges run across the floor
     expect(alone((ctx) => TIER_ROOM.apartment(ctx, false)).some((c) => c.style === HERI && c.y >= 114 && c.w >= 64)).toBe(true)
+  })
+
+  it('splits each room into a wall (rows 0-113) and a floor (rows 114-179), the room being the wall then the floor', () => {
+    for (const tier of TIERS) {
+      for (const night of [false, true]) {
+        const label = `${tier} ${night ? 'night' : 'day'}`
+        const wall = alone((ctx) => TIER_WALL[tier](ctx, night))
+        const floor = alone((ctx) => TIER_FLOOR[tier](ctx, night))
+        expect(wall.length, label).toBeGreaterThan(0)
+        for (const c of wall) expect(c.y >= 0 && c.y + c.h <= 114, `${label} wall ${JSON.stringify(c)}`).toBe(true)
+        for (const c of floor) expect(c.y >= 114 && c.y + c.h <= 180, `${label} floor ${JSON.stringify(c)}`).toBe(true)
+        for (const [x, y] of [[0, 114], [319, 179]]) expect(coversAny(floor, x, y), `${label} floor ${x},${y}`).toBeGreaterThan(-1)
+        expect(alone((ctx) => TIER_ROOM[tier](ctx, night)), label).toEqual([...wall, ...floor])
+      }
+    }
+  })
+
+  it("stripes the flat's teal wallpaper in mid teal, 16 stripes every 20 px", () => {
+    const stripes = alone((ctx) => TIER_WALL.flat(ctx, false)).filter((c) => c.style === '#6f9a90')
+    expect(stripes.map((c) => c.x)).toEqual(Array.from({ length: 16 }, (_, i) => 10 + i * 20))
+    expect(stripes.every((c) => c.w === 2 && c.y === 3 && c.h === 81)).toBe(true)
   })
 
   it('paints each tier its own way, and night differently from day', () => {

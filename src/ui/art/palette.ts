@@ -41,7 +41,7 @@ const SCENE_ADDITIONS: readonly string[] = [
   // The apartment's plaster, woods and tatami
   '#e6d3a8', '#ecdcb6', '#9c7550', '#c9b48a', '#b88d62', '#7a5a3e', '#cdbd7c', '#bfae6c', '#3d4a3a', '#a8984f',
   // The flat's teal wallpaper, wainscot, frame, planks and rug
-  '#8fb5ac', '#9dc2b9', '#8a5f3a', '#b98a5c', '#a0764c', '#6e4a2c', '#c8894e', '#a86d3a', '#b04a3f',
+  '#8fb5ac', '#8a5f3a', '#b98a5c', '#a0764c', '#6e4a2c', '#c8894e', '#a86d3a', '#b04a3f', '#6f9a90',
   // The loft's plaster, brick, frame, steel, concrete and rug
   '#dcd8cf', '#b5574a', '#d9b7a5', '#6b4a32', '#4a4a55', '#bdb8ae', '#a9a49a', '#3f4f7a',
   // Switches and outlets; the window frame, the sill and the bookshelf's woods

@@ -522,6 +522,68 @@ export function remapSeam(
 }
 
 /**
+ * A room's wall alone, for a room whose floor the scene draws in code: source rows 0 to `seamSrc` - 1 (the wall, the
+ * floor below the seam dropped) resampled to dstW x dstH with `sample`'s downsample, as `remapSeam` does for its wall
+ * side. The seam may be the image's height (no floor in the raw), never 0.
+ */
+export function wallOnly(src: RgbaImage, seamSrc: number, dstW: number, dstH: number, sample: 'area' | 'nearest'): RgbaImage {
+  if (!(seamSrc > 0 && seamSrc <= src.height)) {
+    throw new Error(`wallOnly: seam ${seamSrc} must leave a wall row and lie inside the image (height ${src.height})`)
+  }
+  const down = sample === 'nearest' ? downsampleNearest : downsampleArea
+  return down(rowsOf(src, 0, seamSrc), dstW, dstH)
+}
+
+/**
+ * The image's modal fully opaque colour (exact RGB counts, alpha 255 only) as `#rrggbb`, and its share of the fully
+ * opaque pixels (0-1); null when no pixel is fully opaque. Ties go to the colour counted first (row-major order).
+ */
+export function modalColour(img: RgbaImage): { hex: string; share: number } | null {
+  const counts = new Map<number, number>()
+  let opaque = 0
+  for (let i = 0; i < img.data.length; i += 4) {
+    if (img.data[i + 3] !== 255) continue
+    opaque++
+    const key = (img.data[i] << 16) | (img.data[i + 1] << 8) | img.data[i + 2]
+    counts.set(key, (counts.get(key) ?? 0) + 1)
+  }
+  let mode = -1
+  let best = 0
+  for (const [key, n] of counts) if (n > best) { mode = key; best = n }
+  if (mode < 0) return null
+  return { hex: `#${mode.toString(16).padStart(6, '0')}`, share: best / opaque }
+}
+
+/**
+ * Flattens a wall's plaster: every fully opaque pixel within `radius` (OKLab Euclidean distance) of the image's modal
+ * fully opaque colour (`modalColour`) becomes that colour exactly; every other pixel, and the alpha, stays. For a
+ * generated wall whose prompt asked for flat lighting and got a vignette: the pool and its edges collapse to the one
+ * plaster the palette snap then reads, while the wood, far from the mode, keeps its shading. Radius 0 changes nothing;
+ * an image with no fully opaque pixel comes back as a copy.
+ */
+export function flattenToMode(img: RgbaImage, radius: number): RgbaImage {
+  const out = makeImage(img.width, img.height)
+  out.data.set(img.data)
+  const modal = modalColour(img)
+  if (!modal || radius <= 0) return out
+  const mode = parseInt(modal.hex.slice(1), 16)
+  const mr = mode >> 16, mg = (mode >> 8) & 255, mb = mode & 255
+  const [ml, ma, mbb] = rgbToOklab(mr, mg, mb)
+  const r2 = radius * radius
+  for (let i = 0; i < out.data.length; i += 4) {
+    if (out.data[i + 3] !== 255) continue
+    const [l, a, b] = rgbToOklab(out.data[i], out.data[i + 1], out.data[i + 2])
+    const dl = l - ml, da = a - ma, db = b - mbb
+    if (dl * dl + da * da + db * db <= r2) {
+      out.data[i] = mr
+      out.data[i + 1] = mg
+      out.data[i + 2] = mb
+    }
+  }
+  return out
+}
+
+/**
  * Mirrors an image left to right (a new image; the source is untouched). For a sheet object drawn facing the wrong way
  * for its place in the scene, such as the arm lamp, whose shade must lean left over the page.
  */

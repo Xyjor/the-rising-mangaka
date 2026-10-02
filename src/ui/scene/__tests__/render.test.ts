@@ -6,7 +6,7 @@ import type { FillCall } from '../../../test/fakeCanvas'
 import type { StudioTierId } from '../../../sim'
 import { H, PROP_BOX, PROP_FOOTPRINT, SKY_LUT, W, render, skyColor } from '../render'
 import type { Snapshot } from '../render'
-import { drawRoomShell } from '../roomArt'
+import { TIER_FLOOR, drawRoomShell } from '../roomArt'
 import { DOORWAY_BOX, DOOR_BOX, NO_EQUIPMENT } from '../studioArt'
 import { DESK_PROPS, NO_ART, PROP_ALIGN, PROP_MIN_H, PROP_SPRITE, ROOM_NIGHT_DIM, fitDesk, fitSprite, hangSprite, placeSprite, ready } from '../sceneArt'
 import type { SceneArt, ScenePropId } from '../sceneArt'
@@ -44,10 +44,13 @@ const BUDGET = BASELINE_FILLS * 1.5
  * bin's crumpled pages stay code-drawn): 546 - 25 = 521. Upgrade 0.9.0 Task B3 re-measured it the same way at 541
  * (+20): the two seated figures from MANGAKA_SIT[0], 184 to 194 runs each, as the 693's +20 (the images replace no
  * sprite): 521 + 20 = 541. Upgrade 0.9.0 Task B5 re-measured it the same way at 549 (+8): CAT_SLEEP 31 to 39, as the
- * 701's +8 (the images replace no sprite): 541 + 8 = 549. Every scene with the art ready must stay under 1.5 times this
- * (823.5; its own budget: the images leave fewer fills, so 701's budget would hide growth).
+ * 701's +8 (the images replace no sprite): 541 + 8 = 549. Upgrade 0.10.0 Task C0 re-measured it the same way at 584
+ * (+35): the room image is the wall alone now, and the apartment's code-drawn floor paints under it (`TIER_FLOOR`: the
+ * tatami fill 1, the weave lines every 3 px from y 117, 21, the three heri 3 and the staggered seams 5 + 5): 549 + 35 =
+ * 584. Every scene with the art ready must stay under 1.5 times this (876; its own budget: the images leave fewer
+ * fills, so 701's budget would hide growth).
  */
-const ART_BASELINE_FILLS = 549
+const ART_BASELINE_FILLS = 584
 const ART_BUDGET = ART_BASELINE_FILLS * 1.5
 
 /**
@@ -102,7 +105,7 @@ describe('render', () => {
   })
 
   it('stays under 1.5 times its own measured baseline with every generated image ready, in every tier and season', () => {
-    expect(ART_BUDGET).toBe(823.5)
+    expect(ART_BUDGET).toBe(876)
     const ref = fakeContext()
     render(ref.ctx, sceneSnapshot(), 0.3, 100, fakeSceneArt())
     expect(ref.log).toHaveLength(ART_BASELINE_FILLS)
@@ -695,7 +698,7 @@ describe('scene art (0.9.0 R1): generated images with the code-drawn look as the
     else render(f.ctx, sceneSnapshot(over), t, 100)
     return f
   }
-  const loadingImage = (id: string) => ({ ...fakeImage(id, 320, 180), complete: false }) as unknown as CanvasImageSource
+  const loadingImage = (id: string) => ({ ...fakeImage(id, 320, 114), complete: false }) as unknown as CanvasImageSource
 
   it('accepts only a loaded image', () => {
     expect(ready(null)).toBe(false)
@@ -718,36 +721,47 @@ describe('scene art (0.9.0 R1): generated images with the code-drawn look as the
     expect(none.images).toEqual([])
   })
 
-  it("draws a ready room image first, at 0,0,320,180, in place of every one of the shell's fills", () => {
+  it("draws a ready room image as the wall, at 0,0,320,114, then the tier's code-drawn floor, in place of the shell", () => {
     for (const tier of TIERS) {
       const shell = fakeContext()
       drawRoomShell(shell.ctx, tier, false)
+      const floor = fakeContext()
+      TIER_FLOOR[tier](floor.ctx, false)
       expect(shell.log.length, tier).toBeGreaterThan(0)
       const plain = paint({ tier }, 0.3)
-      const art = paint({ tier }, 0.3, withRoom(tier, fakeImage('room', 320, 180)))
-      expect(art.images[0], tier).toEqual({ id: 'room', x: 0, y: 0, w: 320, h: 180, at: 0 })
+      const art = paint({ tier }, 0.3, withRoom(tier, fakeImage('room', 320, 114)))
+      expect(art.images[0], tier).toEqual({ id: 'room', x: 0, y: 0, w: 320, h: 114, at: 0 })
       expect(plain.log.slice(0, shell.log.length), tier).toEqual(shell.log)
-      expect(art.log, tier).toEqual(plain.log.slice(shell.log.length))
+      // the floor's first fill, the whole floor in the tier's colour, comes right after the image
+      expect(art.log[0], tier).toEqual({ style: floor.log[0].style, x: 0, y: 114, w: 320, h: 66 })
+      expect(art.log, tier).toEqual([...floor.log, ...plain.log.slice(shell.log.length)])
     }
   })
 
+  it('draws the room image of the whole art set at height 114', () => {
+    const art = paint({}, 0.3, fakeSceneArt())
+    expect(art.images[0]).toMatchObject({ id: 'room/apartment', x: 0, y: 0, w: 320, h: 114, at: 0 })
+  })
+
   it('still paints the sky over the pane after the room image', () => {
-    const art = paint({}, 0.3, withRoom('apartment', fakeImage('room', 320, 180)))
+    const art = paint({}, 0.3, withRoom('apartment', fakeImage('room', 320, 114)))
     expect(covers(art.log, skyColor(0.3), 200, 60)).toBeGreaterThanOrEqual(art.images[0].at)
   })
 
-  it('dims a room image at night with one fill right after it, and keeps the night overlay on top', () => {
+  it('dims a room image at night with one 320x114 fill right after it, then the night floor, and keeps the night overlay on top', () => {
     const shell = fakeContext()
     drawRoomShell(shell.ctx, 'apartment', true)
+    const floor = fakeContext()
+    TIER_FLOOR.apartment(floor.ctx, true)
     const plain = paint({}, 0.9)
-    const art = paint({}, 0.9, withRoom('apartment', fakeImage('room', 320, 180)))
+    const art = paint({}, 0.9, withRoom('apartment', fakeImage('room', 320, 114)))
     expect(ROOM_NIGHT_DIM).toBe('rgba(20,24,60,0.25)')
     expect(art.images[0].at).toBe(0)
-    expect(art.log[0]).toEqual({ style: ROOM_NIGHT_DIM, x: 0, y: 0, w: 320, h: 180 })
-    expect(art.log.slice(1)).toEqual(plain.log.slice(shell.log.length))
+    expect(art.log[0]).toEqual({ style: ROOM_NIGHT_DIM, x: 0, y: 0, w: 320, h: 114 })
+    expect(art.log.slice(1)).toEqual([...floor.log, ...plain.log.slice(shell.log.length)])
     expect(art.log.findIndex((c) => c.style === 'rgba(20, 24, 60, 0.28)')).toBeGreaterThan(0)
     // by day, no dim
-    expect(paint({}, 0.3, withRoom('apartment', fakeImage('room', 320, 180))).log.some((c) => c.style === ROOM_NIGHT_DIM)).toBe(false)
+    expect(paint({}, 0.3, withRoom('apartment', fakeImage('room', 320, 114))).log.some((c) => c.style === ROOM_NIGHT_DIM)).toBe(false)
   })
 
   it("falls back to the shell's fills while the room image is still loading, or when only another tier has one", () => {
@@ -755,7 +769,7 @@ describe('scene art (0.9.0 R1): generated images with the code-drawn look as the
     const art = paint({}, 0.3, withRoom('apartment', loadingImage('room')))
     expect(art.images).toEqual([])
     expect(art.log).toEqual(plain.log)
-    const other = paint({}, 0.3, withRoom('loft', fakeImage('room', 320, 180)))
+    const other = paint({}, 0.3, withRoom('loft', fakeImage('room', 320, 114)))
     expect(other.images).toEqual([])
     expect(other.log).toEqual(plain.log)
   })

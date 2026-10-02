@@ -28,12 +28,15 @@ import {
   downsampleArea,
   downsampleNearest,
   findBlobs,
+  flattenToMode,
+  modalColour,
   flipHorizontal,
   floodTransparentFromEdges,
   padToAspect,
   reduceColors,
   remapSeam,
   snapToPalette,
+  wallOnly,
   type RgbaImage,
 } from '../src/ui/art/pixelOps'
 import { ANCHOR_HEAD, PAL, faceRules, frameRules } from '../src/ui/scene/spriteCore'
@@ -84,6 +87,17 @@ interface ManifestEntry {
    * cutout.
    */
   seam?: { src: number; dst: number }
+  /**
+   * `code`: the scene draws this room's floor (roomArt.ts `TIER_FLOOR`), so the image is the wall alone, the raw rows
+   * above `seam.src` resampled to `native` (pixelOps `wallOnly`), whose height must be `seam.dst`.
+   */
+  floor?: 'code'
+  /**
+   * A wall's plaster flattened before the palette snap (pixelOps `flattenToMode`): every pixel within `radius` (OKLab
+   * distance) of the wall's modal colour becomes it, so a raw's vignette or light pool, which the snap would band into
+   * two creams, reads as one plaster while the wood, far from the mode, keeps its shading. Only with `floor: "code"`.
+   */
+  flatten?: { radius: number }
   /**
    * The cutout's flood tolerance (RGB distance from the corner colour), FLOOD_TOLERANCE when absent: raised where the
    * sheet drew a soft grey shadow under an object that the default leaves behind.
@@ -215,9 +229,24 @@ async function processEntry(entry: ManifestEntry): Promise<{ outPath: string; co
   }
 
   const [nativeW, nativeH] = entry.native
+  if (entry.floor === 'code') {
+    if (!entry.seam) throw new Error(`${entry.id}: floor "code" needs a seam`)
+    if (nativeH !== entry.seam.dst) {
+      throw new Error(`${entry.id}: floor "code" keeps the wall only, so native height ${nativeH} must be seam.dst ${entry.seam.dst}`)
+    }
+  }
+  if (entry.flatten && entry.floor !== 'code') throw new Error(`${entry.id}: flatten is for a wall`)
   if (entry.seam) {
     if (entry.cutout) throw new Error(`${entry.id}: a seam remap is for a room shell, not a cutout`)
-    working = remapSeam(working, entry.seam.src, nativeW, nativeH, entry.seam.dst, entry.sample)
+    working = entry.floor === 'code'
+      ? wallOnly(working, entry.seam.src, nativeW, nativeH, entry.sample)
+      : remapSeam(working, entry.seam.src, nativeW, nativeH, entry.seam.dst, entry.sample)
+    if (entry.flatten) {
+      // the mode must be the plaster: a regeneration where the wood or a stripe wins the count shows here
+      const modal = modalColour(working)
+      console.log(`${entry.id}: flatten mode ${modal ? `${modal.hex}, ${Math.round(modal.share * 100)}% of the wall` : 'none (no fully opaque pixel)'}`)
+      working = flattenToMode(working, entry.flatten.radius)
+    }
   } else {
     working =
       entry.sample === 'nearest'

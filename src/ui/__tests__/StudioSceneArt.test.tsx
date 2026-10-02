@@ -15,7 +15,7 @@ import { NO_ART } from '../scene/sceneArt'
 import type { SceneArt } from '../scene/sceneArt'
 
 const hooks = vi.hoisted(() => ({ listeners: [] as (() => void)[] }))
-const room = fakeImage('room/apartment', 320, 180)
+const room = fakeImage('room/apartment', 320, 114)
 const art: SceneArt = { room: { ...NO_ART.room, apartment: room }, prop: {} }
 
 vi.mock('../scene/sceneImages', () => ({
@@ -64,7 +64,7 @@ describe('StudioScene with generated art', () => {
     expect(hooks.listeners).toHaveLength(1)
     hooks.listeners[0]()
     vi.advanceTimersByTime(1100)
-    expect(fake.images[0]).toMatchObject({ id: 'room/apartment', x: 0, y: 0, w: 320, h: 180 })
+    expect(fake.images[0]).toMatchObject({ id: 'room/apartment', x: 0, y: 0, w: 320, h: 114 })
   })
 
   it('stops listening for loads when it unmounts', () => {

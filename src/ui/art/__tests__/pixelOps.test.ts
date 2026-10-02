@@ -6,6 +6,8 @@ import {
   downsampleArea,
   downsampleNearest,
   findBlobs,
+  flattenToMode,
+  modalColour,
   flipHorizontal,
   floodTransparentFromEdges,
   makeImage,
@@ -16,6 +18,7 @@ import {
   rgbToOklab,
   snapToPalette,
   toOklabPalette,
+  wallOnly,
 } from '../pixelOps'
 
 function fill(img: ReturnType<typeof makeImage>, r: number, g: number, b: number, a = 255) {
@@ -469,6 +472,116 @@ describe('remapSeam', () => {
     expect(() => remapSeam(src, 0, 4, 10, 5, 'area')).toThrow()
     expect(() => remapSeam(src, 10, 4, 10, 5, 'area')).toThrow()
     expect(() => remapSeam(src, 5, 4, 10, 10, 'area')).toThrow()
+  })
+})
+
+describe('wallOnly', () => {
+  /** A 4x4 image: the top two rows red (the wall), the bottom two blue (the floor). */
+  function redOverBlue() {
+    const img = makeImage(4, 4)
+    for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) {
+      if (y < 2) setPixel(img, x, y, 255, 0, 0)
+      else setPixel(img, x, y, 0, 0, 255)
+    }
+    return img
+  }
+  const pixels = (img: ReturnType<typeof makeImage>) => {
+    const out: number[][] = []
+    for (let i = 0; i < img.data.length; i += 4) out.push([...img.data.subarray(i, i + 4)])
+    return out
+  }
+
+  it('keeps the rows above the seam only, downsampled to the destination size', () => {
+    const out = wallOnly(redOverBlue(), 2, 2, 1, 'area')
+    expect(out.width).toBe(2)
+    expect(out.height).toBe(1)
+    expect(pixels(out)).toEqual([[255, 0, 0, 255], [255, 0, 0, 255]])
+  })
+
+  it('keeps the whole image when the seam is its height', () => {
+    const out = wallOnly(redOverBlue(), 4, 4, 4, 'nearest')
+    expect(pixels(out)).toEqual(pixels(redOverBlue()))
+  })
+
+  it('refuses a seam outside (0, height]', () => {
+    expect(() => wallOnly(redOverBlue(), 0, 2, 1, 'area')).toThrow()
+    expect(() => wallOnly(redOverBlue(), 5, 2, 1, 'area')).toThrow()
+  })
+})
+
+describe('flattenToMode', () => {
+  /** A 4x2 wall: five pixels of the plaster (200,180,150), two a shade darker (190,172,142), one of dark wood (60,40,20). */
+  function shadedWall() {
+    const img = makeImage(4, 2)
+    fill(img, 200, 180, 150)
+    setPixel(img, 0, 0, 190, 172, 142)
+    setPixel(img, 3, 1, 190, 172, 142)
+    setPixel(img, 2, 1, 60, 40, 20)
+    return img
+  }
+  const pixel = (img: ReturnType<typeof makeImage>, x: number, y: number) => Array.from(img.data.slice((y * img.width + x) * 4, (y * img.width + x) * 4 + 4))
+
+  it('sets every opaque pixel within the radius (OKLab) of the modal colour to that colour, and leaves the rest', () => {
+    const src = shadedWall()
+    const out = flattenToMode(src, 0.05)
+    expect([out.width, out.height]).toEqual([4, 2])
+    expect(pixel(out, 0, 0)).toEqual([200, 180, 150, 255])
+    expect(pixel(out, 3, 1)).toEqual([200, 180, 150, 255])
+    expect(pixel(out, 2, 1)).toEqual([60, 40, 20, 255])
+    expect(pixel(out, 1, 0)).toEqual([200, 180, 150, 255])
+    // the source is untouched
+    expect(pixel(src, 0, 0)).toEqual([190, 172, 142, 255])
+  })
+
+  it('changes nothing at radius 0', () => {
+    const src = shadedWall()
+    expect(Array.from(flattenToMode(src, 0).data)).toEqual(Array.from(src.data))
+  })
+
+  it('returns a fully transparent image unchanged', () => {
+    const src = makeImage(3, 2)
+    setPixel(src, 1, 1, 90, 80, 70, 0)
+    expect(Array.from(flattenToMode(src, 0.5).data)).toEqual(Array.from(src.data))
+  })
+
+  it('counts only fully opaque pixels toward the mode, and leaves transparent ones untouched', () => {
+    // a guard: four transparent pixels of grey outnumber three opaque cream ones, yet the cream is the mode
+    const src = makeImage(4, 2)
+    for (let x = 0; x < 4; x++) setPixel(src, x, 0, 120, 120, 120, 0)
+    setPixel(src, 0, 1, 200, 180, 150)
+    setPixel(src, 1, 1, 200, 180, 150)
+    setPixel(src, 2, 1, 200, 180, 150)
+    setPixel(src, 3, 1, 190, 172, 142)
+    const out = flattenToMode(src, 0.05)
+    expect(pixel(out, 3, 1)).toEqual([200, 180, 150, 255])
+    for (let x = 0; x < 4; x++) expect(pixel(out, x, 0)).toEqual([120, 120, 120, 0])
+  })
+})
+
+describe('modalColour', () => {
+  it("gives the modal fully opaque colour's hex and its share of the fully opaque pixels", () => {
+    const img = makeImage(4, 2)
+    fill(img, 200, 180, 150)
+    setPixel(img, 0, 0, 190, 172, 142)
+    setPixel(img, 2, 1, 60, 40, 20)
+    // two transparent and one half-transparent pixel of another colour, all excluded from the count
+    setPixel(img, 1, 0, 1, 2, 3, 0)
+    setPixel(img, 2, 0, 1, 2, 3, 0)
+    setPixel(img, 3, 0, 1, 2, 3, 128)
+    expect(modalColour(img)).toEqual({ hex: '#c8b496', share: 3 / 5 })
+  })
+
+  it('zero-pads the hex', () => {
+    const img = makeImage(1, 1)
+    setPixel(img, 0, 0, 0, 10, 5)
+    expect(modalColour(img)).toEqual({ hex: '#000a05', share: 1 })
+  })
+
+  it('is null with no fully opaque pixel', () => {
+    const img = makeImage(2, 1)
+    setPixel(img, 0, 0, 9, 9, 9, 0)
+    setPixel(img, 1, 0, 9, 9, 9, 254)
+    expect(modalColour(img)).toBeNull()
   })
 })
 
