@@ -2690,14 +2690,13 @@
   },
   {
     "id": "room/loft",
-    "source": "higgsfield:z_image",
-    "model": "z_image",
-    "resolution": "2048x1152",
-    "seed": null,
-    "job": "8129a759-63e9-40b1-985a-7a0114e727b4",
-    "steps": null,
-    "shift": null,
-    "prompt": "Retro 16-bit pixel art video game background in the style of a Kairosoft SNES game, hand-placed chunky pixels, flat cel shading, limited 24-colour palette. Straight-on front view of the empty back wall of a loft studio, no perspective, no furniture, no window, no door, no people. Top: dark steel ceiling beam across the width. Middle: pale cream plaster wall with a vertical strip of red pixel bricks on the right side, grey baseboard. Straight horizontal wall-floor line at 63 percent height. Bottom: pale grey concrete floor with simple pixel seams. Soft light from the top left, crisp pixels, no text, not photorealistic.",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
+    "model": "Z-Image-Turbo",
+    "resolution": "2048x1152 ( 16:9 )",
+    "seed": 142516,
+    "steps": 8,
+    "shift": 3,
+    "prompt": "Retro 16-bit pixel art video game background in the style of a Kairosoft SNES game, hand-placed chunky pixels, flat cel shading, limited 24-colour palette. Straight-on front view of the empty back wall of a loft studio, no perspective, no furniture, no window, no door, no people. Top: one dark steel ceiling beam across the full width. Middle: pale cream plaster wall painted in one flat uniform colour, completely plain, with one straight vertical column of red pixel bricks near the right edge running from the ceiling beam down to the baseboard, nothing else on the wall, grey baseboard. Straight horizontal wall-floor line at 80 percent height; the floor may be cut off. Bottom: a thin strip of pale grey concrete floor. Perfectly flat even lighting, no vignette, no gradient, no light pool, no shadows, uniform wall colour, crisp pixels, no text, not photorealistic.",
     "preamble": "none",
     "native": [
       320,
@@ -2712,8 +2711,14 @@
       "src": "rooms/loft.png"
     },
     "lightness": 0.25,
+    "crop": [
+      15,
+      109,
+      1670,
+      1043
+    ],
     "seam": {
-      "src": 1002,
+      "src": 907,
       "dst": 114
     },
     "floor": "code"
