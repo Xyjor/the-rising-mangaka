@@ -24,7 +24,7 @@
 
 /* ---------- toasts ---------- */
 .toasts {
-  position: fixed; left: 50%; top: calc(var(--hud-h) + 12px); transform: translateX(-50%); z-index: 40;
+  position: fixed; left: 50%; top: calc(var(--hud-h) + 12px); transform: translateX(-50%); z-index: var(--z-toast);
   display: flex; flex-direction: column; gap: 8px; width: min(420px, calc(100vw - 32px));
   pointer-events: none;
 }

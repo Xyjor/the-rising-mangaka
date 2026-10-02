@@ -189,7 +189,7 @@ export function ResultsModal() {
         </div>
 
         <div className="results-main">
-          <section aria-label="Score breakdown" className="breakdown">
+          <section aria-label="Score breakdown" className="breakdown" data-tutorial="breakdown">
             <div className="lbl">Why this score</div>
             {ITEMS.map((it, i) => {
               const value = countUp(r.breakdown[it.key], elapsed, plan.barStart[i], plan.barDur)

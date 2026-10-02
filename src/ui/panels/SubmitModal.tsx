@@ -61,7 +61,7 @@ export function SubmitModal() {
           </div>
         </section>
 
-        <div className="mag-list" role="group" aria-label="Magazines">
+        <div className="mag-list" role="group" aria-label="Magazines" data-tutorial="forecast">
           {MAGAZINES.map((m, i) => {
             const mismatch = m.audience !== p.audience
             const est = previews[i]

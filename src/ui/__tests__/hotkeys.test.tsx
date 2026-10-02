@@ -2,7 +2,8 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it } from 'vitest'
 import '../../test/dom'
-import { createGame } from '../../sim'
+import { createGame, startProject } from '../../sim'
+import { DRAFT } from '../../test/fixtures'
 import { useStore } from '../../state/store'
 import { App } from '../App'
 
@@ -48,5 +49,39 @@ describe('log hotkey', () => {
     fireEvent.keyDown(input, { key: 'l' })
     expect(useStore.getState().modal).toBe('none')
     document.body.removeChild(input)
+  })
+})
+
+describe('hotkeys with the tutorial guide showing', () => {
+  const guide = () => document.querySelector('.tutorial-bubble')
+
+  it('l and b still open their windows over a guided step', () => {
+    useStore.setState({ tutorialStep: 8 })
+    render(<App />)
+    expect(guide()).not.toBeNull()
+    fireEvent.keyDown(document.activeElement ?? window, { key: 'l' })
+    expect(useStore.getState().modal).toBe('log')
+    useStore.setState({ modal: 'none' })
+    fireEvent.keyDown(window, { key: 'b' })
+    expect(useStore.getState().modal).toBe('notebook')
+  })
+
+  it('Space still runs the clock (and completes the clock step), even with focus on the guide', () => {
+    useStore.setState({ game: startProject(createGame('Rin', 1), DRAFT), tutorialStep: 4 })
+    render(<App />)
+    expect(guide()).not.toBeNull()
+    screen.getByRole('button', { name: 'Skip the tutorial' }).focus()
+    fireEvent.keyDown(document.activeElement!, { key: ' ' })
+    expect(useStore.getState().speed).toBeGreaterThan(0)
+    expect(useStore.getState().tutorialStep).toBe(5)
+  })
+
+  it('n still opens the wizard on the first step', () => {
+    useStore.setState({ tutorialStep: 0 })
+    render(<App />)
+    expect(guide()).not.toBeNull()
+    fireEvent.keyDown(window, { key: 'n' })
+    expect(useStore.getState().modal).toBe('wizard')
+    expect(useStore.getState().tutorialStep).toBe(1)
   })
 })

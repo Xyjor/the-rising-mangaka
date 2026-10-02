@@ -77,7 +77,7 @@ export function NewMangaWizard() {
       }
     >
       <div className="wizard">
-        <nav className="steps" aria-label="Steps">
+        <nav className="steps" aria-label="Steps" data-tutorial="wizard-steps">
           {STEPS.map((s, i) => {
             const reachable = i <= step || [genre, theme, audience].slice(0, i).every(Boolean)
             return (

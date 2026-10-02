@@ -24,7 +24,7 @@ export function StatusCard() {
               <div className="doodle"><Icon name="pen" size={40} /></div>
               <div className="panel-title">Your desk is clear</div>
               <p className="muted small">No manga in progress. Start one when you are ready, or pick up part-time work.</p>
-              <button className="btn primary lg" onClick={() => openModal('wizard')}>
+              <button className="btn primary lg" data-tutorial="plan" onClick={() => openModal('wizard')}>
                 Plan a new manga <span className="kbd">N</span>
               </button>
             </div>
@@ -42,7 +42,7 @@ export function StatusCard() {
               <p className="small muted">
                 {plural(ser.pending.length, 'chapter')} still waiting for reader votes. You can start a new one-shot meanwhile.
               </p>
-              <button className="btn primary" onClick={() => openModal('wizard')}>Plan a new manga</button>
+              <button className="btn primary" data-tutorial="plan" onClick={() => openModal('wizard')}>Plan a new manga</button>
             </div>
             <div className="status-right"><RestJobControls /></div>
           </>
@@ -82,7 +82,7 @@ export function StatusCard() {
               {phase === 'submitted' && <RestJobControls />}
               {p.kind === 'serial' && ser && <SerialStatus />}
               {phase === 'ready' && (
-                <button className="btn primary lg block" onClick={() => openModal('submit')}>
+                <button className="btn primary lg block" data-tutorial="pitch" onClick={() => openModal('submit')}>
                   Pitch to a magazine <span className="kbd">M</span>
                 </button>
               )}

@@ -11,6 +11,7 @@ import { TopRight } from './hud/TopRight'
 import { TabBanner } from './TabBanner'
 import { Toasts } from './Toasts'
 import { TitleScreen } from './TitleScreen'
+import { TutorialGuide } from './TutorialGuide'
 import { BadgesModal } from './panels/BadgesModal'
 import { CareerModal } from './panels/CareerModal'
 import { HistoryModal } from './panels/HistoryModal'
@@ -131,6 +132,7 @@ export function App() {
         <Rail />
       </div>
       <Toasts />
+      <TutorialGuide />
       {arrived && hasResult && <ResultsModal />}
       {arrived && !hasResult && hasOffer && <OfferModal />}
       {free && modal === 'wizard' && phase === 'idle' && !trip && <NewMangaWizard />}

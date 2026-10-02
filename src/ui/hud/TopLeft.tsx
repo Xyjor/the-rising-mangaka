@@ -25,7 +25,7 @@ export function SpeedControl() {
   const setSpeed = useStore((s) => s.setSpeed)
   const blocked = useStore((s) => !!s.game!.pendingResult || !!s.game!.pendingOffer)
   return (
-    <div className="seg sm speed" role="group" aria-label="Game speed">
+    <div className="seg sm speed" role="group" aria-label="Game speed" data-tutorial="speed">
       <button aria-pressed={speed === 0} onClick={() => setSpeed(0)} disabled={blocked} title="Pause (Space)" aria-label="Pause"><Icon name="pause" size={16} /></button>
       <button aria-pressed={speed === 1} onClick={() => setSpeed(1)} disabled={blocked} title="Normal speed (1)" aria-label="Normal speed"><Icon name="play" size={16} /></button>
       <button aria-pressed={speed === 2} onClick={() => setSpeed(2)} disabled={blocked} title="Double speed (2)" aria-label="Double speed"><Icon name="fast" size={16} /></button>

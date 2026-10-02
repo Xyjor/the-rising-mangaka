@@ -6,6 +6,7 @@ import { useStore } from '../../state/store'
 import { Icon } from '../Icon'
 import type { IconName } from '../Icon'
 import { plural } from '../format'
+import type { TutorialAnchor } from '../../state/tutorial'
 
 interface RailBadge { n: number; label: string; tone?: 'accent' | 'blue' }
 
@@ -14,11 +15,13 @@ function BadgeCount({ badge }: { badge?: RailBadge }) {
   return <span className={`badge${badge.tone === 'blue' ? ' blue' : ''}`} aria-label={badge.label}>{badge.n}</span>
 }
 
-export function RailButton({ icon, label, title, onClick, disabled, badge }: {
+export function RailButton({ icon, label, title, onClick, disabled, badge, tutorial }: {
   icon: IconName; label: string; title: string; onClick: () => void; disabled?: boolean; badge?: RailBadge
+  /** The tutorial step's anchor on this button (TutorialGuide finds it by `data-tutorial`). */
+  tutorial?: TutorialAnchor
 }) {
   return (
-    <button className="btn rail-btn" onClick={onClick} title={title} disabled={disabled}>
+    <button className="btn rail-btn" onClick={onClick} title={title} disabled={disabled} data-tutorial={tutorial}>
       <Icon name={icon} /><span className="rail-lbl">{label}</span><BadgeCount badge={badge} />
     </button>
   )
@@ -34,10 +37,10 @@ export const Rail = memo(function Rail() {
     hasSerial: !!s.game!.serial,
   })))
   return (
-    <nav className="rail" aria-label="Studio menus">
-      <RailButton icon="notebook" label="Notebook" title="Notebook (B)" onClick={() => openModal('notebook')}
+    <nav className="rail" aria-label="Studio menus" data-tutorial="rail">
+      <RailButton icon="notebook" label="Notebook" title="Notebook (B)" onClick={() => openModal('notebook')} tutorial="rail-notebook"
         badge={{ n: discovered, label: `${discovered} pairs discovered` }} />
-      <RailButton icon="chart" label="Stats" title="Stats (S)" onClick={() => openModal('stats')}
+      <RailButton icon="chart" label="Stats" title="Stats (S)" onClick={() => openModal('stats')} tutorial="rail-stats"
         badge={{ n: skillPoints, label: `${skillPoints} points to spend` }} />
       <RailButton icon="people" label="Staff" title="Staff (A)" onClick={() => openModal('staff')}
         badge={{ n: staff, label: plural(staff, 'assistant'), tone: 'blue' }} />
