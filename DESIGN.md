@@ -1126,17 +1126,25 @@ the current step, saved per career, -1 once it is done or skipped; a new game st
 Closing the wizard at step 1 steps back to 0, and closing the pitch window at step 6 steps back to 5 (`stepAfter`).
 Every step holds: entering one stops the clock and shows the desk, as `tick`'s auto-pause does (`pauseForDecision`),
 overriding the resume of the command that finished the step before (starting a project leaves the clock stopped on
-step 2); the one exception is running the clock, which step 4 asks for and which entering step 5 does not undo (the
-manuscript's own auto-pause stops it at step 5). Nothing locks the speed controls. With the tutorial done every
-command behaves as before.
+step 2). A step entered before its anchor can exist never pauses: running the clock opens step 5 (the manuscript's
+own auto-pause stops the clock when it is ready) and submitting opens step 7 (the submission's resume stands, and the
+result's own auto-pause stops the clock when it lands). Nothing locks the speed controls. In a tab that does not own
+the save the tutorial never moves. With the tutorial done every command behaves as before.
+
+The tutorial reads the game's phase through `phaseOf`: a poll result waiting to be read counts as submitted (the
+sim's `getPhase` already says idle). The tutorial follows the game: when a tick changes that phase mid-tutorial, the
+step resumes against the new game with no pause of its own (a manuscript finished at step 2, 3 or 4 lands on step 5,
+paused by the tick's decision pause; the result landing at step 7 keeps 7).
 
 A saved step resumes against its game (`resumeTutorialStep`, on a reload, a slot opened and a save file loaded): step
 0 only on a fresh career (day 0, no history, nothing on the desk, no serial), so an old save's leftover 0 ends the
-tutorial; another step stays when its phase is the game's or any, else moves to the first later step written for the
-game's own phase, else ends. A missing or broken value reads as -1. Settings' Help section replays the tutorial
-(`replayTutorial`) from the first step for the game's phase, stopped and with the window closed; it is refused with a
-result or an offer waiting, and hidden in a read-only tab. The 0.7.0 getting-started coach note above the status
-card is gone; the tutorial replaces it.
+tutorial; another step stays when its phase is the game's or any, except that the wizard and the pitch window are not
+saved, so step 1 resumes at 0 and step 6 at 5; otherwise it moves to the first later step written for the game's own
+phase (an `any` step never counts), else ends. A missing or broken value reads as -1. Settings' Help section replays
+the tutorial (`replayTutorial`) from the first step for the game's phase, stopped and with the window closed; it is
+refused with a result or an offer waiting, and hidden in a read-only tab. A tutorial replayed on a played career's
+empty desk starts at step 0, which only a fresh career keeps on resume, so it ends if the game is reloaded before the
+wizard opens. The 0.7.0 getting-started coach note above the status card is gone; the tutorial replaces it.
 
 ## Roadmap
 0. Money sinks. Shipped: hiring needs two weeks of that salary in the bank; a week that ends below zero makes
@@ -1442,8 +1450,12 @@ generated sprites (see "The furniture" under "Scene images"):
 **2026-10-02, the tutorial.** Release 0.8.0 Task A1 adds the guided first career's state (see "Tutorial"):
 
 - A tutorial step is a decision: entering one pauses the clock the way `tick` does (`pauseForDecision`: speed 0, the
-  desk shown) and never locks the speed controls. A trigger that runs the clock (`clock-run`) is not undone by the
-  step it opens.
+  desk shown) and never locks the speed controls. A step entered before its anchor can exist never pauses: `clock-run`
+  (step 5) and `submitted` (step 7) keep the clock running until the game's own decision pause.
+- Review fixes (controller rulings): `phaseOf` reads a waiting result as submitted; a tick that changes that phase
+  resumes the step against the new game (no extra pause); the tutorial never moves in a read-only tab
+  (`withTutorial`, `advanceTutorial`, `skipTutorial`); on resume step 1 maps to 0 and step 6 to 5, since the window
+  is not saved.
 - Steps wait silently while their control is off screen.
 - `tutorialStep` is the step index per career, -1 done; `SAVE_VERSION` stays 2, and a saved step resumes through
   `resumeTutorialStep`, whose later-step search only takes a step of the game's own phase (an `any` step never ends a

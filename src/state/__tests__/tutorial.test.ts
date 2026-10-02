@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { createGame, getPhase, startProject, submitProject, tickMany } from '../../sim'
 import type { GameState } from '../../sim'
 import { DRAFT, drawUntilReady, withPendingResult } from '../../test/fixtures'
-import { STEPS, firstStepFor, resumeTutorialStep, stepAfter } from '../tutorial'
+import { STEPS, firstStepFor, phaseOf, resumeTutorialStep, stepAfter } from '../tutorial'
 import type { TutorialTrigger } from '../tutorial'
 import { useStore } from '../store'
 
@@ -87,9 +87,21 @@ describe('resumeTutorialStep', () => {
 
   it('keeps a step whose phase is the game’s, or any', () => {
     expect(resumeTutorialStep(2, drawing())).toBe(2)
-    expect(resumeTutorialStep(1, createGame('Rin', 42))).toBe(1)
-    expect(resumeTutorialStep(6, ready())).toBe(6)
     expect(resumeTutorialStep(9, tickMany(createGame('Rin', 42), 40))).toBe(9)
+  })
+
+  it('maps an open window’s step back to the button that opens it: the window is not saved', () => {
+    expect(resumeTutorialStep(1, createGame('Rin', 42))).toBe(0)
+    expect(resumeTutorialStep(1, tickMany(createGame('Rin', 42), 40))).toBe(0)
+    expect(resumeTutorialStep(6, ready())).toBe(5)
+  })
+
+  it('reads a waiting poll result as the submitted phase', () => {
+    expect(phaseOf(withPendingResult())).toBe('submitted')
+    expect(phaseOf(ready())).toBe('ready')
+    expect(resumeTutorialStep(7, withPendingResult())).toBe(7)
+    expect(resumeTutorialStep(5, withPendingResult())).toBe(7)
+    expect(firstStepFor(withPendingResult())).toBe(7)
   })
 
   it('moves on to the first later step of the game’s phase, else ends', () => {
@@ -143,12 +155,14 @@ describe('the tutorial in the store', () => {
     expect(st().tutorialStep).toBe(6)
     st().submitProject('weekly-bolt')
     expect(st().tutorialStep).toBe(7)
-    expect(st().speed).toBe(0)
+    // The breakdown is not on screen until the result lands: the clock keeps the submission's resume.
+    expect(st().speed).toBe(1)
 
     guard = 0
     while (!st().game!.pendingResult && guard++ < 30) st().tick()
     expect(st().game!.pendingResult).not.toBeNull()
     expect(st().tutorialStep).toBe(7)
+    expect(st().speed).toBe(0)
     st().dismissResult()
     expect(st().tutorialStep).toBe(8)
     st().advanceTutorial('next')
@@ -241,5 +255,51 @@ describe('the tutorial in the store', () => {
     st().replayTutorial()
     expect(st().tutorialStep).toBe(-1)
     expect(st().modal).toBe('settings')
+  })
+})
+
+describe('the tutorial following the game', () => {
+  beforeEach(() => {
+    useStore.setState({
+      game: drawing(), speed: 1, resumeSpeed: 1, modal: 'none', toasts: [], tutorialStep: 2, readOnly: false,
+      deskHidden: false,
+    })
+  })
+
+  it('jumps to the pitch step when the manuscript is finished mid-step, pausing as a decision', () => {
+    let guard = 0
+    while (getPhase(st().game!) !== 'ready' && guard++ < 400) {
+      useStore.setState({ speed: 1 })
+      st().tick()
+    }
+    expect(getPhase(st().game!)).toBe('ready')
+    expect(st().tutorialStep).toBe(5)
+    expect(st().speed).toBe(0)
+  })
+
+  it('keeps the breakdown step when the result lands', () => {
+    useStore.setState({ game: submitted(), tutorialStep: 7 })
+    let guard = 0
+    while (!st().game!.pendingResult && guard++ < 30) st().tick()
+    expect(st().game!.pendingResult).not.toBeNull()
+    expect(st().tutorialStep).toBe(7)
+  })
+
+  it('submitting at the forecast step moves to step 7 and leaves the clock running', () => {
+    useStore.setState({ game: ready(), tutorialStep: 6, modal: 'submit', speed: 0, resumeSpeed: 2 })
+    st().submitProject('weekly-bolt')
+    expect(st().tutorialStep).toBe(7)
+    expect(st().speed).toBe(2)
+  })
+
+  it('never moves in a read-only tab', () => {
+    useStore.setState({ readOnly: true, tutorialStep: 2, speed: 0 })
+    st().advanceTutorial('next')
+    expect(st().tutorialStep).toBe(2)
+    st().skipTutorial()
+    expect(st().tutorialStep).toBe(2)
+    useStore.setState({ tutorialStep: 4 })
+    st().setSpeed(1)
+    expect(st().tutorialStep).toBe(4)
   })
 })

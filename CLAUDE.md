@@ -75,12 +75,12 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   owner's index and slot through its `storage` listener. `slotSummary` (`saveFile.ts`) reads a slot card's summary.
   Sim commands go through the `apply()` helper so toasts and auto-resume stay consistent. `tutorial.ts` is the guided
   first career, pure: `STEPS` (twelve steps, each an anchor, the editor's line, the trigger that finishes it, its
-  phase), `stepAfter`, `resumeTutorialStep` (run by the persist `merge`, `parseSave` and `loadSave`) and
-  `firstStepFor`; the persisted `tutorialStep` is the step index per career, -1 done (a new game starts at 0). The
+  phase), `phaseOf` (a waiting result reads as submitted), `stepAfter`, `resumeTutorialStep` (run by the persist
+  `merge`, `parseSave`, `loadSave`, and `tick` when the phase changes) and `firstStepFor`; the persisted `tutorialStep` is the step index per career, -1 done (a new game starts at 0). The
   store moves it through `withTutorial(patch, trigger)`: `apply`'s optional trigger (startProject, submitProject,
   dismissResult), `openModal`/`closeModal` on the wizard and the pitch window, `setSpeed`/`togglePause` running the
-  clock, and `advanceTutorial(trigger)` (the guide's Next); entering a step pauses through `pauseForDecision`, the
-  patch `tick`'s auto-pause uses. `skipTutorial` ends it, `replayTutorial` (Settings' Help) restarts it at the
+  clock, and `advanceTutorial(trigger)` (the guide's Next), never in a read-only tab; entering a step pauses through
+  `pauseForDecision`, the patch `tick`'s auto-pause uses, except steps 5 and 7, entered before their anchor exists. `skipTutorial` ends it, `replayTutorial` (Settings' Help) restarts it at the
   game's phase. The 0.7.0 getting-started coach note (`CoachNote`, `COACH`) is gone. `setWindowHidden` (from
   the page's `visibilitychange` and the desktop shell's minimise) stops the clock and suspends the sound; the
   non-persisted `windowHidden` flag keeps that pause silent. `flushSave` writes the debounced save at once. The tab

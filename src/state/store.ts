@@ -17,7 +17,7 @@ import { recordProfile } from './profile'
 import { LEGACY_SAVE_KEY, PREFS_KEY, SLOT_IDS, SLOT_INDEX_KEY, migrateLegacy, slotKey, viewSlots, writeIndex } from './slots'
 import type { SlotId, SlotStart } from './slots'
 import { claim, disableTabLock, isOwner, startTabLock } from './tabLock'
-import { STEPS, firstStepFor, resumeTutorialStep, stepAfter } from './tutorial'
+import { STEPS, firstStepFor, phaseOf, resumeTutorialStep, stepAfter } from './tutorial'
 import type { TutorialTrigger } from './tutorial'
 
 export type Speed = 0 | 1 | 2 | 3
@@ -123,7 +123,7 @@ interface Store {
   setSound: (patch: Partial<SoundPrefs>) => void
   /** Moves the tutorial on by what the player just did (`stepAfter`); the guide's Next button sends `next`. */
   advanceTutorial: (trigger: TutorialTrigger) => void
-  /** Ends the tutorial for this career (-1). */
+  /** Ends the tutorial for this career (-1). A no-op, like `advanceTutorial`, in a tab that does not own the save. */
   skipTutorial: () => void
   /**
    * Starts the tutorial again at the first step for the game's phase, stopped, with the window closed. Refused (false)
@@ -378,15 +378,19 @@ export const useStore = create<Store>()(
     (set, get) => {
       /**
        * `patch` with the tutorial moved on by `trigger` (`stepAfter`). Entering a step that holds stops the clock the
-       * way a decision does, overriding a command's resume; a trigger that runs the clock is never undone by it. With
-       * the tutorial done (-1) the patch is returned as it was.
+       * way a decision does, overriding a command's resume, except for a step entered before its anchor can exist:
+       * running the clock opens the pitch step (the manuscript's own auto-pause stops it there) and a submission opens
+       * the breakdown step (the result's own auto-pause stops it there). With the tutorial done (-1), or in a tab that
+       * does not own the save, the patch is returned as it was.
        */
       const withTutorial = (patch: Partial<Store>, trigger: TutorialTrigger): Partial<Store> => {
-        const step = get().tutorialStep
+        const { tutorialStep: step, readOnly } = get()
+        if (readOnly) return patch
         const next = stepAfter(step, trigger)
         if (next === step) return patch
         const moved = { ...patch, tutorialStep: next }
-        return next >= 0 && STEPS[next].holds && trigger !== 'clock-run' ? pauseForDecision(moved) : moved
+        const early = trigger === 'clock-run' || trigger === 'submitted'
+        return next >= 0 && STEPS[next].holds && !early ? pauseForDecision(moved) : moved
       }
 
       /** Apply a sim command, surfacing toasts, optionally closing the modal / resuming time, and moving the tutorial. */
@@ -513,10 +517,15 @@ export const useStore = create<Store>()(
         },
 
         tick: () => {
-          const { game, toasts } = get()
+          const { game, toasts, tutorialStep, readOnly } = get()
           if (!game) return
           const next = sim.tick(game)
           const base: Partial<Store> = { game: next }
+          // The tutorial follows the game: a phase change mid-step (a manuscript finished) resumes it, with no pause of
+          // its own (the decision pause below covers it).
+          if (tutorialStep >= 0 && !readOnly && phaseOf(game) !== phaseOf(next)) {
+            base.tutorialStep = resumeTutorialStep(tutorialStep, next)
+          }
           const added = newToasts(game, next)
           if (added.length) base.toasts = mergeToasts(toasts, added)
           // Auto-pause whenever the game needs a decision from the player.
@@ -586,7 +595,9 @@ export const useStore = create<Store>()(
           set({ sound: next })
         },
         advanceTutorial: (trigger) => set(withTutorial({}, trigger)),
-        skipTutorial: () => set({ tutorialStep: -1 }),
+        skipTutorial: () => {
+          if (!get().readOnly) set({ tutorialStep: -1 })
+        },
         replayTutorial: () => {
           const { game, readOnly } = get()
           if (!game || readOnly || game.pendingResult || game.pendingOffer) return false

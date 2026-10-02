@@ -95,27 +95,37 @@ export function stepAfter(step: number, trigger: TutorialTrigger): number {
   return step
 }
 
+/**
+ * The game's phase as the tutorial reads it: a poll result waiting to be read is still the submitted phase (the sim's
+ * `getPhase` already says idle, since the project left the desk when the result landed).
+ */
+export function phaseOf(game: GameState): Phase {
+  return game.pendingResult ? 'submitted' : getPhase(game)
+}
+
 /** No days played, nothing drawn, nothing on the desk: the career the first step was written for. */
 function isFresh(game: GameState): boolean {
   return game.day === 0 && game.history.length === 0 && !game.project && !game.serial
 }
 
 /**
- * Where a saved step picks up against the game it was saved with: step 0 only on a fresh career; another step stays when
- * its phase is the game's (or any), else moves to the first later step written for the game's phase, else the tutorial
- * ends. A later step only counts when its phase is the game's own: an `any` step never swallows a step out of order.
+ * Where a saved step picks up against the game (`phaseOf`): step 0 only on a fresh career; another step stays when its
+ * phase is the game's (or any), except that a step inside a window that is not saved (1, the wizard; 6, the pitch
+ * window) goes back to the button that opens it (0; 5); else it moves to the first later step written for the game's
+ * phase, else the tutorial ends. A later step only counts when its phase is the game's own: an `any` step never
+ * swallows a step out of order. The store also runs this when a tick changes the phase (a manuscript finished
+ * mid-step moves on to the pitch step).
  */
 export function resumeTutorialStep(step: number, game: GameState): number {
   if (!inRange(step)) return -1
   if (step === 0) return isFresh(game) ? 0 : -1
-  const phase = getPhase(game)
-  if (STEPS[step].phase === 'any' || STEPS[step].phase === phase) return step
-  const later = STEPS.findIndex((s, i) => i > step && s.phase === phase)
-  return later
+  const phase = phaseOf(game)
+  if (STEPS[step].phase === 'any' || STEPS[step].phase === phase) return step === 1 ? 0 : step === 6 ? 5 : step
+  return STEPS.findIndex((s, i) => i > step && s.phase === phase)
 }
 
 /** The first step written for the game's phase (or any): where a replay starts. */
 export function firstStepFor(game: GameState): number {
-  const phase = getPhase(game)
+  const phase = phaseOf(game)
   return STEPS.findIndex((s) => s.phase === phase || s.phase === 'any')
 }
