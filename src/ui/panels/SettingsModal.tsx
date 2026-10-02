@@ -23,6 +23,7 @@ export function SettingsModal() {
   const setSound = useStore((s) => s.setSound)
   const backToTitle = useStore((s) => s.backToTitle)
   const readOnly = useStore((s) => s.readOnly)
+  const replayTutorial = useStore((s) => s.replayTutorial)
 
   const keys = isDesktop() ? [...KEYS, ...DESKTOP_KEYS] : KEYS
   const volumePct = Math.round(sound.volume * 100)
@@ -85,6 +86,14 @@ export function SettingsModal() {
               <Fragment key={k}><span className="kbd">{k}</span><span className="muted">{v}</span></Fragment>
             ))}
           </div>
+        </section>
+
+        <section className="settings-section row between wrap">
+          <div>
+            <div style={{ fontWeight: 800 }}>Help</div>
+            <div className="tiny faint">The editor walks you through a one-shot again.</div>
+          </div>
+          {!readOnly && <button className="btn" onClick={() => void replayTutorial()}>Replay the tutorial</button>}
         </section>
 
         <section className="settings-section">

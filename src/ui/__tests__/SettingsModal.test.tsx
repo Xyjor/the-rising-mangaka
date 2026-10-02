@@ -141,3 +141,20 @@ describe('SettingsModal save file', () => {
     expect(localStorage.getItem('rising-mangaka-save-1')).toContain('"Rin"')
   })
 })
+
+describe('SettingsModal help', () => {
+  it('replays the tutorial from the phase’s first step, closing the window', () => {
+    useStore.setState({ tutorialStep: -1, speed: 0 })
+    render(<SettingsModal />)
+    expect(screen.getByText('The editor walks you through a one-shot again.')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Replay the tutorial' }))
+    expect(useStore.getState().tutorialStep).toBe(0)
+    expect(useStore.getState().modal).toBe('none')
+  })
+
+  it('has no replay button in a read-only tab', () => {
+    useStore.setState({ readOnly: true })
+    render(<SettingsModal />)
+    expect(screen.queryByRole('button', { name: 'Replay the tutorial' })).toBeNull()
+  })
+})
