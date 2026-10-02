@@ -158,9 +158,9 @@ canvas space; `story.ts` `storyLook`, the story props' five snapshot inputs read
   and starts over, or in a tab that does not own the save, reloads). Tests live in `src/ui/__tests__` and
   `src/ui/scene/__tests__`; see the UI-test docblock rule under Commands above.
 - `src/ui/art/` — the generated-art layer: `palette.ts` (`ART_PALETTE_BASE`, frozen, the default snap so old assets regenerate byte for byte; `ART_PALETTE_SCENE` for manifest `"palette": "scene"` entries; `ART_PALETTE` their union, every colour also literal in `src/ui/scene/*.ts`
-  or `src/styles/tokens.css`), `pixelOps.ts` (the pure pixel math `scripts/pixelate.ts` runs, including the `--sprite` mode's steps for a manifest `kind: "sprite"` entry, a pose cell turned into a string-map frame module; a room shell's manifest
-  `seam` lands its wall/floor line on canvas row 114 via `remapSeam` or, with manifest `floor: "code"`, `wallOnly` keeps
-  the wall rows only (native 320x114); `flatten: { radius }` (`flattenToMode`, a `floor: "code"` wall only, radius in
+  or `src/styles/tokens.css`), `pixelOps.ts` (the pure pixel math `scripts/pixelate.ts` runs, including the `--sprite` mode's steps for a manifest `kind: "sprite"` entry, a pose cell turned into a string-map frame module; a room entry with
+  manifest `floor: "code"` keeps the wall rows above its `seam.src` only via `wallOnly` (native 320x114), and
+  `remapSeam`, which lands a whole room's wall/floor line on canvas row 114, is the path no committed room uses now; `flatten: { radius }` (`flattenToMode`, a `floor: "code"` wall only, radius in
   (0, 1]) turns every pixel within that OKLab radius of the wall's modal colour into it, so the plaster must be the
   wall's most frequent exact colour (the striped flat sets none); and `lightness` keeps a shaded wall's hue in the snap), `registry.ts` (typed
   `ArtRef` lookups over the PNGs in `src/assets/art/`, eagerly globbed by Vite) and `PixelArt.tsx` (the `<img>`

@@ -444,8 +444,8 @@ ready (823.5 and 1461), and the rest scene 506 (759); the 0.10.0 walls (Release 
 
 ### Art
 The live scene is code-drawn `fillRect` (`render.ts`, `roomArt.ts`, `studioArt.ts`, `sprites.ts`), and since 0.9.0 it
-may also draw generated images with `drawImage`: each tier's room shell (walls, beams and floor, no furniture) and the
-structural props, as sprites at the footprints of the code-drawn pieces they replace (see "Scene images" below), and
+may also draw generated images with `drawImage`: each tier's room wall (since 0.10.0 the wall alone, 320x114, the floor
+always code-drawn; no furniture) and the structural props, as sprites at the footprints of the code-drawn pieces they replace (see "Scene images" below), and
 since 0.10.0 the desk, the chairs, the equipment and each tier's front row the same way.
 Every image has a code-drawn fallback, painted while it is missing or still loading, so a frame is never blank; the
 characters stay string-map sprites. Elsewhere, generated raster art (upgrade 0.5.0) is static illustrations, shipped
@@ -515,7 +515,7 @@ and every one of them must already appear literally somewhere in `src/ui/scene/*
 the design tokens already use, so it reads as part of the same world rather than importing its own palette.
 Since 0.9.0 it is two lists: `ART_PALETTE_BASE`, frozen at its pre-0.9.0 73 colours (art.test checks its length and
 a SHA-256 of the list), which every earlier asset was snapped to, and `ART_PALETTE_SCENE`, the base followed by the
-scene's room colours. A manifest entry opts into the second with `"palette": "scene"` (the room shells and prop
+scene's room colours. A manifest entry opts into the second with `"palette": "scene"` (the room walls and prop
 sprites); without it `scripts/pixelate.ts` snaps to the base, so `npm run art` regenerates every earlier illustration
 byte for byte instead of re-snapping it to a larger palette. `ART_PALETTE` is the union (the scene list), and
 art.test checks each PNG's colours against its own entry's palette.
@@ -540,8 +540,10 @@ the title hero.
 `bookshelf`; `bed`; `poster`, the stock poster, shown while no serial or anime takes its place; and since 0.10.0 the
 furniture, below). `ready(img)` is true
 only for a loaded image (an `<img>` `complete` with a natural width; anything else with a width). A ready room image
-is drawn first at 0,0,320,180 in place of `drawRoomShell` (`roomArt.ts`, the `TIER_ROOM` pass), then, at night, one
-`ROOM_NIGHT_DIM` fill (`rgba(20,24,60,0.25)`) over the canvas, since one image serves day and night; the sky, the
+(the tier's wall, 320x114 since 0.10.0) is drawn first at 0,0,320,114 in place of `TIER_WALL` (`roomArt.ts`), then,
+at night, one `ROOM_NIGHT_DIM` fill (`rgba(20,24,60,0.25)`) over the same wall rows, since one image serves day and
+night, then the tier's code-drawn floor (`TIER_FLOOR`); with no ready image `drawRoomShell` paints the whole
+`TIER_ROOM`; the sky, the
 season layer and every later piece paint over it as before, and the night overlay and lights stay on top.
 `drawProp(ctx, art, id, x, y, w, h, fallback)` draws a ready prop image at its footprint, else runs the code-drawn
 piece, at that piece's own place in the draw order; the pane's sky, the bars, the sill, the volumes and the
@@ -660,7 +662,8 @@ walls trimmed to the two pillars; seam 882), the flat to x 230-2047 (its dark le
 plain OKLab snap turns those mid-tones grey (the flat's dusty teal fell to the palette's greys, the apartment's
 plaster ringed in blue-grey), so a manifest `lightness` weight (0-1, absent is 1, the plain distance) scales the
 lightness term of the snap and the colour cap's re-snap (`nearestPaletteIndex`): below 1 a pixel keeps its hue and
-chroma at the cost of its lightness, and the lighting flattens to a few steps. Apartment 0.1, flat 0.03, loft 0.25;
+chroma at the cost of its lightness, and the lighting flattens to a few steps. Apartment 0.1, flat 0.03, loft 0.25 (superseded by "The walls" below: no room entry remaps a floor since 0.10.0,
+and the flat's lightness is 0.15);
 every earlier entry has none, so it regenerates byte for byte. At night the `ROOM_NIGHT_DIM` fill and the night
 overlay leave the flat a slate teal and the loft a warm grey-pink, both still reading as their rooms.
 
