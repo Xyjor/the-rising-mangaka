@@ -18,6 +18,7 @@ npm run art -- <id>|--all   # Regenerates a static illustration from art/manifes
                              # src/assets/art/ (scripts/pixelate.ts); a `kind: "sprite"` entry writes a frame module
                              # into src/ui/scene/generated/ instead; --all skips `"retired": true` entries (naming
                              # one regenerates it); run after adding or editing a manifest entry
+npm run sprites -- <out.png> [--walk]   # Sprite contact sheet (scripts/spriteSheet.ts): every cast frame at 8x beside its HEAD frame; --walk the walk strips only
 npm run balance -- [from=1] [to=20] [--detail seed]   # Balance bots (src/sim/bot.ts): a line per seed per bot, then the balance-band rows
 npm run tauri dev       # Desktop window; stop any running `npm run dev` first (it starts its own, strict port 5173)
 npm run tauri build     # Windows NSIS installer, in src-tauri/target/release/bundle/nsis/
@@ -113,12 +114,14 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   load; characters stay string maps; `sprites.ts` the
   palette (uppercase base, lowercase shade, `L` outline), the 24×32 chibi string-map frames (head rows 0-15, body
   16-31), the run-length `drawSprite`, `frameRules` (closed outline, feet on the last row, every key in the palette),
+  `RUN_CAPS` (sprites.test.ts: each frame's run count capped at 1.3x its 0.8.0 count, never raised),
   `faceRules` (the FACES window rows 9-12 cols 4-17 holds only face keys, the mark slot clear, the head inside the
   avatar crop; it, `frameRules`, `PAL` and `ANCHOR_HEAD` live in the import-free leaf `spriteCore.ts`, re-exported, so
   `npm run art` never loads sprites.ts), `ANCHOR_HEAD` (the hand-drawn head the avatar draws and the `--sprite` graft uses),
-  the generated frames (`src/ui/scene/generated/*.ts`, written by `npm run art` and never hand-edited): task C2's
-  readability gate (`sprites-C2.png`) wired only the assistants' doze (`ASSISTANT_DOZE`); every other pose stays
-  hand-drawn (`MANGAKA_IDLE` is `ANCHOR_HEAD` over the hand-drawn body, frame 1 its `breathOf`), and every losing
+  the generated frames (`src/ui/scene/generated/*.ts`, written by `npm run art` and never hand-edited): the cast is
+  hand-redrawn in 0.9.0 (Release B, gated on `npm run sprites`), every pose but `ANCHOR_HEAD` (`MANGAKA_IDLE` is
+  `ANCHOR_HEAD` over the hand-drawn body, frame 1 its `breathOf`); the one generated frame is the assistants' doze
+  (`ASSISTANT_DOZE`, task C2), its folded arms remapped `J` to `j` in the manifest, and every losing
   candidate (C1's nine probe-sheet frames, C2's idle, walk, seated, stretch, sip, editor and cat) is retired: its
   manifest recipe (`"retired": true`) and raw sheet kept, no module (art.test: `generated/` holds only
   `assistant-doze.ts`), restored by `npm run art -- sprite/<name>`, see DESIGN.md "The sprites"), `FACES`/`MARKS` (the mood overlay and its mark above the head, drawn by `drawMood`) and `outfitOf`/`OUTFIT_PALS`
@@ -139,9 +142,9 @@ canvas space; `story.ts` `storyLook`, the story props' five snapshot inputs read
   and `Pops.tsx` the DOM speech bubbles and floating money/fans/xp numbers, styled by `scene.css`;
   `StudioScene.tsx` is the component and its 24 fps frame loop (reading `studioLook` through `useShallow`, lighting
   from the presentation clock, playing the `knock` and `pop` cues); every render is checked against a hand-measured
-  fillRect baseline (`render.test.ts` 673, `studioArt.test.ts` 1079; with every scene image ready, 521 and 928;
-  unchanged by task C2, whose generated doze never appears in the reference scenes; the rest scene with the doze,
-  `render.test.ts` 509) and must stay under 1.5x it),
+  fillRect baseline (`render.test.ts` 701, `studioArt.test.ts` 1125; with every scene image ready, 549 and 974; the
+  rest scene with the doze, `render.test.ts` 506; each re-measured by the 0.9.0 cast redraw) and must stay under 1.5x
+  it),
   `components.tsx` (Bar, Pips, Modal, RankChart), `format.ts` (money/compact/plural formatters), `Icon.tsx`
   (inline SVG icon set), `SaveFileSection.tsx` and `useSaveFile.ts` (export and load, in Settings and on the
   title screen), `TutorialGuide.tsx` (the tutorial's overlay, mounted after `<Toasts />`: it finds the current
