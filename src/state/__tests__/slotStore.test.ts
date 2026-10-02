@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { createGame } from '../../sim'
+import { createGame, startProject, tickMany } from '../../sim'
 import type { GameState } from '../../sim'
 import { installFakeStorage } from '../../test/fakeStorage'
+import { DRAFT } from '../../test/fixtures'
 
 vi.useFakeTimers()
 const storage = installFakeStorage()
@@ -112,5 +113,30 @@ describe('store slots', () => {
     expect(st().toasts.map((t) => t.text)).toContain(
       'All three slots hold a career. Delete one on the title screen to start another.',
     )
+  })
+})
+
+describe('the tutorial step of an opened career', () => {
+  const write = (n: 1 | 2 | 3, game: GameState, tutorialStep?: number) =>
+    storage.setItem(slotKey(n), JSON.stringify({ version: 2, state: { game, resumeSpeed: 1, tutorialStep } }))
+
+  beforeEach(() => {
+    storage.removeItem(OWNER_KEY)
+    useStore.setState({ readOnly: false })
+  })
+
+  it('resumes against the stored game: an old step 0 on a played career ends, a step of its phase stays', () => {
+    write(3, tickMany(createGame('Old', 3), 40), 0)
+    expect(st().openSlot(3)).toBe(true)
+    expect(st().tutorialStep).toBe(-1)
+    write(2, startProject(createGame('Aoi', 4), DRAFT), 2)
+    expect(st().openSlot(2)).toBe(true)
+    expect(st().tutorialStep).toBe(2)
+    write(1, createGame('Fresh', 6), 0)
+    expect(st().openSlot(1)).toBe(true)
+    expect(st().tutorialStep).toBe(0)
+    write(3, createGame('Blank', 7))
+    expect(st().openSlot(3)).toBe(true)
+    expect(st().tutorialStep).toBe(-1)
   })
 })

@@ -5,25 +5,6 @@ import { Icon } from '../Icon'
 import { Metric } from '../components'
 import { plural } from '../format'
 import { ActivityControls, Eta, RestJobControls, SerialStatus, TripCard } from './statusParts'
-import { COACH } from './statusText'
-
-export function CoachNote() {
-  const tutorialStep = useStore((s) => s.tutorialStep)
-  const finishTutorial = useStore((s) => s.finishTutorial)
-  const trip = useStore((s) => !!s.game?.trip)
-  const phase = useStore((s) => getPhase(s.game!))
-  if (tutorialStep === -1 || trip) return null
-  return (
-    <div className="coach speech" role="note">
-      <Icon name="sparkle" />
-      <div className="grow">
-        <div className="who">Getting started</div>
-        <div>{COACH[phase]}</div>
-      </div>
-      <button className="btn ghost sm" onClick={finishTutorial} aria-label="Hide getting-started notes"><Icon name="close" size={14} /></button>
-    </div>
-  )
-}
 
 export function StatusCard() {
   const game = useStore((s) => s.game)!
@@ -34,7 +15,6 @@ export function StatusCard() {
 
   return (
     <div className="status-stack">
-      <CoachNote />
       <section className="card status-card" aria-label="Current project">
         {game.trip && <div className="span"><TripCard /></div>}
 

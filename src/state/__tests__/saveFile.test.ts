@@ -1,13 +1,14 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { addLog, createGame, tickMany } from '../../sim'
+import { addLog, createGame, startProject, tickMany } from '../../sim'
 import type { GameState } from '../../sim'
 import {
   MAX_SAVE_FILE_CHARS, SAVED_LOG_ENTRIES, SAVE_FILE_FORMAT, SAVE_VERSION, parseSave, saveFileName, serializeSave,
   storedSaveFile, trimLog,
 } from '../saveFile'
 import type { SaveFileError } from '../saveFile'
+import { DRAFT, drawUntilReady } from '../../test/fixtures'
 
 const NOW = new Date('2026-09-25T12:00:00.000Z')
 
@@ -78,8 +79,8 @@ describe('parseSave: round trips', () => {
 
   it('reads back a career 30 days in, with the log trimmed as it was written', () => {
     const g = tickMany(createGame('Rin', 42), 30)
-    const r = parseSave(serializeSave({ game: g, tutorialStep: 3, resumeSpeed: 3 }, NOW))
-    expect(r).toEqual({ ok: true, save: { game: trimLog(g), tutorialStep: 3, resumeSpeed: 3 } })
+    const r = parseSave(serializeSave({ game: g, tutorialStep: 9, resumeSpeed: 3 }, NOW))
+    expect(r).toEqual({ ok: true, save: { game: trimLog(g), tutorialStep: 9, resumeSpeed: 3 } })
   })
 
   it('reads back a long log as its last 80 entries', () => {
@@ -110,7 +111,21 @@ describe('parseSave: round trips', () => {
     const fraction = parseSave(fileWith((f) => { f.tutorialStep = 1.5 }))
     const text = parseSave(fileWith((f) => { f.tutorialStep = '2' }))
     expect([missing, fraction, text].map((r) => r.ok && r.save.tutorialStep)).toEqual([-1, -1, -1])
-    expect(parseSave(fileWith((f) => { f.tutorialStep = 4 }))).toMatchObject({ ok: true, save: { tutorialStep: 4 } })
+    expect(parseSave(fileWith((f) => { f.tutorialStep = 1 }))).toMatchObject({ ok: true, save: { tutorialStep: 1 } })
+  })
+
+  it('keeps the tutorial step a save was written at: step 6 with a manuscript ready to pitch', () => {
+    const g = drawUntilReady(startProject(createGame('Rin', 42), DRAFT))
+    const r = parseSave(serializeSave({ game: g, tutorialStep: 6, resumeSpeed: 1 }, NOW))
+    expect(r).toEqual({ ok: true, save: { game: trimLog(g), tutorialStep: 6, resumeSpeed: 1 } })
+  })
+
+  it('resumes the tutorial step against the saved game', () => {
+    // Step 4 (the clock) belongs to a drawing game; a fresh career has no later idle step, so the tutorial ends.
+    expect(parseSave(fileWith((f) => { f.tutorialStep = 4 }))).toMatchObject({ ok: true, save: { tutorialStep: -1 } })
+    const played = tickMany(createGame('Rin', 42), 40)
+    expect(parseSave(serializeSave({ game: played, tutorialStep: 0, resumeSpeed: 1 }, NOW)))
+      .toMatchObject({ ok: true, save: { tutorialStep: -1 } })
   })
 
   it('reads a speed other than 1, 2 or 3 as 1', () => {

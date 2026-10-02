@@ -49,7 +49,6 @@ export function ResultsModal() {
   const serial = useStore((s) => s.game!.serial)
   const temper = useStore((s) => s.game!.rival.temper)
   const dismiss = useStore((s) => s.dismissResult)
-  const finishTutorial = useStore((s) => s.finishTutorial)
   const readOnly = useStore((s) => s.readOnly)
 
   const [reduced] = useState(prefersReducedMotion)
@@ -122,8 +121,6 @@ export function ResultsModal() {
     }
   }, [skip])
 
-  const close = () => { finishTutorial(); dismiss() }
-
   return (
     <Modal
       wide
@@ -137,7 +134,7 @@ export function ResultsModal() {
             Recorded in your Notebook: {genreById(r.genre).name} × {themeById(r.theme).name} = {RATING_LABEL[r.genreThemeRating]},{' '}
             {themeById(r.theme).name} × {audienceById(r.audience).name} = {RATING_LABEL[r.themeAudienceRating]}
           </span>
-          <button className="btn primary" onClick={close} autoFocus>Back to the studio</button>
+          <button className="btn primary" onClick={dismiss} autoFocus>Back to the studio</button>
         </>
       }
     >

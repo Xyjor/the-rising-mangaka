@@ -60,20 +60,6 @@
 .warnings i { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid var(--accent); }
 .warnings i.on { background: var(--accent); }
 
-.coach {
-  display: flex; gap: 10px; align-items: flex-start;
-  padding: 10px 12px; border-radius: var(--radius-m);
-  background: var(--gold-soft); border: 2px solid var(--gold);
-  font-size: 13px;
-}
-.coach .who { font-weight: 800; font-size: 12px; color: var(--gold-text); }
-/* A speech tail pointing down at the card. */
-.coach.speech { position: relative; }
-.coach.speech::after {
-  content: ''; position: absolute; left: 32px; bottom: -10px;
-  border: 8px solid transparent; border-bottom: 0; border-top: 10px solid var(--gold);
-}
-
 .only-phone { display: none; }
 @media (max-width: 640px) {
   .only-phone { display: inline; }
