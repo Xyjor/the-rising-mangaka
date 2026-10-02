@@ -899,7 +899,8 @@ export const FACES: Record<Exclude<Mood, 'neutral'>, SpriteMap> = {
 /** The mood marks' own palette: a white highlight, a pale blue sweat drop, gold for the sparkle, the outline. */
 export const MARK_PAL: Record<string, string> = { W: '#f6f6f6', R: '#8fd3ff', Y: '#f5b700', L: '#1c1a26' }
 
-/** The mark above the head at (x+11, y-8), 3 wide x 5 tall, in MARK_PAL: a sweat drop (tired), a sparkle (happy), and
+/** The mark at the head's top-right edge, at (x+20, y-2) (render.ts `markX`, `MARK_DY`: cols 20-22, rows -2 to 2),
+ * 3 wide x 5 tall, in MARK_PAL: a sweat drop (tired), a sparkle (happy), and
  * the existing '!'/'z' glyph shapes (surprised/sleepy) recoloured to MARK_PAL's L. */
 export const MARKS: Record<Exclude<Mood, 'neutral'>, SpriteMap> = {
   tired: ['.W.', 'WRW', 'WRW', '.W.', '...'],

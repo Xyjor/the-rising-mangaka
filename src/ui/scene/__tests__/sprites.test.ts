@@ -5,11 +5,45 @@ import {
   ANCHOR_HEAD, breathOf,
   ASSISTANT_DOZE, ASSISTANT_PALS, CAT_GROOM, CAT_SIT, CAT_SLEEP, CAT_STRETCH, CAT_WALK, EDITOR_IDLE, EDITOR_WALK, HUMAN_FRAMES,
   MANGAKA_IDLE, MANGAKA_LIE, MANGAKA_PANIC, MANGAKA_SIP, MANGAKA_SIT, MANGAKA_STRETCH, MANGAKA_WALK, OUTFIT_PALS, PAL,
-  PROP_CONTRACT, PROP_ENVELOPE, PROP_LETTER, PROP_PAL, PROP_TROPHY, faceRules, frameRules, outfitOf,
+  PROP_CONTRACT, PROP_ENVELOPE, PROP_LETTER, PROP_PAL, PROP_TROPHY, faceRules, frameRules, outfitOf, type SpriteMap,
 } from '../sprites'
 import { LOOK_HAIRS, LOOK_HAIRS_SHADE, LOOK_SHIRTS, LOOK_SHIRTS_SHADE } from '../../looks'
 import { runCount } from '../../art/pixelOps'
 import { ASSISTANT_DOZE_C2 } from '../generated/assistant-doze'
+
+/**
+ * The run-count caps: 1.3x each frame's `runCount` before Release B's redraw, floored. A redraw may add detail up to the
+ * cap and never past it, so every scene fill baseline stays inside its 1.5x budget by construction (render.test.ts 673
+ * to at most 792, studioArt.test.ts 1079 to 1309, the rest scene 509 to 570). Never raise a cap.
+ */
+const RUN_CAPS: readonly [string, readonly SpriteMap[], readonly number[]][] = [
+  ['MANGAKA_IDLE', MANGAKA_IDLE, [253, 249]],
+  ['MANGAKA_STRETCH', MANGAKA_STRETCH, [254, 250]],
+  ['MANGAKA_SIP', MANGAKA_SIP, [262, 249]],
+  ['MANGAKA_WALK', MANGAKA_WALK, [257, 231, 257, 231]],
+  ['MANGAKA_SIT', MANGAKA_SIT, [239, 243]],
+  ['MANGAKA_PANIC', MANGAKA_PANIC, [330, 325]],
+  ['MANGAKA_LIE', [MANGAKA_LIE], [93]],
+  ['ASSISTANT_DOZE', [ASSISTANT_DOZE], [130]],
+  ['EDITOR_IDLE', EDITOR_IDLE, [263, 254]],
+  ['EDITOR_WALK', EDITOR_WALK, [265, 245, 266, 245]],
+  ['CAT_SLEEP', [CAT_SLEEP], [40]],
+  ['CAT_SIT', [CAT_SIT], [44]],
+  ['CAT_WALK', CAT_WALK, [48, 45]],
+  ['CAT_GROOM', CAT_GROOM, [42, 45]],
+  ['CAT_STRETCH', [CAT_STRETCH], [32]],
+]
+
+/** The row of the first `S` (a hand) in cols `from`-`to`, searched from row 16 down (below the head's own skin). */
+function handRow(f: SpriteMap, from: number, to: number): number {
+  for (let r = 16; r < f.length; r++) if (f[r].slice(from, to + 1).includes('S')) return r
+  return -1
+}
+
+/** Whether a row's painted cells form one span (no '.' between its first and last painted cell). */
+function oneSpan(row: string): boolean {
+  return !/[^.]\.+[^.]/.test(row)
+}
 
 describe('the sprites', () => {
   it('passes the frame rules for every 24x32 frame, the 30x14 bed pose and the 12x8 cat', () => {
@@ -50,6 +84,35 @@ describe('the sprites', () => {
     const wide = MANGAKA_IDLE[0].slice()
     wide[4] = 'L' + wide[4].slice(1)
     expect(faceRules(wide)).toEqual(['row 4 col 0 is outside the avatar crop'])
+  })
+
+  it('keeps every frame under its run-count cap (RUN_CAPS)', () => {
+    for (const [name, frames, caps] of RUN_CAPS) {
+      expect(frames.length, name).toBe(caps.length)
+      frames.forEach((f, i) => expect(runCount(f), `${name}[${i}]`).toBeLessThanOrEqual(caps[i]))
+    }
+  })
+
+  // The contract tests below pass before Release B's redraw (no RED is possible for them): they are the shape every
+  // redraw keeps, written from the rule rather than from cell literals, so a new drawing that keeps the rule passes.
+  it('walks with the legs and arms swapping between the contact frames and the legs together on the pass frames', () => {
+    const [c0, p1, c2, p3] = MANGAKA_WALK
+    for (const pass of [p1, p3]) {
+      expect(pass[0]).toBe('.'.repeat(24)) // a row lower
+      for (let r = 26; r <= 29; r++) expect(oneSpan(pass[r]), `pass row ${r}`).toBe(true)
+    }
+    for (const contact of [c0, c2]) for (let r = 26; r <= 29; r++) expect(oneSpan(contact[r]), `contact row ${r}`).toBe(false)
+    expect(c0.slice(25)).not.toEqual(c2.slice(25)) // the legs swap
+    // the arm swing: in frame 0 the hand on the frame's left (cols 4-7; row 21 today) sits higher than the hand on its
+    // right (cols 16-19; row 23 today), and frame 2 swaps them
+    const [l0, r0, l2, r2] = [handRow(c0, 4, 7), handRow(c0, 16, 19), handRow(c2, 4, 7), handRow(c2, 16, 19)]
+    for (const row of [l0, r0, l2, r2]) expect(row).toBeGreaterThan(0)
+    expect(l0).toBeLessThan(r0)
+    expect([l2, r2]).toEqual([r0, l0])
+  })
+
+  it('keeps the seated shoes still: the stroke frame moves only the hand', () => {
+    expect(MANGAKA_SIT[0].slice(25)).toEqual(MANGAKA_SIT[1].slice(25))
   })
 
   it('reports a short row, an unknown key and an empty last row', () => {
