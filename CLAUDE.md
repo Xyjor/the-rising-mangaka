@@ -114,7 +114,7 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   load; characters stay string maps; `sprites.ts` the
   palette (uppercase base, lowercase shade, `L` outline), the 24×32 chibi string-map frames (head rows 0-15, body
   16-31), the run-length `drawSprite`, `frameRules` (closed outline, feet on the last row, every key in the palette),
-  `RUN_CAPS` (sprites.test.ts: each frame's run count capped at 1.3x its 0.8.0 count, never raised),
+  `RUN_CAPS` (sprites.test.ts: each frame's run count capped at 1.3x its pre-redraw count, never raised),
   `faceRules` (the FACES window rows 9-12 cols 4-17 holds only face keys, the mark slot clear, the head inside the
   avatar crop; it, `frameRules`, `PAL` and `ANCHOR_HEAD` live in the import-free leaf `spriteCore.ts`, re-exported, so
   `npm run art` never loads sprites.ts), `ANCHOR_HEAD` (the hand-drawn head the avatar draws and the `--sprite` graft uses),

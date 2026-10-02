@@ -363,7 +363,7 @@ at `CAT_BED` (4 fills, drawn just before it).
 - **The cast redraw** (0.9.0, Release B). Every string-map frame but `ANCHOR_HEAD` is hand-redrawn by Claude in the
   same format, with the four Higgsfield sheets in `art/raw/sprites/` used as reference for proportions, colours and
   poses only. The mangaka's body is a `J` torso with `j` sleeves and hood shadow (so `OUTFIT_PALS` gives darker gold
-  and navy sleeves), the `R` shirt as a V under the `K` collar, the `Y/y` column (a drawstring in the hoodie, a tie in
+  and navy sleeves), the `R` shirt as a V under the `K` collar, the `Y` column (a drawstring in the hoodie, a tie in
   the other outfits), `S/s` hands on 3-wide arms, `F/f` brown trousers and `O/o` shoes; `T/t` are no longer on the
   mangaka. The frames share pieces (`IDLE_BODY`, `WALK_PASS`, `SIT_LAP`, `EDITOR_BODY`, `EDITOR_PASS`), and each hand
   is one skin row closed by `L`, so `breathOf` still drops row 24 cleanly. The editor's suit `G/g` is recoloured to
@@ -374,7 +374,7 @@ at `CAT_BED` (4 fills, drawn just before it).
   The gate is `scripts/spriteSheet.ts` (`npm run sprites -- <out.png> [--walk]`): an 8x contact sheet (the cat at 16x)
   of each frame beside its HEAD frame, plus the cardigan, blazer and assistant looks and the four moods' faces and
   marks (new only), and the walk strips (`--walk` writes only those). The run-count caps are `RUN_CAPS` in sprites.test.ts, 1.3x each frame's
-  0.8.0 count, which keeps every fill baseline inside its 1.5x budget by construction. The ruling: **`ANCHOR_HEAD` is
+  pre-redraw count, which keeps every fill baseline inside its 1.5x budget by construction. The ruling: **`ANCHOR_HEAD` is
   untouched**. The sheets' 2:1 head cannot fit the `FACES`, mark-slot and avatar-crop contract, and the hand-drawn
   head is the part that already read, so the staff portraits do not change.
 
@@ -1534,12 +1534,14 @@ generated sprites (see "The furniture" under "Scene images"):
   control returns and focus is on the page, and `place()` reads every size before it writes a style.
 
 **2026-10-02, the cast redraw.** Release 0.9.0's Release B hand-redraws the cast (see "The cast redraw" under "The
-sprites"):
+sprites"). The 0.9.0 to 0.11.0 labels elsewhere in this file are the scene-art plan's numbering, which shipped inside
+0.7.0; the 2026-10-02 plan's releases restart after the 0.7.0 tag at 0.8.0 (the tutorial), 0.9.0 (the cast) and
+0.10.0 (the rooms). Its rulings:
 
 - `ANCHOR_HEAD` stays byte for byte, and so does every frame contract: the frame sizes and counts (21 human 24x32
   frames, the 30x14 lie, 7 cat frames at 12x8), the `faceRules` set (both idle, both sit and both sip frames),
   `HEAD_DY`, and `breathOf(MANGAKA_IDLE[0])` being exactly `MANGAKA_IDLE[1]`.
-- Each frame's run count is capped at 1.3x its 0.8.0 count (`RUN_CAPS`), and a cap is never raised.
+- Each frame's run count is capped at 1.3x its pre-redraw count (`RUN_CAPS`), and a cap is never raised.
 - Each set is gated on the contact sheet (`npm run sprites`) and the running scene before its commit.
 - The exact fill baselines are re-measured by hand, never budgeted up: 673 to 701, 1079 to 1125, the art scenes 521
   to 549 and 928 to 974, the rest scene 509 to 506.

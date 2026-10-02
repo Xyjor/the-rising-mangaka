@@ -227,7 +227,7 @@ describe('the sprites', () => {
   })
 
   // Task B1: the standing body. Written from the brief's rules, not from cell literals, so a later touch-up that keeps
-  // them passes; RED against the 0.8.0 frame (near-black T/t trousers, two-wide J arms, the striped R/W chest).
+  // them passes; RED against the pre-redraw frame (near-black T/t trousers, two-wide J arms, the striped R/W chest).
   it('stands the mangaka in brown trousers (F/f) and red shoes (O/o), never the old near-black T/t', () => {
     const a = MANGAKA_IDLE[0]
     for (let r = 25; r <= 29; r++) expect(a[r], `row ${r}`).toContain('F')
@@ -275,7 +275,7 @@ describe('the sprites', () => {
   })
 
   // Task B2: the stretch, sip and walk on that body. Written from the brief's rules, not from cell literals; RED against
-  // the 0.8.0 sets (T/t trousers, two-wide J arms, the stretch's floating arms, the sip's hand that never left the hip,
+  // the pre-redraw sets (T/t trousers, two-wide J arms, the stretch's floating arms, the sip's hand that never left the hip,
   // a walk whose contact frames differed by one column).
   it('dresses the stretch, sip and walk in brown trousers (F) and red shoes (O), never the old near-black T/t', () => {
     for (const [name, frames] of [['stretch', MANGAKA_STRETCH], ['sip', MANGAKA_SIP], ['walk', MANGAKA_WALK]] as const) {
@@ -353,7 +353,7 @@ describe('the sprites', () => {
   })
 
   // Task B3: the sit, panic and bed on that body. Written from the brief's rules, not from cell literals; RED against
-  // the 0.8.0 sets (T/t laps, J arms on the panic, a flat J block under the bed's blanket).
+  // the pre-redraw sets (T/t laps, J arms on the panic, a flat J block under the bed's blanket).
   it('seats and panics the mangaka in brown trousers (F) and red shoes (O), never the old near-black T/t', () => {
     for (const [name, frames] of [['sit', MANGAKA_SIT], ['panic', MANGAKA_PANIC]] as const) {
       frames.forEach((f, i) => {
@@ -400,7 +400,7 @@ describe('the sprites', () => {
   })
 
   // Task B4: the editor on that body, in a suit. Written from the brief's rules, not from cell literals; RED against the
-  // 0.8.0 editor (the grey G/g, a P bar across row 10 for the glasses, T/t trousers, red O shoes).
+  // pre-redraw editor (the grey G/g, a P bar across row 10 for the glasses, T/t trousers, red O shoes).
   it('recolours the suit keys (G/g) to the sheet\'s navy, apart from the level-10 blazer', () => {
     expect([PAL.G, PAL.g]).toEqual(['#3a3d4c', '#2c3656'])
     expect(OUTFIT_PALS.blazer.J).not.toBe(PAL.G)
@@ -558,7 +558,7 @@ describe('the sprites', () => {
     // the doze is a valid, faceless 24x32 frame (the doze never takes the FACES overlay)
     expect(frameRules(ASSISTANT_DOZE_C2)).toEqual([])
     // the controller's ruling: the generated idle was retired, the scene draws the hand-drawn standing frame (195 and
-    // 192 runs at 0.8.0; task B1's body, with its seamed three-wide sleeves and shirt V, 204 and 201, under RUN_CAPS)
+    // 192 runs before the redraw; task B1's body, with its seamed three-wide sleeves and shirt V, 204 and 201, under RUN_CAPS)
     expect(MANGAKA_IDLE.map(runCount)).toEqual([204, 201])
   })
 })

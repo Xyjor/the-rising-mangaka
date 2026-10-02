@@ -236,9 +236,9 @@ const WALK_CONTACT_2: SpriteMap = [
   '....LLLLJJJJJJjL........', // 23
   '.......LjjjjjjjjL.......', // 24 the hem, as the idle
   '.......LFFFFLFFFfL......', // 25 the hips, a column out on the stepping side
-  '.......LFFfL.LFFfL......', // 26 the left leg stays under, the right steps out
-  '.......LFFfL..LFFfL.....', // 27
-  '.......LFFfL...LFFfL....', // 28
+  '.......LFFFL.LFFfL......', // 26 the left leg stays under, the right steps out
+  '.......LFFFL..LFFfL.....', // 27
+  '.......LFFFL...LFFfL....', // 28
   '.......LFffL...LfffL....', // 29
   '.......LOOoL...LOOOOoL..', // 30 the stepping shoe reaches out
   '.......LLLLL...LLLLLLL..', // 31

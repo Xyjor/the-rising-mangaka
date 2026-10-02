@@ -66,7 +66,7 @@ const EVERYTHING: Partial<Snapshot> = {
  * Upgrade 0.9.0 Task B3 re-measured it the same way at 1117 (+38, from the 1079 the constant held): MANGAKA_SIT[0]
  * goes from 184 to 194 runs (task B3's seat on task B1's standing body: rows 17-19 +7, each sleeve its own j run
  * seamed from the torso by an L with the V narrowing to RYR between them; rows 20-22 -3, the old frame's W/y stripe
- * cells gone from the plain Y drawstring column; row 23 +2, the pen hand's and the trailing hand's outlines; rows
+ * cells gone from the plain Y drawstring column; row 23 +2, the forearm's transparent gap splitting the outline run (+1) and the new j cell (+1); rows
  * 28-29 +4, the shins L,F,f,L under the knee in place of one L line and the thighs' bottom outline),
  * and MANGAKA_SIT[1] from 187 to 195 (rows 17-19 +7 and rows 28-29 +4 as frame 0's, rows 20-22 -4, row 23 +1: the
  * stroke frame's pen hand sits on row 23 beside the torso). `BARE_FULL` draws three seated figures from index 0 (the
