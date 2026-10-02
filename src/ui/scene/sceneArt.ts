@@ -1,9 +1,10 @@
-// The generated images the scene may draw (0.9.0): each tier's room shell (its walls, beams and floor, 320x180) and
-// the props (cutout sprites at the footprints of the code-drawn pieces they replace: the structural props since 0.9.0,
-// the desk, the chairs, the equipment and the front row since 0.10.0). render takes a
-// `SceneArt` and draws an image only once it has loaded (`ready`); until then, or when there is none, the code-drawn
-// piece paints as before, so a frame is never blank. Characters stay string-map sprites. This module never imports
-// the registry: `sceneImages.ts` builds the images from it and the component hands them to render.
+// The generated images the scene may draw (0.9.0): each tier's wall (its plaster, beams and baseboard, 320x114,
+// drawn over canvas rows 0-113; the floor is always code-drawn) and the props (cutout sprites at the footprints of
+// the code-drawn pieces they replace: the structural props since 0.9.0, the desk, the chairs, the equipment and the
+// front row since 0.10.0). render takes a `SceneArt` and draws an image only once it has loaded (`ready`); until
+// then, or when there is none, the code-drawn piece paints as before, so a frame is never blank. Characters stay
+// string-map sprites. This module never imports the registry: `sceneImages.ts` builds the images from it and the
+// component hands them to render.
 import type { StudioTierId } from '../../sim'
 
 /**

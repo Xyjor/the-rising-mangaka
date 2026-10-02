@@ -120,7 +120,7 @@ function rug(ctx: CanvasRenderingContext2D, field: string, border: string) {
 
 /**
  * The flat's wall: dusty teal wallpaper with mid-teal stripes (16, every 20 px) above a wood wainscot (rail at y 84,
- * panel grooves every 32 px), the wood-beam frame, a baseboard and the trim. 39 fills.
+ * panel grooves every 32 px), the wood-beam frame, a baseboard and the trim. 38 fills.
  */
 function flatWall(ctx: CanvasRenderingContext2D, night: boolean) {
   rawRect(ctx, 0, 0, 320, 114, night ? '#56716c' : '#8fb5ac')
@@ -134,7 +134,7 @@ function flatWall(ctx: CanvasRenderingContext2D, night: boolean) {
   trim(ctx)
 }
 
-/** The flat's floor: honey planks (rows every 8 px, seams every 80 px staggered row by row) and a red rug. 44 fills. */
+/** The flat's floor: honey planks (rows every 8 px, seams every 80 px staggered row by row) and a red rug. 45 fills. */
 function flatFloor(ctx: CanvasRenderingContext2D, night: boolean) {
   rawRect(ctx, 0, 114, 320, 66, night ? '#7d5634' : '#c8894e')
   const line = night ? '#654428' : '#a86d3a'

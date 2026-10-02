@@ -106,7 +106,7 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   entrance and door, drawn straight in canvas space) and its `PANE_X/Y/W/H`/`BAR_X` and `paneRect` clipped to the
   window pane; `render.ts` holds the palettes, string-map sprites and `render`, one frame painted from a `Snapshot`
   with nothing allocated per frame (`Snapshot.late` turns the seated mangaka to the panic frames); `sceneArt.ts`
-  `SceneArt` (render's last argument, default `NO_ART`): generated room shells and prop sprites (structural, furniture, front row) drawn with
+  `SceneArt` (render's last argument, default `NO_ART`): generated room walls (320x114, drawn over rows 0-113; the tier's floor is always code-drawn, `roomArt.ts` `TIER_FLOOR`) and prop sprites (structural, furniture, front row) drawn with
   `drawImage` (`ready`, `drawProp`; a sprite keeps its aspect at `PROP_SPRITE`, placed by `spriteBox` (`placeSprite` under `PROP_ALIGN`, sized by `PROP_SPRITE`/`PROP_MIN_H`/`PROP_MAX_W`; a desk by `hangSprite`) at render.ts's
   `PROP_BOX`, the fallback inside `PROP_FOOTPRINT`), each falling back to its code-drawn piece
   (`drawRoomShell`, the window frame, `TIER_DOOR`, ...) while missing or loading; `sceneImages.ts` builds them once from
@@ -128,7 +128,7 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   (the mangaka's outfit by level: hoodie, cardigan, blazer); `mood.ts` `moodOf` (the mood priority order),
   `cheersFor` (a fans or level-up pop starts a `CHEER_MS` cheer) and `idleFrame`/`catFrame` (the standing mangaka's
   and the sitting cat's idle cycles); `spriteSvg.ts` `spriteRects` and
-  `SpriteAvatar.tsx`, the staff portrait drawn from `ANCHOR_HEAD`, the anchor frame's chibi head (rows 0-15, cols 2-19); `season.ts` has `seasonOf(day)` and the window's season layer; `roomArt.ts` each tier's walls and floor (`TIER_ROOM`:
+  `SpriteAvatar.tsx`, the staff portrait drawn from `ANCHOR_HEAD`, the anchor frame's chibi head (rows 0-15, cols 2-19); `season.ts` has `seasonOf(day)` and the window's season layer; `roomArt.ts` each tier's walls and floor (`TIER_ROOM` is `TIER_WALL` then `TIER_FLOOR`:
 tatami, planks, concrete), the front row of floor props (`TIER_FRONT`, drawn after the actors), the story props (corkboard,
 calendar, cups, the serial's cover, fan letters, bin) and `drawAmbient` (daylight shaft, lamp pool, vignette), all in
 canvas space; `story.ts` `storyLook`, the story props' five snapshot inputs read from the game; `studioArt.ts` the
@@ -142,8 +142,9 @@ canvas space; `story.ts` `storyLook`, the story props' five snapshot inputs read
   and `Pops.tsx` the DOM speech bubbles and floating money/fans/xp numbers, styled by `scene.css`;
   `StudioScene.tsx` is the component and its 24 fps frame loop (reading `studioLook` through `useShallow`, lighting
   from the presentation clock, playing the `knock` and `pop` cues); every render is checked against a hand-measured
-  fillRect baseline (`render.test.ts` 701, `studioArt.test.ts` 1125; with every scene image ready, 549 and 974; the
-  rest scene with the doze, `render.test.ts` 506; each re-measured by the 0.9.0 cast redraw) and must stay under 1.5x
+  fillRect baseline (`render.test.ts` 701, `studioArt.test.ts` 1125; with every scene image ready, 584 and 1009; the
+  rest scene with the doze, `render.test.ts` 506; each re-measured by the 0.9.0 cast redraw, and the art baselines rose by
+  the apartment's code floor in 0.10.0) and must stay under 1.5x
   it),
   `components.tsx` (Bar, Pips, Modal, RankChart), `format.ts` (money/compact/plural formatters), `Icon.tsx`
   (inline SVG icon set), `SaveFileSection.tsx` and `useSaveFile.ts` (export and load, in Settings and on the
@@ -158,7 +159,10 @@ canvas space; `story.ts` `storyLook`, the story props' five snapshot inputs read
   `src/ui/scene/__tests__`; see the UI-test docblock rule under Commands above.
 - `src/ui/art/` — the generated-art layer: `palette.ts` (`ART_PALETTE_BASE`, frozen, the default snap so old assets regenerate byte for byte; `ART_PALETTE_SCENE` for manifest `"palette": "scene"` entries; `ART_PALETTE` their union, every colour also literal in `src/ui/scene/*.ts`
   or `src/styles/tokens.css`), `pixelOps.ts` (the pure pixel math `scripts/pixelate.ts` runs, including the `--sprite` mode's steps for a manifest `kind: "sprite"` entry, a pose cell turned into a string-map frame module; a room shell's manifest
-  `seam` lands its wall/floor line on canvas row 114 via `remapSeam`, and `lightness` keeps a shaded wall's hue in the snap), `registry.ts` (typed
+  `seam` lands its wall/floor line on canvas row 114 via `remapSeam` or, with manifest `floor: "code"`, `wallOnly` keeps
+  the wall rows only (native 320x114); `flatten: { radius }` (`flattenToMode`, a `floor: "code"` wall only, radius in
+  (0, 1]) turns every pixel within that OKLab radius of the wall's modal colour into it, so the plaster must be the
+  wall's most frequent exact colour (the striped flat sets none); and `lightness` keeps a shaded wall's hue in the snap), `registry.ts` (typed
   `ArtRef` lookups over the PNGs in `src/assets/art/`, eagerly globbed by Vite) and `PixelArt.tsx` (the `<img>`
   wrapper every component uses to mount one). `art/manifest.json` and `art/raw/` at the repo root hold each asset's
   generation recipe and committed raw source (two hosts: a Hugging Face Space with seeds, Higgsfield `z_image` with job ids); see DESIGN.md's "Art" section.

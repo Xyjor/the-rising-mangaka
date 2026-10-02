@@ -189,7 +189,7 @@ Two coordinate spaces meet in `paint.ts`: room space is the original 192x108 lay
 studio-art literal), offset by `OX 64, OY 36` into canvas space by `rect`; `rawRect` paints straight in canvas space
 for the wall, the floor, the kitchenette, the entrance and the door, none of which existed in the old room. The wall
 band runs canvas y 0-113 and the floor y 114-179, painted per tier by `roomArt.ts`'s `TIER_ROOM` (see "The room"
-below), or by the tier's generated room shell once one is loaded (see "Art", "Scene images"). The kitchenette sits on the left wall at canvas x 2-61, y 56-113. The front door is a fixed frame on the right
+below); once the tier's generated wall is loaded it replaces the code-drawn wall band (`TIER_WALL`), and the floor stays code-drawn (`TIER_FLOOR`; see "Art", "Scene images"). The kitchenette sits on the left wall at canvas x 2-61, y 56-113. The front door is a fixed frame on the right
 wall, canvas x 258-274, y 56-113: a plain two-panel door in the apartment, a lit indigo-noren doorway in the flat and
 the loft, spilling warm light at night. Beside it, the entrance holds a doormat and a coat rack (the mangaka's coat
 hangs there only while they are out). The whole scene is drawn for a phone's `object-fit: cover` crop of canvas x
@@ -438,8 +438,9 @@ The 0.9.0 cast redraw (Release B) moved all five pins, each re-measured by hand 
 seated frame (`MANGAKA_SIT[0]` 184 to 194 runs, `[1]` 187 to 195) added 20 to the reference scene and its art twin
 and 38 to `BARE_FULL` and its art twin, and took the rest scene from 509 to 500 (the doze's remap, 100 to 91 runs,
 against the redrawn seat it replaces); task B5's tabby (`CAT_SLEEP` 31 to 39, `CAT_SIT` 34 to 40) added 8 to each of
-the four and 6 to the rest scene. The pins are now 701 and 1125 (budgets 1051.5 and 1687.5), 549 and 974 with the art
-ready (823.5 and 1461), and the rest scene 506 (759).
+the four and 6 to the rest scene. The pins were then 701 and 1125 (budgets 1051.5 and 1687.5), 549 and 974 with the art
+ready (823.5 and 1461), and the rest scene 506 (759); the 0.10.0 walls (Release C) took the two art pins to 584 and
+1009 (876 and 1513.5), the apartment's code floor (see "The walls").
 
 ### Art
 The live scene is code-drawn `fillRect` (`render.ts`, `roomArt.ts`, `studioArt.ts`, `sprites.ts`), and since 0.9.0 it
@@ -469,7 +470,10 @@ transparent from the edges (`floodTransparentFromEdges`, matching the corner col
 alpha bounding box, and pads it out to the target aspect ratio before cropping to it (`padToAspect`) so the subject
 isn't stretched; downsamples to the manifest's `native` size, either area-averaged (`sample: "area"`, alpha-weighted,
 transparent when under half a block is opaque) or nearest-neighbour (`sample: "nearest"`, for an already-blocky sheet
-crop), or, for a room shell with a `seam`, remaps it (`remapSeam`, below); snaps every opaque pixel to the nearest
+crop), or, for a room shell with a `seam`, remaps it (`remapSeam`, below), or, for a room entry with `floor: "code"`, keeps
+the raw rows above `seam.src` only (`wallOnly`), area-sampled to `native: [320, 114]`, since the scene draws the
+tier's floor in code, then, where the entry sets `flatten: { radius }`, flattens the wall to its modal colour
+(`flattenToMode`, "The walls" below); snaps every opaque pixel to the nearest
 `ART_PALETTE` colour in OKLab space (`snapToPalette`); reduces to the entry's colour cap, keeping the most-used colours
 and re-snapping the rest (`reduceColors`); despeckles single-pixel
 colour flecks against a unanimous 4-neighbour field (`despeckle`); optionally adds a 1px outline on transparent
@@ -660,14 +664,57 @@ chroma at the cost of its lightness, and the lighting flattens to a few steps. A
 every earlier entry has none, so it regenerates byte for byte. At night the `ROOM_NIGHT_DIM` fill and the night
 overlay leave the flat a slate teal and the loft a warm grey-pink, both still reading as their rooms.
 
+**The walls (0.10.0, Release C).** Ruling: generated walls only, code-drawn floors. The R2 shells' perspective floors
+sat badly under the flat front row, so a room image is now the wall alone, canvas rows 0-113 (`ROOM_ART`, 320x114),
+and the floor is `roomArt.ts`'s `TIER_FLOOR`, which always paints: the rug and the tatami edges return. Each room
+entry sets `floor: "code"`, `native: [320, 114]` and `seam.dst` 114 (`scripts/pixelate.ts` refuses a
+`floor: "code"` entry without a seam or whose native height is not `seam.dst`), and `wallOnly` keeps the raw rows
+above `seam.src`, area-sampled. The three walls were regenerated on the Hugging Face Space
+(`hf-space:mcp-tools/Z-Image-Turbo`, `2048x1152 ( 16:9 )`, 8 steps, shift 3, no preamble, prompts verbatim in the
+manifest): each asks for a straight-on back wall meeting the floor at 80 percent of the height ("the floor may be cut
+off") under "perfectly flat even lighting, no vignette, no gradient, no light pool, no shadows, uniform wall colour"
+(the flat's ends "uniform colours"), and the flat's wallpaper is "bold two-tone vertical stripes, a saturated teal
+stripe alternating with a pale grey-teal stripe". All three come from the Space (the first generations and one loft
+reroll; the apartment's two rerolls failed the flat-wall bar and a Higgsfield try failed, so the apartment keeps its
+first generation and `flatten` is its fix). Each `seam.src` is the first floor row of the raw after its y crop,
+read from row means over x 400-1647 (raw rows 1034, 1106 and 1016); each crop trims the angled side walls and corner
+faces (and, on the loft, puts the brick column at the scene's x 230-253, where the code wall draws it):
+
+| Room | Seed | `crop` [x, y, w, h] | `seam.src` | `lightness` | `flatten.radius` |
+|---|---|---|---|---|---|
+| apartment | 423969 | [130, 107, 1843, 1045] | 927 | 0.1 | 0.25 |
+| flat | 243842 | [53, 0, 1995, 1152] | 1106 | 0.15 | none |
+| loft | 142516 | [15, 109, 1670, 1043] | 907 | 0.25 | 0.2 |
+
+The prompts asked for flat light and the apartment's still came back a vignette (a light pool the snap banded into two
+creams), so a manifest `flatten: { radius }` (`pixelOps.ts` `flattenToMode`, run after `wallOnly` and before the
+palette snap) turns every opaque pixel within that OKLab radius of the image's modal colour (the most frequent exact
+RGB) into that colour, while the wood, far from the mode, keeps its shading. It is allowed only on a `floor: "code"`
+entry, radius in (0, 1] (`art.test.ts`), and it needs the plaster to be the wall's most frequent exact colour: on the
+flat it would merge the two stripe tones, so the flat sets none. The apartment's 0.25 is the smallest radius that
+clears the vignette's corners with the beam and pillars whole (the baseboard's lit row joins the plaster); the loft's
+0.2 removes the shadow band under its beam, the bricks, beam and baseboard unchanged. The plaster's colours, counted
+in plaster-only boxes: before (the R2 walls cut to 320x114) the apartment 3 (`#c9b48a`, `#b88d62`, `#9c7550`), the
+flat 3 (`#6f9a90`, `#8fb5ac`, `#66666f`), the loft 8; after, the apartment 1 (`#e6d3a8`), the loft 1 (`#f5f1c9`),
+the flat its two stripe tones `#6f9a90` and `#cbc7bf` (each teal stripe with a 1 px `#8fb5ac` edge). The walls are
+779, 1218 and 954 bytes (15, 26 and 20 colours). The flat's stripe teal `#6f9a90` is in `SCENE_ADDITIONS` (and is the
+code wall's day stripe), and `#9dc2b9` left it: no committed PNG held it.
+
+With a tier's wall image ready, `render` draws it at (0, 0, 320, 114) (`WALL_H`), at night the `ROOM_NIGHT_DIM` fill
+over the same rows, then `TIER_FLOOR`; `TIER_WALL` paints only while the image is missing or loading (`drawRoomShell`,
+`TIER_ROOM` being the wall then the floor: the apartment 61 fills, 26 + 35, the flat 83, 38 + 45, the loft 70). Images
+paint no fills, so the code floor is new to the art baselines: `render.test.ts` ART_BASELINE_FILLS 549 to 584 and
+`studioArt.test.ts` FULL_ART_BASELINE 974 to 1009 (budgets 876 and 1513.5), +35 each, the apartment's floor by hand
+(the tatami 1, its weave lines 21, the heri 3, the seams 5 + 5); 701, 1125 and 506 are unchanged.
+
 `sceneImages.ts` builds one `HTMLImageElement` per ref in the registry's `ROOM_ART` and `SCENE_PROP_ART` records
 (full records since R2; any image still loading keeps its piece code-drawn), once, behind a module-level memo; `StudioScene` passes the
 result to `render`, and each image's load clears the loop's last-painted snapshot so the next step repaints it.
 `render.ts` never imports the registry. In tests, `fakeCanvas.ts` records each `drawImage` in `images` (with `at`, the
 fill log's length at the call, for order checks) and `fakeImage(id, w, h)` makes an image `ready` accepts; the fill
 `log` stays fillRect-only, so the 701/1125 baselines measure what is still code-drawn (with `NO_ART` they are
-unchanged), and `fakeSceneArt()` readies every image at once for the art baselines (549/974 since the 0.9.0 cast redraw). `ART_PALETTE_SCENE` (for `"palette": "scene"` entries) holds the room shells' day colours (the plasters, the tatami, the planks, the concrete, the
-woods, the brick, the rugs and the flat's teal wallpaper), so a generated shell snaps to the drawn room's colours.
+unchanged), and `fakeSceneArt()` readies every image at once for the art baselines (584/1009 since the 0.10.0 walls). `ART_PALETTE_SCENE` (for `"palette": "scene"` entries) holds the room shells' day colours (the plasters, the tatami, the planks, the concrete, the
+woods, the brick, the rugs and the flat's teal wallpaper), so a generated wall snaps to the drawn room's colours.
 
 **The title hero** (`TitleScreen.tsx`) renders `TITLE_ART` (manifest id `title/hero`, native 320x180) directly rather
 than through `PixelArt`, with a real `alt` describing the scene, filling the `.title-screen.has-hero` background.
@@ -704,7 +751,7 @@ PNG gets one more palette entry for transparency (never drawn, so `art.test.ts` 
 | `EVENT_ART` (96x54) | `event/<EventId>` | the event desk card's header, 2x (1x at 640 px and below) |
 | `ANIME_ART` | `anime/<AnimeStudioId>` | the anime offer card's studio columns, 1x (32x32: the round emblems read better square than at 48x32) |
 | `TIER_ART_THUMB` (96x54) | `tier/<StudioTierId>` | Studio's tier rows, 1x |
-| `ROOM_ART` (320x180) | `room/<StudioTierId>` | the live scene's room shell, drawn by `render` (0.9.0, see "Scene images") |
+| `ROOM_ART` (320x114) | `room/<StudioTierId>` | the live scene's tier's wall, drawn by `render` over canvas rows 0-113 (0.9.0; a wall only since 0.10.0, see "Scene images") |
 | `SCENE_PROP_ART` (`PROP_SPRITE`) | `prop/<ScenePropId>` | the live scene's props, at `PROP_BOX` (the structural ones 0.9.0, the furniture and front row 0.10.0) |
 
 **Sheets (batch 2, 0.8.0), a second host.** The remaining 51 assets came from twelve sheets generated on
@@ -1545,3 +1592,18 @@ sprites"). The 0.9.0 to 0.11.0 labels elsewhere in this file are the scene-art p
 - Each set is gated on the contact sheet (`npm run sprites`) and the running scene before its commit.
 - The exact fill baselines are re-measured by hand, never budgeted up: 673 to 701, 1079 to 1125, the art scenes 521
   to 549 and 928 to 974, the rest scene 509 to 506.
+
+**2026-10-02, the rooms.** Release 0.10.0's Release C polishes the rooms (see "The walls" under "Art"). Its rulings:
+
+- Walls are generated, floors are drawn in code: a room image is the tier's wall, 320x114 over canvas rows 0-113,
+  and `TIER_FLOOR` always paints after it (the rug and the tatami edges return); `TIER_WALL` paints only while the
+  image is missing or loading.
+- The pipeline's `floor: "code"` branch: `wallOnly` keeps the raw rows above `seam.src`, `native` [320, 114] and
+  `seam.dst` 114; a wall whose generation is not flat lit may set `flatten: { radius }` (`flattenToMode`), a wall
+  only, and only where the plaster is the wall's most frequent exact colour.
+- The palette swap: `#6f9a90`, the flat's stripe teal, joins `SCENE_ADDITIONS`; `#9dc2b9` leaves it (no committed
+  PNG held it). `ART_PALETTE_BASE` is untouched.
+- The wall prompts carry the lighting clause ("perfectly flat even lighting, no vignette, no gradient, no light pool,
+  no shadows") and let the floor be cut off.
+- The exact fill baselines are re-measured by hand, never budgeted up: the art scenes 549 to 584 and 974 to 1009, the
+  apartment's code floor; 701, 1125 and 506 unchanged.
