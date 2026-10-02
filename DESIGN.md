@@ -1167,14 +1167,16 @@ window the player opened. The guide never pops anything up to make its control a
 
 *Phones* (640 px and below): on entering a step the control scrolls into view, the bubble docks as a bottom sheet
 (12px from the sides and the bottom; in a dialog, just above its footer, which holds the step's own button), and the
-toasts, bottom-docked on phones, move up by the sheet's height (`.app[data-tutorial]`, `--tutorial-sheet`).
+toasts, bottom-docked on phones, move up by the sheet's height (`.app[data-guide]`, `--tutorial-sheet`).
 
 *The editor's visit:* `tutorial` is the lowest `VisitorReason` (`sceneReasonOf`): while a step is open and nothing else
 brings the editor, they walk in at step 0 (a new career's scene mounts with them outside the door, `editorWalksIn`;
 a replay walks them in too) and knock on arrival, empty-handed, stand there through the tutorial (a reload on a later
 step finds them already standing), and walk out when it ends or is skipped. Any real reason (results, offer, a ready manuscript, a card) takes
 the visit as before, and the results and offer still mount off the real reasons only. The scene's greeting bubble
-hides while a step shows: the guide's bubble speaks for the editor.
+hides while the guide is on screen (the presentation clock's `guideVisible`): the guide's bubble speaks for the
+editor. A step that waits for its control leaves a real visitor's greeting alone, and an editor already standing
+there for the tutorial who gets a real reason (a letter, a ready manuscript) says its greeting without walking again.
 
 ## Roadmap
 0. Money sinks. Shipped: hiring needs two weeks of that salary in the bank; a week that ends below zero makes

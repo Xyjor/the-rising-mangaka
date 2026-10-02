@@ -79,8 +79,8 @@ export function StudioScene({ running }: { running: boolean }) {
   const saveLoads = useStore((s) => s.saveLoads)
   // the tutorial keeps the editor at the spot when nothing else brings them (visitor.ts)
   const reason = useStore((s) => sceneReasonOf(s.game, s.tutorialStep))
-  // the guide's bubble speaks for the editor while a step shows (TutorialGuide's own condition)
-  const guided = useStore((s) => s.tutorialStep >= 0 && !s.readOnly)
+  // the guide's bubble speaks for the editor while it is on screen (not while a step waits for its control)
+  const guided = useClock((c) => c.guideVisible)
   // Walks everyone for dtMs; the editor coming to a stand is an arrival, and knocks (never in a read-only tab or while
   // the window is hidden). A settle (mount, loaded save) is not a step, so it never knocks.
   const advance = useCallback((dtMs: number, reduced: boolean) => {
@@ -148,10 +148,17 @@ export function StudioScene({ running }: { running: boolean }) {
   useEffect(() => {
     let seen = lastLogId(useStore.getState().game)
     let loads = useStore.getState().saveLoads
+    let visit = sceneReasonOf(useStore.getState().game, useStore.getState().tutorialStep)
     let timer: ReturnType<typeof setTimeout> | undefined
     const unsub = useStore.subscribe((st) => {
       // the editor's greeting lasts as long as the visit
       if (visitorReasonOf(st.game) === 'none') setGreeting(null)
+      // an editor already standing there for the tutorial who now has a real reason says it (no walk, so no arrival)
+      const why = sceneReasonOf(st.game, st.tutorialStep)
+      if (why !== visit) {
+        if (visit === 'tutorial' && GREETING[why] && actors.editor.state === 'standing') setGreeting(GREETING[why])
+        visit = why
+      }
       const id = lastLogId(st.game)
       const loaded = st.saveLoads !== loads
       if (id === seen && !loaded) return

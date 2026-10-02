@@ -89,9 +89,8 @@
   /* The tutorial guide's dim around the control it points at. */
   --scrim: rgba(10, 10, 14, 0.45);
 
-  /* Stacking: the HUD over the scene, toasts over the HUD, the tutorial guide over both. Open dialogs sit in the
-     browser's top layer, above all of them. */
-  --z-hud: 5;
+  /* Stacking: toasts over the HUD, the tutorial guide over both. Open dialogs sit in the browser's top layer, above
+     all of them. */
   --z-toast: 40;
   --z-guide: 50;
 

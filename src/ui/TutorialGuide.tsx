@@ -4,6 +4,7 @@
 import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import type { KeyboardEvent } from 'react'
 import { createPortal } from 'react-dom'
+import { useClock } from '../state/clock'
 import { useStore } from '../state/store'
 import { STEPS } from '../state/tutorial'
 import type { TutorialAnchor } from '../state/tutorial'
@@ -159,15 +160,18 @@ function Guide({ step }: { step: number }) {
     if (info) nextButton.current?.focus()
   }, [target, info])
 
-  // The app knows a step is showing (the phone's toasts make room for the sheet). An empty value: a step's name there
-  // would match the anchor lookup above.
+  // While the guide is on screen: the app is marked `data-guide` (the phone's toasts make room for the sheet; never
+  // `data-tutorial`, which the anchor lookup above reads) and the presentation clock says so (the scene's greeting
+  // hides). A waiting step sets neither.
   useLayoutEffect(() => {
     if (!target) return
     const app = document.querySelector<HTMLElement>('.app')
-    app?.setAttribute('data-tutorial', '')
+    app?.setAttribute('data-guide', '')
+    useClock.setState({ guideVisible: true })
     return () => {
-      app?.removeAttribute('data-tutorial')
+      app?.removeAttribute('data-guide')
       app?.style.removeProperty('--tutorial-sheet')
+      useClock.setState({ guideVisible: false })
     }
   }, [target])
 

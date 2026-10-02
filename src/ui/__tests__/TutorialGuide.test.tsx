@@ -6,12 +6,13 @@ import { act, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import '../../test/dom'
 import { stubReducedMotion } from '../../test/dom'
-import { createGame, startProject } from '../../sim'
+import { acceptOffer, createGame, startProject } from '../../sim'
 import type { GameState } from '../../sim'
 import type { Modal as ModalId } from '../../state/store'
+import { useClock } from '../../state/clock'
 import { useStore } from '../../state/store'
 import { STEPS } from '../../state/tutorial'
-import { DRAFT, withPendingResult, withReadyOneShot } from '../../test/fixtures'
+import { DRAFT, KIDS_OFFER, withPendingResult, withReadyOneShot } from '../../test/fixtures'
 import { App } from '../App'
 
 let restore: () => void = () => {}
@@ -40,6 +41,7 @@ const bubble = () => document.querySelector<HTMLElement>('.tutorial-bubble')
 const nextFrame = () => act(async () => { await new Promise((r) => requestAnimationFrame(() => r(null))) })
 
 beforeEach(() => {
+  useClock.setState({ guideVisible: false })
   useStore.setState({ game: null, speed: 0, modal: 'none', toasts: [], tutorialStep: -1, readOnly: false, deskHidden: false })
 })
 
@@ -139,7 +141,7 @@ describe('TutorialGuide: buttons', () => {
     expect(useStore.getState().tutorialStep).toBe(9)
   })
 
-  it('Enter on Skip skips rather than moving on', () => {
+  it('Enter on Skip does not move on', () => {
     at(8)
     render(<App />)
     const skip = screen.getByRole('button', { name: 'Skip the tutorial' })
@@ -196,12 +198,41 @@ describe('TutorialGuide: when it shows', () => {
     expect(bubble()).toBeNull()
   })
 
-  it('marks the app while a step shows, and clears it after', () => {
+  it('marks the app (data-guide, never an anchor name) and the presentation clock while a step shows, and clears both', () => {
     at(0)
     render(<App />)
-    expect(document.querySelector('.app')!.hasAttribute('data-tutorial')).toBe(true)
+    const app = document.querySelector('.app')!
+    expect(app.hasAttribute('data-guide')).toBe(true)
+    expect(app.hasAttribute('data-tutorial')).toBe(false)
+    expect(useClock.getState().guideVisible).toBe(true)
     fireEvent.click(screen.getByRole('button', { name: 'Skip the tutorial' }))
-    expect(document.querySelector('.app')!.hasAttribute('data-tutorial')).toBe(false)
+    expect(app.hasAttribute('data-guide')).toBe(false)
+    expect(useClock.getState().guideVisible).toBe(false)
+  })
+
+  it('a waiting step is not visible: the presentation flag stays clear', () => {
+    useStore.setState({ game: startProject(createGame('Rin', 1), DRAFT), tutorialStep: 5 })
+    render(<App />)
+    expect(bubble()).toBeNull()
+    expect(useClock.getState().guideVisible).toBe(false)
+  })
+
+  it('the first step finds the Plan button of a desk whose serial is still in the poll', () => {
+    const running = acceptOffer({ ...createGame('Rin', 1), pendingOffer: KIDS_OFFER })
+    const game: GameState = { ...running, project: null, serial: { ...running.serial!, status: 'ended' } }
+    useStore.setState({ game, tutorialStep: 0 })
+    render(<App />)
+    expect(screen.getByText(/still waiting for reader votes/)).toBeTruthy()
+    expect(bubble()?.textContent).toContain(STEPS[0].line)
+  })
+
+  it('dismissing the result at step 7 hands focus to Next on step 8', () => {
+    at(7)
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: 'Back to the studio' }))
+    expect(useStore.getState().tutorialStep).toBe(8)
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Next' }))
   })
 
   it('the N hotkey still opens the wizard and moves the guide into it', () => {

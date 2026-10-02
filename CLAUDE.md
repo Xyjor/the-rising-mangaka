@@ -59,7 +59,7 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   `profile.ts` is the cross-save badge profile (`rising-mangaka-profile`: the first time each badge was earned in any
   career), written after a tick or command that grew `game.badges`, by the tab that owns the save only.
   `clock.ts` is a separate, never-persisted presentation-time store: `t` (the week-long light cycle position),
-  `isNight`, and `logSeenId` (the studio log's read marker).
+  `isNight`, `logSeenId` (the studio log's read marker) and `guideVisible` (the tutorial guide is on screen).
   `saveFile.ts` owns `SAVE_VERSION`, the saved log length and the save file (`serializeSave`; `parseSave`, strict,
   every refusal a `SaveFileError`; `saveFileName`; `storedSaveFile` for the recovery screen); the store's `loadSave`
   installs a parsed file (refused in a tab that does not own the save), bumps `saveLoads` and writes at once.
@@ -134,7 +134,7 @@ canvas space; `story.ts` `storyLook`, the story props' five snapshot inputs read
   `settleActors` at `WALK_PX_PER_S`, and `EDITOR_WALK_MS`; `visitor.ts` the editor's reason for visiting, its prop and
   its greeting (`sceneReasonOf` adds `tutorial`, the lowest reason: the editor stands at the spot while a tutorial step
   is open, empty-handed and silent, walking in on a new career's step 0 through `actors.ts` `editorWalksIn`, and the
-  scene's greeting bubble hides while the guide shows); `sceneAnchor.ts` `sceneToCss` mapping scene pixels to the canvas's cover-fit CSS box; `Bubble.tsx`
+  scene's greeting bubble hides while the guide is on screen, `clock.ts` `guideVisible`, not while a step waits); `sceneAnchor.ts` `sceneToCss` mapping scene pixels to the canvas's cover-fit CSS box; `Bubble.tsx`
   and `Pops.tsx` the DOM speech bubbles and floating money/fans/xp numbers, styled by `scene.css`;
   `StudioScene.tsx` is the component and its 24 fps frame loop (reading `studioLook` through `useShallow`, lighting
   from the presentation clock, playing the `knock` and `pop` cues); every render is checked against a hand-measured
@@ -214,7 +214,7 @@ canvas space; `story.ts` `storyLook`, the story props' five snapshot inputs read
 - Touch targets are at least 44px on coarse pointers (`base.css` handles `.btn`, `.seg button`, `.steps button`,
   `.toast button`, `.rail .btn` and `.badge-hud.as-button`).
 - Colours come from tokens (`var(--accent)` etc.), never raw hex in components. Both themes must work.
-- Stacking uses the z tokens (`tokens.css`): `--z-hud` 5, `--z-toast` 40, `--z-guide` 50 (the tutorial guide);
+- Stacking uses the z tokens (`tokens.css`): `--z-toast` 40, `--z-guide` 50 (the tutorial guide);
   open dialogs sit in the browser's top layer above all of them. `--scrim` is the guide's dim.
 - Charts: one axis, thin marks, direct label on the last point, hover tooltip, a table view alongside.
 - Every result explains itself (the "show the why" pillar). Never add a hidden modifier without a UI hint.
