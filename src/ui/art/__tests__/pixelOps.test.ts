@@ -16,6 +16,7 @@ import {
   rgbToOklab,
   snapToPalette,
   toOklabPalette,
+  wallOnly,
 } from '../pixelOps'
 
 function fill(img: ReturnType<typeof makeImage>, r: number, g: number, b: number, a = 255) {
@@ -469,6 +470,40 @@ describe('remapSeam', () => {
     expect(() => remapSeam(src, 0, 4, 10, 5, 'area')).toThrow()
     expect(() => remapSeam(src, 10, 4, 10, 5, 'area')).toThrow()
     expect(() => remapSeam(src, 5, 4, 10, 10, 'area')).toThrow()
+  })
+})
+
+describe('wallOnly', () => {
+  /** A 4x4 image: the top two rows red (the wall), the bottom two blue (the floor). */
+  function redOverBlue() {
+    const img = makeImage(4, 4)
+    for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) {
+      if (y < 2) setPixel(img, x, y, 255, 0, 0)
+      else setPixel(img, x, y, 0, 0, 255)
+    }
+    return img
+  }
+  const pixels = (img: ReturnType<typeof makeImage>) => {
+    const out: number[][] = []
+    for (let i = 0; i < img.data.length; i += 4) out.push([...img.data.subarray(i, i + 4)])
+    return out
+  }
+
+  it('keeps the rows above the seam only, downsampled to the destination size', () => {
+    const out = wallOnly(redOverBlue(), 2, 2, 1, 'area')
+    expect(out.width).toBe(2)
+    expect(out.height).toBe(1)
+    expect(pixels(out)).toEqual([[255, 0, 0, 255], [255, 0, 0, 255]])
+  })
+
+  it('keeps the whole image when the seam is its height', () => {
+    const out = wallOnly(redOverBlue(), 4, 4, 4, 'nearest')
+    expect(pixels(out)).toEqual(pixels(redOverBlue()))
+  })
+
+  it('refuses a seam outside (0, height]', () => {
+    expect(() => wallOnly(redOverBlue(), 0, 2, 1, 'area')).toThrow()
+    expect(() => wallOnly(redOverBlue(), 5, 2, 1, 'area')).toThrow()
   })
 })
 

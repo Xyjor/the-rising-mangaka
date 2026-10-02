@@ -198,13 +198,14 @@ export const TIER_ART_THUMB: Record<StudioTierId, ArtRef> = {
 // ---------- the live scene (0.9.0): drawn into the canvas by render through src/ui/scene/sceneImages.ts ----------
 
 /**
- * Each tier's room shell, 320x180 (walls, beams, floor; no furniture), its wall/floor seam remapped onto canvas row
- * 114. Until one loads, the tier's code-drawn shell (`drawRoomShell`) paints instead.
+ * Each tier's room wall, 320x114 (canvas rows 0-113: the wall, beams, pillars, baseboard; no floor, no furniture), the
+ * raw's rows above its wall/floor seam. The scene draws every floor in code (roomArt.ts `TIER_FLOOR`); until a wall
+ * loads, the tier's code-drawn shell (`drawRoomShell`) paints instead.
  */
 export const ROOM_ART: Record<StudioTierId, ArtRef> = {
-  apartment: art('room/apartment', 320, 180),
-  flat: art('room/flat', 320, 180),
-  loft: art('room/loft', 320, 180),
+  apartment: art('room/apartment', 320, 114),
+  flat: art('room/flat', 320, 114),
+  loft: art('room/loft', 320, 114),
 }
 
 /** A prop's cutout sprite at its native size (sceneArt.ts `PROP_SPRITE`, placed by render.ts `PROP_BOX`). */

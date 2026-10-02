@@ -1,5 +1,5 @@
-// The room around the studio, all in canvas space (`rawRect`): each tier's walls and floor (`TIER_ROOM`, painted by
-// `drawRoomShell` whenever the tier has no generated room image ready: the
+// The room around the studio, all in canvas space (`rawRect`): each tier's wall (`TIER_WALL`, painted whenever the
+// tier has no generated wall image ready) and floor (`TIER_FLOOR`, always code-drawn), `TIER_ROOM` the two (the
 // apartment's tatami and wooden pillars, the flat's teal wallpaper, wainscot and honey planks, the loft's brick accent
 // and pale concrete), the front row of props on the floor (`TIER_FRONT`, drawn after the actors so they pass behind
 // it; each piece a generated sprite once its image is ready, since 0.10.0), the story props that picture the game (the corkboard, the calendar, the coffee cups, the serial's cover, the
@@ -14,7 +14,7 @@ import { NO_ART, ready, spriteBox } from './sceneArt'
 import type { Footprint, SceneArt, ScenePropId } from './sceneArt'
 import { corkCards } from './story'
 
-/** Paints one tier's walls and floor across the whole 320x180 canvas (the wall to y 113, the floor from y 114). */
+/** Paints a tier's wall (y 0-113), its floor (y 114-179) or both, in canvas space. */
 export type RoomArt = (ctx: CanvasRenderingContext2D, night: boolean) => void
 
 // ---------- palette ----------
@@ -72,12 +72,10 @@ function trim(ctx: CanvasRenderingContext2D) {
 // ---------- the tiers' rooms ----------
 
 /**
- * The starter apartment: a six-mat room. Sand plaster with faint streaks, a wooden ceiling molding and a nageshi beam,
- * two pillars (x 62-65, by the kitchenette, and x 252-255, by the door), a baseboard, and tatami across the floor in
- * two rows of mats: straw weave lines every 3 px, the dark-green cloth edges (heri) along the mats' long sides and the
- * short seams staggered between the rows. 59 fills.
+ * The starter apartment's wall: sand plaster with faint streaks, a wooden ceiling molding and a nageshi beam, two
+ * pillars (x 62-65, by the kitchenette, and x 252-255, by the door), a baseboard and the trim. 26 fills.
  */
-function apartmentRoom(ctx: CanvasRenderingContext2D, night: boolean) {
+function apartmentWall(ctx: CanvasRenderingContext2D, night: boolean) {
   const wood = night ? '#5f4a36' : '#9c7550'
   rawRect(ctx, 0, 0, 320, 114, night ? '#857559' : '#e6d3a8')
   for (let x = 12; x < 320; x += 24) rawRect(ctx, x, 3, 1, 108, night ? '#8c7c60' : '#ecdcb6')
@@ -86,6 +84,14 @@ function apartmentRoom(ctx: CanvasRenderingContext2D, night: boolean) {
   rawRect(ctx, 62, 3, 4, 108, wood); rawRect(ctx, 252, 3, 4, 108, wood)
   rawRect(ctx, 62, 3, 1, 108, night ? '#6f5840' : '#b88d62'); rawRect(ctx, 252, 3, 1, 108, night ? '#6f5840' : '#b88d62')
   rawRect(ctx, 0, 111, 320, 3, night ? '#4f3e2e' : '#7a5a3e')
+  trim(ctx)
+}
+
+/**
+ * The starter apartment's floor: tatami in two rows of mats, straw weave lines every 3 px, the dark-green cloth edges
+ * (heri) along the mats' long sides and the short seams staggered between the rows. 35 fills.
+ */
+function apartmentFloor(ctx: CanvasRenderingContext2D, night: boolean) {
   rawRect(ctx, 0, 114, 320, 66, night ? '#8c8252' : '#cdbd7c')
   for (let y = 117; y < 180; y += 3) rawRect(ctx, 0, y, 320, 1, night ? '#7f7548' : '#bfae6c')
   const heri = night ? '#262f25' : '#3d4a3a'
@@ -93,7 +99,6 @@ function apartmentRoom(ctx: CanvasRenderingContext2D, night: boolean) {
   const seam = night ? '#6f6640' : '#a8984f'
   for (let x = 40; x < 320; x += 64) rawRect(ctx, x, 116, 1, 30, seam)
   for (let x = 8; x < 320; x += 64) rawRect(ctx, x, 148, 1, 30, seam)
-  trim(ctx)
 }
 
 /**
@@ -114,19 +119,23 @@ function rug(ctx: CanvasRenderingContext2D, field: string, border: string) {
 }
 
 /**
- * The flat: dusty teal wallpaper with pale stripes above a wood wainscot (rail at y 84, panel grooves every 32 px),
- * the wood-beam frame, a baseboard, honey planks (rows every 8 px, seams every 80 px staggered row by row) and a red
- * rug. 83 fills.
+ * The flat's wall: dusty teal wallpaper with mid-teal stripes (16, every 20 px) above a wood wainscot (rail at y 84,
+ * panel grooves every 32 px), the wood-beam frame, a baseboard and the trim. 39 fills.
  */
-function flatRoom(ctx: CanvasRenderingContext2D, night: boolean) {
+function flatWall(ctx: CanvasRenderingContext2D, night: boolean) {
   rawRect(ctx, 0, 0, 320, 114, night ? '#56716c' : '#8fb5ac')
-  for (let x = 10; x < 320; x += 20) rawRect(ctx, x, 3, 2, 81, night ? '#5e7a74' : '#9dc2b9')
+  for (let x = 10; x < 320; x += 20) rawRect(ctx, x, 3, 2, 81, night ? '#465f5a' : '#6f9a90')
   rawRect(ctx, 0, 0, 320, 3, night ? '#5a4432' : '#8a5f3a')
   rawRect(ctx, 0, 86, 320, 25, night ? '#735638' : '#b98a5c')
   rawRect(ctx, 0, 84, 320, 2, night ? '#5a4432' : '#8a5f3a')
   for (let x = 16; x < 320; x += 32) rawRect(ctx, x, 88, 1, 21, night ? '#634a31' : '#a0764c')
   frame(ctx, night ? '#4a3626' : '#6e4a2c')
   rawRect(ctx, 0, 111, 320, 3, night ? '#4a3626' : '#6e4a2c')
+  trim(ctx)
+}
+
+/** The flat's floor: honey planks (rows every 8 px, seams every 80 px staggered row by row) and a red rug. 44 fills. */
+function flatFloor(ctx: CanvasRenderingContext2D, night: boolean) {
   rawRect(ctx, 0, 114, 320, 66, night ? '#7d5634' : '#c8894e')
   const line = night ? '#654428' : '#a86d3a'
   for (let y = 121; y < 180; y += 8) rawRect(ctx, 0, y, 320, 1, line)
@@ -135,15 +144,14 @@ function flatRoom(ctx: CanvasRenderingContext2D, night: boolean) {
     for (let x = (row * 28) % 80; x < 320; x += 80) rawRect(ctx, x, y, 1, 7, line)
   }
   rug(ctx, night ? '#7a342d' : '#b04a3f', night ? '#9a7a3e' : '#e0b25a')
-  trim(ctx)
 }
 
 /**
- * The loft: pale plaster with an exposed brick accent between the window and the door (x 230-253: mortar rows every
- * 5 px, the joints alternating), a steel baseboard, and polished concrete (a sheen band, expansion joints) under an
- * indigo rug, inside the wood-beam frame (its right post over the brick's last two columns). 70 fills.
+ * The loft's wall: pale plaster with an exposed brick accent between the window and the door (x 230-253: mortar rows
+ * every 5 px, the joints alternating), the wood-beam frame (its right post over the brick's last two columns), a steel
+ * baseboard and the trim.
  */
-function loftRoom(ctx: CanvasRenderingContext2D, night: boolean) {
+function loftWall(ctx: CanvasRenderingContext2D, night: boolean) {
   rawRect(ctx, 0, 0, 320, 114, night ? '#7e7b86' : '#dcd8cf')
   rawRect(ctx, 0, 0, 320, 3, night ? '#55535c' : '#a9a59c')
   rawRect(ctx, 230, 3, 24, 108, night ? '#6e3a3a' : '#b5574a')
@@ -154,6 +162,11 @@ function loftRoom(ctx: CanvasRenderingContext2D, night: boolean) {
   }
   frame(ctx, night ? '#3f2e22' : '#6b4a32')
   rawRect(ctx, 0, 111, 320, 3, night ? '#34343c' : METAL_DARK)
+  trim(ctx)
+}
+
+/** The loft's floor: polished concrete (a sheen band, expansion joints) under an indigo rug. */
+function loftFloor(ctx: CanvasRenderingContext2D, night: boolean) {
   rawRect(ctx, 0, 114, 320, 66, night ? '#6c6a72' : '#bdb8ae')
   rawRect(ctx, 0, 150, 320, 3, night ? '#77757e' : '#cbc7bf')
   const joint = night ? '#5c5a62' : '#a9a49a'
@@ -161,19 +174,36 @@ function loftRoom(ctx: CanvasRenderingContext2D, night: boolean) {
   for (let x = 16; x < 320; x += 64) rawRect(ctx, x, 114, 1, 32, joint)
   for (let x = 48; x < 320; x += 64) rawRect(ctx, x, 147, 1, 33, joint)
   rug(ctx, night ? '#2c3656' : '#3f4f7a', night ? '#56627e' : '#8aa0c8')
-  trim(ctx)
-}
-
-/** Each tier's walls and floor, painted first. */
-export const TIER_ROOM: Record<StudioTierId, RoomArt> = {
-  apartment: apartmentRoom,
-  flat: flatRoom,
-  loft: loftRoom,
 }
 
 /**
- * The room shell, code-drawn: the tier's walls, beams, floor and trim across the whole canvas. render paints it first
- * whenever the tier has no room image ready (sceneArt.ts), and skips it for one.
+ * Each tier's wall, canvas rows 0-113 (the wall, beams, pillars or posts, wainscot, baseboard and the trim): painted
+ * only while the tier's room image (a generated wall) is missing or loading.
+ */
+export const TIER_WALL: Record<StudioTierId, RoomArt> = {
+  apartment: apartmentWall,
+  flat: flatWall,
+  loft: loftWall,
+}
+
+/** Each tier's floor, canvas rows 114-179 (the floor, its lines and seams, the rug): always code-drawn. */
+export const TIER_FLOOR: Record<StudioTierId, RoomArt> = {
+  apartment: apartmentFloor,
+  flat: flatFloor,
+  loft: loftFloor,
+}
+
+/** Each tier's whole room, the wall then the floor: the apartment 61 fills, the flat 83, the loft 70. */
+export const TIER_ROOM: Record<StudioTierId, RoomArt> = {
+  apartment: (ctx, night) => { apartmentWall(ctx, night); apartmentFloor(ctx, night) },
+  flat: (ctx, night) => { flatWall(ctx, night); flatFloor(ctx, night) },
+  loft: (ctx, night) => { loftWall(ctx, night); loftFloor(ctx, night) },
+}
+
+/**
+ * The room shell, code-drawn: the tier's wall, beams, trim and floor across the whole canvas. render paints it first
+ * whenever the tier has no room image ready (sceneArt.ts); with one, render draws the image as the wall and then the
+ * tier's floor (`TIER_FLOOR`).
  */
 export function drawRoomShell(ctx: CanvasRenderingContext2D, tier: StudioTierId, night: boolean) {
   TIER_ROOM[tier](ctx, night)

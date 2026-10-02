@@ -2630,7 +2630,7 @@
     "preamble": "none",
     "native": [
       320,
-      180
+      114
     ],
     "sample": "area",
     "cutout": false,
@@ -2650,7 +2650,8 @@
     "seam": {
       "src": 882,
       "dst": 114
-    }
+    },
+    "floor": "code"
   },
   {
     "id": "room/flat",
@@ -2665,7 +2666,7 @@
     "preamble": "none",
     "native": [
       320,
-      180
+      114
     ],
     "sample": "area",
     "cutout": false,
@@ -2675,7 +2676,7 @@
     "sheet": {
       "src": "rooms/flat.png"
     },
-    "lightness": 0.03,
+    "lightness": 0.15,
     "crop": [
       230,
       0,
@@ -2685,7 +2686,8 @@
     "seam": {
       "src": 1008,
       "dst": 114
-    }
+    },
+    "floor": "code"
   },
   {
     "id": "room/loft",
@@ -2700,7 +2702,7 @@
     "preamble": "none",
     "native": [
       320,
-      180
+      114
     ],
     "sample": "area",
     "cutout": false,
@@ -2714,7 +2716,8 @@
     "seam": {
       "src": 1002,
       "dst": 114
-    }
+    },
+    "floor": "code"
   },
   {
     "id": "prop/kitchenette",

@@ -3,7 +3,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('../../art/registry', () => ({
-  ROOM_ART: { flat: { id: 'room/flat', src: '/assets/art/room/flat.png', w: 320, h: 180 } },
+  ROOM_ART: { flat: { id: 'room/flat', src: '/assets/art/room/flat.png', w: 320, h: 114 } },
   SCENE_PROP_ART: { bed: { id: 'prop/bed', src: '/assets/art/prop/bed.png', w: 58, h: 26 } },
 }))
 

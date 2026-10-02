@@ -522,6 +522,19 @@ export function remapSeam(
 }
 
 /**
+ * A room's wall alone, for a room whose floor the scene draws in code: source rows 0 to `seamSrc` - 1 (the wall, the
+ * floor below the seam dropped) resampled to dstW x dstH with `sample`'s downsample, as `remapSeam` does for its wall
+ * side. The seam may be the image's height (no floor in the raw), never 0.
+ */
+export function wallOnly(src: RgbaImage, seamSrc: number, dstW: number, dstH: number, sample: 'area' | 'nearest'): RgbaImage {
+  if (!(seamSrc > 0 && seamSrc <= src.height)) {
+    throw new Error(`wallOnly: seam ${seamSrc} must leave a wall row and lie inside the image (height ${src.height})`)
+  }
+  const down = sample === 'nearest' ? downsampleNearest : downsampleArea
+  return down(rowsOf(src, 0, seamSrc), dstW, dstH)
+}
+
+/**
  * Mirrors an image left to right (a new image; the source is untouched). For a sheet object drawn facing the wrong way
  * for its place in the scene, such as the arm lamp, whose shade must lean left over the page.
  */

@@ -25,7 +25,7 @@ import {
 } from './studioArt'
 import type { Owned } from './studioArt'
 import {
-  FRONT_BOX, FRONT_FOOTPRINT, TIER_FRONT, drawAmbient, drawCalendar, drawCorkboard, drawCups, drawFanLetters, drawRoomShell, drawSeriesPoster,
+  FRONT_BOX, FRONT_FOOTPRINT, TIER_FLOOR, TIER_FRONT, drawAmbient, drawCalendar, drawCorkboard, drawCups, drawFanLetters, drawRoomShell, drawSeriesPoster,
 } from './roomArt'
 import { NO_ART, PROP_SPRITE, ROOM_NIGHT_DIM, drawProp, hangSprite, ready, spriteBox } from './sceneArt'
 import type { Fallback, Footprint, SceneArt, ScenePropId } from './sceneArt'
@@ -33,6 +33,8 @@ import type { StoryLook } from './story'
 
 export const W = 320
 export const H = 180
+/** The wall's height in canvas rows (0-113): a room image covers it, and each tier's code-drawn floor starts below it. */
+export const WALL_H = 114
 
 // ---------- palette & sprites ----------
 
@@ -467,10 +469,12 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
   const working = busy && s.running
   const sky = skyColor(t)
 
+  // a room image is the wall alone (canvas rows 0-113), dimmed at night; the tier's floor is always code-drawn
   const room = art.room[s.tier]
   if (ready(room)) {
-    ctx.drawImage(room, 0, 0, W, H)
-    if (night) { ctx.fillStyle = ROOM_NIGHT_DIM; ctx.fillRect(0, 0, W, H) }
+    ctx.drawImage(room, 0, 0, W, WALL_H)
+    if (night) { ctx.fillStyle = ROOM_NIGHT_DIM; ctx.fillRect(0, 0, W, WALL_H) }
+    TIER_FLOOR[s.tier](ctx, night)
   } else drawRoomShell(ctx, s.tier, night)
   prop(ctx, art, 'kitchenette', drawKitchenette)
   // the bookshelf's shadow spans its sprite when the image is ready, else the code-drawn shelf (x 72, 35 wide)
