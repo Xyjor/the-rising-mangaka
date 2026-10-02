@@ -148,6 +148,15 @@ export function settleActors(table: ActorTable): void {
   settle(table.cat)
 }
 
+/**
+ * The editor back outside the door, still headed wherever the plan sends them: after a settle, they walk in again
+ * (a new career's tutorial opens with the editor arriving rather than already standing there).
+ */
+export function editorWalksIn(table: ActorTable): void {
+  const e = table.editor
+  e.x = DOOR_SPOT.x; e.y = DOOR_SPOT.y; e.facing = -1; e.state = 'hidden'; e.anim = 0
+}
+
 function off(a: Actor): boolean { return a.x !== a.targetX || a.y !== a.targetY }
 
 /** Whether anyone is on the way somewhere (the loop repaints every step while they are). */

@@ -22,7 +22,7 @@ beforeEach(() => {
   restoreMotion = stubReducedMotion(true)
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(fakeContext().ctx as never)
   game = createGame('Rin', 1)
-  useStore.setState({ game, speed: 0, modal: 'none', toasts: [], tutorialStep: 0, readOnly: false })
+  useStore.setState({ game, speed: 0, modal: 'none', toasts: [], tutorialStep: -1, readOnly: false })
   useClock.setState({ t: 0.3 })
 })
 
@@ -72,6 +72,23 @@ describe('speech bubbles', () => {
     expect(b).toHaveLength(1)
     expect(b[0].textContent).toBe('The poll results are in.')
     act(() => useStore.setState({ game: { ...pending, pendingResult: null } }))
+    expect(bubbles('editor')).toHaveLength(0)
+  })
+
+  it('hides the editor greeting while a tutorial step is showing', () => {
+    render(<StudioScene running={false} />)
+    act(() => useStore.setState({ game: withPendingResult() }))
+    expect(bubbles('editor')).toHaveLength(1)
+    act(() => useStore.setState({ tutorialStep: 8 }))
+    expect(bubbles('editor')).toHaveLength(0)
+    act(() => useStore.setState({ tutorialStep: -1 }))
+    expect(bubbles('editor')).toHaveLength(1)
+  })
+
+  it('the editor visiting for the tutorial says nothing in the scene', () => {
+    render(<StudioScene running={false} />)
+    act(() => useStore.setState({ tutorialStep: 0 }))
+    act(() => useStore.setState({ tutorialStep: -1 }))
     expect(bubbles('editor')).toHaveLength(0)
   })
 

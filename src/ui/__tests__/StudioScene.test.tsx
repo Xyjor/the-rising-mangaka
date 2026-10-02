@@ -33,7 +33,7 @@ beforeEach(() => {
   fake = fakeContext()
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(fake.ctx as never)
   game = createGame('Rin', 1)
-  useStore.setState({ game, speed: 0, modal: 'none', toasts: [], tutorialStep: 0, readOnly: false })
+  useStore.setState({ game, speed: 0, modal: 'none', toasts: [], tutorialStep: -1, readOnly: false })
   useClock.setState({ t: 0.3 })
 })
 
@@ -140,6 +140,51 @@ describe('StudioScene', () => {
       act(() => useStore.setState({ game: withPendingResult() }))
       expect(sound.plays).toEqual([])
       useStore.setState({ windowHidden: false })
+    })
+
+    it('walks in with a knock when a new career opens on the first step', () => {
+      useStore.setState({ tutorialStep: 0 })
+      render(<StudioScene running={false} />)
+      // a studio change repaints at once (reduced motion snaps the walk)
+      act(() => useStore.setState({ game: { ...game, studio: { tier: 'loft', owned: [] } } }))
+      expect(hair()).toBeGreaterThan(-1)
+      expect(sound.plays).toEqual(['knock'])
+    })
+
+    it('walks in with a knock when the tutorial starts in a running scene (a replay)', () => {
+      render(<StudioScene running={false} />)
+      fake.log.length = 0
+      act(() => useStore.setState({ tutorialStep: 0 }))
+      expect(hair()).toBeGreaterThan(-1)
+      expect(sound.plays).toEqual(['knock'])
+    })
+
+    it('a reload on a later step finds the editor already standing there: no walk, no knock', () => {
+      useStore.setState({ tutorialStep: 8 })
+      render(<StudioScene running={false} />)
+      act(() => useStore.setState({ game: { ...game, studio: { tier: 'loft', owned: [] } } }))
+      expect(hair()).toBeGreaterThan(-1)
+      expect(sound.plays).toEqual([])
+    })
+
+    it('walks out when the tutorial ends', () => {
+      useStore.setState({ tutorialStep: 3 })
+      render(<StudioScene running={false} />)
+      act(() => useStore.setState({ game: { ...game, studio: { tier: 'loft', owned: [] } } }))
+      expect(hair()).toBeGreaterThan(-1)
+      fake.log.length = 0
+      act(() => useStore.setState({ tutorialStep: -1 }))
+      expect(fake.log.length).toBeGreaterThan(0)
+      expect(hair()).toBe(-1)
+    })
+
+    it('a real reason still takes the visit during the tutorial', () => {
+      useStore.setState({ tutorialStep: 7 })
+      render(<StudioScene running={false} />)
+      fake.log.length = 0
+      act(() => useStore.setState({ game: withPendingResult() }))
+      // the envelope at the spot: the result reason, not the tutorial's empty hands
+      expect(hair()).toBeGreaterThan(-1)
     })
 
     it('the editor leaves once the result is dismissed', () => {

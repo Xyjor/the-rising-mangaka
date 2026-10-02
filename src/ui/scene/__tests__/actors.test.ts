@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest'
 import { sceneSnapshot } from '../../../test/fakeCanvas'
 import type { Snapshot } from '../render'
-import { EDITOR_WALK_MS, newActorTable, planActors, settleActors, stepActors } from '../actors'
+import { EDITOR_WALK_MS, editorWalksIn, newActorTable, planActors, settleActors, stepActors } from '../actors'
 import type { Actor, ActorTable } from '../actors'
 
 function walker(over: Partial<Actor> = {}): ActorTable {
@@ -101,5 +101,18 @@ describe('planActors', () => {
     expect(u.editor.x).toBeCloseTo(198.04, 6)
     stepActors(u, 1, false)
     expect([u.editor.x, u.editor.state]).toEqual([198, 'standing'])
+  })
+})
+
+describe('editorWalksIn', () => {
+  it('puts a settled editor back outside the door, still headed for the spot: a fresh walk in', () => {
+    const t = newActorTable()
+    planActors(t, sceneSnapshot({ visitor: 'editor', actors: t }))
+    settleActors(t)
+    expect([t.editor.x, t.editor.y, t.editor.state]).toEqual([198, 85, 'standing'])
+    editorWalksIn(t)
+    expect([t.editor.x, t.editor.y, t.editor.state]).toEqual([254, 85, 'hidden'])
+    stepActors(t, EDITOR_WALK_MS, false)
+    expect([t.editor.x, t.editor.y, t.editor.state]).toEqual([198, 85, 'standing'])
   })
 })
