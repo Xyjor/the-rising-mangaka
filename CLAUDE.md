@@ -18,7 +18,7 @@ npm run art -- <id>|--all   # Regenerates a static illustration from art/manifes
                              # src/assets/art/ (scripts/pixelate.ts); a `kind: "sprite"` entry writes a frame module
                              # into src/ui/scene/generated/ instead; --all skips `"retired": true` entries (naming
                              # one regenerates it); run after adding or editing a manifest entry
-npm run sprites -- <out.png> [--walk]   # Sprite contact sheet (scripts/spriteSheet.ts): every cast frame at 8x beside its HEAD frame; --walk the walk strips only
+npm run sprites -- <out.png> [--walk]   # Sprite contact sheet (scripts/spriteSheet.ts), 8x (the cat at 16x): each frame beside its HEAD frame, plus the cardigan, blazer and assistant looks and the four moods' faces and marks (new only); --walk the walk strips only
 npm run balance -- [from=1] [to=20] [--detail seed]   # Balance bots (src/sim/bot.ts): a line per seed per bot, then the balance-band rows
 npm run tauri dev       # Desktop window; stop any running `npm run dev` first (it starts its own, strict port 5173)
 npm run tauri build     # Windows NSIS installer, in src-tauri/target/release/bundle/nsis/
