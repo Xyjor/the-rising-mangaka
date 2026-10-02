@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createGame, startProject, tickMany } from '../../../sim'
 import { DRAFT, KIDS_OFFER, drawUntilReady, withPendingResult } from '../../../test/fixtures'
-import { GREETING, PROP_FOR, visitorReasonOf } from '../visitor'
+import { GREETING, PROP_FOR, sceneReasonOf, visitorReasonOf } from '../visitor'
 
 describe('visitorReasonOf', () => {
   const fresh = () => createGame('Rin', 1)
@@ -30,9 +30,31 @@ describe('visitorReasonOf', () => {
   })
 
   it('has a prop and a greeting for every reason', () => {
-    expect(Object.keys(PROP_FOR)).toHaveLength(7)
-    expect(Object.keys(GREETING)).toHaveLength(7)
+    expect(Object.keys(PROP_FOR)).toHaveLength(8)
+    expect(Object.keys(GREETING)).toHaveLength(8)
     expect(PROP_FOR.result).toBe('envelope')
     expect(GREETING.offer).toBe('I have a contract for you.')
+  })
+})
+
+describe('sceneReasonOf: the tutorial is the lowest reason', () => {
+  const fresh = () => createGame('Rin', 1)
+
+  it('the editor stays for the tutorial when nothing else brings them', () => {
+    expect(sceneReasonOf(fresh(), 0)).toBe('tutorial')
+    expect(sceneReasonOf(fresh(), 11)).toBe('tutorial')
+    expect(sceneReasonOf(fresh(), -1)).toBe('none')
+    expect(sceneReasonOf(null, 0)).toBe('none')
+  })
+
+  it('every real reason outranks it', () => {
+    expect(sceneReasonOf(withPendingResult(), 7)).toBe('result')
+    expect(sceneReasonOf(drawUntilReady(startProject(fresh(), DRAFT)), 5)).toBe('ready')
+    expect(sceneReasonOf({ ...fresh(), event: { id: 'letter', day: 1, expiresDay: 8 } }, 8)).toBe('event')
+  })
+
+  it('comes empty-handed and says nothing: the guide does the talking', () => {
+    expect(PROP_FOR.tutorial).toBe('none')
+    expect(GREETING.tutorial).toBe('')
   })
 })

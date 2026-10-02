@@ -17,6 +17,8 @@ import { recordProfile } from './profile'
 import { LEGACY_SAVE_KEY, PREFS_KEY, SLOT_IDS, SLOT_INDEX_KEY, migrateLegacy, slotKey, viewSlots, writeIndex } from './slots'
 import type { SlotId, SlotStart } from './slots'
 import { claim, disableTabLock, isOwner, startTabLock } from './tabLock'
+import { STEPS, canPoint, phaseOf, replayStepFor, resumeTutorialStep, settleStep, stepAfter } from './tutorial'
+import type { TutorialTrigger } from './tutorial'
 
 export type Speed = 0 | 1 | 2 | 3
 export type RunSpeed = Exclude<Speed, 0>
@@ -40,7 +42,10 @@ interface Store {
   modal: Modal
   toasts: Toast[]
   theme: ThemeMode
-  /** -1 when the player dismissed tips */
+  /**
+   * The guided first career's step, an index into `STEPS` (tutorial.ts), saved per career; -1 once it is done or
+   * skipped. A new game starts at 0; a loaded save resumes through `resumeTutorialStep`.
+   */
   tutorialStep: number
   /** True while another tab owns the save: this tab mirrors it and its clock never runs. */
   readOnly: boolean
@@ -116,7 +121,17 @@ interface Store {
   setTheme: (t: ThemeMode) => void
   toggleDesk: () => void
   setSound: (patch: Partial<SoundPrefs>) => void
-  finishTutorial: () => void
+  /** Moves the tutorial on by what the player just did (`stepAfter`); the guide's Next button sends `next`. */
+  advanceTutorial: (trigger: TutorialTrigger) => void
+  /** Ends the tutorial for this career (-1). A no-op, like `advanceTutorial`, in a tab that does not own the save. */
+  skipTutorial: () => void
+  /**
+   * Starts the tutorial again at `replayStepFor` (the first step for the game's phase; the Notebook step while a poll is
+   * pending), with the window closed, stopped unless the step's control cannot show yet (`canPoint`: on a trip it
+   * waits, the clock as it was). Refused (false) with a result or an offer waiting, or in a tab that does not own the
+   * save.
+   */
+  replayTutorial: () => boolean
   /**
    * The window was hidden or minimised (true) or shown again (false). Hiding stops the clock, keeping a running speed
    * for Space, and suspends the sound; showing resumes the sound and leaves the clock stopped. A repeat is a no-op.
@@ -138,6 +153,11 @@ function mergeToasts(current: Toast[], added: Toast[]): Toast[] {
   const seen = new Set(current.map((t) => t.text))
   const fresh = added.filter((t) => !seen.has(t.text) && (seen.add(t.text), true))
   return [...current, ...fresh].slice(-5)
+}
+
+/** `patch` stopping the clock for a decision, with the desk shown again: the tick's auto-pause and a tutorial step. */
+function pauseForDecision(patch: Partial<Store>): Partial<Store> {
+  return { ...patch, speed: 0, deskHidden: false }
 }
 
 /** The slice of the store that reaches localStorage. */
@@ -358,8 +378,31 @@ function followIndex(owner = false) {
 export const useStore = create<Store>()(
   persist(
     (set, get) => {
-      /** Apply a sim command, surfacing toasts and optionally closing the modal / resuming time. */
-      const apply = (fn: (g: GameState) => GameState, opts: { close?: boolean; resume?: boolean } = {}) => {
+      /**
+       * `patch` with the tutorial moved on by `trigger` (`stepAfter`). Entering a step that holds stops the clock the
+       * way a decision does, overriding a command's resume, except for a step entered before its anchor can exist:
+       * running the clock opens the pitch step (the manuscript's own auto-pause stops it there) and a submission opens
+       * the breakdown step (the result's own auto-pause stops it there). The goal step with no milestone left ends the
+       * tutorial instead (`settleStep`). With the tutorial done (-1), or in a tab that does not own the save, the patch
+       * is returned as it was.
+       */
+      const withTutorial = (patch: Partial<Store>, trigger: TutorialTrigger): Partial<Store> => {
+        const { tutorialStep: step, readOnly, game } = get()
+        if (readOnly) return patch
+        const after = stepAfter(step, trigger)
+        const g = patch.game ?? game
+        const next = g ? settleStep(after, g) : after
+        if (next === step) return patch
+        const moved = { ...patch, tutorialStep: next }
+        const early = trigger === 'clock-run' || trigger === 'submitted'
+        return next >= 0 && STEPS[next].holds && !early ? pauseForDecision(moved) : moved
+      }
+
+      /** Apply a sim command, surfacing toasts, optionally closing the modal / resuming time, and moving the tutorial. */
+      const apply = (
+        fn: (g: GameState) => GameState,
+        opts: { close?: boolean; resume?: boolean; trigger?: TutorialTrigger } = {},
+      ) => {
         const { game, toasts, resumeSpeed } = get()
         if (!game) return
         const next = fn(game)
@@ -369,7 +412,7 @@ export const useStore = create<Store>()(
         if (added.length) patch.toasts = mergeToasts(toasts, added)
         if (opts.close) patch.modal = 'none'
         if (opts.resume) patch.speed = resumeSpeed
-        set(patch)
+        set(opts.trigger ? withTutorial(patch, opts.trigger) : patch)
         noteBadges(game, next)
       }
 
@@ -469,7 +512,8 @@ export const useStore = create<Store>()(
         loadSave: (save) => {
           if (get().readOnly || !isOwner()) return false
           set({
-            game: save.game, tutorialStep: save.tutorialStep, resumeSpeed: save.resumeSpeed, speed: 0, modal: 'none',
+            game: save.game, tutorialStep: resumeTutorialStep(save.tutorialStep, save.game), resumeSpeed: save.resumeSpeed,
+            speed: 0, modal: 'none',
             toasts: [{ id: toastSeq++, kind: 'success', text: 'Save loaded' }], saveLoads: get().saveLoads + 1,
           })
           // A save of the same career is not a replaced game to the save storage, so it would wait for the debounce.
@@ -478,12 +522,18 @@ export const useStore = create<Store>()(
         },
 
         tick: () => {
-          const { game, toasts } = get()
+          const { game, toasts, tutorialStep, readOnly } = get()
           if (!game) return
           const next = sim.tick(game)
-          const patch: Partial<Store> = { game: next }
+          const base: Partial<Store> = { game: next }
+          // The tutorial follows the game: a phase change mid-step (a manuscript finished) resumes it, with no pause of
+          // its own (the decision pause below covers it). The goal step settles too (the last milestone reached).
+          if (tutorialStep >= 0 && !readOnly) {
+            const step = settleStep(phaseOf(game) !== phaseOf(next) ? resumeTutorialStep(tutorialStep, next) : tutorialStep, next)
+            if (step !== tutorialStep) base.tutorialStep = step
+          }
           const added = newToasts(game, next)
-          if (added.length) patch.toasts = mergeToasts(toasts, added)
+          if (added.length) base.toasts = mergeToasts(toasts, added)
           // Auto-pause whenever the game needs a decision from the player.
           const deskEmptied = !!game.project && !next.project && !next.pendingResult
           const tripEnded = !!game.trip && !next.trip
@@ -495,19 +545,15 @@ export const useStore = create<Store>()(
             tripEnded ||
             (!!next.event && !game.event) ||
             (!!next.animeOffer && !game.animeOffer)
-          if (needsDecision) {
-            patch.speed = 0
-            patch.deskHidden = false
-          }
-          set(patch)
+          set(needsDecision ? pauseForDecision(base) : base)
           noteBadges(game, next)
         },
 
-        setSpeed: (s) => set(s === 0 ? { speed: 0 } : { speed: s, resumeSpeed: s }),
+        setSpeed: (s) => set(s === 0 ? { speed: 0 } : withTutorial({ speed: s, resumeSpeed: s }, 'clock-run')),
 
         togglePause: () => {
           const { speed, resumeSpeed } = get()
-          set({ speed: speed === 0 ? resumeSpeed : 0 })
+          set(speed === 0 ? withTutorial({ speed: resumeSpeed }, 'clock-run') : { speed: 0 })
         },
 
         openModal: (m) => {
@@ -516,13 +562,18 @@ export const useStore = create<Store>()(
           if (m === 'wizard' && (g.project || g.trip)) return
           if (m === 'submit' && sim.getPhase(g) !== 'ready') return
           if (m === 'year' && !g.yearReviews.length) return
-          set({ modal: m })
+          const opened = m === 'wizard' ? 'wizard-opened' : m === 'submit' ? 'submit-opened' : null
+          set(opened ? withTutorial({ modal: m }, opened) : { modal: m })
         },
-        closeModal: () => set({ modal: 'none' }),
+        closeModal: () => {
+          const { modal } = get()
+          const closed = modal === 'wizard' ? 'wizard-closed' : modal === 'submit' ? 'submit-closed' : null
+          set(closed ? withTutorial({ modal: 'none' }, closed) : { modal: 'none' })
+        },
 
-        startProject: (d) => apply((g) => sim.startProject(g, d), { close: true, resume: true }),
-        submitProject: (m) => apply((g) => sim.submitProject(g, m), { close: true, resume: true }),
-        dismissResult: () => apply((g) => sim.dismissResult(g)),
+        startProject: (d) => apply((g) => sim.startProject(g, d), { close: true, resume: true, trigger: 'project-started' }),
+        submitProject: (m) => apply((g) => sim.submitProject(g, m), { close: true, resume: true, trigger: 'submitted' }),
+        dismissResult: () => apply((g) => sim.dismissResult(g), { trigger: 'result-dismissed' }),
         acceptOffer: () => apply((g) => sim.acceptOffer(g), { resume: true }),
         declineOffer: () => apply((g) => sim.declineOffer(g)),
         endSerial: () => apply((g) => sim.endSerial(g), { close: true }),
@@ -549,7 +600,19 @@ export const useStore = create<Store>()(
           if (next.muted === current.muted && next.volume === current.volume && next.music === current.music) return
           set({ sound: next })
         },
-        finishTutorial: () => set({ tutorialStep: -1 }),
+        advanceTutorial: (trigger) => set(withTutorial({}, trigger)),
+        skipTutorial: () => {
+          if (!get().readOnly) set({ tutorialStep: -1 })
+        },
+        replayTutorial: () => {
+          const { game, readOnly } = get()
+          if (!game || readOnly || game.pendingResult || game.pendingOffer) return false
+          const step = replayStepFor(game)
+          // a step whose control cannot show yet (on a trip) waits without stopping the clock
+          const patch: Partial<Store> = { tutorialStep: step, modal: 'none' }
+          set(canPoint(step, game) ? pauseForDecision(patch) : patch)
+          return true
+        },
 
         setWindowHidden: (hidden) => {
           const { windowHidden, speed } = get()
@@ -577,6 +640,10 @@ export const useStore = create<Store>()(
           ...current, ...p, game: p.game ? upgradeSave(p.game) : null, sound: normalizeSound(p.sound),
           saveLoads: current.saveLoads + 1,
         }
+        // A saved step resumes against the game it was saved with (an old save's step 0 on a played career ends it).
+        merged.tutorialStep = merged.game && typeof p.tutorialStep === 'number'
+          ? resumeTutorialStep(p.tutorialStep, merged.game)
+          : -1
         // What just loaded is the baseline for the reference check, so opening a modal after a reload does not write.
         lastAccepted = {
           game: merged.game, theme: merged.theme, resumeSpeed: merged.resumeSpeed, tutorialStep: merged.tutorialStep,

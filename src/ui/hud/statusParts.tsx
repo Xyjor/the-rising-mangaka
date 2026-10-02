@@ -25,7 +25,7 @@ export const ActivityControls = memo(function ActivityControls() {
     <div className="activity-block">
       <div className="row between wrap">
         <span className="lbl">Today</span>
-        <div className="seg" role="group" aria-label="Activity">
+        <div className="seg" role="group" aria-label="Activity" data-tutorial="activity">
           <button aria-pressed={activity === 'work'} onClick={() => setActivity('work')} disabled={asleep} title={asleep ? 'Back at the desk when stamina reaches 60%' : 'Work (W)'}><Icon name="pen" size={16} /> Draw</button>
           <button aria-pressed={activity === 'rest'} onClick={() => setActivity('rest')} title="Rest (R)"><Icon name="moon" size={16} /> Rest</button>
           <button aria-pressed={activity === 'job'} onClick={() => setActivity('job')} title="Part-time job (J)"><Icon name="briefcase" size={16} /> Job</button>

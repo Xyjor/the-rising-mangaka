@@ -5,25 +5,6 @@ import { Icon } from '../Icon'
 import { Metric } from '../components'
 import { plural } from '../format'
 import { ActivityControls, Eta, RestJobControls, SerialStatus, TripCard } from './statusParts'
-import { COACH } from './statusText'
-
-export function CoachNote() {
-  const tutorialStep = useStore((s) => s.tutorialStep)
-  const finishTutorial = useStore((s) => s.finishTutorial)
-  const trip = useStore((s) => !!s.game?.trip)
-  const phase = useStore((s) => getPhase(s.game!))
-  if (tutorialStep === -1 || trip) return null
-  return (
-    <div className="coach speech" role="note">
-      <Icon name="sparkle" />
-      <div className="grow">
-        <div className="who">Getting started</div>
-        <div>{COACH[phase]}</div>
-      </div>
-      <button className="btn ghost sm" onClick={finishTutorial} aria-label="Hide getting-started notes"><Icon name="close" size={14} /></button>
-    </div>
-  )
-}
 
 export function StatusCard() {
   const game = useStore((s) => s.game)!
@@ -34,7 +15,6 @@ export function StatusCard() {
 
   return (
     <div className="status-stack">
-      <CoachNote />
       <section className="card status-card" aria-label="Current project">
         {game.trip && <div className="span"><TripCard /></div>}
 
@@ -44,7 +24,7 @@ export function StatusCard() {
               <div className="doodle"><Icon name="pen" size={40} /></div>
               <div className="panel-title">Your desk is clear</div>
               <p className="muted small">No manga in progress. Start one when you are ready, or pick up part-time work.</p>
-              <button className="btn primary lg" onClick={() => openModal('wizard')}>
+              <button className="btn primary lg" data-tutorial="plan" onClick={() => openModal('wizard')}>
                 Plan a new manga <span className="kbd">N</span>
               </button>
             </div>
@@ -62,7 +42,7 @@ export function StatusCard() {
               <p className="small muted">
                 {plural(ser.pending.length, 'chapter')} still waiting for reader votes. You can start a new one-shot meanwhile.
               </p>
-              <button className="btn primary" onClick={() => openModal('wizard')}>Plan a new manga</button>
+              <button className="btn primary" data-tutorial="plan" onClick={() => openModal('wizard')}>Plan a new manga</button>
             </div>
             <div className="status-right"><RestJobControls /></div>
           </>
@@ -102,7 +82,7 @@ export function StatusCard() {
               {phase === 'submitted' && <RestJobControls />}
               {p.kind === 'serial' && ser && <SerialStatus />}
               {phase === 'ready' && (
-                <button className="btn primary lg block" onClick={() => openModal('submit')}>
+                <button className="btn primary lg block" data-tutorial="pitch" onClick={() => openModal('submit')}>
                   Pitch to a magazine <span className="kbd">M</span>
                 </button>
               )}

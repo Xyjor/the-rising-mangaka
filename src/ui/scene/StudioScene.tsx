@@ -6,13 +6,13 @@ import type { StudioLook } from '../../sim'
 import { useClock } from '../../state/clock'
 import { useStore } from '../../state/store'
 import { prefersReducedMotion } from '../motion'
-import { anyWalking, newActorTable, planActors, settleActors, stepActors } from './actors'
+import { anyWalking, editorWalksIn, newActorTable, planActors, settleActors, stepActors } from './actors'
 import { H, W, render } from './render'
 import { onSceneImageLoad, sceneImages } from './sceneImages'
 import type { Snapshot } from './render'
 import { seasonOf } from './season'
 import { NO_STORY, storyLook } from './story'
-import { GREETING, PROP_FOR, visitorReasonOf } from './visitor'
+import { GREETING, PROP_FOR, sceneReasonOf, visitorReasonOf } from './visitor'
 import { BUBBLE_MS, Bubble } from './Bubble'
 import { sceneToCss, useSceneRect } from './sceneAnchor'
 import { Pops, popsFor } from './Pops'
@@ -77,7 +77,10 @@ export function StudioScene({ running }: { running: boolean }) {
   // the generated room and prop images (built once for the app, each drawn once it has loaded)
   const [art] = useState(sceneImages)
   const saveLoads = useStore((s) => s.saveLoads)
-  const reason = useStore((s) => visitorReasonOf(s.game))
+  // the tutorial keeps the editor at the spot when nothing else brings them (visitor.ts)
+  const reason = useStore((s) => sceneReasonOf(s.game, s.tutorialStep))
+  // the guide's bubble speaks for the editor while it is on screen (not while a step waits for its control)
+  const guided = useClock((c) => c.guideVisible)
   // Walks everyone for dtMs; the editor coming to a stand is an arrival, and knocks (never in a read-only tab or while
   // the window is hidden). A settle (mount, loaded save) is not a step, so it never knocks.
   const advance = useCallback((dtMs: number, reduced: boolean) => {
@@ -85,8 +88,8 @@ export function StudioScene({ running }: { running: boolean }) {
     stepActors(actors, dtMs, reduced)
     if (before !== 'standing' && actors.editor.state === 'standing') {
       const st = useStore.getState()
-      const why = visitorReasonOf(st.game)
-      if (why !== 'none') setGreeting(GREETING[why])
+      const why = sceneReasonOf(st.game, st.tutorialStep)
+      if (GREETING[why]) setGreeting(GREETING[why])
       if (!st.readOnly && !st.windowHidden) getSound().play('knock')
     }
   }, [actors])
@@ -145,10 +148,17 @@ export function StudioScene({ running }: { running: boolean }) {
   useEffect(() => {
     let seen = lastLogId(useStore.getState().game)
     let loads = useStore.getState().saveLoads
+    let visit = sceneReasonOf(useStore.getState().game, useStore.getState().tutorialStep)
     let timer: ReturnType<typeof setTimeout> | undefined
     const unsub = useStore.subscribe((st) => {
       // the editor's greeting lasts as long as the visit
       if (visitorReasonOf(st.game) === 'none') setGreeting(null)
+      // an editor already standing there for the tutorial who now has a real reason says it (no walk, so no arrival)
+      const why = sceneReasonOf(st.game, st.tutorialStep)
+      if (why !== visit) {
+        if (visit === 'tutorial' && GREETING[why] && actors.editor.state === 'standing') setGreeting(GREETING[why])
+        visit = why
+      }
       const id = lastLogId(st.game)
       const loaded = st.saveLoads !== loads
       if (id === seen && !loaded) return
@@ -189,12 +199,16 @@ export function StudioScene({ running }: { running: boolean }) {
   useLayoutEffect(() => {
     rectRef.current = rect
     placeBubbles()
-  }, [placeBubbles, rect, line, greeting])
+  }, [placeBubbles, rect, line, greeting, guided])
 
-  // On mount and on a loaded save everyone is simply in place: nobody walks in. (After the plan above: effects run in
-  // order.) The repaint follows on the loop's next step, which sees the changed actors through lastSnap being reset.
+  // On mount and on a loaded save everyone is simply in place: nobody walks in, except the editor opening a new
+  // career's tutorial (step 0 only resumes on a fresh career), who arrives and knocks. (After the plan above: effects
+  // run in order.) The repaint follows on the loop's next step, which sees the changed actors through lastSnap being
+  // reset.
   useEffect(() => {
     settleActors(actors)
+    const st = useStore.getState()
+    if (st.tutorialStep === 0 && sceneReasonOf(st.game, 0) === 'tutorial') editorWalksIn(actors)
     lastSnap.current = null
   }, [actors, saveLoads])
 
@@ -271,7 +285,7 @@ export function StudioScene({ running }: { running: boolean }) {
       </div>
       {line && <Bubble key={line.id} ref={mangakaBubble} who="mangaka" text={line.text} />}
       <Pops rect={rect} anchor={popAnchor} />
-      {greeting && <Bubble ref={editorBubble} who="editor" text={greeting} />}
+      {greeting && !guided && <Bubble ref={editorBubble} who="editor" text={greeting} />}
       {showPaused && (
         <div className="scene-paused" aria-hidden="true"><span>Paused</span></div>
       )}

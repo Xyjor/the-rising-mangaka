@@ -41,7 +41,15 @@ afterAll(() => {
 })
 
 describe('loadSave', () => {
-  it('installs the game, its tips step and speed, stops the clock, closes the modal and toasts', () => {
+  it('resumes the tutorial step against the game it installs, even for a file that skipped parseSave', () => {
+    // A leftover step 0 on a played career ends the tutorial; a step of the game's phase stays.
+    expect(st().loadSave({ game: tickMany(createGame('Rin', 42), 30), tutorialStep: 0, resumeSpeed: 1 })).toBe(true)
+    expect(st().tutorialStep).toBe(-1)
+    expect(st().loadSave({ game: tickMany(createGame('Rin', 42), 30), tutorialStep: 9, resumeSpeed: 1 })).toBe(true)
+    expect(st().tutorialStep).toBe(9)
+  })
+
+  it('installs the game, its tutorial step and speed, stops the clock, closes the modal and toasts', () => {
     const file = fileOf(tickMany(createGame('Rin', 42), 30))
     const loadsBefore = st().saveLoads
     expect(st().loadSave(file)).toBe(true)

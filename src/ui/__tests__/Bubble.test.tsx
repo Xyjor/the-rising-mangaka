@@ -4,9 +4,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import '../../test/dom'
 import { stubReducedMotion } from '../../test/dom'
 import { fakeContext } from '../../test/fakeCanvas'
-import { PLACES, addLog, createGame, startTrip } from '../../sim'
+import { PLACES, addLog, createGame, startProject, startTrip } from '../../sim'
 import type { GameState } from '../../sim'
-import { withPendingResult } from '../../test/fixtures'
+import { DRAFT, withPendingResult } from '../../test/fixtures'
 import { useClock } from '../../state/clock'
 import { useStore } from '../../state/store'
 import { StudioScene } from '../scene/StudioScene'
@@ -22,8 +22,8 @@ beforeEach(() => {
   restoreMotion = stubReducedMotion(true)
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(fakeContext().ctx as never)
   game = createGame('Rin', 1)
-  useStore.setState({ game, speed: 0, modal: 'none', toasts: [], tutorialStep: 0, readOnly: false })
-  useClock.setState({ t: 0.3 })
+  useStore.setState({ game, speed: 0, modal: 'none', toasts: [], tutorialStep: -1, readOnly: false })
+  useClock.setState({ t: 0.3, guideVisible: false })
 })
 
 afterEach(() => {
@@ -72,6 +72,32 @@ describe('speech bubbles', () => {
     expect(b).toHaveLength(1)
     expect(b[0].textContent).toBe('The poll results are in.')
     act(() => useStore.setState({ game: { ...pending, pendingResult: null } }))
+    expect(bubbles('editor')).toHaveLength(0)
+  })
+
+  it('hides the editor greeting while the tutorial guide is visible', () => {
+    render(<StudioScene running={false} />)
+    act(() => useStore.setState({ game: withPendingResult() }))
+    expect(bubbles('editor')).toHaveLength(1)
+    act(() => useClock.setState({ guideVisible: true }))
+    expect(bubbles('editor')).toHaveLength(0)
+    act(() => useClock.setState({ guideVisible: false }))
+    expect(bubbles('editor')).toHaveLength(1)
+  })
+
+  it('a step that is open but waiting (the pitch step while drawing) leaves a real greeting alone', () => {
+    const drawing = startProject(game, DRAFT)
+    useStore.setState({ game: drawing, tutorialStep: 5 })
+    render(<StudioScene running={false} />)
+    act(() => useStore.setState({ game: { ...drawing, event: { id: 'letter', day: 1, expiresDay: 8 } } }))
+    expect(bubbles('editor')).toHaveLength(1)
+    expect(bubbles('editor')[0].textContent).toBe('A letter came for you.')
+  })
+
+  it('the editor visiting for the tutorial says nothing in the scene', () => {
+    render(<StudioScene running={false} />)
+    act(() => useStore.setState({ tutorialStep: 0 }))
+    act(() => useStore.setState({ tutorialStep: -1 }))
     expect(bubbles('editor')).toHaveLength(0)
   })
 

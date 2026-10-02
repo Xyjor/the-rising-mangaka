@@ -10,7 +10,7 @@ export function NextGoal() {
   const openModal = useStore((s) => s.openModal)
   if (!m || trip) return null
   return (
-    <div className="card flat next-goal" role="note">
+    <div className="card flat next-goal" role="note" data-tutorial="next-goal">
       <Icon name="star" />
       <div className="grow">
         <span className="lbl">Next goal</span>

@@ -30,7 +30,7 @@ let lastId = 0
 let pendingId = 0
 
 beforeEach(() => {
-  useStore.setState({ game: withPendingResult(), tutorialStep: 0, readOnly: false })
+  useStore.setState({ game: withPendingResult(), tutorialStep: 7, readOnly: false })
   now = MOUNT_AT
   frame = null
   lastId = 0
@@ -94,14 +94,14 @@ function withRival(rank: number, rival?: RivalPlacing): GameState {
 }
 
 describe('ResultsModal', () => {
-  it('clears the pending result and the tutorial hint when closed', () => {
+  it('clears the pending result and moves the tutorial past the breakdown when closed', () => {
     render(<Harness />)
     const closeButton = screen.getByRole('button', { name: /Back to the studio/i })
 
     fireEvent.click(closeButton)
 
     expect(useStore.getState().game!.pendingResult).toBeNull()
-    expect(useStore.getState().tutorialStep).toBe(-1)
+    expect(useStore.getState().tutorialStep).toBe(8)
   })
 })
 

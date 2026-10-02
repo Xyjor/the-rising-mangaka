@@ -6,11 +6,10 @@ import { createGame, startProject, startTrip, submitProject, tickMany } from '..
 import { useStore } from '../../state/store'
 import { DRAFT, drawUntilReady } from '../../test/fixtures'
 import { StatusCard } from '../hud/StatusCard'
-import { COACH } from '../hud/statusText'
 import { PLACE_ART } from '../art/registry'
 
 beforeEach(() => {
-  useStore.setState({ game: createGame('Rin', 1), tutorialStep: 0, readOnly: false, modal: 'none' })
+  useStore.setState({ game: createGame('Rin', 1), tutorialStep: -1, readOnly: false, modal: 'none' })
 })
 
 function region() {
@@ -18,15 +17,12 @@ function region() {
 }
 
 describe('StatusCard', () => {
-  it('coaches a fresh game and offers a new manga, rest or a job', () => {
+  it('offers a fresh game a new manga, rest or a job', () => {
     render(<StatusCard />)
-    expect(screen.getByRole('note').textContent).toContain(COACH.idle)
     expect(region().getByText('Your desk is clear')).toBeTruthy()
     expect(region().getByRole('button', { name: /Plan a new manga/ })).toBeTruthy()
     const activity = within(region().getByRole('group', { name: 'Activity' }))
     expect(activity.getAllByRole('button').map((b) => b.textContent?.trim())).toEqual(['Rest', 'Job'])
-    fireEvent.click(screen.getByRole('button', { name: 'Hide getting-started notes' }))
-    expect(useStore.getState().tutorialStep).toBe(-1)
   })
 
   it('shows drawing controls and page progress while drawing', () => {
@@ -52,13 +48,12 @@ describe('StatusCard', () => {
     expect(region().getByRole('progressbar', { name: 'Waiting for results' })).toBeTruthy()
   })
 
-  it('shows the trip, with no coaching, while away', () => {
+  it('shows the trip while away', () => {
     const g = createGame('Rin', 1)
     useStore.setState({ game: startTrip({ ...g, player: { ...g.player, money: 100000 } }, 'library') })
     render(<StatusCard />)
     expect(region().getByText('Away')).toBeTruthy()
     expect(document.querySelector(`.postcard img[src="${PLACE_ART.library.src}"]`)).not.toBeNull()
     expect(region().getByRole('progressbar', { name: 'Trip progress' })).toBeTruthy()
-    expect(screen.queryByRole('note')).toBeNull()
   })
 })

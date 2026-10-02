@@ -3,6 +3,7 @@
 import { describeDate, getPhase, shortDate, tick } from '../sim'
 import type { GameState } from '../sim'
 import { upgradeSave } from '../sim/migrate'
+import { resumeTutorialStep } from './tutorial'
 
 /** The shape of the saved game, in the browser and in a file. A save of another version is not loaded. */
 export const SAVE_VERSION = 2
@@ -16,7 +17,7 @@ export const MAX_SAVE_FILE_CHARS = 5_000_000
 /** What a save file carries. The theme and sound are this computer's, not the career's, so they stay behind. */
 export interface SaveFile {
   game: GameState
-  /** -1 when the player dismissed tips. */
+  /** The tutorial's step (an index into tutorial.ts's `STEPS`), -1 once it is done or skipped. */
   tutorialStep: number
   resumeSpeed: 1 | 2 | 3
 }
@@ -66,8 +67,9 @@ function looksLikeGame(g: Record<string, unknown>): boolean {
 
 /**
  * Reads a save file strictly: the text must be a Rising Mangaka save of this version whose game the sim can upgrade and
- * run a day of. Fields a save predates are filled as a stored save's are (`upgradeSave`); a missing or broken tips step
- * reads as tips dismissed, and a speed other than 1, 2 or 3 as 1.
+ * run a day of. Fields a save predates are filled as a stored save's are (`upgradeSave`); a missing or broken tutorial
+ * step reads as the tutorial done (-1), any other resumes against the game (`resumeTutorialStep`), and a speed other
+ * than 1, 2 or 3 reads as 1.
  */
 export function parseSave(text: string): ParsedSave {
   const fail = (error: SaveFileError): ParsedSave => ({ ok: false, error })
@@ -101,7 +103,7 @@ export function parseSave(text: string): ParsedSave {
     ok: true,
     save: {
       game,
-      tutorialStep: typeof step === 'number' && Number.isInteger(step) ? step : -1,
+      tutorialStep: typeof step === 'number' ? resumeTutorialStep(step, game) : -1,
       resumeSpeed: speed === 1 || speed === 2 || speed === 3 ? speed : 1,
     },
   }

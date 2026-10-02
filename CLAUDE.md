@@ -59,11 +59,11 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   `profile.ts` is the cross-save badge profile (`rising-mangaka-profile`: the first time each badge was earned in any
   career), written after a tick or command that grew `game.badges`, by the tab that owns the save only.
   `clock.ts` is a separate, never-persisted presentation-time store: `t` (the week-long light cycle position),
-  `isNight`, and `logSeenId` (the studio log's read marker).
+  `isNight`, `logSeenId` (the studio log's read marker) and `guideVisible` (the tutorial guide is on screen).
   `saveFile.ts` owns `SAVE_VERSION`, the saved log length and the save file (`serializeSave`; `parseSave`, strict,
   every refusal a `SaveFileError`; `saveFileName`; `storedSaveFile` for the recovery screen); the store's `loadSave`
   installs a parsed file (refused in a tab that does not own the save), bumps `saveLoads` and writes at once.
-  `slots.ts` holds the three save slots: `rising-mangaka-save-1/-2/-3` (the career: game, tips step, run speed), the
+  `slots.ts` holds the three save slots: `rising-mangaka-save-1/-2/-3` (the career: game, tutorial step, run speed), the
   index `rising-mangaka-slots` (`{ active }` only) and `rising-mangaka-prefs` (theme, sound, shared by every slot);
   `migrateLegacy` runs once before the store hydrates and copies the 0.5.0 key `rising-mangaka-save` into an empty
   slot 1 (verified byte for byte, rolled back on any failure, which falls back to the old key for that run; never
@@ -73,7 +73,16 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   (flush, switch, rehydrate), `startInSlot`, `backToTitle` (Settings' "Back to the title screen"), `deleteSlot`
   (never the legacy key or the open slot), `loadSaveIntoSlot`; all refused in a read-only tab, which follows the
   owner's index and slot through its `storage` listener. `slotSummary` (`saveFile.ts`) reads a slot card's summary.
-  Sim commands go through the `apply()` helper so toasts and auto-resume stay consistent. `setWindowHidden` (from
+  Sim commands go through the `apply()` helper so toasts and auto-resume stay consistent. `tutorial.ts` is the guided
+  first career, pure: `STEPS` (twelve steps, each an anchor, the editor's line, the trigger that finishes it, its
+  phase), `phaseOf` (a waiting result reads as submitted), `stepAfter`, `resumeTutorialStep` (run by the persist
+  `merge`, `parseSave`, `loadSave`, and `tick` when the phase changes), `settleStep` (the goal step ends with no milestone
+  left), `canPoint` (whether the game lets a step's control show) and `replayStepFor`; the persisted `tutorialStep` is the step index per career, -1 done (a new game starts at 0). The
+  store moves it through `withTutorial(patch, trigger)`: `apply`'s optional trigger (startProject, submitProject,
+  dismissResult), `openModal`/`closeModal` on the wizard and the pitch window, `setSpeed`/`togglePause` running the
+  clock, and `advanceTutorial(trigger)` (the guide's Next), never in a read-only tab; entering a step pauses through
+  `pauseForDecision`, the patch `tick`'s auto-pause uses, except steps 5 and 7, entered before their anchor exists. `skipTutorial` ends it (the guide's Skip, and Settings' Help while a step is open), `replayTutorial` (Settings' Help) restarts it at
+  `replayStepFor`, pausing only when `canPoint`. The 0.7.0 getting-started coach note (`CoachNote`, `COACH`) is gone. `setWindowHidden` (from
   the page's `visibilitychange` and the desktop shell's minimise) stops the clock and suspends the sound; the
   non-persisted `windowHidden` flag keeps that pause silent. `flushSave` writes the debounced save at once. The tab
   lock (`tabLock.ts`) runs in a browser only; the desktop app calls `disableTabLock()` (one window, single instance).
@@ -124,7 +133,9 @@ canvas space; `story.ts` `storyLook`, the story props' five snapshot inputs read
   drawn, plus the kitchenette, the entrance, the volumes, anime poster, trophies and lights); `actors.ts` the cast as a
   table of actors (position, target, facing, pose, which axis it walks first) driven by `planActors`/`stepActors`/
   `settleActors` at `WALK_PX_PER_S`, and `EDITOR_WALK_MS`; `visitor.ts` the editor's reason for visiting, its prop and
-  its greeting; `sceneAnchor.ts` `sceneToCss` mapping scene pixels to the canvas's cover-fit CSS box; `Bubble.tsx`
+  its greeting (`sceneReasonOf` adds `tutorial`, the lowest reason: the editor stands at the spot while a tutorial step
+  is open, empty-handed and silent, walking in on a new career's step 0 through `actors.ts` `editorWalksIn`, and the
+  scene's greeting bubble hides while the guide is on screen, `clock.ts` `guideVisible`, not while a step waits); `sceneAnchor.ts` `sceneToCss` mapping scene pixels to the canvas's cover-fit CSS box; `Bubble.tsx`
   and `Pops.tsx` the DOM speech bubbles and floating money/fans/xp numbers, styled by `scene.css`;
   `StudioScene.tsx` is the component and its 24 fps frame loop (reading `studioLook` through `useShallow`, lighting
   from the presentation clock, playing the `knock` and `pop` cues); every render is checked against a hand-measured
@@ -133,7 +144,12 @@ canvas space; `story.ts` `storyLook`, the story props' five snapshot inputs read
   `render.test.ts` 509) and must stay under 1.5x it),
   `components.tsx` (Bar, Pips, Modal, RankChart), `format.ts` (money/compact/plural formatters), `Icon.tsx`
   (inline SVG icon set), `SaveFileSection.tsx` and `useSaveFile.ts` (export and load, in Settings and on the
-  title screen), and
+  title screen), `TutorialGuide.tsx` (the tutorial's overlay, mounted after `<Toasts />`: it finds the current
+  step's control by its `data-tutorial` anchor, the `TutorialAnchor` names in `state/tutorial.ts`, and draws a
+  click-through spotlight plus the editor's bubble, portalled into the dialog when the anchor is inside one; a missing
+  anchor shows nothing and the step waits; the bubble's placement is the pure `tutorialPlace.ts`; styles in
+  `tutorial.css`; a renamed or moved control keeps its anchor:
+  `TutorialGuide.test` fails otherwise), and
   `ErrorBoundary.tsx` (wraps `App` in `main.tsx`; a render crash shows a recovery screen that exports the stored save
   and starts over, or in a tab that does not own the save, reloads). Tests live in `src/ui/__tests__` and
   `src/ui/scene/__tests__`; see the UI-test docblock rule under Commands above.
@@ -177,7 +193,8 @@ canvas space; `story.ts` `storyLook`, the story props' five snapshot inputs read
 - Log entries: `addLog(state, kind, text, toast)`. `toast: true` only for things the player must notice; chapter results
   and money events are toasts, daily chatter is not. Identical toasts are de-duplicated by the store.
 - The clock auto-pauses whenever the game needs a decision (manuscript ready, poll result, serialisation offer,
-  a serial is cancelled, a trip ends, a random event or an anime offer lands). Keep it that way for any new blocking
+  a serial is cancelled, a trip ends, a random event or an anime offer lands), and on entering a tutorial step, except
+  one whose control cannot show yet (`withTutorial`, `replayTutorial`). Keep it that way for any new blocking
   decision. The year end is not a decision: it toasts and leaves its review on the desk, and the clock keeps running.
   Hiding or minimising the window stops the clock too (silently) and suspends the sound; showing it resumes the sound
   only, and the player restarts the clock.
@@ -199,6 +216,8 @@ canvas space; `story.ts` `storyLook`, the story props' five snapshot inputs read
 - Touch targets are at least 44px on coarse pointers (`base.css` handles `.btn`, `.seg button`, `.steps button`,
   `.toast button`, `.rail .btn` and `.badge-hud.as-button`).
 - Colours come from tokens (`var(--accent)` etc.), never raw hex in components. Both themes must work.
+- Stacking uses the z tokens (`tokens.css`): `--z-toast` 40, `--z-guide` 50 (the tutorial guide);
+  open dialogs sit in the browser's top layer above all of them. `--scrim` is the guide's dim.
 - Charts: one axis, thin marks, direct label on the last point, hover tooltip, a table view alongside.
 - Every result explains itself (the "show the why" pillar). Never add a hidden modifier without a UI hint.
 - On phones (<= 640 px) the studio scene collapses to a fixed 38vh band above the desk tray (`stage.css`); DOM order,

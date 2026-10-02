@@ -1,0 +1,64 @@
+/* The tutorial guide (TutorialGuide.tsx): a spotlight on one control and the editor's bubble beside it. The layer
+   never takes a click: only the bubble does. Inside an open dialog the layer is the dialog's own box and draws only the
+   ring (the backdrop already dims). */
+.tutorial-layer {
+  position: fixed; inset: 0; z-index: var(--z-guide); pointer-events: none;
+  /* entering a step fades the whole layer in (opacity only, on the compositor; base.css zeroes it under reduced
+     motion); the ring itself never animates, so it never flies in from where it was mounted */
+  animation: guide-in 160ms var(--ease-out) both;
+}
+@keyframes guide-in { from { opacity: 0; } to { opacity: 1; } }
+.tutorial-layer.in-dialog { position: absolute; z-index: 1; overflow: hidden; }
+
+/* Over the studio: the hole is the control's rect, the scrim is its spread shadow, the ring its border. Hard square
+   corners (no clip-path here: it would clip the scrim). */
+.tutorial-hole, .tutorial-ring {
+  position: absolute; left: 0; top: 0; width: 0; height: 0;
+  border: 3px solid var(--gold); border-radius: 0;
+}
+.tutorial-hole { box-shadow: 0 0 0 100vmax var(--scrim); }
+.tutorial-ring { box-shadow: 0 0 0 2px var(--line-strong); }
+
+/* The editor's bubble: the pixel-frame kit (hard border, bevel, hard shadow) on --panel. */
+.tutorial-bubble {
+  position: absolute; left: 0; top: 0; width: min(340px, calc(100% - 24px));
+  display: flex; flex-direction: column; gap: 6px; padding: 10px 14px 12px;
+  background: var(--panel); color: var(--ink);
+  border: 3px solid var(--line-strong); border-radius: 0;
+  box-shadow: inset 2px 2px 0 var(--bevel-light), inset -2px -2px 0 var(--bevel-dark), var(--shadow-ink);
+  font: 400 15px/1.45 var(--font-ui);
+  pointer-events: auto;
+}
+.tutorial-bubble .who { font-family: var(--font-display); font-size: 8px; line-height: 1; color: var(--ink-2); }
+.tutorial-bubble .line { margin: 0; }
+.tutorial-bubble .actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+.tutorial-bubble .actions .btn { min-height: 44px; }
+
+/* The speech tail, toward the control: --tail is its offset along that edge (tutorialPlace.ts). */
+.tutorial-bubble[data-side]::after {
+  content: ''; position: absolute; width: 10px; height: 10px; background: var(--panel);
+}
+.tutorial-bubble[data-side='above']::after, .tutorial-bubble[data-side='below']::after {
+  left: var(--tail, 50%); transform: translateX(-50%) rotate(45deg);
+}
+.tutorial-bubble[data-side='right']::after, .tutorial-bubble[data-side='left']::after {
+  top: var(--tail, 50%); transform: translateY(-50%) rotate(45deg);
+}
+.tutorial-bubble[data-side='above']::after {
+  bottom: -8px; border-right: 3px solid var(--line-strong); border-bottom: 3px solid var(--line-strong);
+}
+.tutorial-bubble[data-side='below']::after {
+  top: -8px; border-left: 3px solid var(--line-strong); border-top: 3px solid var(--line-strong);
+}
+.tutorial-bubble[data-side='right']::after {
+  left: -8px; border-left: 3px solid var(--line-strong); border-bottom: 3px solid var(--line-strong);
+}
+.tutorial-bubble[data-side='left']::after {
+  right: -8px; border-right: 3px solid var(--line-strong); border-top: 3px solid var(--line-strong);
+}
+
+/* Phone: the bubble docks as a bottom sheet, and the toasts (bottom-docked there, app.css) move above it. */
+.tutorial-bubble[data-dock='sheet'] { left: 12px; right: 12px; top: auto; bottom: 12px; width: auto; }
+@media (max-width: 640px) {
+  .app[data-guide] .toasts { bottom: calc(12px + var(--tutorial-sheet, 0px) + 8px); }
+}

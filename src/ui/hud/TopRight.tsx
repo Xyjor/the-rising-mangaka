@@ -32,7 +32,7 @@ function FansBadge() {
 function StaminaBadge() {
   const { stamina, max } = useStore(useShallow((s) => ({ stamina: s.game!.player.stamina, max: s.game!.player.maxStamina })))
   return (
-    <div className="badge-hud stat" title={`Stamina ${Math.round(stamina)} of ${max}`}>
+    <div className="badge-hud stat" data-tutorial="stamina" title={`Stamina ${Math.round(stamina)} of ${max}`}>
       <div className="head"><span className="lbl">Stamina</span><span className="num">{Math.round(stamina)}/{max}</span></div>
       <Bar value={stamina} max={max} tone={stamina < LOW_STAMINA_THRESHOLD ? 'accent' : 'green'} label="Stamina" />
     </div>

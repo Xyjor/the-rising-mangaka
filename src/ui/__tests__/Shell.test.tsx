@@ -14,16 +14,16 @@ import { useStore } from '../../state/store'
 import { DRAFT } from '../../test/fixtures'
 import { App } from '../App'
 
-function setup(tutorialStep: number) {
+function setup() {
   const game = startProject(createGame('Rin', 1), DRAFT)
   useStore.setState({
-    game, speed: 0, modal: 'none', toasts: [], tutorialStep, readOnly: false,
+    game, speed: 0, modal: 'none', toasts: [], tutorialStep: -1, readOnly: false,
   })
 }
 
 describe('Shell DOM order (phone stacking depends on this)', () => {
-  it('orders scene, then the Activity region, then the desk tray, then the rail, with no coach note', () => {
-    setup(-1)
+  it('orders scene, then the Activity region, then the desk tray, then the rail', () => {
+    setup()
     render(<App />)
 
     const scene = screen.getByRole('group', { name: 'Studio' })
@@ -35,19 +35,5 @@ describe('Shell DOM order (phone stacking depends on this)', () => {
     expect(scene.compareDocumentPosition(today) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(today.compareDocumentPosition(tray) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(tray.compareDocumentPosition(rail) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    // The Career desk card also has role "note" (its "Next goal" note); the coach's getting-started
-    // note is the one that only exists during the tutorial, so it is targeted by its own class.
-    expect(document.querySelector('.coach[role="note"]')).toBeNull()
-  })
-
-  it('puts the getting-started note before the Activity region during the tutorial', () => {
-    setup(0)
-    render(<App />)
-
-    const note = document.querySelector('.coach[role="note"]')
-    const region = screen.getByRole('region', { name: 'Current project' })
-
-    expect(note).not.toBeNull()
-    expect(note!.compareDocumentPosition(region) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 })

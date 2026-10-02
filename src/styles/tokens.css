@@ -86,6 +86,13 @@
 
   --title-scrim: rgba(250, 247, 240, 0.82);
   --title-scrim-clear: rgba(250, 247, 240, 0);
+  /* The tutorial guide's dim around the control it points at. */
+  --scrim: rgba(10, 10, 14, 0.45);
+
+  /* Stacking: toasts over the HUD, the tutorial guide over both. Open dialogs sit in the browser's top layer, above
+     all of them. */
+  --z-toast: 40;
+  --z-guide: 50;
 
   color-scheme: light;
 }
@@ -131,6 +138,7 @@
     --halftone: radial-gradient(rgba(242, 239, 230, 0.12) 1px, transparent 1.2px);
     --title-scrim: rgba(22, 23, 28, 0.82);
     --title-scrim-clear: rgba(22, 23, 28, 0);
+    --scrim: rgba(10, 10, 14, 0.6);
     color-scheme: dark;
   }
 }
@@ -175,5 +183,6 @@
   --halftone: radial-gradient(rgba(242, 239, 230, 0.12) 1px, transparent 1.2px);
   --title-scrim: rgba(22, 23, 28, 0.82);
   --title-scrim-clear: rgba(22, 23, 28, 0);
+  --scrim: rgba(10, 10, 14, 0.6);
   color-scheme: dark;
 }
