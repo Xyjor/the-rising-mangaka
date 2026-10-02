@@ -33,6 +33,8 @@ interface ManifestEntry {
   seam?: { src: number; dst: number }
   /** `code`: the scene draws this room's floor, so the image is the wall alone, the rows above the seam */
   floor?: 'code'
+  /** a wall's plaster flattened to its modal colour within an OKLab radius, before the palette snap */
+  flatten?: { radius: number }
   tolerance?: number
   holes?: [number, number][]
   flip?: boolean
@@ -197,11 +199,16 @@ describe('art manifest', () => {
         expect(e.crop[0] + e.crop[2] <= raw.width && e.crop[1] + e.crop[3] <= raw.height, `${e.id} crop`).toBe(true)
       }
     }
-    // only a room is seam-remapped or code-floored; a lightness weight, where set, is in (0, 1]
+    // only a room is seam-remapped or code-floored; a lightness weight, where set, is in (0, 1]; a flatten radius,
+    // where set, is in (0, 1] and only on a code-floored wall
     for (const e of manifest) {
       if (!e.id.startsWith('room/')) expect(e.seam, `${e.id} seam`).toBeUndefined()
       if (!e.id.startsWith('room/')) expect(e.floor, `${e.id} floor`).toBeUndefined()
       if (e.lightness !== undefined) expect(e.lightness > 0 && e.lightness <= 1, `${e.id} lightness`).toBe(true)
+      if (e.flatten !== undefined) {
+        expect(e.flatten.radius > 0 && e.flatten.radius <= 1, `${e.id} flatten radius`).toBe(true)
+        expect(e.floor, `${e.id} flatten needs floor "code"`).toBe('code')
+      }
     }
   })
 

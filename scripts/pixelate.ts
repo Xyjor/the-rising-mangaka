@@ -28,6 +28,7 @@ import {
   downsampleArea,
   downsampleNearest,
   findBlobs,
+  flattenToMode,
   flipHorizontal,
   floodTransparentFromEdges,
   padToAspect,
@@ -90,6 +91,12 @@ interface ManifestEntry {
    * above `seam.src` resampled to `native` (pixelOps `wallOnly`), whose height must be `seam.dst`.
    */
   floor?: 'code'
+  /**
+   * A wall's plaster flattened before the palette snap (pixelOps `flattenToMode`): every pixel within `radius` (OKLab
+   * distance) of the wall's modal colour becomes it, so a raw's vignette or light pool, which the snap would band into
+   * two creams, reads as one plaster while the wood, far from the mode, keeps its shading. Only with `floor: "code"`.
+   */
+  flatten?: { radius: number }
   /**
    * The cutout's flood tolerance (RGB distance from the corner colour), FLOOD_TOLERANCE when absent: raised where the
    * sheet drew a soft grey shadow under an object that the default leaves behind.
@@ -227,11 +234,13 @@ async function processEntry(entry: ManifestEntry): Promise<{ outPath: string; co
       throw new Error(`${entry.id}: floor "code" keeps the wall only, so native height ${nativeH} must be seam.dst ${entry.seam.dst}`)
     }
   }
+  if (entry.flatten && entry.floor !== 'code') throw new Error(`${entry.id}: flatten is for a wall`)
   if (entry.seam) {
     if (entry.cutout) throw new Error(`${entry.id}: a seam remap is for a room shell, not a cutout`)
     working = entry.floor === 'code'
       ? wallOnly(working, entry.seam.src, nativeW, nativeH, entry.sample)
       : remapSeam(working, entry.seam.src, nativeW, nativeH, entry.seam.dst, entry.sample)
+    if (entry.flatten) working = flattenToMode(working, entry.flatten.radius)
   } else {
     working =
       entry.sample === 'nearest'

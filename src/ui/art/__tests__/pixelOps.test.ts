@@ -6,6 +6,7 @@ import {
   downsampleArea,
   downsampleNearest,
   findBlobs,
+  flattenToMode,
   flipHorizontal,
   floodTransparentFromEdges,
   makeImage,
@@ -504,6 +505,42 @@ describe('wallOnly', () => {
   it('refuses a seam outside (0, height]', () => {
     expect(() => wallOnly(redOverBlue(), 0, 2, 1, 'area')).toThrow()
     expect(() => wallOnly(redOverBlue(), 5, 2, 1, 'area')).toThrow()
+  })
+})
+
+describe('flattenToMode', () => {
+  /** A 4x2 wall: five pixels of the plaster (200,180,150), two a shade darker (190,172,142), one of dark wood (60,40,20). */
+  function shadedWall() {
+    const img = makeImage(4, 2)
+    fill(img, 200, 180, 150)
+    setPixel(img, 0, 0, 190, 172, 142)
+    setPixel(img, 3, 1, 190, 172, 142)
+    setPixel(img, 2, 1, 60, 40, 20)
+    return img
+  }
+  const pixel = (img: ReturnType<typeof makeImage>, x: number, y: number) => Array.from(img.data.slice((y * img.width + x) * 4, (y * img.width + x) * 4 + 4))
+
+  it('sets every opaque pixel within the radius (OKLab) of the modal colour to that colour, and leaves the rest', () => {
+    const src = shadedWall()
+    const out = flattenToMode(src, 0.05)
+    expect([out.width, out.height]).toEqual([4, 2])
+    expect(pixel(out, 0, 0)).toEqual([200, 180, 150, 255])
+    expect(pixel(out, 3, 1)).toEqual([200, 180, 150, 255])
+    expect(pixel(out, 2, 1)).toEqual([60, 40, 20, 255])
+    expect(pixel(out, 1, 0)).toEqual([200, 180, 150, 255])
+    // the source is untouched
+    expect(pixel(src, 0, 0)).toEqual([190, 172, 142, 255])
+  })
+
+  it('changes nothing at radius 0', () => {
+    const src = shadedWall()
+    expect(Array.from(flattenToMode(src, 0).data)).toEqual(Array.from(src.data))
+  })
+
+  it('returns a fully transparent image unchanged', () => {
+    const src = makeImage(3, 2)
+    setPixel(src, 1, 1, 90, 80, 70, 0)
+    expect(Array.from(flattenToMode(src, 0.5).data)).toEqual(Array.from(src.data))
   })
 })
 

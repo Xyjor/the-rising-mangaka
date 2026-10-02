@@ -2619,14 +2619,13 @@
   },
   {
     "id": "room/apartment",
-    "source": "higgsfield:z_image",
-    "model": "z_image",
-    "resolution": "2048x1152",
-    "seed": null,
-    "job": "94938967-06d6-4698-9539-64b013e57a27",
-    "steps": null,
-    "shift": null,
-    "prompt": "Completely empty 16-bit pixel art video game background, straight-on orthographic view of the back wall of a small Japanese six-mat apartment room, no perspective, no side walls, no furniture, no window, no door, no objects, no people. Top: dark wooden ceiling with a horizontal nageshi beam across the full width. Middle: plain sand-coloured plaster wall with two slim vertical wooden pillars near the left and right edges and a wooden baseboard. The wall meets the floor in a perfectly straight horizontal line at 63 percent of the image height. Bottom: tatami mat floor seen from the front, two rows of mats with dark green cloth borders. Soft warm daylight from the top left, limited palette, crisp pixels, no text.",
+    "source": "hf-space:mcp-tools/Z-Image-Turbo",
+    "model": "Z-Image-Turbo",
+    "resolution": "2048x1152 ( 16:9 )",
+    "seed": 423969,
+    "steps": 8,
+    "shift": 3,
+    "prompt": "Completely empty 16-bit pixel art video game background, straight-on orthographic view of the back wall of a small Japanese six-mat apartment room, no perspective, no side walls, no furniture, no window, no door, no objects, no people. Top: dark wooden ceiling with a horizontal nageshi beam across the full width. Middle: plain sand-coloured plaster wall painted in one flat uniform colour, with two slim vertical wooden pillars near the left and right edges and a wooden baseboard. The wall meets the floor in a perfectly straight horizontal line at 80 percent of the image height; the floor may be cut off. Bottom: a thin strip of tatami mat floor seen from the front. Perfectly flat even lighting, no vignette, no gradient, no light pool, no shadows, uniform wall colour, limited palette, crisp pixels, no text.",
     "preamble": "none",
     "native": [
       320,
@@ -2642,16 +2641,19 @@
     },
     "lightness": 0.1,
     "crop": [
-      196,
-      0,
-      1618,
-      1152
+      130,
+      107,
+      1843,
+      1045
     ],
     "seam": {
-      "src": 882,
+      "src": 927,
       "dst": 114
     },
-    "floor": "code"
+    "floor": "code",
+    "flatten": {
+      "radius": 0.25
+    }
   },
   {
     "id": "room/flat",
