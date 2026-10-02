@@ -96,19 +96,25 @@ describe('the sprites', () => {
   // The contract tests below pass before Release B's redraw (no RED is possible for them): they are the shape every
   // redraw keeps, written from the rule rather than from cell literals, so a new drawing that keeps the rule passes.
   it('walks with the legs and arms swapping between the contact frames and the legs together on the pass frames', () => {
-    const [c0, p1, c2, p3] = MANGAKA_WALK
-    for (const pass of [p1, p3]) {
-      expect(pass[0]).toBe('.'.repeat(24)) // a row lower
-      for (let r = 26; r <= 29; r++) expect(oneSpan(pass[r]), `pass row ${r}`).toBe(true)
+    // the mangaka's legs span the frame; the editor's are read left of the briefcase (cols 18-23, task B4), which
+    // hangs beside them on every frame
+    for (const [name, frames, legs] of [['MANGAKA_WALK', MANGAKA_WALK, 24], ['EDITOR_WALK', EDITOR_WALK, 18]] as const) {
+      const [c0, p1, c2, p3] = frames
+      for (const pass of [p1, p3]) {
+        expect(pass[0], name).toBe('.'.repeat(24)) // a row lower
+        for (let r = 26; r <= 29; r++) expect(oneSpan(pass[r].slice(0, legs)), `${name} pass row ${r}`).toBe(true)
+      }
+      for (const contact of [c0, c2]) {
+        for (let r = 26; r <= 29; r++) expect(oneSpan(contact[r].slice(0, legs)), `${name} contact row ${r}`).toBe(false)
+      }
+      expect(c0.slice(25), name).not.toEqual(c2.slice(25)) // the legs swap
+      // the arm swing: in frame 0 the hand on the frame's left (cols 4-7; row 21 today) sits higher than the hand on
+      // its right (cols 16-19; row 23 today), and frame 2 swaps them
+      const [l0, r0, l2, r2] = [handRow(c0, 4, 7), handRow(c0, 16, 19), handRow(c2, 4, 7), handRow(c2, 16, 19)]
+      for (const row of [l0, r0, l2, r2]) expect(row, name).toBeGreaterThan(0)
+      expect(l0, name).toBeLessThan(r0)
+      expect([l2, r2], name).toEqual([r0, l0])
     }
-    for (const contact of [c0, c2]) for (let r = 26; r <= 29; r++) expect(oneSpan(contact[r]), `contact row ${r}`).toBe(false)
-    expect(c0.slice(25)).not.toEqual(c2.slice(25)) // the legs swap
-    // the arm swing: in frame 0 the hand on the frame's left (cols 4-7; row 21 today) sits higher than the hand on its
-    // right (cols 16-19; row 23 today), and frame 2 swaps them
-    const [l0, r0, l2, r2] = [handRow(c0, 4, 7), handRow(c0, 16, 19), handRow(c2, 4, 7), handRow(c2, 16, 19)]
-    for (const row of [l0, r0, l2, r2]) expect(row).toBeGreaterThan(0)
-    expect(l0).toBeLessThan(r0)
-    expect([l2, r2]).toEqual([r0, l0])
   })
 
   it('keeps the seated shoes still: the stroke frame moves only the hand', () => {
@@ -144,9 +150,10 @@ describe('the sprites', () => {
     expect(MANGAKA_LIE).toHaveLength(14)
     expect(MANGAKA_LIE.every((row) => row.length === 30)).toBe(true)
     expect(MANGAKA_LIE[2].indexOf('H')).toBe(16)
-    // the editor: hair row 2 col 8, glasses row 10 col 5, tie row 17 col 11, suit row 18 col 5, briefcase row 24 col 20
+    // the editor (task B4): hair row 2 col 8, the left lens's frame row 10 col 6 (col 5 is skin beside it), the tie's
+    // knot row 17 col 11, the suit's sleeve row 18 col 5, the briefcase row 24 col 20
     const e = EDITOR_IDLE[0]
-    expect([e[2][8], e[10][5], e[17][11], e[18][5], e[24][20]]).toEqual(['H', 'P', 'N', 'G', 'F'])
+    expect([e[2][8], e[10][5], e[10][6], e[17][11], e[18][5], e[24][20]]).toEqual(['H', 'S', 'P', 'N', 'G', 'F'])
     // the doze (generated, task C2): the head down on the folded arms, the hair from row 11, the arms on rows 27-30
     // (sleeves, j, since task B3's manifest remap)
     expect(ASSISTANT_DOZE[11][9]).toBe('H')
@@ -346,6 +353,83 @@ describe('the sprites', () => {
     // a j shoulder band on row 8 or 9 at cols 1-10, with the J body row right under it
     const band = [8, 9].some((r) => [...MANGAKA_LIE[r].slice(1, 11)].some((ch, c) => ch === 'j' && MANGAKA_LIE[r + 1][c + 1] === 'J'))
     expect(band).toBe(true)
+  })
+
+  // Task B4: the editor on that body, in a suit. Written from the brief's rules, not from cell literals; RED against the
+  // 0.8.0 editor (the grey G/g, a P bar across row 10 for the glasses, T/t trousers, red O shoes).
+  it('recolours the suit keys (G/g) to the sheet\'s navy, apart from the level-10 blazer', () => {
+    expect([PAL.G, PAL.g]).toEqual(['#3a3d4c', '#2c3656'])
+    expect(OUTFIT_PALS.blazer.J).not.toBe(PAL.G)
+    expect(OUTFIT_PALS.blazer.j).not.toBe(PAL.g)
+  })
+
+  it('gives the editor glasses: two framed lenses with an eye inside each, joined by one P cell, skin outside', () => {
+    for (const f of [EDITOR_IDLE[0], EDITOR_WALK[0], EDITOR_WALK[2]]) {
+      // row 10: S, a lens (P, the eye E with its W highlight, P), the bridge P, the other lens, S
+      const m = /S(P[EW][EW]P)(P)(P[EW][EW]P)S/.exec(f[10])
+      expect(m, f[10]).not.toBeNull()
+      const from = m!.index + 1 // the left lens's first column
+      const lens = (c: number) => [c, c + 1, c + 2, c + 3] as const
+      const [left, right] = [lens(from), lens(from + 5)]
+      for (const r of [9, 11]) {
+        for (const c of [...left, ...right]) expect(f[r][c], `row ${r} col ${c}`).toBe('P')
+        expect(f[r][from + 4], `row ${r} between the lenses`).toBe('S')
+        expect(f[r][from - 1], `row ${r} outside the left lens`).toBe('S')
+        expect(f[r][from + 9], `row ${r} outside the right lens`).toBe('S')
+      }
+      // an E in each lens
+      expect(f[10].slice(left[1], left[2] + 1)).toContain('E')
+      expect(f[10].slice(right[1], right[2] + 1)).toContain('E')
+      // never today's bar: P across the whole eye line
+      expect(f[10]).not.toMatch(/P{6,}/)
+    }
+    // the hair rows stay ANCHOR_HEAD's; the breath and the pass frames carry the same head a row lower
+    expect(EDITOR_IDLE[0].slice(0, 9)).toEqual(ANCHOR_HEAD.slice(0, 9))
+    expect(EDITOR_IDLE[1].slice(1, 13)).toEqual(EDITOR_IDLE[0].slice(0, 12))
+    expect(EDITOR_WALK[1].slice(1, 13)).toEqual(EDITOR_IDLE[0].slice(0, 12))
+  })
+
+  it('dresses the editor in a navy suit (G/g) over black shoes (E), a white collar (W) and a tie (N) down the chest', () => {
+    for (const [name, frames] of [['idle', EDITOR_IDLE], ['walk', EDITOR_WALK]] as const) {
+      frames.forEach((f, i) => {
+        // never the old near-black T/t trousers or the mangaka's red O/o shoes, and none of the mangaka's own keys
+        expect(f.join(''), `${name}[${i}]`).not.toMatch(/[TtOoJjKRYy]/)
+        // the trousers: G on every leg row, the shoes E on row 30
+        const from = name === 'walk' && i % 2 === 1 ? 26 : 25
+        for (let r = from; r <= 29; r++) expect(f[r], `${name}[${i}] row ${r}`).toContain('G')
+        expect(f[30], `${name}[${i}] row 30`).toContain('E')
+        // the collar: W either side of the neck (s) on row 16 (a row lower on the breath and the pass), the tie's
+        // column N from the knot on row 17 to row 21
+        const dy = name === 'idle' ? i : i % 2
+        expect(f[16 + dy].slice(6, 17), `${name}[${i}] row ${16 + dy}`).toMatch(/^[Gg]+W+s+W+[Gg]+$/)
+        for (let r = 17; r <= 21; r++) expect(f[r + dy][11], `${name}[${i}] row ${r + dy}`).toBe('N')
+      })
+    }
+    // the sleeves are the suit's G, three wide and seamed from the torso, the hands S/s under them, as the mangaka's
+    const e = EDITOR_IDLE[0]
+    expect(e[20]).toMatch(/^\.*L[Gg]{3}L/)
+    expect(e[22].slice(4, 7)).toMatch(/^[Ss]+$/)
+    for (const row of e) expect(row, row).not.toMatch(/S[Gg]|[Gg]S/)
+  })
+
+  it('hangs a 6x7 briefcase (F/f in its L box) at cols 18-23 from the trailing hand, a row lower on the pass frames', () => {
+    const box = (f: SpriteMap, top: number) => f.slice(top, top + 7).map((row) => row.slice(18, 24))
+    const isCase = (rows: string[]) => {
+      expect(rows[0]).toBe('LLLLLL')
+      expect(rows[6]).toBe('LLLLLL')
+      for (const row of rows.slice(1, 6)) expect(row).toMatch(/^L[Ff]{4}L$/)
+      expect(rows.slice(1, 6).join('')).toContain('F')
+      expect(rows.slice(1, 6).join('')).toContain('f')
+    }
+    const [c0, p1, c2, p3] = EDITOR_WALK
+    for (const f of [EDITOR_IDLE[0], c0, c2]) isCase(box(f, 22))
+    for (const f of [EDITOR_IDLE[1], p1, p3]) isCase(box(f, 23))
+    // nothing of the case above its top edge
+    for (const f of [EDITOR_IDLE[0], c0, c2]) expect(f[21].slice(20, 24)).toBe('....')
+    for (const f of [EDITOR_IDLE[1], p1, p3]) expect(f[22].slice(20, 24)).toBe('....')
+    // the pass frames are one map: the idle a row lower down to the hem, the legs together under it
+    expect(p1).toEqual(p3)
+    expect(p1.slice(0, 26)).toEqual(['.'.repeat(24), ...EDITOR_IDLE[0].slice(0, 25)])
   })
 
   it('gives the cat a cream chest patch wherever its chest shows (not curled asleep)', () => {

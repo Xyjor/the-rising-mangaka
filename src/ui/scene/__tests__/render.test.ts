@@ -355,17 +355,18 @@ describe('the characters, from the actor table', () => {
   }
 
   it('paints the editor at the spot, mirrored when facing right', () => {
-    // (198, 85): the suit at row 18 col 5, hair row 2 col 8, glasses row 10 col 5, the briefcase row 24 col 20
+    // (198, 85): the suit (task B4's navy G) at row 18 col 5, hair row 2 col 8, the glasses' left lens frame row 10
+    // col 6 (col 5 is skin beside it since task B4), the briefcase row 24 col 20
     const left = paintWith(editorAt(-1), { visitor: 'editor' })
-    expect(has(left, '#5b6270', 203, 103)).toBe(true)
+    expect(has(left, '#3a3d4c', 203, 103)).toBe(true)
     expect(has(left, '#2b2140', 206, 87)).toBe(true)
-    expect(has(left, '#3b3b45', 203, 95)).toBe(true)
+    expect(has(left, '#3b3b45', 204, 95)).toBe(true)
     // (the bed frame behind is the same brown, so the case is found by its exact run: row 24's FFF, cols 19-21)
     expect(left).toContainEqual({ style: '#6d4c33', x: 217, y: 109, w: 3, h: 1 })
     // facing right, col 5 mirrors to x 198 + 23 - 5 = 216; x 203 is then row 18's col 18, the outline, so no suit there
     const log = paintWith(editorAt(1), { visitor: 'editor' })
-    expect(has(log, '#5b6270', 216, 103)).toBe(true)
-    expect(has(log, '#5b6270', 203, 103)).toBe(false)
+    expect(has(log, '#3a3d4c', 216, 103)).toBe(true)
+    expect(has(log, '#3a3d4c', 203, 103)).toBe(false)
   })
 
   it('walks the editor with their own four frames, the briefcase bobbing a row on the pass', () => {
@@ -415,10 +416,10 @@ describe('the characters, from the actor table', () => {
     expect(log).toContainEqual({ style: '#2b2140', x: 138, y: 68, w: 9, h: 1 })
     expect(log).not.toContainEqual({ style: '#2b2140', x: 139, y: 68, w: 1, h: 1 })
     // the editor facing right at (198, 85), row 24 '.......LggggggggL.LFFFfL' mirrored: FFF (cols 19-21) at x 200-202,
-    // the suit's shade hem (cols 8-15) at x 206-213
+    // the suit's shade hem (cols 8-15, task B4's navy g) at x 206-213
     const ed = paintWith(editorAt(1), { visitor: 'editor' })
     expect(ed).toContainEqual({ style: '#6d4c33', x: 200, y: 109, w: 3, h: 1 })
-    expect(ed).toContainEqual({ style: '#454a55', x: 206, y: 109, w: 8, h: 1 })
+    expect(ed).toContainEqual({ style: '#2c3656', x: 206, y: 109, w: 8, h: 1 })
   })
 
   it('paints no prop while the editor walks', () => {
