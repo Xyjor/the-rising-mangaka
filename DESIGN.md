@@ -1139,12 +1139,19 @@ paused by the tick's decision pause; the result landing at step 7 keeps 7).
 A saved step resumes against its game (`resumeTutorialStep`, on a reload, a slot opened and a save file loaded): step
 0 only on a fresh career (day 0, no history, nothing on the desk, no serial), so an old save's leftover 0 ends the
 tutorial; another step stays when its phase is the game's or any, except that the wizard and the pitch window are not
-saved, so step 1 resumes at 0 and step 6 at 5; otherwise it moves to the first later step written for the game's own
-phase (an `any` step never counts), else ends. A missing or broken value reads as -1. Settings' Help section replays
-the tutorial (`replayTutorial`) from the first step for the game's phase, stopped and with the window closed; it is
-refused with a result or an offer waiting, and hidden in a read-only tab. A tutorial replayed on a played career's
-empty desk starts at step 0, which only a fresh career keeps on resume, so it ends if the game is reloaded before the
-wizard opens. The 0.7.0 getting-started coach note above the status card is gone; the tutorial replaces it.
+saved, so step 1 resumes at 0 and step 6 at 5; step 5 on a game still drawing (the clock has run, the manuscript is
+not ready: a reload, a slot switch or a save file loaded in those ~17 days) resumes at 4, the clock step; otherwise it
+moves to the first later step written for the game's own phase (an `any` step never counts), else ends. The goal step
+(11) ends the tutorial whenever no milestone is left, since the desk then has no next goal to point at
+(`settleStep`, on resume, on entering it, and on a tick). A missing or broken value reads as -1. Settings' Help
+section replays the tutorial (`replayTutorial`) with the window closed, and offers "Skip the tutorial" beside Replay
+while a step is open (both hidden in a read-only tab). A replay never pauses on a step whose control cannot exist yet
+(`replayStepFor`, `canPoint`): it starts at the first step for the game's phase, except that a game waiting for its
+poll starts at the Notebook step (8), since the breakdown needs the result; it stops the clock only when the step's
+control can show, so on a trip (the status card shows the trip, not the Plan, Activity or Pitch control) it lands on
+the phase's first step with the clock as it was, and the step waits for the trip's end, which pauses anyway. It is
+refused with a result or an offer waiting. A tutorial replayed on a played career's empty desk starts at step 0,
+which only a fresh career keeps on resume, so it ends if the game is reloaded before the wizard opens. The 0.7.0 getting-started coach note above the status card is gone; the tutorial replaces it.
 
 **The guide** (`TutorialGuide.tsx`, `tutorial.css`, mounted after the toasts while a step is open, a game is loaded
 and the tab owns the save). Each step's control carries `data-tutorial="<anchor>"` (the Plan button, both of them, the
@@ -1158,8 +1165,12 @@ that dialog after its body (so the window's autofocus never lands on it) and dra
 already dims. The editor's bubble (pixel frame, "Editor", the step's line) sits above the control, below it when there
 is no room, beside it when neither fits (beside first on the desktop's vertical rail, so it never covers the next
 buttons; `tutorialPlace.ts`), kept 12px inside the viewport or the dialog, with a tail toward the control; it carries "Skip the
-tutorial" always and "Next" (or "Done" on the last step) on the steps Next finishes. Enter in the bubble is Next; an
-info step hands focus to Next on entry, an action step leaves focus alone; there is no global Escape.
+tutorial" always and "Next" (or "Done" on the last step) on the steps Next finishes, each described by the line
+(`aria-describedby`). Enter in the bubble is Next; an info step hands focus to Next on entry, and again when its
+control shows after a window closed if focus fell to the page; an action step leaves focus alone; there is no global
+Escape. Screen readers hear every step, action steps too, through a visually hidden live region in the guide's layer
+(so inside the dialog when the step is, the page behind being inert) that mounts empty and receives the line one effect
+later; the bubble itself is not live, since a region mounted with its text is not announced.
 
 *The waiting rule:* a step whose control is not on screen shows nothing and waits: the control is not rendered
 (the pitch step before the manuscript is ready), it sits in the tucked-away desk, or it is on the page behind another
@@ -1492,3 +1503,9 @@ generated sprites (see "The furniture" under "Scene images"):
 - `tutorialStep` is the step index per career, -1 done; `SAVE_VERSION` stays 2, and a saved step resumes through
   `resumeTutorialStep`, whose later-step search only takes a step of the game's own phase (an `any` step never ends a
   phase early: step 5 on an idle game ends the tutorial).
+- Final review (controller rulings): step 5 on a game still drawing resumes at 4 (it used to end the tutorial); a
+  replay lands on the Notebook step while a poll is pending and never pauses on a step whose control cannot show (on a
+  trip: the phase's first step, clock untouched; `replayStepFor`, `canPoint`); the goal step ends the tutorial when no
+  milestone is left (`settleStep`); Settings' Help offers "Skip the tutorial" while a step is open; the guide speaks
+  through a live node mounted empty (Next and Skip described by the line), takes focus back on an info step when its
+  control returns and focus is on the page, and `place()` reads every size before it writes a style.

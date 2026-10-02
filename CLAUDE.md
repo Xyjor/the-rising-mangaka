@@ -76,12 +76,13 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   Sim commands go through the `apply()` helper so toasts and auto-resume stay consistent. `tutorial.ts` is the guided
   first career, pure: `STEPS` (twelve steps, each an anchor, the editor's line, the trigger that finishes it, its
   phase), `phaseOf` (a waiting result reads as submitted), `stepAfter`, `resumeTutorialStep` (run by the persist
-  `merge`, `parseSave`, `loadSave`, and `tick` when the phase changes) and `firstStepFor`; the persisted `tutorialStep` is the step index per career, -1 done (a new game starts at 0). The
+  `merge`, `parseSave`, `loadSave`, and `tick` when the phase changes), `settleStep` (the goal step ends with no milestone
+  left), `canPoint` (whether the game lets a step's control show) and `replayStepFor`; the persisted `tutorialStep` is the step index per career, -1 done (a new game starts at 0). The
   store moves it through `withTutorial(patch, trigger)`: `apply`'s optional trigger (startProject, submitProject,
   dismissResult), `openModal`/`closeModal` on the wizard and the pitch window, `setSpeed`/`togglePause` running the
   clock, and `advanceTutorial(trigger)` (the guide's Next), never in a read-only tab; entering a step pauses through
-  `pauseForDecision`, the patch `tick`'s auto-pause uses, except steps 5 and 7, entered before their anchor exists. `skipTutorial` ends it, `replayTutorial` (Settings' Help) restarts it at the
-  game's phase. The 0.7.0 getting-started coach note (`CoachNote`, `COACH`) is gone. `setWindowHidden` (from
+  `pauseForDecision`, the patch `tick`'s auto-pause uses, except steps 5 and 7, entered before their anchor exists. `skipTutorial` ends it (the guide's Skip, and Settings' Help while a step is open), `replayTutorial` (Settings' Help) restarts it at
+  `replayStepFor`, pausing only when `canPoint`. The 0.7.0 getting-started coach note (`CoachNote`, `COACH`) is gone. `setWindowHidden` (from
   the page's `visibilitychange` and the desktop shell's minimise) stops the clock and suspends the sound; the
   non-persisted `windowHidden` flag keeps that pause silent. `flushSave` writes the debounced save at once. The tab
   lock (`tabLock.ts`) runs in a browser only; the desktop app calls `disableTabLock()` (one window, single instance).
@@ -192,7 +193,8 @@ canvas space; `story.ts` `storyLook`, the story props' five snapshot inputs read
 - Log entries: `addLog(state, kind, text, toast)`. `toast: true` only for things the player must notice; chapter results
   and money events are toasts, daily chatter is not. Identical toasts are de-duplicated by the store.
 - The clock auto-pauses whenever the game needs a decision (manuscript ready, poll result, serialisation offer,
-  a serial is cancelled, a trip ends, a random event or an anime offer lands). Keep it that way for any new blocking
+  a serial is cancelled, a trip ends, a random event or an anime offer lands), and on entering a tutorial step, except
+  one whose control cannot show yet (`withTutorial`, `replayTutorial`). Keep it that way for any new blocking
   decision. The year end is not a decision: it toasts and leaves its review on the desk, and the clock keeps running.
   Hiding or minimising the window stops the clock too (silently) and suspends the sound; showing it resumes the sound
   only, and the player restarts the clock.

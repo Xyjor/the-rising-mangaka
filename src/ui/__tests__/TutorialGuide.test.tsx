@@ -38,6 +38,7 @@ function at(step: number) {
 }
 
 const bubble = () => document.querySelector<HTMLElement>('.tutorial-bubble')
+const live_ = () => document.querySelector<HTMLElement>('.tutorial-live')
 const nextFrame = () => act(async () => { await new Promise((r) => requestAnimationFrame(() => r(null))) })
 
 beforeEach(() => {
@@ -56,7 +57,14 @@ describe('TutorialGuide: every step finds its anchor and says its line', () => {
       expect(b).not.toBeNull()
       expect(b!.textContent).toContain(STEPS[i].line)
       expect(b!.getAttribute('role')).toBe('note')
-      expect(b!.getAttribute('aria-live')).toBe('polite')
+      // the bubble itself is not the live region: it mounts with its text, which screen readers do not announce
+      expect(b!.hasAttribute('aria-live')).toBe(false)
+      const live = live_()
+      expect(live).not.toBeNull()
+      expect(live!.textContent).toBe(STEPS[i].line)
+      // in the guide's layer, so inside the dialog (the page behind it is inert) when the step is
+      expect(live!.closest('.tutorial-layer')).not.toBeNull()
+      expect(!!live!.closest('dialog')).toBe(!!b!.closest('dialog'))
       expect(b!.querySelector('.who')?.textContent).toBe('Editor')
       const inDialog = b!.closest('dialog')
       if (i === 1 || i === 6 || i === 7) {
@@ -150,6 +158,45 @@ describe('TutorialGuide: buttons', () => {
   })
 })
 
+describe('TutorialGuide: screen readers', () => {
+  it('the live node mounts empty and receives the line one effect later', () => {
+    // React commits the layer, then the effect writes the line: a mutation on the live node after it joined the page.
+    // A node mounted with its text (the visible line) never shows one, which is why a reader would not announce it.
+    const records: MutationRecord[] = []
+    const observer = new MutationObserver((r) => records.push(...r))
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true })
+    at(0)
+    render(<App />)
+    records.push(...observer.takeRecords())
+    observer.disconnect()
+    const live = live_()!
+    const line = bubble()!.querySelector('.line')!
+    expect(live.getAttribute('aria-live')).toBe('polite')
+    expect(live.classList.contains('sr-only')).toBe(true)
+    expect(live.textContent).toBe(STEPS[0].line)
+    const mounted = records.findIndex((r) => [...r.addedNodes].some((n) => n.contains(live)))
+    const filled = records.findIndex((r) => r.target === live || (r.target.parentNode === live && r.type === 'characterData'))
+    expect(mounted).toBeGreaterThanOrEqual(0)
+    expect(filled).toBeGreaterThan(mounted)
+    expect(records.some((r) => r.target === line || r.target.parentNode === line)).toBe(false)
+  })
+
+  it('announces an action step too, and the buttons are described by the line', () => {
+    at(8)
+    render(<App />)
+    const id = bubble()!.querySelector('.line')!.id
+    expect(id).not.toBe('')
+    expect(screen.getByRole('button', { name: 'Next' }).getAttribute('aria-describedby')).toBe(id)
+    expect(screen.getByRole('button', { name: 'Skip the tutorial' }).getAttribute('aria-describedby')).toBe(id)
+  })
+
+  it('an action step has a live node holding its line', () => {
+    at(5)
+    render(<App />)
+    expect(live_()!.textContent).toBe(STEPS[5].line)
+  })
+})
+
 describe('TutorialGuide: when it shows', () => {
   it('a missing anchor renders nothing: the step waits', () => {
     // the pitch step with nothing ready to pitch
@@ -208,6 +255,31 @@ describe('TutorialGuide: when it shows', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Skip the tutorial' }))
     expect(app.hasAttribute('data-guide')).toBe(false)
     expect(useClock.getState().guideVisible).toBe(false)
+  })
+
+  it('hands focus back to Next when its control reappears after a window closed and focus fell to the page', async () => {
+    at(8)
+    render(<App />)
+    act(() => useStore.setState({ modal: 'stats' }))
+    await nextFrame()
+    expect(bubble()).toBeNull()
+    ;(document.activeElement as HTMLElement | null)?.blur()
+    act(() => useStore.setState({ modal: 'none' }))
+    await nextFrame()
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Next' }))
+  })
+
+  it('leaves focus where the player put it when the control reappears', async () => {
+    at(8)
+    render(<App />)
+    act(() => useStore.setState({ modal: 'stats' }))
+    await nextFrame()
+    act(() => useStore.setState({ modal: 'none' }))
+    const rail = screen.getByRole('button', { name: /Stats/ })
+    rail.focus()
+    await nextFrame()
+    expect(bubble()).not.toBeNull()
+    expect(document.activeElement).toBe(rail)
   })
 
   it('a waiting step is not visible: the presentation flag stays clear', () => {
