@@ -648,7 +648,8 @@ describe('the assistants, the wall clock and the cat (Task 2.5)', () => {
 })
 
 describe('outfits by level (Task 5, Decision 7)', () => {
-  // standing at MANGAKA_STAND (170, 81): the anchor's row 18 col 6 'J' -> (170+6, 81+18) = (176, 99)
+  // standing at MANGAKA_STAND (170, 81): the anchor's row 19 col 10 'J' (a torso cell on either facing; task B1 made
+  // row 18 col 6 a sleeve, j) -> (170+10, 81+19) = (180, 100)
   it('dresses the standing mangaka in the outfit for their level', () => {
     const table = newActorTable()
     Object.assign(table.mangaka, { x: 170, y: 81, targetX: 170, targetY: 81, state: 'standing', goal: 'standing' })
@@ -657,9 +658,9 @@ describe('outfits by level (Task 5, Decision 7)', () => {
       render(ctx, sceneSnapshot({ level, actors: table }), 0.3, 0)
       return log
     }
-    expect(covers(at(1), '#6f7a8c', 176, 99)).toBeGreaterThan(-1)
-    expect(covers(at(5), '#c9a24a', 176, 99)).toBeGreaterThan(-1)
-    expect(covers(at(10), '#2e3a78', 176, 99)).toBeGreaterThan(-1)
+    expect(covers(at(1), '#6f7a8c', 180, 100)).toBeGreaterThan(-1)
+    expect(covers(at(5), '#c9a24a', 180, 100)).toBeGreaterThan(-1)
+    expect(covers(at(10), '#2e3a78', 180, 100)).toBeGreaterThan(-1)
   })
 
   it('leaves an assistant\'s look palette unaffected by the player\'s level', () => {

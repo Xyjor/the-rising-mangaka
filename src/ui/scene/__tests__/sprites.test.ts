@@ -171,6 +171,54 @@ describe('the sprites', () => {
     expect([MANGAKA_SIT[0][16].slice(8, 15), MANGAKA_SIT[0][17][11], MANGAKA_SIT[0][19][11]]).toEqual(['KKsssKK', 'Y', 'y'])
   })
 
+  // Task B1: the standing body. Written from the brief's rules, not from cell literals, so a later touch-up that keeps
+  // them passes; RED against the 0.8.0 frame (near-black T/t trousers, two-wide J arms, the striped R/W chest).
+  it('stands the mangaka in brown trousers (F/f) and red shoes (O/o), never the old near-black T/t', () => {
+    const a = MANGAKA_IDLE[0]
+    for (let r = 25; r <= 29; r++) expect(a[r], `row ${r}`).toContain('F')
+    expect(a.join('')).not.toMatch(/[Tt]/)
+    expect(a[30]).toContain('O')
+    expect(a[30]).toContain('o')
+  })
+
+  it('gives the standing mangaka three-wide sleeves (j) outlined from the torso, ending in hands (S/s) under them', () => {
+    const a = MANGAKA_IDLE[0]
+    // row 20, from the left edge: L, a j run at least two wide, L (the sleeve as its own run, seamed from the torso)
+    const sleeve = /^\.*L(j{2,})L/.exec(a[20])
+    expect(sleeve, 'row 20 starts L, j run, L').not.toBeNull()
+    const from = a[20].indexOf('L') // the sleeve's outline; the j run fills the columns after it
+    const to = from + sleeve![1].length // the j run's last column
+    // row 22 at the same columns: the hand, S with one s beside it
+    const hand = a[22].slice(from + 1, to + 1)
+    expect(hand).toContain('S')
+    expect(hand).toContain('s')
+    expect(hand).toMatch(/^[Ss]+$/)
+    // the hand is under the sleeve: row 21 holds j where row 22 holds S
+    const under = [...a[22]].some((ch, c) => ch === 'S' && a[21][c] === 'j')
+    expect(under).toBe(true)
+    // the sleeve and the hand are separate runs: S never touches j on a row (an L or a row change between them)
+    for (const row of a) expect(row, row).not.toMatch(/Sj|jS/)
+  })
+
+  it('keeps the collar points either side of the neck and opens a shirt V (R) that narrows from row 17 to row 18', () => {
+    const a = MANGAKA_IDLE[0]
+    expect(a[16].slice(8, 15)).toBe('KKsssKK')
+    // row 17: an R run of three or more between the K cells
+    const k0 = a[17].indexOf('K')
+    const k1 = a[17].lastIndexOf('K')
+    expect(k0).toBeGreaterThan(0)
+    expect(k1).toBeGreaterThan(k0)
+    const widest = (row: string) => Math.max(0, ...(row.match(/R+/g) ?? []).map((run) => run.length))
+    expect(widest(a[17].slice(k0, k1 + 1))).toBeGreaterThanOrEqual(3)
+    // row 18: an R run, narrower than row 17's
+    expect(a[18]).toContain('R')
+    expect(widest(a[18])).toBeLessThan(widest(a[17]))
+  })
+
+  it('hangs the drawstring (Y/y, the tie in the other outfits) down the middle of the chest, rows 18-22', () => {
+    for (let r = 18; r <= 22; r++) expect(MANGAKA_IDLE[0][r][11], `row ${r}`).toMatch(/^[Yy]$/)
+  })
+
   it('gives the cat a cream chest patch wherever its chest shows (not curled asleep)', () => {
     for (const cat of [CAT_SIT, ...CAT_WALK, ...CAT_GROOM, CAT_STRETCH]) expect(cat.join('')).toContain('Q')
     expect(CAT_SLEEP.join('')).not.toContain('Q')
@@ -236,7 +284,8 @@ describe('the sprites', () => {
     expect(runCount(ASSISTANT_DOZE)).toBeLessThanOrEqual(1.25 * 113)
     // the doze is a valid, faceless 24x32 frame (the doze never takes the FACES overlay)
     expect(frameRules(ASSISTANT_DOZE_C2)).toEqual([])
-    // the controller's ruling: the generated idle was retired, the scene draws the hand-drawn standing frame
-    expect(MANGAKA_IDLE.map(runCount)).toEqual([195, 192])
+    // the controller's ruling: the generated idle was retired, the scene draws the hand-drawn standing frame (195 and
+    // 192 runs at 0.8.0; task B1's body, with its seamed three-wide sleeves and shirt V, 204 and 201, under RUN_CAPS)
+    expect(MANGAKA_IDLE.map(runCount)).toEqual([204, 201])
   })
 })

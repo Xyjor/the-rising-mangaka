@@ -38,23 +38,29 @@ export function breathOf(f: SpriteMap): SpriteMap {
   return ['.'.repeat(f[0].length), ...f.slice(0, 24), ...f.slice(25)]
 }
 
-/** The standing anchor's body under ANCHOR_HEAD: the hoodie with its collar and tie, the trousers, the shoes. */
+/** The standing anchor's body under ANCHOR_HEAD (task B1, after art/raw/sprites/mangaka-front.png): the hoodie's
+ * torso J with its hood shadow j over the shoulders and down the right, the collar K either side of the neck over a
+ * shirt V (R, the assistants' shirt colour) that the drawstring Y hangs from, three-wide darker sleeves j seamed from
+ * the torso by an L and ending in a hand S (one s on its shaded side) closed by its own outline on row 23, so the
+ * breath (`breathOf`, which tucks row 24, the hem j) never opens it; brown trousers F/f with the gap between the legs,
+ * and red shoes O/o on an L sole. Sleeve and hand are separate runs, so OUTFIT_PALS' darker j gives the cardigan and
+ * blazer darker sleeves for free. */
 const IDLE_BODY: SpriteMap = [
-  '......LJKKsssKKjL.......', // 16
-  '.....LJJJKRYRKJjjL......', // 17
-  '....LJJJJJRYRJJJjjL.....', // 18
-  '....LJJJJJWyWJJJjjL.....', // 19
-  '....LJJLJJRYRJJLjjL.....', // 20
-  '....LJJLJJWyWJJLjjL.....', // 21
-  '....LSSLJJRYRJJLSsL.....', // 22
-  '.....LLLJJJJJJJLLL......', // 23
+  '....LLjjKKsssKKjjLL.....', // 16
+  '...LjjjLJKRRRKjLjjjL....', // 17
+  '...LjjjLJJRYRJjLjjjL....', // 18
+  '...LjjjLJJJYJJjLjjjL....', // 19
+  '...LjjjLJJJYJJjLjjjL....', // 20
+  '...LjjjLJJJYJJjLjjjL....', // 21
+  '...LSSsLJJJYJJjLSSsL....', // 22
+  '....LLLLJJJJJJjLLLL.....', // 23
   '.......LjjjjjjjjL.......', // 24
-  '.......LTTTTTTTtL.......', // 25
-  '.......LTTTLTTTtL.......', // 26
-  '.......LTTTLTTTtL.......', // 27
-  '.......LTTTLTTttL.......', // 28
-  '.......LtttLttttL.......', // 29
-  '......LOOOLLOOOoL.......', // 30
+  '.......LFFFFFFFfL.......', // 25
+  '.......LFFFLFFFfL.......', // 26
+  '.......LFFFLFFFfL.......', // 27
+  '.......LFFFLFFFfL.......', // 28
+  '.......LFFfLFfffL.......', // 29
+  '......LOOoLLOOOoL.......', // 30
   '......LLLLLLLLLLL.......', // 31
 ]
 const IDLE_0: SpriteMap = [...ANCHOR_HEAD, ...IDLE_BODY]
