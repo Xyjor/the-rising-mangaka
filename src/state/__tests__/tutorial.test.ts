@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { createGame, getPhase, startProject, submitProject, tickMany } from '../../sim'
+import { MILESTONES, createGame, getPhase, startProject, submitProject, tickMany } from '../../sim'
 import type { GameState } from '../../sim'
 import { DRAFT, drawUntilReady, withPendingResult } from '../../test/fixtures'
-import { STEPS, firstStepFor, phaseOf, resumeTutorialStep, stepAfter } from '../tutorial'
+import { STEPS, canPoint, firstStepFor, phaseOf, replayStepFor, resumeTutorialStep, settleStep, stepAfter } from '../tutorial'
 import type { TutorialTrigger } from '../tutorial'
 import { useStore } from '../store'
 
@@ -11,6 +11,10 @@ const st = () => useStore.getState()
 const drawing = (day = 0): GameState => startProject(day ? tickMany(createGame('Rin', 42), day) : createGame('Rin', 42), DRAFT)
 const ready = (): GameState => drawUntilReady(drawing())
 const submitted = (): GameState => submitProject(ready(), 'weekly-bolt')
+/** Away on a trip: the status card shows the trip, so the Plan, Activity and Pitch controls are not on screen. */
+const onTrip = (g: GameState): GameState => ({ ...g, trip: { placeId: 'library', startedDay: g.day, endsDay: g.day + 3 } })
+/** Every milestone reached: the next goal has nothing to show. */
+const ladderDone = (g: GameState): GameState => ({ ...g, milestonesDone: MILESTONES.map((m) => m.id) })
 
 describe('STEPS', () => {
   it('is the twelve steps in order, each completed by one trigger', () => {
@@ -104,6 +108,16 @@ describe('resumeTutorialStep', () => {
     expect(firstStepFor(withPendingResult())).toBe(7)
   })
 
+  it('takes step 5 on a game still drawing back to the clock step: the manuscript is not ready yet', () => {
+    expect(resumeTutorialStep(5, drawing())).toBe(4)
+    expect(resumeTutorialStep(5, drawing(40))).toBe(4)
+  })
+
+  it('ends at the goal step once the milestone ladder is complete', () => {
+    expect(resumeTutorialStep(11, tickMany(createGame('Rin', 42), 40))).toBe(11)
+    expect(resumeTutorialStep(11, ladderDone(tickMany(createGame('Rin', 42), 40)))).toBe(-1)
+  })
+
   it('moves on to the first later step of the game’s phase, else ends', () => {
     expect(resumeTutorialStep(5, createGame('Rin', 42))).toBe(-1)
     expect(resumeTutorialStep(2, ready())).toBe(5)
@@ -118,6 +132,44 @@ describe('firstStepFor', () => {
     expect(firstStepFor(drawing(40))).toBe(2)
     expect(firstStepFor(ready())).toBe(5)
     expect(firstStepFor(submitted())).toBe(7)
+  })
+})
+
+describe('settleStep', () => {
+  it('passes the goal step when no milestone is left, and leaves every other step alone', () => {
+    const done = ladderDone(createGame('Rin', 42))
+    expect(settleStep(11, done)).toBe(-1)
+    expect(settleStep(11, createGame('Rin', 42))).toBe(11)
+    expect(settleStep(10, done)).toBe(10)
+    expect(settleStep(-1, done)).toBe(-1)
+  })
+})
+
+describe('canPoint', () => {
+  it('knows when the game keeps a step’s control off screen', () => {
+    const fresh = createGame('Rin', 42)
+    expect(canPoint(0, fresh)).toBe(true)
+    expect(canPoint(0, onTrip(fresh))).toBe(false)
+    expect(canPoint(2, drawing())).toBe(true)
+    expect(canPoint(2, onTrip(drawing()))).toBe(false)
+    expect(canPoint(5, onTrip(ready()))).toBe(false)
+    expect(canPoint(7, submitted())).toBe(false)
+    expect(canPoint(7, withPendingResult())).toBe(true)
+    expect(canPoint(8, onTrip(fresh))).toBe(true)
+    expect(canPoint(3, onTrip(drawing()))).toBe(true)
+    expect(canPoint(11, onTrip(fresh))).toBe(false)
+    expect(canPoint(11, ladderDone(fresh))).toBe(false)
+    expect(canPoint(11, fresh)).toBe(true)
+  })
+})
+
+describe('replayStepFor', () => {
+  it('is the phase’s first step, except the breakdown before its result: the Notebook step', () => {
+    expect(replayStepFor(createGame('Rin', 42))).toBe(0)
+    expect(replayStepFor(drawing(40))).toBe(2)
+    expect(replayStepFor(ready())).toBe(5)
+    expect(replayStepFor(submitted())).toBe(8)
+    expect(replayStepFor(onTrip(createGame('Rin', 42)))).toBe(0)
   })
 })
 
@@ -237,6 +289,34 @@ describe('the tutorial in the store', () => {
     useStore.setState({ game: tickMany(createGame('Rin', 42), 40), tutorialStep: -1 })
     st().replayTutorial()
     expect(st().tutorialStep).toBe(0)
+  })
+
+  it('replays a game waiting for its poll at the Notebook step, paused: the breakdown cannot show before the result', () => {
+    useStore.setState({ game: submitted(), tutorialStep: -1, speed: 2, modal: 'settings', deskHidden: true })
+    expect(st().replayTutorial()).toBe(true)
+    expect(st().tutorialStep).toBe(8)
+    expect(st().speed).toBe(0)
+    expect(st().deskHidden).toBe(false)
+    expect(st().modal).toBe('none')
+  })
+
+  it('replays on a trip at the phase’s first step without a pause: its control waits for the trip to end', () => {
+    useStore.setState({ game: onTrip(tickMany(createGame('Rin', 42), 40)), tutorialStep: -1, speed: 2, modal: 'settings' })
+    expect(st().replayTutorial()).toBe(true)
+    expect(st().tutorialStep).toBe(0)
+    expect(st().speed).toBe(2)
+    expect(st().modal).toBe('none')
+
+    useStore.setState({ game: onTrip(drawing(40)), tutorialStep: -1, speed: 3, modal: 'settings' })
+    st().replayTutorial()
+    expect(st().tutorialStep).toBe(2)
+    expect(st().speed).toBe(3)
+  })
+
+  it('ends the tutorial instead of entering the goal step when no milestone is left', () => {
+    useStore.setState({ game: ladderDone(tickMany(createGame('Rin', 42), 40)), tutorialStep: 10, speed: 0 })
+    st().advanceTutorial('next')
+    expect(st().tutorialStep).toBe(-1)
   })
 
   it('refuses a replay with a result or an offer waiting, or in a read-only tab', () => {

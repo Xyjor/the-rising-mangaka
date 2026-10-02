@@ -157,4 +157,24 @@ describe('SettingsModal help', () => {
     render(<SettingsModal />)
     expect(screen.queryByRole('button', { name: 'Replay the tutorial' })).toBeNull()
   })
+
+  it('offers to skip the tutorial next to Replay while a step is open', () => {
+    useStore.setState({ tutorialStep: 3 })
+    render(<SettingsModal />)
+    expect(screen.getByRole('button', { name: 'Replay the tutorial' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Skip the tutorial' }))
+    expect(useStore.getState().tutorialStep).toBe(-1)
+    expect(screen.queryByRole('button', { name: 'Skip the tutorial' })).toBeNull()
+  })
+
+  it('has no skip button once the tutorial is done, or in a read-only tab', () => {
+    useStore.setState({ tutorialStep: -1 })
+    const { unmount } = render(<SettingsModal />)
+    expect(screen.queryByRole('button', { name: 'Skip the tutorial' })).toBeNull()
+    unmount()
+    useStore.setState({ tutorialStep: 3, readOnly: true })
+    render(<SettingsModal />)
+    expect(screen.queryByRole('button', { name: 'Skip the tutorial' })).toBeNull()
+    expect(useStore.getState().tutorialStep).toBe(3)
+  })
 })

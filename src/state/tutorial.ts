@@ -1,6 +1,6 @@
 // The guided first career: the steps, what completes each, and where a saved step resumes. Pure: no React, no store.
 // `tutorialStep` (the store, the save) is an index into STEPS, or -1 once the tutorial is done or skipped.
-import { getPhase } from '../sim'
+import { getPhase, nextMilestone } from '../sim'
 import type { GameState, Phase } from '../sim'
 
 /** What the player did that can complete (or undo) a step. `next` is the guide's own Next button. */
@@ -109,23 +109,60 @@ function isFresh(game: GameState): boolean {
 }
 
 /**
+ * A step with nothing ever to point at is passed: the goal step (11) ends the tutorial once the milestone ladder is
+ * complete (the desk shows no next goal). Every other step is returned as it was.
+ */
+export function settleStep(step: number, game: GameState): number {
+  return step === 11 && !nextMilestone(game) ? -1 : step
+}
+
+/**
  * Where a saved step picks up against the game (`phaseOf`): step 0 only on a fresh career; another step stays when its
  * phase is the game's (or any), except that a step inside a window that is not saved (1, the wizard; 6, the pitch
- * window) goes back to the button that opens it (0; 5); else it moves to the first later step written for the game's
- * phase, else the tutorial ends. A later step only counts when its phase is the game's own: an `any` step never
- * swallows a step out of order. The store also runs this when a tick changes the phase (a manuscript finished
- * mid-step moves on to the pitch step).
+ * window) goes back to the button that opens it (0; 5), and the pitch step (5) on a game still drawing goes back to the
+ * clock step (4: the manuscript is not ready, and the clock has to run again); else it moves to the first later step
+ * written for the game's phase, else the tutorial ends. A later step only counts when its phase is the game's own: an
+ * `any` step never swallows a step out of order. The goal step settles (`settleStep`). The store also runs this when a
+ * tick changes the phase (a manuscript finished mid-step moves on to the pitch step).
  */
 export function resumeTutorialStep(step: number, game: GameState): number {
   if (!inRange(step)) return -1
   if (step === 0) return isFresh(game) ? 0 : -1
   const phase = phaseOf(game)
-  if (STEPS[step].phase === 'any' || STEPS[step].phase === phase) return step === 1 ? 0 : step === 6 ? 5 : step
+  if (step === 5 && phase === 'drawing') return 4
+  if (STEPS[step].phase === 'any' || STEPS[step].phase === phase) {
+    return step === 1 ? 0 : step === 6 ? 5 : settleStep(step, game)
+  }
   return STEPS.findIndex((s, i) => i > step && s.phase === phase)
 }
 
-/** The first step written for the game's phase (or any): where a replay starts. */
+/** The first step written for the game's phase (or any). */
 export function firstStepFor(game: GameState): number {
   const phase = phaseOf(game)
   return STEPS.findIndex((s) => s.phase === phase || s.phase === 'any')
+}
+
+/**
+ * Whether the game lets a step's control be on screen now. Away on a trip the status card shows the trip instead of
+ * the Plan, Activity and Pitch controls, and the next goal hides; the breakdown needs a result to read; the next goal
+ * needs a milestone left. A control inside a window (the wizard's steps, the magazine list) is the player's to open.
+ */
+export function canPoint(step: number, game: GameState): boolean {
+  if (!inRange(step)) return false
+  switch (STEPS[step].anchor) {
+    case 'plan': case 'activity': case 'pitch': return !game.trip
+    case 'breakdown': return !!game.pendingResult
+    case 'next-goal': return !game.trip && !!nextMilestone(game)
+    default: return true
+  }
+}
+
+/**
+ * Where a replay starts: the first step for the game's phase, except a game waiting for its poll, whose breakdown step
+ * cannot show before the result lands: it starts at the Notebook step (8). The store pauses only when the step's
+ * control can show (`canPoint`): on a trip the step waits, the clock as it was, until the trip ends.
+ */
+export function replayStepFor(game: GameState): number {
+  const step = firstStepFor(game)
+  return step === 7 && !game.pendingResult ? 8 : step
 }

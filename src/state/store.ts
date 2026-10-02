@@ -17,7 +17,7 @@ import { recordProfile } from './profile'
 import { LEGACY_SAVE_KEY, PREFS_KEY, SLOT_IDS, SLOT_INDEX_KEY, migrateLegacy, slotKey, viewSlots, writeIndex } from './slots'
 import type { SlotId, SlotStart } from './slots'
 import { claim, disableTabLock, isOwner, startTabLock } from './tabLock'
-import { STEPS, firstStepFor, phaseOf, resumeTutorialStep, stepAfter } from './tutorial'
+import { STEPS, canPoint, phaseOf, replayStepFor, resumeTutorialStep, settleStep, stepAfter } from './tutorial'
 import type { TutorialTrigger } from './tutorial'
 
 export type Speed = 0 | 1 | 2 | 3
@@ -126,8 +126,10 @@ interface Store {
   /** Ends the tutorial for this career (-1). A no-op, like `advanceTutorial`, in a tab that does not own the save. */
   skipTutorial: () => void
   /**
-   * Starts the tutorial again at the first step for the game's phase, stopped, with the window closed. Refused (false)
-   * with a result or an offer waiting, or in a tab that does not own the save.
+   * Starts the tutorial again at `replayStepFor` (the first step for the game's phase; the Notebook step while a poll is
+   * pending), with the window closed, stopped unless the step's control cannot show yet (`canPoint`: on a trip it
+   * waits, the clock as it was). Refused (false) with a result or an offer waiting, or in a tab that does not own the
+   * save.
    */
   replayTutorial: () => boolean
   /**
@@ -380,13 +382,16 @@ export const useStore = create<Store>()(
        * `patch` with the tutorial moved on by `trigger` (`stepAfter`). Entering a step that holds stops the clock the
        * way a decision does, overriding a command's resume, except for a step entered before its anchor can exist:
        * running the clock opens the pitch step (the manuscript's own auto-pause stops it there) and a submission opens
-       * the breakdown step (the result's own auto-pause stops it there). With the tutorial done (-1), or in a tab that
-       * does not own the save, the patch is returned as it was.
+       * the breakdown step (the result's own auto-pause stops it there). The goal step with no milestone left ends the
+       * tutorial instead (`settleStep`). With the tutorial done (-1), or in a tab that does not own the save, the patch
+       * is returned as it was.
        */
       const withTutorial = (patch: Partial<Store>, trigger: TutorialTrigger): Partial<Store> => {
-        const { tutorialStep: step, readOnly } = get()
+        const { tutorialStep: step, readOnly, game } = get()
         if (readOnly) return patch
-        const next = stepAfter(step, trigger)
+        const after = stepAfter(step, trigger)
+        const g = patch.game ?? game
+        const next = g ? settleStep(after, g) : after
         if (next === step) return patch
         const moved = { ...patch, tutorialStep: next }
         const early = trigger === 'clock-run' || trigger === 'submitted'
@@ -522,9 +527,10 @@ export const useStore = create<Store>()(
           const next = sim.tick(game)
           const base: Partial<Store> = { game: next }
           // The tutorial follows the game: a phase change mid-step (a manuscript finished) resumes it, with no pause of
-          // its own (the decision pause below covers it).
-          if (tutorialStep >= 0 && !readOnly && phaseOf(game) !== phaseOf(next)) {
-            base.tutorialStep = resumeTutorialStep(tutorialStep, next)
+          // its own (the decision pause below covers it). The goal step settles too (the last milestone reached).
+          if (tutorialStep >= 0 && !readOnly) {
+            const step = settleStep(phaseOf(game) !== phaseOf(next) ? resumeTutorialStep(tutorialStep, next) : tutorialStep, next)
+            if (step !== tutorialStep) base.tutorialStep = step
           }
           const added = newToasts(game, next)
           if (added.length) base.toasts = mergeToasts(toasts, added)
@@ -601,7 +607,10 @@ export const useStore = create<Store>()(
         replayTutorial: () => {
           const { game, readOnly } = get()
           if (!game || readOnly || game.pendingResult || game.pendingOffer) return false
-          set(pauseForDecision({ tutorialStep: firstStepFor(game), modal: 'none' }))
+          const step = replayStepFor(game)
+          // a step whose control cannot show yet (on a trip) waits without stopping the clock
+          const patch: Partial<Store> = { tutorialStep: step, modal: 'none' }
+          set(canPoint(step, game) ? pauseForDecision(patch) : patch)
           return true
         },
 
