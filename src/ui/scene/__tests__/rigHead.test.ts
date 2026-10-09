@@ -18,6 +18,18 @@ describe('the rig head', () => {
     expect(HEAD.map[21][12]).not.toBe('.')
   })
 
+  it('closes its outline all round: no painted cell but L has a clear cell beside, above or below it', () => {
+    const clear = (x: number, y: number) => y < 0 || y >= HEAD.map.length || x < 0 || x >= HEAD.map[y].length || HEAD.map[y][x] === '.'
+    const open: string[] = []
+    HEAD.map.forEach((row, y) => {
+      for (let x = 0; x < row.length; x++) {
+        if (row[x] === '.' || row[x] === 'L') continue
+        if (clear(x - 1, y) || clear(x + 1, y) || clear(x, y - 1) || clear(x, y + 1)) open.push(`${row[x]} at ${x},${y}`)
+      }
+    })
+    expect(open).toEqual([])
+  })
+
   it('keeps the head in cols 0-23 and the mark slot\'s columns 24-26 clear on every row', () => {
     for (const row of HEAD.map) expect(row.slice(24)).toBe('...')
   })

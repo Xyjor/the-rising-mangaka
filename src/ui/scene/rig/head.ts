@@ -33,7 +33,7 @@ export const HEAD: HeadPart = {
     'LSLSSSEEESSSSSSEEESSSLsL...', // 13 each ear parted from the cheek
     'LSLSBBBSSSSSSSSSSBBBSLsL...', // 14 the blush; the ears' last row
     '.LSSSSSSSSSSSSSSSSSSSsL....', // 15 the mouth slot (cols 10-13)
-    '..LSSSSSSSSLLSSSSSSsL......', // 16 the closed mouth
+    '..LSSSSSSSSLLSSSSSSSsL.....', // 16 the closed mouth
     '..LSSSSSSSSSSSSSSSSSsL.....', // 17 the cheeks
     '...LSSSSSSSSSSSSSSSsL......', // 18
     '....LLSSSSSSSSSSSsLL.......', // 19
