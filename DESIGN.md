@@ -548,6 +548,28 @@ at `CAT_BED` (4 fills, drawn just before it).
   of the head into the collar and the blink a blink, after two redraws: the first legs were four columns wide with the
   shoes no wider (the trousers now three wide, the shoes turned out a column as the reference's), and the first collar
   vanished in the hoodie (a `j` edge now rings it).
+- **The walk** (0.11.0, task 11). Eight part poses on the standing body (`walk()` in `rig/poses.ts`: `stand()` with
+  the torso `bob` rows lower, its legs and arms), 75 ms each, 600 ms a cycle (24 px at 40 px/s, 1.5x the 0.10
+  stride): `walk.contact-l`, `walk.down-l`, `walk.pass-l`, `walk.up-l`, then the same four on the right leg. On the
+  contact the leg steps out (`leg-l-step`, 10x14: a straight leg out a column every three rows, the long shoe's toe two
+  columns past the trousers, its top cut so it points, four columns past the standing shoe on frame row 47) while the
+  other stands; on the down step the torso, head and arms sink a row (the bob), the stepping leg plants with the knee
+  giving (`-step-bend`, 10x13: the thigh out a column a row to the knee, the shin straight down to the shoe the contact
+  put down, the same frame cells) and the other leg is a trouser row shorter under its hip (`-plant-bend`, 6x13); on
+  the pass the other leg is lifted two rows under its hip (`-lift`, 6x12) and on the up step it reaches out a column,
+  still lifted (`-reach`, 7x12), before its own contact. The arms swing against the legs on the contact and down steps:
+  the arm opposite the stepping leg forward (`arm-*-swing-fwd`, 6x10: the forearm toward the viewer a column wider
+  out, the fist four wide and two rows higher than the hanging one) and the other back (`arm-*-swing-back`, 5x12: the
+  forearm and fist two wide, tucked against the torso's seam by the hip); both hang on the pass and up steps. Each
+  right part mirrors the left one's shape and keeps `LEG_R_STAND`'s shading (the shade on the right of every run, the
+  fists lit from the left), so the light never swaps between the halves. Every walk part is outlined all round but its
+  top and every step joins closed by itself. The plan's step legs were 8 wide (`hipL` (5, 0)); at the gate their
+  contact put the shoe two columns past the stance and at 1x the strip read as standing, so they are 10 wide (`hipL`
+  (7, 0), `hipR` (2, 0)), four columns past as 0.10's contact was past its idle. At the gate (task 11, `--only walk`
+  and `--walk`) the strip stepped in the hoodie, the cardigan and the blazer and mirrored, after three tries: the 8-wide
+  step read as standing, a 12-wide one as a lunge, and the first down and pass legs kinked their knees out sideways a
+  column and back, which wobbled (the down step's back leg and the passing leg are now straight, the stepping leg's
+  knee a slant into a straight shin).
 
 The frame sets: idle 2 frames (`frame/16 % 2`), walk 4 (`anim/100 % 4`), sit 2 (`frame/8 % 2` while working, frame 0
 otherwise), panic 2 (for 40 of every 240 frames while working on a late chapter, `Snapshot.late`), a 30x14 lying

@@ -21,6 +21,11 @@ function anim(id: AnimId, posture: Posture, loop: boolean, steps: readonly Step<
   return { id, posture, loop, steps }
 }
 
+/** The walk: contact, down, pass and up on each leg, 75 ms a step, 600 ms a cycle (24 px at 40 px/s, 1.5x the 0.10 stride). */
+const WALK_STEPS = ([
+  'walk.contact-l', 'walk.down-l', 'walk.pass-l', 'walk.up-l', 'walk.contact-r', 'walk.down-r', 'walk.pass-r', 'walk.up-r',
+] as const).map((pose) => ({ pose, ms: 75 }))
+
 /** One step of the standing pose, while an animation's art has not landed. */
 const STAND_IN: readonly Step<PoseId>[] = [{ pose: 'stand.idle', ms: 500 }]
 
@@ -31,7 +36,7 @@ export const ANIMS: Readonly<Record<AnimId, Anim<PoseId>>> = {
     { pose: 'stand.blink', ms: 120 },
   ]),
   'stand-ready': anim('stand-ready', 'stand', true, STAND_IN),
-  walk: anim('walk', 'walk', true, STAND_IN),
+  walk: anim('walk', 'walk', true, WALK_STEPS),
   'seat-draw': anim('seat-draw', 'seat', true, STAND_IN),
   'seat-draw-late': anim('seat-draw-late', 'seat', true, STAND_IN),
   'seat-idle': anim('seat-idle', 'seat', true, STAND_IN),

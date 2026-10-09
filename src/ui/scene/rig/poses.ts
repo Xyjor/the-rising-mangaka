@@ -3,7 +3,9 @@
 // the actor already walks). Every PoseId is in the union and the table, so a pose named anywhere and not drawn fails tsc.
 import type { PartPose, Place, Pose } from './types'
 
-export type PoseId = 'stand.idle' | 'stand.breath' | 'stand.blink'
+export type PoseId =
+  | 'stand.idle' | 'stand.breath' | 'stand.blink'
+  | 'walk.contact-l' | 'walk.down-l' | 'walk.pass-l' | 'walk.up-l' | 'walk.contact-r' | 'walk.down-r' | 'walk.pass-r' | 'walk.up-r'
 
 export interface PoseDef { readonly pose: Pose; readonly at: 'actor' | 'seat' | 'bed' }
 
@@ -21,8 +23,24 @@ function stand(over: Over = {}): PartPose {
   }
 }
 
+/** A walk step: the standing body with the torso `bob` rows lower, the given legs and arms. */
+function walk(bob: 0 | 1, legFront: string, legBack: string, armFront: string, armBack: string): PartPose {
+  return stand({
+    torso: { part: 'torso', x: 7, y: 21 + bob },
+    legFront: { part: legFront }, legBack: { part: legBack }, armFront: { part: armFront }, armBack: { part: armBack },
+  })
+}
+
 export const POSES: Readonly<Record<PoseId, PoseDef>> = {
   'stand.idle': { pose: stand(), at: 'actor' },
   'stand.breath': { pose: stand({ head: { part: 'head', dy: 1 } }), at: 'actor' },
   'stand.blink': { pose: stand({ face: { eyes: 'blink' } }), at: 'actor' },
+  'walk.contact-l': { pose: walk(0, 'leg-l-step', 'leg-r-stand', 'arm-l-swing-back', 'arm-r-swing-fwd'), at: 'actor' },
+  'walk.down-l': { pose: walk(1, 'leg-l-step-bend', 'leg-r-plant-bend', 'arm-l-swing-back', 'arm-r-swing-fwd'), at: 'actor' },
+  'walk.pass-l': { pose: walk(0, 'leg-l-stand', 'leg-r-lift', 'arm-l-hang', 'arm-r-hang'), at: 'actor' },
+  'walk.up-l': { pose: walk(0, 'leg-l-stand', 'leg-r-reach', 'arm-l-hang', 'arm-r-hang'), at: 'actor' },
+  'walk.contact-r': { pose: walk(0, 'leg-l-stand', 'leg-r-step', 'arm-l-swing-fwd', 'arm-r-swing-back'), at: 'actor' },
+  'walk.down-r': { pose: walk(1, 'leg-l-plant-bend', 'leg-r-step-bend', 'arm-l-swing-fwd', 'arm-r-swing-back'), at: 'actor' },
+  'walk.pass-r': { pose: walk(0, 'leg-l-lift', 'leg-r-stand', 'arm-l-hang', 'arm-r-hang'), at: 'actor' },
+  'walk.up-r': { pose: walk(0, 'leg-l-reach', 'leg-r-stand', 'arm-l-hang', 'arm-r-hang'), at: 'actor' },
 }
