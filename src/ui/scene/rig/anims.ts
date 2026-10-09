@@ -35,6 +35,20 @@ const LATE_PANIC: readonly Step<PoseId>[] = [
   { pose: 'seat.draw-a', ms: 160 }, { pose: 'seat.draw-a', ms: 160 }, { pose: 'seat.draw-a', ms: 160 }, { pose: 'seat.draw-a', ms: 160 },
 ]
 
+/** Down into the chair: the half-sitting pose at the seat, 140 ms, where the walk stopped (no pop on arriving). */
+const SIT_DOWN: readonly Step<PoseId>[] = [{ pose: 'seat.half', ms: 140 }]
+/**
+ * Up out of the chair: the half-sitting pose at the seat, 80 ms. The actor already walks (decision 1), so when the
+ * walk shows it has moved on from the seat: at the plan's 140 ms the pose held four 24 fps frames and the walk then
+ * jumped 8 px; at 80 ms it holds two and the walk shows 5 px on (6 at the 50 ms steps of a 60 Hz display).
+ */
+const STAND_UP: readonly Step<PoseId>[] = [{ pose: 'seat.half', ms: 80 }]
+/**
+ * Into bed and out of it: sitting up in bed, 220 ms. Leaving, the walk shows 12 px from the bed (8.8 px at 40 px/s,
+ * held to the next frame); the head's own jump (the bed frame's col 23 to the standing frame's col 4) is larger.
+ */
+const SIT_UP: readonly Step<PoseId>[] = [{ pose: 'bed.sit', ms: 220 }]
+
 /** One step of the standing pose, while an animation's art has not landed. */
 const STAND_IN: readonly Step<PoseId>[] = [{ pose: 'stand.idle', ms: 500 }]
 
@@ -57,10 +71,10 @@ export const ANIMS: Readonly<Record<AnimId, Anim<PoseId>>> = {
   ]),
   sleep: anim('sleep', 'bed', true, [{ pose: 'bed.lie-0', ms: 900 }, { pose: 'bed.lie-1', ms: 900 }]),
   doze: anim('doze', 'bed', true, STAND_IN),
-  'sit-down': anim('sit-down', 'seat', false, STAND_IN),
-  'stand-up': anim('stand-up', 'walk', false, STAND_IN),
-  'lie-down': anim('lie-down', 'bed', false, STAND_IN),
-  'get-up': anim('get-up', 'walk', false, STAND_IN),
+  'sit-down': anim('sit-down', 'seat', false, SIT_DOWN),
+  'stand-up': anim('stand-up', 'walk', false, STAND_UP),
+  'lie-down': anim('lie-down', 'bed', false, SIT_UP),
+  'get-up': anim('get-up', 'walk', false, SIT_UP),
   'stand-look': anim('stand-look', 'stand', false, STAND_IN),
   'stand-sip': anim('stand-sip', 'stand', false, STAND_IN),
   'seat-stretch': anim('seat-stretch', 'seat', false, STAND_IN),

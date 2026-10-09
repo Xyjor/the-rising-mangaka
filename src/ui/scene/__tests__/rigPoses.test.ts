@@ -304,3 +304,27 @@ describe('the bed and the ready stance (task 13)', () => {
     for (let r = 0; r < 5; r++) expect(frame('ready.idle', 'tired', true)[r].slice(28, 31)).toBe('...')
   })
 })
+
+describe('the transitions (task 14)', () => {
+  it('catalogues the half-sitting legs', () => {
+    expectCatalogue({ 'leg-l-half': [6, 11, { hipL: [3, 0] }], 'leg-r-half': [6, 11, { hipR: [2, 0] }] })
+  })
+
+  it('halves the way down at the seat: the head at row 3, between standing (0) and seated (6), the hips on row 37', () => {
+    expect(POSES['seat.half'].at).toBe('seat')
+    expect([at('seat.half', 'head'), at('seat.half', 'torso')]).toEqual([{ x: 4, y: 3 }, { x: 7, y: 24 }])
+    expect(frame('seat.half')[47]).toMatch(/[^.]/)
+  })
+
+  it('sits down through the half pose in 140 ms and stands up through it in 80 ms, lies down and gets up through sitting up in bed in 220 ms', () => {
+    // standing up, the actor already walks (decision 1), so the walk shows where it has got to when the half pose ends:
+    // at 140 ms that was 8 px from the seat in the scene (four 24 fps frames held, then the jump), at 80 ms 5 (two held)
+    expect([ANIMS['sit-down'].steps, ANIMS['stand-up'].steps]).toEqual([[{ pose: 'seat.half', ms: 140 }], [{ pose: 'seat.half', ms: 80 }]])
+    expect([ANIMS['lie-down'].steps, ANIMS['get-up'].steps]).toEqual([[{ pose: 'bed.sit', ms: 220 }], [{ pose: 'bed.sit', ms: 220 }]])
+  })
+
+  it('outlines each half-sitting leg all round but its top, and joins the half pose closed by itself', () => {
+    for (const name of ['leg-l-half', 'leg-r-half']) expect(openCells(PARTS[name].map).filter(({ y }) => y !== 0), name).toEqual([])
+    expect(openCells(rawFrame('seat.half'))).toEqual([])
+  })
+})

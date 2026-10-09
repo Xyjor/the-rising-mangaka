@@ -420,7 +420,7 @@ const ARM_R_SWING_BACK: Part = {
 
 /**
  * The near (left) leg seated, 6 x 8, placed from the hip on frame row 40 (hipL (3, 0)), so it fills rows 40-47 behind
- * the desk (drawn for the sheet and the half pose; the desk hides it in the scene). The thigh comes toward the viewer,
+ * the desk (drawn for the sheet; the desk hides it in the scene). The thigh comes toward the viewer,
  * foreshortened: its lit top F a column wider than the standing trousers on rows 1-2 (the knee, its shade f on the
  * right); under the knee (row 3) the outline creases in and the shin, in the thigh's shade f, turns in toward the other
  * one (rows 3-4), so the knees sit apart over the feet; the shoe O/o on rows 5-6, three wide (its toe toward the
@@ -451,6 +451,50 @@ const LEG_R_SEAT: Part = {
     'LOOoL.', // 5
     'LOooL.', // 6
     'LLLLL.', // 7
+  ],
+  anchors: { hipR: { x: 2, y: 0 } },
+}
+
+/**
+ * The near (left) leg half-sitting, 6 x 11, placed from the hip on frame row 37 (hipL (3, 0)), so it fills rows 37-47,
+ * between standing (14 rows) and seated (8): the knee bent halfway down to the chair. The thigh leaves the hip as the
+ * standing trousers (row 1), then comes forward toward the viewer, its lit top F a column wider out down to the knee
+ * (rows 2-4, its shade f on the right); under the knee the outline steps back in and the shin is in the knee's shade f
+ * (rows 5-7), as LEG_L_SEAT's shin is, so the lit thigh over the dark shin reads as the bend; the shoe O/o on rows 8-9,
+ * its toe out a column as the standing shoe's, the sole L on row 10. (A first draw, the shin lit again under a shaded
+ * band, read at 8x as baggy trousers.)
+ */
+const LEG_L_HALF: Part = {
+  map: [
+    '.LFFfL', // 0  under the hem
+    '.LFFfL', // 1
+    'LFFFfL', // 2  the thigh forward, a column wider out
+    'LFFFfL', // 3
+    'LFFFfL', // 4  the knee
+    '.LfffL', // 5  the shin, in the knee's shade
+    '.LfffL', // 6
+    '.LfffL', // 7
+    'LOOOoL', // 8  the shoe, its toe out a column
+    'LOOooL', // 9
+    'LLLLLL', // 10 the sole
+  ],
+  anchors: { hipL: { x: 3, y: 0 } },
+}
+
+/** The far (right) leg half-sitting: LEG_L_HALF's mirror in LEG_R_STAND's shading (the shade on the right of every run), 6 x 11 (hipR (2, 0)). */
+const LEG_R_HALF: Part = {
+  map: [
+    'LFffL.', // 0  under the hem
+    'LFffL.', // 1
+    'LFFffL', // 2  the thigh forward, a column wider out
+    'LFFffL', // 3
+    'LFFffL', // 4  the knee
+    'LfffL.', // 5  the shin, in the knee's shade
+    'LfffL.', // 6
+    'LfffL.', // 7
+    'LOOOoL', // 8  the shoe, its toe out a column
+    'LOOooL', // 9
+    'LLLLLL', // 10 the sole
   ],
   anchors: { hipR: { x: 2, y: 0 } },
 }
@@ -648,7 +692,7 @@ export const PARTS: PartLib = {
   'leg-r-lift': LEG_R_LIFT, 'leg-r-reach': LEG_R_REACH,
   'arm-l-swing-fwd': ARM_L_SWING_FWD, 'arm-l-swing-back': ARM_L_SWING_BACK,
   'arm-r-swing-fwd': ARM_R_SWING_FWD, 'arm-r-swing-back': ARM_R_SWING_BACK,
-  'leg-l-seat': LEG_L_SEAT, 'leg-r-seat': LEG_R_SEAT,
+  'leg-l-seat': LEG_L_SEAT, 'leg-r-seat': LEG_R_SEAT, 'leg-l-half': LEG_L_HALF, 'leg-r-half': LEG_R_HALF,
   'arm-l-desk-a': ARM_L_DESK_A, 'arm-l-desk-b': ARM_L_DESK_B, 'arm-l-desk-c': ARM_L_DESK_C, 'arm-l-rest': ARM_L_REST,
   'arm-r-desk': ARM_R_DESK, pen: PEN,
   'arm-l-hold': ARM_L_HOLD, manuscript: MANUSCRIPT,

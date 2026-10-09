@@ -8,7 +8,7 @@ export type PoseId =
   | 'stand.idle' | 'stand.breath' | 'stand.blink'
   | 'ready.idle' | 'ready.breath' | 'ready.blink'
   | 'walk.contact-l' | 'walk.down-l' | 'walk.pass-l' | 'walk.up-l' | 'walk.contact-r' | 'walk.down-r' | 'walk.pass-r' | 'walk.up-r'
-  | 'seat.rest' | 'seat.breath' | 'seat.blink' | 'seat.draw-a' | 'seat.draw-b' | 'seat.draw-c'
+  | 'seat.rest' | 'seat.breath' | 'seat.blink' | 'seat.draw-a' | 'seat.draw-b' | 'seat.draw-c' | 'seat.half'
   | 'bed.lie-0' | 'bed.lie-1' | 'bed.sit'
 
 export interface PoseDef { readonly pose: Pose; readonly at: 'actor' | 'seat' | 'bed' }
@@ -68,6 +68,15 @@ export const POSES: Readonly<Record<PoseId, PoseDef>> = {
   'seat.draw-a': { pose: seat({ armFront: { part: 'arm-l-desk-a' }, prop: { part: 'pen' } }), at: 'actor' },
   'seat.draw-b': { pose: seat({ armFront: { part: 'arm-l-desk-b' }, prop: { part: 'pen' } }), at: 'actor' },
   'seat.draw-c': { pose: seat({ armFront: { part: 'arm-l-desk-c' }, prop: { part: 'pen' } }), at: 'actor' },
+  // halfway down to the chair, drawn at the seat (sitting down and standing up): the torso at (7, 24), so the head
+  // lands at (4, 3) and the hips on row 37, the arms hanging, the knees bent halfway (rows 37-47)
+  'seat.half': {
+    pose: {
+      kind: 'parts', w: W, h: H, torso: { part: 'torso', x: 7, y: 24 }, head: HEAD,
+      armBack: { part: 'arm-r-hang' }, armFront: { part: 'arm-l-hang' }, legBack: { part: 'leg-r-half' }, legFront: { part: 'leg-l-half' },
+    },
+    at: 'seat',
+  },
   'bed.lie-0': { pose: { kind: 'key', map: BED_LIE_0 }, at: 'bed' },
   'bed.lie-1': { pose: { kind: 'key', map: BED_LIE_1 }, at: 'bed' },
   'bed.sit': { pose: { kind: 'key', map: BED_SIT }, at: 'bed' },

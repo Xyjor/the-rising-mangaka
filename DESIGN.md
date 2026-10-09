@@ -576,7 +576,7 @@ at `CAT_BED` (4 fills, drawn just before it).
 - **The desk** (0.11.0, task 12). Six part poses on the seated body (`seat()` in `rig/poses.ts`: the torso at (7, 27),
   so the head lands at (4, 6) and the hips on row 40, the desk top's line at the seat, y 98 at the mangaka's seat; the
   assistants' desk top at y 120 likewise), the mangaka's and every assistant's. The seated legs (`leg-*-seat`, 6x8,
-  rows 40-47, behind the desk in the scene; drawn for the sheet and the half pose): the thigh foreshortened toward the
+  rows 40-47, behind the desk in the scene; drawn for the sheet): the thigh foreshortened toward the
   viewer, its lit top a column wider than the standing trousers, the shin in its shade turning in under the knee, so
   the knees sit apart over the feet, the shoe three wide. The arms come down the torso's sides to the desk top, the
   hands on rows 37-38 and the outline under them on row 39: at rest (`seat.rest`) the near arm's forearm comes toward
@@ -630,6 +630,32 @@ at `CAT_BED` (4 fills, drawn just before it).
   a row's sink there, the sitting-up bust read over the bed's head end, and the pages read as held in the hand, the
   `!` above the tired head with its sweat mark left out; one redraw: the shoulders' left end, square, read as a box in the sheet (its
   corners now round; the blanket hides it in the scene).
+- **The transitions** (0.11.0, task 14). Down into the chair and up out of it go through `seat.half`, the one part pose
+  drawn at the seat (`at: 'seat'`, `RIG_MANGAKA.seat`, whatever the actor's position): the torso at (7, 24), so the
+  head lands at (4, 3), halfway between standing (row 0) and seated (row 6), and the hips on row 37; the arms hang
+  (`arm-*-hang`) and the legs bend halfway down to the chair (`leg-l-half`, 6x11, hipL (3, 0); `leg-r-half` its mirror
+  in `LEG_R_STAND`'s shading, hipR (2, 0); rows 37-47): the thigh leaves the hip as the standing trousers, then comes
+  forward toward the viewer, its lit top a column wider out down to the knee (rows 2-4), the shin under it in the
+  knee's shade (rows 5-7), the standing shoe on rows 8-9, its sole on row 10 (frame row 47), the seated leg's language
+  (a lit thigh over a shaded shin) at half its bend. Both legs are outlined all round but their tops and the pose joins
+  closed by itself. In the scene the desk hides the legs but for the rows over its top; the half pose shows as the head
+  and body three rows above the seated ones. Into bed and out of it go through `bed.sit` (task 13), at the bed.
+  `sit-down` is `seat.half` for 140 ms, `stand-up` `seat.half` for 80 ms, `lie-down` and `get-up` `bed.sit` for 220 ms.
+  No actor waits for a transition (decision 1): arriving, it plays where the walk stopped, so the walk runs straight
+  into it; leaving, the actor walks while the pose holds at the seat or the bed, so the walk's first frame shows where
+  the actor has got to. Standing up at the plan's 140 ms the half pose held four 24 fps frames and the walk then
+  appeared 8 px right of the seat (the brief's 6 px, plus the frame the walk starts on and the hold to the next frame),
+  which read in a scratch filmstrip of the real walk, driver and render as a hesitation and then a hop; at 80 ms it
+  holds two frames and the walk shows 5 px on (6 at the 50 ms steps of a 60 Hz display), one quick rise into the step,
+  so `stand-up` is 80 ms (the brief's literal changed with it) and `sit-down`, with no pop, keeps 140. Getting up the
+  walk shows 12 px left of the bed, but most of the head's jump is the frames', not the timing's: the bed frame's head
+  is at its col 23, the standing frame's at col 4 of the same spot, 19 px apart both ways (arriving too), so leaving
+  the head jumps 31 px at 220 ms and would still jump 22 at the shortest step (41 ms); `get-up` keeps its 220 ms, the
+  sitting-up beat that reads as "sits up, then is up". At the gate (task 14, `--only
+  sit-`, `--only stand-up`, `--only lie-`, `--only get-`, in the hoodie, the cardigan and the blazer; the transitions
+  are the mangaka's alone) the half pose read at 8x and at 1x as an in-between of the standing and seated frames,
+  after one redraw: the first knees, a column out over a lit shin with a shaded band under the knee, read as baggy
+  trousers (the shin is now in the knee's shade, as the seated shin is).
 
 The frame sets: idle 2 frames (`frame/16 % 2`), walk 4 (`anim/100 % 4`), sit 2 (`frame/8 % 2` while working, frame 0
 otherwise), panic 2 (for 40 of every 240 frames while working on a late chapter, `Snapshot.late`), a 30x14 lying

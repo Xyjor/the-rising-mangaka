@@ -49,7 +49,7 @@ describe('the rig tables', () => {
   })
 
   it('places only the bed\'s frames at the bed and only the half-sitting pose at the seat', () => {
-    // by name, a string (PoseId has no seat.half until its task draws it)
+    // by name: every bed.* pose at the bed, seat.half at the seat, the rest at the actor
     const place = (id: string) => (id.startsWith('bed.') ? 'bed' : id === 'seat.half' ? 'seat' : 'actor')
     for (const [id, def] of ENTRIES) expect(def.at, id).toBe(place(id))
   })
