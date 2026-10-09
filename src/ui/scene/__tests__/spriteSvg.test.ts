@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { AVATAR_CROP, spriteRects } from '../spriteSvg'
-import { ASSISTANT_PALS, MANGAKA_IDLE } from '../sprites'
+import { ASSISTANT_PALS } from '../sprites'
+import { NEUTRAL_FACE, headWith } from '../rig/head'
 
 const r = (x: number, y: number, w: number, h: number, fill: string) => ({ x, y, w, h, fill })
 
@@ -13,16 +14,16 @@ describe('spriteRects', () => {
   it('clips to the window, origin at its top left', () => {
     expect(spriteRects(['.AAB', 'BB..'], pal, { rows: [1, 1], cols: [1, 3] })).toEqual([r(0, 0, 1, 1, '#222')])
   })
-  it('crops the avatar to the chibi head, rows 0-15 and cols 2-19', () => {
-    expect(AVATAR_CROP).toEqual({ rows: [0, 15], cols: [2, 19] })
+  it('crops the avatar to the rig head, rows 0-21 and cols 0-23', () => {
+    expect(AVATAR_CROP).toEqual({ rows: [0, 21], cols: [0, 23] })
   })
-  it('draws the anchor head inside 18x16', () => {
-    const rects = spriteRects(MANGAKA_IDLE[0], ASSISTANT_PALS[0], AVATAR_CROP)
-    // the chibi anchor's row 0 crown is cols 6-15; the crop starts at col 2, so x 4, 10 wide
-    expect(rects.filter((q) => q.y === 0)).toEqual([r(4, 0, 10, 1, '#1c1a26')])
+  it('draws the rig head inside 24x22, its crown the head\'s own row 0', () => {
+    const map = headWith(NEUTRAL_FACE)
+    const rects = spriteRects(map, ASSISTANT_PALS[0], AVATAR_CROP)
+    expect(rects.filter((q) => q.y === 0)).toEqual(spriteRects([map[0]], ASSISTANT_PALS[0], { rows: [0, 0], cols: [0, 23] }))
     for (const q of rects) {
       expect(q.x).toBeGreaterThanOrEqual(0); expect(q.y).toBeGreaterThanOrEqual(0)
-      expect(q.x + q.w).toBeLessThanOrEqual(18); expect(q.y + q.h).toBeLessThanOrEqual(16)
+      expect(q.x + q.w).toBeLessThanOrEqual(24); expect(q.y + q.h).toBeLessThanOrEqual(22)
     }
   })
 })

@@ -20,12 +20,16 @@ export const PAL: Record<string, string> = {
   // the collar (K) and tie (Y, its shade y) on the idle and seated frames: in the hoodie (and on the assistants) they
   // keep the colours of the cells they replaced (the hoodie J, the shirt's W and R stripes), so nothing changes there
   K: '#6f7a8c', Y: '#f6f6f6', y: '#3b6fd6',
+  // the mood marks' sweat drop (A) and sparkle (X), drawn in the rig head's mark slot (0.11.0); w, the paper's lines,
+  // W's shade
+  A: '#8fd3ff', X: '#f5b700', w: '#b8b2a5',
 }
 
 /**
- * The hand-drawn anchor head (rows 0-15 of the original standing frame): the staff portrait (`SpriteAvatar`) draws it,
- * and the `--sprite` pipeline grafts it onto a generated frame whose own head fails `faceRules` (manifest
- * `graft: "anchor-head"`), so the FACES overlay and the mark always land where they were drawn for.
+ * The hand-drawn anchor head (rows 0-15 of the original standing frame): the 0.10 frames' head (the editor's is built
+ * on it), and the `--sprite` pipeline grafts it onto a generated frame whose own head fails `faceRules` (manifest
+ * `graft: "anchor-head"`), so the FACES overlay and the mark always land where they were drawn for. The staff portrait
+ * draws the rig's head since 0.11.0 (`rig/head.ts`).
  */
 export const ANCHOR_HEAD: SpriteMap = [
   '......LLLLLLLLLL........', // 0
@@ -66,14 +70,20 @@ export function frameRules(map: SpriteMap, w = 24, h = 32, pal: Record<string, s
   return out
 }
 
-/** The keys a face may show inside the FACES window: skin and its shade, the eyes and their white, mouth, blush, outline. */
-const FACE_KEYS = 'SsEWMBL'
+/**
+ * The keys a face may show inside the FACES window and the rig head's eye and mouth slots: skin and its shade, the
+ * eyes and their white, mouth, blush, outline.
+ */
+export const FACE_KEYS = 'SsEWMBL'
+
+/** The keys a mark may use (the rig head's mark slot): the outline, the white highlight, the sweat drop, the sparkle. */
+export const MARK_KEYS = 'LWAX'
 
 /**
  * What stops a head-steady frame taking the mood overlay, [] when nothing: rows 9-12, cols 4-17 (where `FACES` lands)
  * hold only face keys, so the overlay paints over a face; rows 0-2, cols 20-22 (the mark slot) are clear; and the head
- * (rows 0-15) stays inside cols 2-19, the `SpriteAvatar` crop. The `--sprite` pipeline grafts the anchor head onto a
- * generated frame that fails it.
+ * (rows 0-15) stays inside cols 2-19, the 0.10 staff portrait's crop. The `--sprite` pipeline grafts the anchor head
+ * onto a generated frame that fails it.
  */
 export function faceRules(map: SpriteMap): string[] {
   const out: string[] = []

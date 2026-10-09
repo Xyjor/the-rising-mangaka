@@ -1,8 +1,8 @@
 // The assembler: a pose's parts composed into one frame, back to front, each placed so its anchor lands on its
 // parent's; the outline closed where parts meet; the face stamped into the head's slots. Pure: no DOM, no clock.
-import { PAL, frameRules } from '../spriteCore'
+import { FACE_KEYS, MARK_KEYS, PAL, frameRules } from '../spriteCore'
 import { JOIN, LAYERS } from './types'
-import type { AnchorName, Face, FaceArt, HeadPart, Layer, Part, PartLib, PartPose, Point, SpriteMap } from './types'
+import type { AnchorName, Face, FaceArt, HeadPart, Layer, Part, PartLib, PartPose, Point, Slot, SpriteMap } from './types'
 
 /** Whether a part is the head (it has face slots). */
 export function isHead(p: Part | HeadPart): p is HeadPart {
@@ -151,4 +151,34 @@ export function poseRules(
     }
   }
   return [...out]
+}
+
+/**
+ * What is wrong with the head and its face drawings, [] when nothing: the eye and mouth slots hold only face keys and
+ * already hold the open eyes and the closed mouth (the bare head is neutral); the mark slot is clear; every eyes and
+ * mouth drawing fills its slot (its size, face keys only, no '.'); every mark is the mark slot's size in mark keys.
+ */
+export function headRules(head: HeadPart, art: FaceArt): string[] {
+  const out: string[] = []
+  const window = (s: Slot) => head.map.slice(s.y, s.y + s.h).map((row) => row.slice(s.x, s.x + s.w))
+  const { eyes, mouth, mark } = head.slots
+  for (const [name, s] of [['eye', eyes], ['mouth', mouth]] as const) {
+    window(s).forEach((row, r) => {
+      for (let c = 0; c < row.length; c++) if (!FACE_KEYS.includes(row[c])) out.push(`${name} slot row ${s.y + r} col ${s.x + c} is ${row[c]}, not a face key`)
+    })
+  }
+  window(mark).forEach((row, r) => {
+    for (let c = 0; c < row.length; c++) if (row[c] !== '.') out.push(`mark slot row ${mark.y + r} col ${mark.x + c} is ${row[c]}, not clear`)
+  })
+  if (window(eyes).join('/') !== art.eyes.open.join('/')) out.push('the eye slot does not hold the open eyes')
+  if (window(mouth).join('/') !== art.mouths.closed.join('/')) out.push('the mouth slot does not hold the closed mouth')
+  const sized = (what: string, map: SpriteMap, s: Slot, keys: string) => {
+    const w = map[0]?.length ?? 0
+    if (map.length !== s.h || map.some((row) => row.length !== s.w)) out.push(`${what} is ${w}x${map.length}, not ${s.w}x${s.h}`)
+    for (const ch of new Set(map.join(''))) if (!keys.includes(ch)) out.push(`${what} has key ${ch}`)
+  }
+  for (const [id, map] of Object.entries(art.eyes)) sized(`eyes ${id}`, map, eyes, FACE_KEYS)
+  for (const [id, map] of Object.entries(art.mouths)) sized(`mouth ${id}`, map, mouth, FACE_KEYS)
+  for (const [id, map] of Object.entries(art.marks)) sized(`mark ${id}`, map, mark, `.${MARK_KEYS}`)
+  return out
 }

@@ -20,7 +20,7 @@ npm run art -- <id>|--all   # Regenerates a static illustration from art/manifes
                              # one regenerates it); run after adding or editing a manifest entry; `--all` currently
                              # rewrites `prop/kitchenette.png` (held back in 0.10.2, DESIGN.md "2026-10-09, the
                              # remaining minors"); `git checkout` it back unless that change is intended
-npm run sprites -- <out.png> [--walk]   # Sprite contact sheet (scripts/spriteSheet.ts), 8x (the cat at 16x): each frame beside its HEAD frame, plus the cardigan, blazer and assistant looks and the four moods' faces and marks (new only); --walk the walk strips only; a palette missing on either side (or a HEAD frame) is an empty cell and a note
+npm run sprites -- <out.png> [--walk] [--base <ref>]   # Sprite contact sheet (scripts/spriteSheet.ts), 8x (the cat at 16x): each frame beside the same frame at the base ref (`--base`, default main, where the 0.10 frames stay until the merge), plus the cardigan, blazer and assistant looks, the four moods' faces and marks (new only), and row I, the rig head with every eyes x mouth x mark; --walk the walk strips only; a palette missing on either side (or a base frame or file) is an empty cell and a note
 npm run balance -- [from=1] [to=20] [--detail seed]   # Balance bots (src/sim/bot.ts): a line per seed per bot, then the balance-band rows
 npm run tauri dev       # Desktop window; stop any running `npm run dev` first (it starts its own, strict port 5173)
 npm run tauri build     # Windows NSIS installer, in src-tauri/target/release/bundle/nsis/
@@ -108,7 +108,7 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   entrance and door, drawn straight in canvas space) and its `PANE_X/Y/W/H`/`BAR_X` and `paneRect` clipped to the
   window pane; `render.ts` holds the palettes, string-map sprites and `render`, one frame painted from a `Snapshot`
   with nothing allocated per frame (`Snapshot.late` turns the seated mangaka to the panic frames); `sceneArt.ts`
-  `SceneArt` (render's last argument, default `NO_ART`): generated room walls (320x114, drawn over rows 0-113, the apartment's and the loft's; the flat has none since 0.10.1, its wall always code-drawn, `TIER_WALL`; the tier's floor is always code-drawn, `roomArt.ts` `TIER_FLOOR`) and prop sprites (structural, furniture, front row) drawn with
+  `SceneArt` (render's fifth argument, before the sprite cache, default `NO_ART`): generated room walls (320x114, drawn over rows 0-113, the apartment's and the loft's; the flat has none since 0.10.1, its wall always code-drawn, `TIER_WALL`; the tier's floor is always code-drawn, `roomArt.ts` `TIER_FLOOR`) and prop sprites (structural, furniture, front row) drawn with
   `drawImage` (`ready`, `drawProp`; a sprite keeps its aspect at `PROP_SPRITE`, placed by `spriteBox` (`placeSprite` under `PROP_ALIGN`, sized by `PROP_SPRITE`/`PROP_MIN_H`/`PROP_MAX_W`; a desk by `hangSprite`) at render.ts's
   `PROP_BOX`, the fallback inside `PROP_FOOTPRINT`), each falling back to its code-drawn piece
   (`drawRoomShell`, the window frame, `TIER_DOOR`, ...) while missing or loading; `sceneImages.ts` builds them once from
@@ -119,8 +119,9 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   16-31), the run-length `drawSprite`, `frameRules` (closed outline, feet on the last row, every key in the palette),
   `RUN_CAPS` (sprites.test.ts: each frame's run count capped at 1.3x its pre-redraw count, never raised),
   `faceRules` (the FACES window rows 9-12 cols 4-17 holds only face keys, the mark slot clear, the head inside the
-  avatar crop; it, `frameRules`, `PAL` and `ANCHOR_HEAD` live in the import-free leaf `spriteCore.ts`, re-exported, so
-  `npm run art` never loads sprites.ts), `ANCHOR_HEAD` (the hand-drawn head the avatar draws and the `--sprite` graft uses),
+  0.10 avatar crop; it, `frameRules`, `PAL`, `FACE_KEYS`, `MARK_KEYS` and `ANCHOR_HEAD` live in the import-free leaf
+  `spriteCore.ts`, re-exported, so `npm run art` never loads sprites.ts), `ANCHOR_HEAD` (the 0.10 frames' hand-drawn
+  head, the editor's is built on it, and the `--sprite` graft uses it),
   the generated frames (`src/ui/scene/generated/*.ts`, written by `npm run art` and never hand-edited): the cast is
   hand-redrawn in 0.9.0 (Release B, gated on `npm run sprites`), every pose but `ANCHOR_HEAD` (`MANGAKA_IDLE` is
   `ANCHOR_HEAD` over the hand-drawn body, frame 1 its `breathOf`); the one generated frame is the assistants' doze
@@ -131,10 +132,15 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   (the mangaka's outfit by level: hoodie, cardigan, blazer); `mood.ts` `moodOf` (the mood priority order),
   `cheersFor` (a fans or level-up pop starts a `CHEER_MS` cheer) and `idleFrame`/`catFrame` (the standing mangaka's
   and the sitting cat's idle cycles); `spriteSvg.ts` `spriteRects` and
-  `SpriteAvatar.tsx`, the staff portrait drawn from `ANCHOR_HEAD`, the anchor frame's chibi head (rows 0-15, cols 2-19); `rig/` (0.11.0) the cast rig:
-  `types.ts` (parts with anchors, part poses and key poses, faces, `CastFrame`, `Mood`) and `assemble.ts`
+  `SpriteAvatar.tsx`, the staff portrait drawn from the rig head (`rig/head.ts` `headWith(NEUTRAL_FACE)`, 24x22,
+  `AVATAR_CROP`); `rig/` (0.11.0) the cast rig:
+  `types.ts` (parts with anchors, part poses and key poses, faces, `CastFrame`, `Mood`), `assemble.ts`
   (`assemblePose`: parts layered back to front by their join anchors (`JOIN`), the outline closed where they meet,
-  the face stamped into the head; `partRules`, `poseRules`); `spriteCache.ts` (0.11.0) the per-session sprite cache: each
+  the face stamped into the head; `partRules`, `poseRules`, `headRules`) and `head.ts` (the hand-drawn 27x22 chibi head
+  `HEAD`: cols 0-23 the head, cols 24-26 the mark slot; its eye slot rows 10-13 cols 4-19, mouth slot rows 15-16 cols
+  10-13, the neck anchor (12, 21); `EYES` (open, blink, closed, ring, squint, happy), `MOUTHS` (closed, open, smile,
+  frown, o), `MARK_ART` (sweat, sparkle, bang, zee in `PAL.A`/`PAL.X`), `FACE_ART`, `NEUTRAL_FACE`, `FACE_BY_MOOD`,
+  `headWith(face)`); `spriteCache.ts` (0.11.0) the per-session sprite cache: each
   cast frame painted once per palette (`PaletteId`: `pal`, the outfits, `look0`-`look5`) and facing into an
   OffscreenCanvas (a `<canvas>` without one or when it gives no 2D context, a stand-in in node), keyed by frame id;
   `drawCast` is one `drawImage`; `getCastCache`/`installCastCache` (tests install a recording one). Memory: at most

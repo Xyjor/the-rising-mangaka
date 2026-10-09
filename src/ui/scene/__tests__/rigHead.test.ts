@@ -1,0 +1,70 @@
+// The rig's head (0.11.0): pure data and its rules, node environment.
+import { describe, expect, it } from 'vitest'
+import { headRules, stampFace } from '../rig/assemble'
+import { FACE_ART, FACE_BY_MOOD, HEAD, NEUTRAL_FACE, headWith } from '../rig/head'
+import { FACE_KEYS, MARK_KEYS, PAL, frameRules } from '../spriteCore'
+import type { EyesId, MouthId } from '../rig/types'
+
+const EYE_IDS: EyesId[] = ['open', 'blink', 'closed', 'ring', 'squint', 'happy']
+const MOUTH_IDS: MouthId[] = ['closed', 'open', 'smile', 'frown', 'o']
+
+describe('the rig head', () => {
+  it('is 27 wide and 22 tall, its outline closed, its slots where the face and the mark go', () => {
+    expect(HEAD.map).toHaveLength(22)
+    expect(HEAD.map.every((row) => row.length === 27)).toBe(true)
+    expect(frameRules(HEAD.map, 27, 22)).toEqual([])
+    expect(HEAD.slots).toEqual({ eyes: { x: 4, y: 10, w: 16, h: 4 }, mouth: { x: 10, y: 15, w: 4, h: 2 }, mark: { x: 24, y: 0, w: 3, h: 5 } })
+    expect(HEAD.anchors).toEqual({ neck: { x: 12, y: 21 } })
+    expect(HEAD.map[21][12]).not.toBe('.')
+  })
+
+  it('keeps the head in cols 0-23 and the mark slot\'s columns 24-26 clear on every row', () => {
+    for (const row of HEAD.map) expect(row.slice(24)).toBe('...')
+  })
+
+  it('passes the head rules: face keys in the face slots, the neutral face there already, every drawing its slot\'s size', () => {
+    expect(headRules(HEAD, FACE_ART)).toEqual([])
+    expect(stampFace(HEAD, FACE_ART, NEUTRAL_FACE)).toEqual(HEAD.map)
+    expect(NEUTRAL_FACE).toEqual({ eyes: 'open', mouth: 'closed', mark: 'none' })
+  })
+
+  it('draws every eyes and every mouth distinct, so each face reads apart', () => {
+    expect(new Set(EYE_IDS.map((id) => FACE_ART.eyes[id].join('/'))).size).toBe(6)
+    expect(new Set(MOUTH_IDS.map((id) => FACE_ART.mouths[id].join('/'))).size).toBe(5)
+  })
+
+  it('gives every mood its face', () => {
+    expect(FACE_BY_MOOD).toEqual({
+      neutral: { eyes: 'open', mouth: 'closed', mark: 'none' },
+      happy: { eyes: 'happy', mouth: 'smile', mark: 'sparkle' },
+      tired: { eyes: 'squint', mouth: 'frown', mark: 'sweat' },
+      surprised: { eyes: 'ring', mouth: 'o', mark: 'bang' },
+      sleepy: { eyes: 'closed', mouth: 'closed', mark: 'zee' },
+    })
+  })
+
+  it('stamps a whole face, the mark in its slot beside the hair', () => {
+    const tired = headWith(FACE_BY_MOOD.tired)
+    expect(tired.slice(0, 5).map((row) => row.slice(24))).toEqual(FACE_ART.marks.sweat)
+    expect(headWith(NEUTRAL_FACE)).toEqual(HEAD.map)
+  })
+
+  it('reports a face key out of place, a wrong-sized drawing and a mark slot that is not clear', () => {
+    const bad = { ...HEAD, map: HEAD.map.map((row, r) => (r === 11 ? row.slice(0, 5) + 'H' + row.slice(6) : r === 2 ? row.slice(0, 25) + 'L' + row.slice(26) : row)) }
+    expect(headRules(bad, FACE_ART)).toEqual(['eye slot row 11 col 5 is H, not a face key', 'mark slot row 2 col 25 is L, not clear', 'the eye slot does not hold the open eyes'])
+    expect(headRules(HEAD, { ...FACE_ART, mouths: { ...FACE_ART.mouths, o: ['LL'] } })).toEqual(['mouth o is 2x1, not 4x2'])
+    expect(headRules(HEAD, { ...FACE_ART, marks: { ...FACE_ART.marks, zee: ['LLL', 'S.L', '.L.', 'L..', 'LLL'] } })).toEqual(['mark zee has key S'])
+  })
+
+  it('reports a mouth slot that is not the closed mouth, and a clear cell in an eyes drawing', () => {
+    const smiling = { ...HEAD, map: HEAD.map.map((row, r) => (r === 16 ? row.slice(0, 10) + 'SSSS' + row.slice(14) : row)) }
+    expect(headRules(smiling, FACE_ART)).toEqual(['the mouth slot does not hold the closed mouth'])
+    const holed = ['.'.repeat(16), ...FACE_ART.eyes.blink.slice(1)]
+    expect(headRules(HEAD, { ...FACE_ART, eyes: { ...FACE_ART.eyes, blink: holed } })).toEqual(['eyes blink has key .'])
+  })
+
+  it('adds the mark keys to PAL in the 0.10 marks\' colours, and W\'s shade for paper', () => {
+    expect([PAL.A, PAL.X, PAL.w]).toEqual(['#8fd3ff', '#f5b700', '#b8b2a5'])
+    expect([FACE_KEYS, MARK_KEYS]).toEqual(['SsEWMBL', 'LWAX'])
+  })
+})

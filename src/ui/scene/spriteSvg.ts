@@ -1,8 +1,8 @@
 // A sprite map as SVG rects (for DOM portraits such as the staff avatar): the same run-length rows drawSprite paints.
 import type { SpriteMap } from './sprites'
 
-/** The staff portrait's window: the chibi head, rows 0-15 and cols 2-19 (18x16). */
-export const AVATAR_CROP: { rows: [number, number]; cols: [number, number] } = { rows: [0, 15], cols: [2, 19] }
+/** The staff portrait's window: the rig head, rows 0-21 and cols 0-23 (24x22). */
+export const AVATAR_CROP: { rows: [number, number]; cols: [number, number] } = { rows: [0, 21], cols: [0, 23] }
 
 export interface SvgRect { x: number; y: number; w: number; h: number; fill: string }
 

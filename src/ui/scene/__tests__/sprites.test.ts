@@ -634,7 +634,7 @@ describe('the sprites', () => {
     expect(OUTFIT_PALS.blazer.j).toBe('#222b5c')
   })
 
-  it('keeps the anchor head (the graft and the staff portrait) equal to the standing frame rows 0-15', () => {
+  it("keeps the anchor head (the graft and the editor's head) equal to the standing frame rows 0-15", () => {
     expect(ANCHOR_HEAD).toEqual(MANGAKA_IDLE[0].slice(0, 16))
     expect(faceRules(ANCHOR_HEAD.concat(MANGAKA_IDLE[0].slice(16)))).toEqual([])
   })

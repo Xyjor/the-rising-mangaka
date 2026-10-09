@@ -317,11 +317,11 @@ at `CAT_BED` (4 fills, drawn just before it).
 - **Face rules and generated frames** (0.11.0, task C1). `faceRules(frame)`, next to `frameRules`, lists what stops a
   head-steady frame taking the mood overlay: rows 9-12, cols 4-17 (where `FACES` lands) may hold only face keys (`S s
   E W M B L`), rows 0-2, cols 20-22 (the mark slot) must be clear, and the head (rows 0-15) must stay inside cols 2-19,
-  the `SpriteAvatar` crop. `ANCHOR_HEAD` is the hand-drawn anchor head (rows 0-15 of `MANGAKA_IDLE[0]`, asserted
-  equal); the staff portrait draws it, and the `--sprite` pipeline (see "### Art") grafts it onto a generated frame
-  whose own head fails `faceRules` (the graft rule: rows 0-15 replaced, recorded per frame in the manifest as
-  `graft: "anchor-head"`). `breathOf` is the idle's breath (rows 0-23 a row lower, `breathOf(MANGAKA_IDLE[0])` being
-  exactly `MANGAKA_IDLE[1]`). **None of the C1 frames is drawn**: the readability gate (`sprites-C1.png`, every
+  the 0.10 `SpriteAvatar` crop. `ANCHOR_HEAD` is the hand-drawn anchor head (rows 0-15 of `MANGAKA_IDLE[0]`, asserted
+  equal); the staff portrait drew it until the rig head (0.11.0, below), and the `--sprite` pipeline (see "### Art")
+  grafts it onto a generated frame whose own head fails `faceRules` (the graft rule: rows 0-15 replaced, recorded per
+  frame in the manifest as `graft: "anchor-head"`). `breathOf` is the idle's breath (rows 0-23 a row lower,
+  `breathOf(MANGAKA_IDLE[0])` being exactly `MANGAKA_IDLE[1]`). **None of the C1 frames is drawn**: the readability gate (`sprites-C1.png`, every
   frame next to its hand-drawn one, 8x, three outfits, every mood) found the idle (a narrow column, no arms or
   shoes), the two seated frames (the stool baked in, no pen arm, two unrelated cells that jitter when they alternate),
   panic (mush) and the bed (a front view peeking over a blue mound, nothing like the pillow pose) read worse at 24x32,
@@ -379,10 +379,13 @@ at `CAT_BED` (4 fills, drawn just before it).
   (`npm run sprites -- <out.png> [--walk]`): an 8x contact sheet (the cat at 16x) of each frame beside its HEAD frame,
   plus the cardigan, blazer and assistant looks and the four moods' faces and marks (new only), and the walk strips
   (`--walk` writes only those); a palette missing on either side, or a frame missing at HEAD, is an empty cell and a
-  note on stdout. The run-count caps are `RUN_CAPS` in sprites.test.ts, 1.3x each frame's pre-redraw count, which
-  keeps every fill baseline inside its 1.5x budget by construction. The ruling: **`ANCHOR_HEAD` is untouched**. The
-  sheets' 2:1 head cannot fit the `FACES`, mark-slot and avatar-crop contract, and the hand-drawn head is the part
-  that already read, so the staff portraits do not change.
+  note on stdout. Since 0.11.0 (task 7) each frame sits beside the same frame at a base ref (`--base <ref>`, default
+  `main`, where the 0.10 frames stay until the merge; a file the ref lacks is skipped with a note, and a base that
+  cannot load leaves every base cell empty), and row I is the rig head with every face (see "The rig head"). The
+  run-count caps are `RUN_CAPS` in sprites.test.ts, 1.3x each frame's pre-redraw count, which keeps every fill
+  baseline inside its 1.5x budget by construction. The ruling: **`ANCHOR_HEAD` is untouched**. The sheets' 2:1 head
+  cannot fit the `FACES`, mark-slot and avatar-crop contract, and the hand-drawn head is the part that already read,
+  so the staff portraits do not change (until the rig head, 0.11.0).
 - **Drawing through the cache** (0.11.0, task 6). Every character is one `drawImage` of its frame from
   `spriteCache.ts`, painted once per palette and facing into its own surface; the 0.10 maps are `oldCast.ts`'s cast
   frames (`OLD_CAST`, each with the id the cache names it by) until each rig release replaces them (the mangaka's, then
@@ -391,13 +394,41 @@ at `CAT_BED` (4 fills, drawn just before it).
   about 36 MB in theory; a realistic long career builds about 900-1,000 surfaces, about 6 MB. `render` takes the cache
   as its last argument (the session's by default, `getCastCache()`), so a test hands it a recording one
   (`fakeSurface`) and reads each character as an entry in `images`, named `cast/<frame>/<palette>`, `/r` mirrored.
+- **The rig head** (0.11.0, task 7). `rig/head.ts` `HEAD` is a new hand-drawn chibi head, 27 wide x 22 tall, after
+  `art/raw/sprites/mangaka-front.png` (proportions, hair mass, colours) in 0.10's style (`PAL` keys, the shade on the
+  right and underneath, `L` outline): cols 0-23 the head, cols 24-26 the mark slot, clear on every row. The hair `H`
+  (its shade `h` two columns down the right) puffs out to the full width on rows 6-9, the bangs reach row 9 with a
+  parting notch of skin over each eye, side locks run down the temples to row 12, and the ears sit at cols 0-1 and
+  22-23 on rows 11-14 under the hair's edge, each parted from the cheek by an `L`; blush `B` on row 14 under each eye;
+  the cheeks round in to the chin, its underside `s` on row 20 and its outline on row 21, where the neck anchor
+  (12, 21) sits. Three slots: the eyes (rows 10-13, cols 4-19; each eye inside slot cols 1-4 and 11-14, head cols 5-8
+  and 15-18, with skin around it, where the editor's glasses go in 0.12.0), the mouth (rows 15-16, cols 10-13) and the
+  mark (rows 0-4, cols 24-26, beside the hair's top right). The slots hold the neutral face, so the bare head is
+  neutral. Six eyes (`EYES`, each 16x4): open (3-wide dark pupils, the outer top corner round, a `W` highlight on the
+  left of each, the light from the top left), blink (a one-row line where the lids meet), closed (a downward curve,
+  asleep), ring (the whites round a 2x2 pupil, surprised), squint (a heavy lid drooping to the outer corner over the
+  lower half of the eye, tired) and happy (an upward curve); five mouths (`MOUTHS`, each 4x2): closed (a short line),
+  open, smile, frown and o; four marks (`MARK_ART`, each 3x5), 0.10's `MARKS` in `PAL` keys: the sweat drop `A`
+  (`#8fd3ff`) and the sparkle `X` (`#f5b700`) join `PAL`, with `w` (`#b8b2a5`, `W`'s shade, the paper's lines).
+  `FACE_BY_MOOD`: neutral open, closed, no mark; happy happy, smile, sparkle; tired squint, frown, sweat; surprised
+  ring, o, bang; sleepy closed, closed, zee. `headRules` (`rig/assemble.ts`) holds the head to its slots: the eye and
+  mouth slots hold only face keys (`FACE_KEYS`, `S s E W M B L`) and already hold the open eyes and the closed mouth,
+  the mark slot is clear, every eyes and mouth drawing fills its slot (its size, no `.`), and every mark is the slot's
+  size in mark keys (`MARK_KEYS`, `L W A X`). `headWith(face)` stamps a whole face, the mark beside the hair. The staff
+  portrait (`SpriteAvatar`) draws `headWith(NEUTRAL_FACE)` cropped to the head, rows 0-21 and cols 0-23
+  (`AVATAR_CROP`, 24x22; the SVG viewBox matches), in each assistant's colours. `ANCHOR_HEAD` stays for the editor's
+  0.10 frames and `scripts/pixelate.ts`'s graft. The gate's row I (`npm run sprites`) is the head with every eyes x
+  mouth x mark at 8x, one row per eyes in `EYES` order; at task 7 every face read as its mood at a glance and each
+  mark sat beside the hair, not on it, after two redraws: the first head was a round helmet over a moon face (the
+  hair now puffs out wider than the face and the jaw rounds in sooner), and the first tired eyes, a flat lid, read as
+  grumpy (the lid now droops to the outer corner).
 
 The frame sets: idle 2 frames (`frame/16 % 2`), walk 4 (`anim/100 % 4`), sit 2 (`frame/8 % 2` while working, frame 0
 otherwise), panic 2 (for 40 of every 240 frames while working on a late chapter, `Snapshot.late`), a 30x14 lying
 sprite for the bed (under a blanket, only head and shoulders show), the assistants' doze, the editor's idle and walk,
 the standing idle cycle's stretch and sip, and the 12x8 cat (sleep, sit, its groom and stretch, walk `anim/125 % 2`).
-Props (envelope, letter, contract, trophy) are small maps of their own. `SpriteAvatar` draws the anchor frame's chibi
-head (rows 0-15, cols 2-19, 18x16; the SVG viewBox matches) as SVG rects (`spriteSvg.ts`) for the staff portraits.
+Props (envelope, letter, contract, trophy) are small maps of their own. `SpriteAvatar` draws the rig head (since
+0.11.0: rows 0-21, cols 0-23, 24x22; the SVG viewBox matches) as SVG rects (`spriteSvg.ts`) for the staff portraits.
 
 | Spot | Canvas (top left of the frame) |
 |---|---|
@@ -462,9 +493,9 @@ CAT_SLEEP (39): 701 - 427 = 274; the full scene loses MANGAKA_SIT[0] three times
 CAT_SLEEP (39): 1125 - 816 = 309; the art twins lose the same, 584 - 427 = 157 and 1009 - 816 = 193; the rest scene
 loses MANGAKA_LIE (72), CAT_SIT (40) and ASSISTANT_DOZE (91): 506 - 203 = 303. What stays a fill is the mood overlay
 (the sleepy face's 17), the Zs, the blanket and the cushion. The fixed extras that did not shrink (the flat's
-code-drawn wall, the night, the editor's shadow, prop and `!`) left three budget loops under 2 fills of their 1.5x
-budget, so each loop's worst scene has its own pin and the loop is held to 1.5x that: the flat in spring at night with
-the art ready 235 (budget 352.5, `render.test.ts` `ART_WORST_FILLS`), and the full scene with the editor visiting 462
+code-drawn wall, the night, the editor's shadow, prop and `!`) left two budget loops under 2 fills of their 1.5x
+budget and the third under 5, so each loop's worst scene has its own pin and the loop is held to 1.5x that: the flat
+in spring at night with the art ready 235 (budget 352.5, `render.test.ts` `ART_WORST_FILLS`), and the full scene with the editor visiting 462
 (693, `studioArt.test.ts` `VISIT_FULL_BASELINE`), 285 with the art ready (427.5, `VISIT_ART_BASELINE`).
 
 ### Art
@@ -559,7 +590,8 @@ own typed records here (for example a `Record<GenreId, ArtRef>`) built on the sa
 crisp in every browser; its `alt` defaults to `''` (decorative) except where the image carries real meaning, such as
 the title hero.
 
-**Scene images (0.9.0).** `render(ctx, s, t, frame, art = NO_ART)` takes a `SceneArt` (`src/ui/scene/sceneArt.ts`):
+**Scene images (0.9.0).** `render(ctx, s, t, frame, art = NO_ART, cast)` takes a `SceneArt` (`src/ui/scene/sceneArt.ts`;
+the fifth argument, the sprite cache after it since 0.11.0):
 `room`, one image or null per tier, and `prop`, one per prop (`ScenePropId`: `window`, the window's frame;
 `door`, the apartment's plain front door; `doorway`, the flat's and the loft's lit doorway; `kitchenette`;
 `bookshelf`; `bed`; `poster`, the stock poster, shown while no serial or anime takes its place; and since 0.10.0 the
@@ -1580,7 +1612,8 @@ scene. Task R1 laid the plumbing, with no art yet:
   Every image has a code-drawn fallback, used while it is missing or still loading (a frame is never blank), and the
   characters stay string-map sprites. This replaces the 2026-09-28 rule that nothing generated is composited into the
   canvas.
-- `render` takes the images as a `SceneArt` (`sceneArt.ts`, last argument, default `NO_ART`, today's scene exactly);
+- `render` takes the images as a `SceneArt` (`sceneArt.ts`, the fifth argument, before the sprite cache, default
+  `NO_ART`, today's scene exactly);
   `sceneImages.ts` builds them once from the registry's `ROOM_ART` and `SCENE_PROP_ART` and `StudioScene` repaints on
   each load. `render.ts` never imports the registry.
 - Night keeps the scene's own overlay; a room image gets one extra `rgba(20,24,60,0.25)` fill right after it (the
