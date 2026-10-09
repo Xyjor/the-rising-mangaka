@@ -134,7 +134,12 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   `SpriteAvatar.tsx`, the staff portrait drawn from `ANCHOR_HEAD`, the anchor frame's chibi head (rows 0-15, cols 2-19); `rig/` (0.11.0) the cast rig:
   `types.ts` (parts with anchors, part poses and key poses, faces, `CastFrame`, `Mood`) and `assemble.ts`
   (`assemblePose`: parts layered back to front by their join anchors (`JOIN`), the outline closed where they meet,
-  the face stamped into the head; `partRules`, `poseRules`). `season.ts` has `seasonOf(day)` and the window's season layer; `roomArt.ts` each tier's walls and floor (`TIER_ROOM` is `TIER_WALL` then `TIER_FLOOR`:
+  the face stamped into the head; `partRules`, `poseRules`); `spriteCache.ts` (0.11.0) the per-session sprite cache: each
+  cast frame painted once per palette (`PaletteId`: `pal`, the outfits, `look0`-`look5`) and facing into an
+  OffscreenCanvas (a `<canvas>` without one or when it gives no 2D context, a stand-in in node), keyed by frame id;
+  `drawCast` is one `drawImage`; `getCastCache`/`installCastCache` (tests install a recording one). Memory: at most
+  324 frames x 9 palettes x 2 facings x 6,144 B (a 32x48 RGBA surface), about 36 MB in theory; a realistic long career
+  builds about 900-1,000 surfaces, about 6 MB. `season.ts` has `seasonOf(day)` and the window's season layer; `roomArt.ts` each tier's walls and floor (`TIER_ROOM` is `TIER_WALL` then `TIER_FLOOR`:
 tatami, planks, concrete), the front row of floor props (`TIER_FRONT`, drawn after the actors), the story props (corkboard,
 calendar, cups, the serial's cover, fan letters, bin) and `drawAmbient` (daylight shaft, lamp pool, vignette), all in
 canvas space; `story.ts` `storyLook`, the story props' five snapshot inputs read from the game; `studioArt.ts` the
