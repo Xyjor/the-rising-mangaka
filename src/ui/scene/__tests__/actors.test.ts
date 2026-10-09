@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest'
 import { sceneSnapshot } from '../../../test/fakeCanvas'
 import type { Snapshot } from '../render'
-import { EDITOR_WALK_MS, editorWalksIn, newActorTable, planActors, settleActors, stepActors } from '../actors'
+import { EDITOR_SPOT, EDITOR_WALK_MS, RIG_SPOTS, editorWalksIn, newActorTable, planActors, settleActors, stepActors } from '../actors'
 import type { Actor, ActorTable } from '../actors'
 
 function walker(over: Partial<Actor> = {}): ActorTable {
@@ -114,5 +114,51 @@ describe('editorWalksIn', () => {
     expect([t.editor.x, t.editor.y, t.editor.state]).toEqual([254, 85, 'hidden'])
     stepActors(t, EDITOR_WALK_MS, false)
     expect([t.editor.x, t.editor.y, t.editor.state]).toEqual([198, 85, 'standing'])
+  })
+})
+
+describe('the 0.11 spots (task 9)', () => {
+  it('starts every actor with no pose: the 0.10 frames until the cast driver sets one', () => {
+    const t = newActorTable()
+    expect([t.mangaka.pose, t.editor.pose, t.cat.pose]).toEqual(['', '', ''])
+  })
+
+  it('plans the rig spots when asked: the mangaka in through its own door, the assistants\' row, the cat\'s bed', () => {
+    const t = newActorTable()
+    planActors(t, sceneSnapshot({ actors: t }), RIG_SPOTS)
+    expect([t.mangaka.x, t.mangaka.y, t.mangaka.targetX, t.mangaka.targetY, t.mangaka.goal]).toEqual([250, 69, 124, 58, 'seated'])
+    expect(t.assistants.map((a) => [a.x, a.y, a.state])).toEqual([[21, 80, 'seated'], [254, 85, 'hidden'], [254, 85, 'hidden']])
+    expect([t.cat.targetX, t.cat.targetY]).toEqual([202, 118])
+    const plan = (over: Partial<Snapshot>) => {
+      const u = newActorTable()
+      planActors(u, sceneSnapshot({ ...over, actors: u }), RIG_SPOTS)
+      return [u.mangaka.targetX, u.mangaka.targetY, u.mangaka.goal]
+    }
+    expect(plan({ activity: 'rest' })).toEqual([201, 90, 'sleeping'])
+    expect(plan({ phase: 'idle' })).toEqual([170, 81, 'standing'])
+    expect(plan({ away: true })).toEqual([250, 69, 'away'])
+    const three = newActorTable()
+    planActors(three, sceneSnapshot({ assistants: [{ look: 0, stamina: 80 }, { look: 1, stamina: 80 }, { look: 2, stamina: 80 }], actors: three }), RIG_SPOTS)
+    expect(three.assistants.map((a) => a.x)).toEqual([21, 55, 89])
+  })
+
+  it('fits the 0.11 spots around the furniture', () => {
+    const { seat, stand, bed } = RIG_SPOTS.mangaka
+    expect(seat.y + 40).toBe(98) // the seated waist (row 40) on the desk top
+    expect(seat.x + 31).toBeLessThanOrEqual(155) // clear of the arm lamp (x 156)
+    expect(seat.y + 6).toBeGreaterThan(63) // the seated head (row 6) under the corkboard (to y 63)
+    expect(stand.x).toBeGreaterThanOrEqual(170) // clear of the arm lamp (to x 169)
+    expect(stand.y).toBeGreaterThanOrEqual(81) // below the sill's coffee machine and trophies (to y 80)
+    expect(stand.y + 47).toBe(128)
+    const { xs, y } = RIG_SPOTS.seats
+    expect(xs.map((x, i) => (i ? x - xs[i - 1] : 0))).toEqual([0, 34, 34])
+    expect(y + 40).toBe(120) // the assistants' waist on their desk top
+    expect(xs[0] + 3).toBeGreaterThanOrEqual(24) // the first page and head inside the phone crop (x 24)
+    expect(xs[2] + 27).toBeLessThanOrEqual(116) // the third head ends at the stock desk's left edge
+    expect([bed.x + 23, bed.x + 46]).toEqual([224, 247]) // the lying head over the pillow (x 232-245)
+    const cat = RIG_SPOTS.catBed
+    expect(cat.x).toBeGreaterThan(stand.x + 31)
+    expect(cat.x + 11).toBeLessThan(bed.x + 23)
+    expect(cat.y).toBeGreaterThan(EDITOR_SPOT.y + 31)
   })
 })

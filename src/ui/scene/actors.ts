@@ -4,6 +4,7 @@
 // table is mutated in place, nothing here touches the DOM or the painter. Coordinates are canvas space (320x180): a
 // sprite's top-left corner.
 import type { Activity, Phase } from '../../sim'
+import type { PoseId } from './rig/poses'
 
 export const WALK_PX_PER_S = 40
 
@@ -24,6 +25,8 @@ export interface Actor {
   legs: Legs
   /** Milliseconds walked on this walk (drives the walk cycle); 0 when still. */
   anim: number
+  /** The rig pose showing now (castPlay.ts sets it each step), '' while the actor draws its 0.10 frames. */
+  pose: PoseId | ''
 }
 
 export interface ActorTable { mangaka: Actor; assistants: readonly [Actor, Actor, Actor]; editor: Actor; cat: Actor }
@@ -42,6 +45,44 @@ export const ASSISTANT_SEAT_X: readonly number[] = [66, 86, 106]
 /** The editor's walk from the door to their spot: 56 + 0 px at 40 px/s, 1400 ms. */
 export const EDITOR_WALK_MS = ((DOOR_SPOT.x - EDITOR_SPOT.x) + (DOOR_SPOT.y - EDITOR_SPOT.y)) / WALK_PX_PER_S * 1000
 
+/** Where the mangaka goes: the desk's seat, the standing spot, the bed and its own door. */
+export interface MangakaSpots { readonly seat: Spot; readonly stand: Spot; readonly bed: Spot; readonly door: Spot }
+/** The assistants' seats: one row, the seats' left edges and their shared top. */
+export interface SeatRow { readonly xs: readonly number[]; readonly y: number }
+/** Every spot a frame size decides. */
+export interface SpotSet { readonly mangaka: MangakaSpots; readonly seats: SeatRow; readonly catBed: Spot }
+
+/** The 0.10 spots, for the 24x32 frames. */
+export const LEGACY_SPOTS: SpotSet = {
+  mangaka: { seat: MANGAKA_SEAT, stand: MANGAKA_STAND, bed: MANGAKA_BED, door: DOOR_SPOT },
+  seats: { xs: ASSISTANT_SEAT_X, y: ASSISTANT_SEAT_Y }, catBed: CAT_BED,
+}
+/** The 0.11 spots for the 32x48 rig (the plan's decision 2: each checked against the furniture in actors.test). */
+export const RIG_MANGAKA: MangakaSpots = { seat: { x: 124, y: 58 }, stand: { x: 170, y: 81 }, bed: { x: 201, y: 90 }, door: { x: 250, y: 69 } }
+export const RIG_SEATS: SeatRow = { xs: [21, 55, 89], y: 80 }
+export const RIG_CAT_BED: Spot = { x: 202, y: 118 }
+export const RIG_SPOTS: SpotSet = { mangaka: RIG_MANGAKA, seats: RIG_SEATS, catBed: RIG_CAT_BED }
+
+/**
+ * Which characters draw from the rig (0.11.0): off until each one's set is complete (the plan's tasks 17 and 19 turn
+ * them on for good); a dev build turns both on with `?rig` in the URL (StudioScene). Tests turn them on and back off.
+ */
+export const RIG_LIVE: { mangaka: boolean; assistants: boolean } = { mangaka: false, assistants: false }
+
+export function setRigLive(live: { mangaka: boolean; assistants: boolean }): void {
+  RIG_LIVE.mangaka = live.mangaka
+  RIG_LIVE.assistants = live.assistants
+}
+
+/** The spots the live cast stands on: the rig's for each character it draws, else the 0.10 ones. */
+export function liveSpots(): SpotSet {
+  return {
+    mangaka: RIG_LIVE.mangaka ? RIG_MANGAKA : LEGACY_SPOTS.mangaka,
+    seats: RIG_LIVE.assistants ? RIG_SEATS : LEGACY_SPOTS.seats,
+    catBed: RIG_LIVE.mangaka ? RIG_CAT_BED : LEGACY_SPOTS.catBed,
+  }
+}
+
 /** What the plan reads from the scene's snapshot. */
 export interface ActorPlanInput {
   phase: Phase
@@ -55,7 +96,7 @@ export interface ActorPlanInput {
 function newActor(): Actor {
   return {
     x: DOOR_SPOT.x, y: DOOR_SPOT.y, targetX: DOOR_SPOT.x, targetY: DOOR_SPOT.y,
-    facing: -1, state: 'hidden', goal: 'hidden', legs: 'xy', anim: 0,
+    facing: -1, state: 'hidden', goal: 'hidden', legs: 'xy', anim: 0, pose: '',
   }
 }
 
@@ -64,10 +105,10 @@ export function newActorTable(): ActorTable {
   return { mangaka: newActor(), assistants: [newActor(), newActor(), newActor()], editor: newActor(), cat: newActor() }
 }
 
-/** Sends an actor toward a spot; an actor who is not in the room comes in through the door. */
-function send(a: Actor, spot: Spot, goal: ActorState) {
+/** Sends an actor toward a spot; an actor who is not in the room comes in through `door`. */
+function send(a: Actor, spot: Spot, goal: ActorState, door: Spot = DOOR_SPOT) {
   // An 'away' actor is always already at the door, so snapping it there again is a no-op.
-  if (a.state === 'away' || a.state === 'hidden') { a.x = DOOR_SPOT.x; a.y = DOOR_SPOT.y }
+  if (a.state === 'away' || a.state === 'hidden') { a.x = door.x; a.y = door.y }
   a.targetX = spot.x
   a.targetY = spot.y
   a.goal = goal
@@ -80,23 +121,24 @@ function place(a: Actor, x: number, y: number, state: ActorState) {
 }
 
 /** Sets everyone's target and goal from the game (the same absent, busy and resting rules as the painter). */
-export function planActors(table: ActorTable, snap: ActorPlanInput): void {
+export function planActors(table: ActorTable, snap: ActorPlanInput, spots: SpotSet = liveSpots()): void {
   const absent = snap.away || snap.activity === 'job'
   const busy = !absent && snap.phase === 'drawing' && snap.activity === 'work' && snap.stamina > 0
   const resting = !absent && !busy && snap.phase !== 'idle' && snap.phase !== 'ready'
 
   const m = table.mangaka
-  if (busy) send(m, MANGAKA_SEAT, 'seated')
-  else if (resting) send(m, MANGAKA_BED, 'sleeping')
-  else if (absent) send(m, DOOR_SPOT, 'away')
-  else send(m, MANGAKA_STAND, 'standing')
+  const door = spots.mangaka.door
+  if (busy) send(m, spots.mangaka.seat, 'seated', door)
+  else if (resting) send(m, spots.mangaka.bed, 'sleeping', door)
+  else if (absent) send(m, door, 'away', door)
+  else send(m, spots.mangaka.stand, 'standing', door)
 
   const n = Math.min(3, snap.assistants.length)
   for (let i = 0; i < 3; i++) {
     const a = table.assistants[i]
     if (i < n) {
       const asleep = snap.assistants[i].stamina <= 0 || snap.activity === 'rest'
-      place(a, ASSISTANT_SEAT_X[i], ASSISTANT_SEAT_Y, asleep ? 'sleeping' : 'seated')
+      place(a, spots.seats.xs[i], spots.seats.y, asleep ? 'sleeping' : 'seated')
     } else place(a, DOOR_SPOT.x, DOOR_SPOT.y, 'hidden')
   }
 
@@ -107,7 +149,7 @@ export function planActors(table: ActorTable, snap: ActorPlanInput): void {
 
   const c = table.cat
   if (resting) { send(c, CAT_KITCHEN, 'sitting'); c.legs = 'yx' }
-  else { send(c, CAT_BED, 'sleeping'); c.legs = 'xy' }
+  else { send(c, spots.catBed, 'sleeping'); c.legs = 'xy' }
 }
 
 function stepActor(a: Actor, dtMs: number, reduced: boolean) {
