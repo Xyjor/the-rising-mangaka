@@ -1,12 +1,15 @@
 // The cast's poses (0.11.0): each a part pose (parts joined by their anchors) or a key frame (drawn whole), and where
 // it is drawn: at the actor, or at the seat or the bed whatever the actor's position (a transition there plays while
 // the actor already walks). Every PoseId is in the union and the table, so a pose named anywhere and not drawn fails tsc.
+import { BED_LIE_0, BED_LIE_1, BED_SIT } from './keyFrames'
 import type { PartPose, Place, Pose } from './types'
 
 export type PoseId =
   | 'stand.idle' | 'stand.breath' | 'stand.blink'
+  | 'ready.idle' | 'ready.breath' | 'ready.blink'
   | 'walk.contact-l' | 'walk.down-l' | 'walk.pass-l' | 'walk.up-l' | 'walk.contact-r' | 'walk.down-r' | 'walk.pass-r' | 'walk.up-r'
   | 'seat.rest' | 'seat.breath' | 'seat.blink' | 'seat.draw-a' | 'seat.draw-b' | 'seat.draw-c'
+  | 'bed.lie-0' | 'bed.lie-1' | 'bed.sit'
 
 export interface PoseDef { readonly pose: Pose; readonly at: 'actor' | 'seat' | 'bed' }
 
@@ -23,6 +26,9 @@ function stand(over: Over = {}): PartPose {
     legBack: { part: 'leg-r-stand' }, legFront: { part: 'leg-l-stand' }, ...over,
   }
 }
+
+/** The ready stance's near arm and the manuscript it holds at the chest, over the standing body. */
+const HOLD: Over = { armFront: { part: 'arm-l-hold' }, prop: { part: 'manuscript' } }
 
 /** A walk step: the standing body with the torso `bob` rows lower, the given legs and arms. */
 function walk(bob: 0 | 1, legFront: string, legBack: string, armFront: string, armBack: string): PartPose {
@@ -45,6 +51,9 @@ export const POSES: Readonly<Record<PoseId, PoseDef>> = {
   'stand.idle': { pose: stand(), at: 'actor' },
   'stand.breath': { pose: stand({ head: { part: 'head', dy: 1 } }), at: 'actor' },
   'stand.blink': { pose: stand({ face: { eyes: 'blink' } }), at: 'actor' },
+  'ready.idle': { pose: stand(HOLD), at: 'actor' },
+  'ready.breath': { pose: stand({ ...HOLD, head: { part: 'head', dy: 1 } }), at: 'actor' },
+  'ready.blink': { pose: stand({ ...HOLD, face: { eyes: 'blink' } }), at: 'actor' },
   'walk.contact-l': { pose: walk(0, 'leg-l-step', 'leg-r-stand', 'arm-l-swing-back', 'arm-r-swing-fwd'), at: 'actor' },
   'walk.down-l': { pose: walk(1, 'leg-l-step-bend', 'leg-r-plant-bend', 'arm-l-swing-back', 'arm-r-swing-fwd'), at: 'actor' },
   'walk.pass-l': { pose: walk(0, 'leg-l-stand', 'leg-r-lift', 'arm-l-hang', 'arm-r-hang'), at: 'actor' },
@@ -59,4 +68,7 @@ export const POSES: Readonly<Record<PoseId, PoseDef>> = {
   'seat.draw-a': { pose: seat({ armFront: { part: 'arm-l-desk-a' }, prop: { part: 'pen' } }), at: 'actor' },
   'seat.draw-b': { pose: seat({ armFront: { part: 'arm-l-desk-b' }, prop: { part: 'pen' } }), at: 'actor' },
   'seat.draw-c': { pose: seat({ armFront: { part: 'arm-l-desk-c' }, prop: { part: 'pen' } }), at: 'actor' },
+  'bed.lie-0': { pose: { kind: 'key', map: BED_LIE_0 }, at: 'bed' },
+  'bed.lie-1': { pose: { kind: 'key', map: BED_LIE_1 }, at: 'bed' },
+  'bed.sit': { pose: { kind: 'key', map: BED_SIT }, at: 'bed' },
 }

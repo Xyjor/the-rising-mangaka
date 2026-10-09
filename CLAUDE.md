@@ -145,15 +145,18 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   `HEAD`: cols 0-23 the head, cols 24-26 the mark slot; its eye slot rows 10-13 cols 4-19, mouth slot rows 15-16 cols
   10-13, the neck anchor (12, 21); `EYES` (open, blink, closed, ring, squint, happy), `MOUTHS` (closed, open, smile,
   frown, o), `MARK_ART` (sweat, sparkle, bang, zee in `PAL.A`/`PAL.X`), `FACE_ART`, `NEUTRAL_FACE`, `FACE_BY_MOOD`,
-  `headWith(face)`), `parts.ts` (`PARTS`: every torso, arm and leg by name with its anchors, each outlined but where it
-  joins another; the 32x48 frame standing has the head at (4, 0), the torso at (7, 21), the feet on row 47), `poses.ts`
+  `headWith(face)`), `parts.ts` (`PARTS`: every torso, arm, leg and prop (the pen, the manuscript) by name with its anchors, each outlined but where it
+  joins another; the 32x48 frame standing has the head at (4, 0), the torso at (7, 21), the feet on row 47),
+  `keyFrames.ts` (the poses the parts cannot make, hand-drawn whole with their face baked in: the bed's 48x32
+  `BED_LIE_0`, `BED_LIE_1` and `BED_SIT`, drawn at the bed), `poses.ts`
   (`PoseId`, `POSES`: each a part pose or a key frame and where it is drawn, `at` the actor, the seat or the bed),
   `anims.ts` (`AnimId`, `ANIM_IDS`, `ANIMS`: the 24 animations' fixed postures and looping, each step a pose and its
   ms; one not drawn yet plays `STAND_IN`) and `frames.ts` (`rigFrame(pose, mood, ready)`: the frame assembled with the
   mood's face, `faceOf`, memoized per pose, mood and ready, its id `pose~eyes.mouth.mark`, `frameId`); `spriteCache.ts` (0.11.0) the per-session sprite cache: each
   cast frame painted once per palette (`PaletteId`: `pal`, the outfits, `look0`-`look5`) and facing into an
   OffscreenCanvas (a `<canvas>` without one or when it gives no 2D context, a stand-in in node), keyed by frame id;
-  `drawCast` is one `drawImage`; `getCastCache`/`installCastCache` (tests install a recording one). Memory: at most
+  `drawCast` is one `drawImage`, `drawCastTop` one 9-argument `drawImage` of a cached frame's top rows (render draws the
+  seated rig mangaka's rows 0-39 again with it, after the page stack); `getCastCache`/`installCastCache` (tests install a recording one). Memory: at most
   324 frames x 9 palettes x 2 facings x 6,144 B (a 32x48 RGBA surface), about 36 MB in theory; a realistic long career
   builds about 900-1,000 surfaces, about 6 MB. `oldCast.ts` (0.11.0) the 0.10 maps as cast frames (`OLD_CAST`), drawn
   through the cache until each character's rig release; `render`'s last argument is the cache (`getCastCache()` by

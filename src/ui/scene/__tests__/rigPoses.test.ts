@@ -16,6 +16,11 @@ const part = (id: PoseId): PartPose => {
   if (p.kind !== 'parts') throw new Error(`${id} is a key frame`)
   return p
 }
+const key = (id: PoseId): SpriteMap => {
+  const p = POSES[id].pose
+  if (p.kind !== 'key') throw new Error(`${id} is built from parts`)
+  return p.map
+}
 const at = (id: PoseId, layer: Layer) => placeLayers(part(id), PARTS).get(layer)?.at
 const frame = (id: PoseId, mood: Mood = 'neutral', ready = false): SpriteMap => rigFrame(id, mood, ready).map
 /** A map's painted cells but L with a clear cell (or the map's edge) beside, above or below them: where it is open. */
@@ -252,5 +257,50 @@ describe('the desk (task 12)', () => {
     for (const id of ['seat.rest', 'seat.draw-a', 'seat.draw-b', 'seat.draw-c'] as const) {
       for (let r = 6; r <= 10; r++) expect(frame(id)[r].slice(28, 31), `${id} row ${r}`).toBe('...')
     }
+  })
+})
+
+describe('the bed and the ready stance (task 13)', () => {
+  it('draws the bed\'s three key frames 48x32, drawn at the bed', () => {
+    for (const id of ['bed.lie-0', 'bed.lie-1', 'bed.sit'] as const) {
+      expect(POSES[id].at).toBe('bed')
+      expect([key(id)[0].length, key(id).length], id).toEqual([48, 32])
+    }
+  })
+
+  it('lays the head on the pillow, eyes shut: the crown on row 8, no open eye, the head in cols 23-46', () => {
+    for (const id of ['bed.lie-0', 'bed.lie-1'] as const) {
+      const m = key(id)
+      expect(m.findIndex((row) => /[^.]/.test(row)), id).toBe(8)
+      expect(m.join(''), id).not.toContain('E')
+      for (let r = 8; r < 22; r++) expect(m[r].slice(0, 23), `${id} row ${r}`).toMatch(/^\.*$/)
+    }
+    expect(key('bed.lie-1')).not.toEqual(key('bed.lie-0'))
+    expect(key('bed.lie-1').slice(0, 22)).toEqual(key('bed.lie-0').slice(0, 22))
+  })
+
+  it('breathes in bed, 900 ms a frame', () => {
+    expect(ANIMS.sleep.steps).toEqual([{ pose: 'bed.lie-0', ms: 900 }, { pose: 'bed.lie-1', ms: 900 }])
+  })
+
+  it('sits up in bed, the head on rows 0-21', () => {
+    expect(key('bed.sit').findIndex((row) => /[^.]/.test(row))).toBe(0)
+    expect(key('bed.sit').join('')).toContain('E')
+  })
+
+  it('catalogues the ready stance\'s arm and the manuscript, held at the chest', () => {
+    expectCatalogue({ 'arm-l-hold': [7, 9, { shoulderL: [5, 0], hand: [2, 7] }], manuscript: [8, 10, { hand: [6, 6] }] })
+    expect(at('ready.idle', 'prop')).toEqual({ x: 0, y: 24 })
+    const all = frame('ready.idle', 'neutral', true).join('')
+    expect(all).toContain('W')
+    expect(all).toContain('w')
+  })
+
+  it('breathes and blinks in the ready stance as standing does, the mark slot clear for the !', () => {
+    expect(ANIMS['stand-ready'].steps).toEqual([
+      { pose: 'ready.idle', ms: 500 }, { pose: 'ready.breath', ms: 500 }, { pose: 'ready.idle', ms: 500 },
+      { pose: 'ready.breath', ms: 380 }, { pose: 'ready.blink', ms: 120 },
+    ])
+    for (let r = 0; r < 5; r++) expect(frame('ready.idle', 'tired', true)[r].slice(28, 31)).toBe('...')
   })
 })

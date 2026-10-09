@@ -603,6 +603,33 @@ at `CAT_BED` (4 fills, drawn just before it).
   now sits level with the other steps and the pen leans out from its corner), the first seated legs read as short
   standing ones (the knees now sit apart over turned-in shins), and the first open hand lost its top corner to the
   outline (it now has its own top edge).
+- **The bed and the ready stance** (0.11.0, task 13). The bed's three poses are key frames (`rig/keyFrames.ts`, 48x32,
+  Decision 5), drawn at the bed (`MANGAKA_BED`, canvas (201, 90)) in the outfit's palette, their face baked in (no
+  mood). `bed.lie-0` (`BED_LIE_0`, after 0.10's `MANGAKA_LIE`): the rig head lying on the pillow, upright and frontal,
+  at cols 23-46, rows 8-29 (canvas x 224-247, y 98-119), the eyes closed (the head's `closed` curve) and the mouth
+  closed; the shoulders lie to its left at cols 3-26, rows 24-31 (the top outline meeting the jaw's, the hood's shade
+  `j` over the hoodie `J`, its underside `j`, the left end's corners round), with the collar `K` at their end under the
+  jaw (the hoodie's grey in the hoodie, a white collar in the cardigan and the blazer). Render's blanket (x 196-224, y
+  112-121) covers them but for that end by the chin (cols 24-26), and the Zs rise from (36, 2), clear of the head.
+  `bed.lie-1` (`BED_LIE_1`) is the breath: the shoulders a row lower (their top on row 25), the head unchanged.
+  `sleep` loops the two, 900 ms each. `bed.sit` (`BED_SIT`, for the lie-down and get-up transitions, task 14) sits up:
+  the head with open eyes at cols 23-46, rows 0-21 (canvas y 90-111), the standing torso under it three rows shorter,
+  the arms at its sides, the fists on rows 29-30 beside the hem, the bust closed by its outline on row 31 (canvas y
+  121), the lap under the bedding. The ready stance holds the finished manuscript at the chest: `stand()` with the near
+  arm `arm-l-hold` (7x9, shoulderL (5, 0), hand (2, 7): the sleeve from the shoulder cap as the hanging arm's, the
+  forearm forward and out to the left, the hand across on rows 29-30) and the prop `manuscript` (8x10, hand (6, 6): a
+  stack of pages, the top sheet `W` ruled with three `w` lines, the last one short, the sheets under it a `w` edge, in
+  an `L` outline), placed at frame (0, 24), beside the chest (canvas x 170-177, y 105-114 at the stand, where 0.10's
+  code-drawn page was x 162-169, y 98-107); drawn over the arm, it hides the forearm, so the sleeve shows two wide
+  between the pages' edge and the torso's seam and the fist grips the pages' right edge. `ready.idle`,
+  `ready.breath` (the head a row lower) and `ready.blink` (the blink eyes) loop as `stand-ready`: idle, breath and
+  idle 500 ms each, then the breath 380 ms and the blink 120 ms, 2 s a cycle; the face is the mood's with no mark (`faceOf`, ready), so the
+  mark slot (cols 28-30, rows 0-4) stays clear for render's `!`. At the gate (task 13, `--only sleep`, `--only
+  stand-ready`, in the hoodie, the cardigan and the blazer, and a scratch composite of the bed, its blanket, the Zs and
+  the cat at 1x and 8x) the head slept on the pillow beside the blanket with the shoulders' end by the chin, the breath
+  a row's sink there, the sitting-up bust read over the bed's head end, and the pages read as held in the hand, the
+  `!` above the tired head with its sweat mark left out; one redraw: the shoulders' left end, square, read as a box in the sheet (its
+  corners now round; the blanket hides it in the scene).
 
 The frame sets: idle 2 frames (`frame/16 % 2`), walk 4 (`anim/100 % 4`), sit 2 (`frame/8 % 2` while working, frame 0
 otherwise), panic 2 (for 40 of every 240 frames while working on a late chapter, `Snapshot.late`), a 30x14 lying

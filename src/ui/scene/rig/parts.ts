@@ -593,6 +593,51 @@ const PEN: Part = {
   anchors: { hand: { x: 1, y: 5 } },
 }
 
+/**
+ * The near (left) arm holding the manuscript at the chest, 7 x 9 (shoulderL (5, 0), so the part's left edge is frame
+ * col 4): the sleeve j hangs from the shoulder cap as ARM_L_HANG's (frame cols 6-10, rows 23-26), the elbow bends and
+ * the forearm comes forward and out to the left a column a row (rows 27-28), and the hand S/s lies across on rows
+ * 29-30 (frame cols 5-9), its shade on the right and underneath, the outline under it on row 31, its corners round.
+ * The hand (2, 7) holds the manuscript's right edge (frame (6, 30)); the manuscript, drawn over it, hides the forearm
+ * and the fingers (frame cols 0-7), so the sleeve shows two wide between the pages' edge and the torso's seam, the
+ * fist at its foot gripping them.
+ */
+const ARM_L_HOLD: Part = {
+  map: [
+    '..LjjjL', // 0  under the shoulder cap
+    '..LjjjL', // 1
+    '..LjjjL', // 2
+    '..LjjjL', // 3
+    '.LjjjjL', // 4  the forearm comes forward
+    'LjjjjjL', // 5
+    'LSSSSsL', // 6  the hand across, gripping the pages
+    'LSSSssL', // 7
+    '.LLLLL.', // 8
+  ],
+  anchors: { shoulderL: { x: 5, y: 0 }, hand: { x: 2, y: 7 } },
+}
+
+/**
+ * The manuscript, 8 x 10: a stack of pages held up by its right edge (hand (6, 6)), the top sheet W ruled with w lines
+ * (rows 2, 4 and 6, the last one short), the sheets under it showing as a w edge along the bottom (row 8, the shade
+ * underneath), all in an L outline. Drawn over the holding arm (the prop layer), at frame (0, 24), beside the chest.
+ */
+const MANUSCRIPT: Part = {
+  map: [
+    'LLLLLLLL', // 0
+    'LWWWWWWL', // 1
+    'LWwwwwWL', // 2  the lines
+    'LWWWWWWL', // 3
+    'LWwwwwWL', // 4
+    'LWWWWWWL', // 5
+    'LWwwWWWL', // 6  the last line short; the hand at col 6
+    'LWWWWWWL', // 7
+    'LwwwwwwL', // 8  the sheets under it
+    'LLLLLLLL', // 9
+  ],
+  anchors: { hand: { x: 6, y: 6 } },
+}
+
 /** Every part a pose may name, by name. */
 export const PARTS: PartLib = {
   head: HEAD, torso: TORSO, 'arm-l-hang': ARM_L_HANG, 'arm-r-hang': ARM_R_HANG,
@@ -606,4 +651,5 @@ export const PARTS: PartLib = {
   'leg-l-seat': LEG_L_SEAT, 'leg-r-seat': LEG_R_SEAT,
   'arm-l-desk-a': ARM_L_DESK_A, 'arm-l-desk-b': ARM_L_DESK_B, 'arm-l-desk-c': ARM_L_DESK_C, 'arm-l-rest': ARM_L_REST,
   'arm-r-desk': ARM_R_DESK, pen: PEN,
+  'arm-l-hold': ARM_L_HOLD, manuscript: MANUSCRIPT,
 }
