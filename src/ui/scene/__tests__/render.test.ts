@@ -1241,6 +1241,50 @@ describe('the rig path (0.11.0 task 10)', () => {
     }
   })
 
+  it('draws the seated rig mangaka\'s rows 0-39 again over the page stack, so the pen and its hand lie on the pages', () => {
+    setRigLive({ mangaka: true, assistants: true })
+    try {
+      const s = sceneSnapshot({ phase: 'drawing', progress: 0.5 })
+      expect([s.actors.mangaka.x, s.actors.mangaka.y]).toEqual([124, 58])
+      const f = fakeContext()
+      render(f.ctx, s, 0.3, 0)
+      const id = `cast/${rigFrame(ANIMS['seat-draw'].steps[0].pose, 'neutral', false).id}/pal`
+      const seated = f.images.filter((i) => i.id === id)
+      expect(seated.map(({ x, y, w, h }) => ({ x, y, w, h }))).toEqual([{ x: 124, y: 58, w: 32, h: 48 }, { x: 124, y: 58, w: 32, h: 40 }])
+      // the whole frame goes on before the stock desk's top (room (52, 62), canvas (116, 98)); its rows 0-39 after the
+      // page stack's last fill, the line at its top (stack round(1 + 0.5 * 8) = 5: room (59, 58 - 5), canvas (123, 89)),
+      // and before the ink pot (room (90, 58), canvas (154, 94)), the mug, the tablet and the cups
+      const desk = f.log.findIndex((c) => c.style === '#8b5a2b' && c.x === 116 && c.y === 98)
+      const stackTop = f.log.findIndex((c) => c.style === '#b8b2a5' && c.x === 123 && c.y === 89 && c.w === 7 && c.h === 1)
+      const ink = f.log.findIndex((c) => c.style === '#1b1b1b' && c.x === 154 && c.y === 94 && c.w === 4 && c.h === 4)
+      expect([desk, stackTop, ink].map((i) => i > -1)).toEqual([true, true, true])
+      expect(seated[0].at).toBeLessThanOrEqual(desk)
+      expect(seated[1].at).toBeGreaterThan(stackTop)
+      expect(seated[1].at).toBeLessThanOrEqual(ink)
+    } finally {
+      setRigLive({ mangaka: false, assistants: false })
+    }
+  })
+
+  it('draws the mangaka once with the rig off, and once standing or in bed with it on: only the seated rig frame goes on twice', () => {
+    const once = (s: Snapshot) => {
+      const f = fakeContext()
+      render(f.ctx, s, 0.3, 0)
+      const a = s.actors.mangaka
+      return [f.images.filter((i) => i.id.startsWith('cast/') && i.x === a.x && i.y === a.y).length, f.images.filter((i) => i.h === 40).length]
+    }
+    expect(once(sceneSnapshot({ phase: 'drawing', progress: 0.5 }))).toEqual([1, 0])
+    setRigLive({ mangaka: true, assistants: true })
+    try {
+      expect(once(sceneSnapshot({ phase: 'idle', actors: standing() }))).toEqual([1, 0])
+      const bed = sceneSnapshot({ activity: 'rest' })
+      expect(bed.actors.mangaka.state).toBe('sleeping')
+      expect(once(bed)).toEqual([1, 0])
+    } finally {
+      setRigLive({ mangaka: false, assistants: false })
+    }
+  })
+
   it('places the seat\'s and the bed\'s poses at their spots, everything else at the actor', () => {
     const a = { x: 5, y: 6 }
     expect([poseOrigin('actor', a), poseOrigin('seat', a), poseOrigin('bed', a)]).toEqual([a, RIG_SPOTS.mangaka.seat, RIG_SPOTS.mangaka.bed])

@@ -116,3 +116,15 @@ export function drawCast(
 ): void {
   ctx.drawImage(cache.image(frame, pal, flip), Math.round(x), Math.round(y))
 }
+
+/**
+ * A cast frame's top `rows` alone: the same cached image (mirrored never: a seated frame faces the viewer) cropped to
+ * those rows, at (x, y) rounded, one drawImage. render draws the seated rig mangaka's rows 0-39 again with it, over the
+ * page stack, so the pen and its hand lie on the pages.
+ */
+export function drawCastTop(
+  ctx: CanvasRenderingContext2D, cache: SpriteCache, frame: CastFrame, pal: PaletteId, x: number, y: number, rows: number,
+): void {
+  const w = frame.map[0]?.length ?? 0
+  ctx.drawImage(cache.image(frame, pal, false), 0, 0, w, rows, Math.round(x), Math.round(y), w, rows)
+}

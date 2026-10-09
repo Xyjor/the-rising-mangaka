@@ -7,8 +7,8 @@ import type { FillCall } from '../../../test/fakeCanvas'
 import { OLD_CAST } from '../oldCast'
 import { ASSISTANT_PALS, OUTFIT_PALS, PAL, drawSprite } from '../sprites'
 import {
-  CAST_PALETTES, castSurfaceId, createSpriteCache, defaultSurface, drawCast, getCastCache, installCastCache, lookPalette,
-  outfitPalette,
+  CAST_PALETTES, castSurfaceId, createSpriteCache, defaultSurface, drawCast, drawCastTop, getCastCache, installCastCache,
+  lookPalette, outfitPalette,
 } from '../spriteCache'
 import type { CastFrame, Surface } from '../spriteCache'
 
@@ -102,6 +102,17 @@ describe('the sprite cache', () => {
     drawCast(ctx, createSpriteCache(), FRAME, 'pal', 10.4, 20.6, false)
     expect(log).toEqual([])
     expect(images).toEqual([{ id: 'cast/test.frame/pal', x: 10, y: 21, w: 3, h: 2, at: 0 }])
+  })
+
+  it('draws a cast frame\'s top rows alone with one drawImage of the same cached image, cropped, at its rounded place', () => {
+    const { ctx, log, images } = fakeContext()
+    const cache = createSpriteCache()
+    drawCastTop(ctx, cache, FRAME, 'pal', 10.4, 20.6, 1)
+    expect(log).toEqual([])
+    expect(images).toEqual([{ id: 'cast/test.frame/pal', x: 10, y: 21, w: 3, h: 1, at: 0 }])
+    expect(cache.size).toBe(1)
+    drawCast(ctx, cache, FRAME, 'pal', 0, 0, false)
+    expect(cache.size).toBe(1) // the whole frame and its top are one surface
   })
 })
 

@@ -243,7 +243,10 @@ the desk again. On phones the scene is a band above the desk, so there is nothin
 Draw order: the tier's room first; the coffee machine and the trophies after the sill and its snow; the volumes and the reference shelf after
 the bookshelf; the tier after the bed (the doorway stops where the bed begins, y 66, so the two never overlap) and
 before the sleeping mangaka's Zz; the chair before the mangaka at the desk, the drafting table, the lamp and the tablet
-after; the corkboard and the calendar after the clock; the fan letters after the entrance; the cups after the desk;
+after; the seated rig mangaka's rows 0-39 (everything above the desk top's line) a second time right after the page
+stack and its two lines, before the ink pot, the mug, the tablet and the cups (one cropped drawImage of the same cached
+frame, `drawCastTop`), so the pen and its hand lie on the pages, while the stack itself stays after the desk (the
+drafting table's sprite box starts at y 95 and would hide its foot); the corkboard and the calendar after the clock; the fan letters after the entrance; the cups after the desk;
 the front row after the editor; the lamp's glow and the doorway's spill over the night overlay, then the light. Everything stays off the mangaka at the
 desk and at the standing spot.
 

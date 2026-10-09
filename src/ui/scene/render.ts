@@ -17,8 +17,8 @@ import {
   FACES, HEAD_DY, MARKS, MARK_PAL, PAL, PROP_CONTRACT, PROP_ENVELOPE, PROP_LETTER, PROP_PAL, PROP_TROPHY, drawSprite,
 } from './sprites'
 import { OLD_CAST } from './oldCast'
-import { drawCast, getCastCache, lookPalette, outfitPalette } from './spriteCache'
-import type { CastFrame, SpriteCache } from './spriteCache'
+import { drawCast, drawCastTop, getCastCache, lookPalette, outfitPalette } from './spriteCache'
+import type { CastFrame, PaletteId, SpriteCache } from './spriteCache'
 import { BREATHE_POSES, catFrame, idleFrame, moodOf } from './mood'
 import type { Mood, MoodInput } from './mood'
 import { BAR_X, paneRect, rawRect, rect, shadow } from './paint'
@@ -179,6 +179,14 @@ const RIG_MARK_X = 28
 const STAND_POSES: ReadonlySet<PoseId> = new Set(ANIMS.stand.steps.map((st) => st.pose))
 const castCtx: CastContext = { working: false, late: false, ready: false }
 
+/** The seated frame's rows above the desk top's line (row 40, y 98 at the seat): drawn a second time over the pages. */
+const SEAT_TOP_ROWS = 40
+/**
+ * The seated rig mangaka as `drawRigMangaka` drew it this frame (its frame, palette and place), for the second draw of
+ * its rows 0-39 over the page stack; `render` clears it at the start of every frame. Mutated, never rebuilt.
+ */
+const seatedTop: { frame: CastFrame | null; pal: PaletteId; x: number; y: number } = { frame: null, pal: 'pal', x: 0, y: 0 }
+
 /** The pose an actor shows: the one the cast driver set, else (a settled table, reduced motion) its base loop's first, when its rig is on. */
 function poseOf(a: Actor, who: CastWho, live: boolean, s: Snapshot, working: boolean): PoseId | '' {
   if (a.pose || !live) return a.pose
@@ -200,7 +208,16 @@ function drawRigMangaka(
   // a pose drawn at the seat or the bed (a transition while the actor already walks) has no feet under the actor
   const afoot = def.at === 'actor' && (a.state === 'standing' || a.state === 'walking')
   if (afoot) shadow(ctx, a.x + 6, a.y + 46, 20)
-  drawCast(ctx, cast, rigFrame(pose, mood, ready), outfitPalette(s.level), o.x, o.y, afoot && a.state === 'walking' && a.facing === 1)
+  const castFrame = rigFrame(pose, mood, ready)
+  const pal = outfitPalette(s.level)
+  drawCast(ctx, cast, castFrame, pal, o.x, o.y, afoot && a.state === 'walking' && a.facing === 1)
+  if (a.state === 'seated' && def.at === 'actor') {
+    // remembered for its rows 0-39 again over the page stack (render, after the stack's lines)
+    seatedTop.frame = castFrame
+    seatedTop.pal = pal
+    seatedTop.x = o.x
+    seatedTop.y = o.y
+  }
   if (def.at === 'bed') {
     // the blanket over the shoulders, up to the lying head's left edge (x 224)
     rawRect(ctx, 196, 112, 29, 10, '#c94b4b')
@@ -543,6 +560,7 @@ export function render(
 ) {
   const night = t > 0.72 || t < 0.06
   const absent = s.away || s.activity === 'job'
+  seatedTop.frame = null
   // working = seated at the desk (the pose, which actors.ts plans) with the clock running (the animation). Pausing
   // freezes the mangaka mid-stroke instead of sending them to bed.
   const working = workingOf(s)
@@ -667,6 +685,9 @@ export function render(
   const stack = Math.round(1 + s.progress * 8)
   rect(ctx, 57, 62 - stack, 14, stack, '#fdfcf7'); for (let i = 0; i < stack; i += 2) rect(ctx, 57, 62 - stack + i, 14, 1, '#e9e5da')
   rect(ctx, 59, 60 - stack, 10, 1, '#b8b2a5'); rect(ctx, 59, 58 - stack, 7, 1, '#b8b2a5')
+  // the seated rig mangaka's rows 0-39 again, over the pages, so the pen and its hand lie on the stack (the stack itself
+  // stays after the desk: the drafting table's sprite box starts at y 95 and would hide its foot)
+  if (seatedTop.frame) drawCastTop(ctx, cast, seatedTop.frame, seatedTop.pal, seatedTop.x, seatedTop.y, SEAT_TOP_ROWS)
   // the ink pot moves right to make room for the pen tablet
   const ink = s.owned.tablet ? 96 : 90
   rect(ctx, ink, 58, 4, 4, '#1b1b1b'); rect(ctx, ink + 1, 57, 2, 1, '#1b1b1b')
