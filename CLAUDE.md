@@ -20,7 +20,7 @@ npm run art -- <id>|--all   # Regenerates a static illustration from art/manifes
                              # one regenerates it); run after adding or editing a manifest entry; `--all` currently
                              # rewrites `prop/kitchenette.png` (held back in 0.10.2, DESIGN.md "2026-10-09, the
                              # remaining minors"); `git checkout` it back unless that change is intended
-npm run sprites -- <out.png> [--walk] [--base <ref>]   # Sprite contact sheet (scripts/spriteSheet.ts), 8x (the cat at 16x): each frame beside the same frame at the base ref (`--base`, default main, where the 0.10 frames stay until the merge), plus the cardigan, blazer and assistant looks, the four moods' faces and marks (new only), and row I, the rig head with every eyes x mouth x mark; --walk the walk strips only; a palette missing on either side (or a base frame or file) is an empty cell and a note
+npm run sprites -- <out.png> [--walk] [--base <ref>] [--only <prefix>]   # Sprite contact sheet (scripts/spriteSheet.ts), 8x (the cat at 16x): per rig animation a strip beside the 0.10 frames it replaces (base ref: `--base`, default main, where the 0.10 frames stay until the merge), in every outfit and assistant look, `--only <prefix>` (the animations whose id starts with it), the blocks on shelves (`shelve`); then the rig's poses in the five moods, the editor and the cat beside the base, and row I, the rig head with every eyes x mouth x mark; --walk the walk strips only; a palette missing on either side (or a base frame or file) is an empty cell and a note
 npm run balance -- [from=1] [to=20] [--detail seed]   # Balance bots (src/sim/bot.ts): a line per seed per bot, then the balance-band rows
 npm run tauri dev       # Desktop window; stop any running `npm run dev` first (it starts its own, strict port 5173)
 npm run tauri build     # Windows NSIS installer, in src-tauri/target/release/bundle/nsis/
@@ -140,7 +140,12 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   `HEAD`: cols 0-23 the head, cols 24-26 the mark slot; its eye slot rows 10-13 cols 4-19, mouth slot rows 15-16 cols
   10-13, the neck anchor (12, 21); `EYES` (open, blink, closed, ring, squint, happy), `MOUTHS` (closed, open, smile,
   frown, o), `MARK_ART` (sweat, sparkle, bang, zee in `PAL.A`/`PAL.X`), `FACE_ART`, `NEUTRAL_FACE`, `FACE_BY_MOOD`,
-  `headWith(face)`); `spriteCache.ts` (0.11.0) the per-session sprite cache: each
+  `headWith(face)`), `parts.ts` (`PARTS`: every torso, arm and leg by name with its anchors, each outlined but where it
+  joins another; the 32x48 frame standing has the head at (4, 0), the torso at (7, 21), the feet on row 47), `poses.ts`
+  (`PoseId`, `POSES`: each a part pose or a key frame and where it is drawn, `at` the actor, the seat or the bed),
+  `anims.ts` (`AnimId`, `ANIM_IDS`, `ANIMS`: the 24 animations' fixed postures and looping, each step a pose and its
+  ms; one not drawn yet plays `STAND_IN`) and `frames.ts` (`rigFrame(pose, mood, ready)`: the frame assembled with the
+  mood's face, `faceOf`, memoized per pose, mood and ready, its id `pose~eyes.mouth.mark`, `frameId`); `spriteCache.ts` (0.11.0) the per-session sprite cache: each
   cast frame painted once per palette (`PaletteId`: `pal`, the outfits, `look0`-`look5`) and facing into an
   OffscreenCanvas (a `<canvas>` without one or when it gives no 2D context, a stand-in in node), keyed by frame id;
   `drawCast` is one `drawImage`; `getCastCache`/`installCastCache` (tests install a recording one). Memory: at most

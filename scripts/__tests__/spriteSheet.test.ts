@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { blitFace, cellOrEmpty, layoutRow, markKey, paintOver, rasterize } from '../lib/spriteSheet'
+import { blitFace, cellOrEmpty, hcat, layoutRow, markKey, paintOver, rasterize, shelve, vcat } from '../lib/spriteSheet'
 
 // The contact sheet's pure parts (scripts/spriteSheet.ts draws and writes the PNG with sharp; these build its pixels).
 const PAL3 = { L: '#102030', S: '#f4cfa5', s: '#dba57d' }
@@ -54,6 +54,32 @@ describe('the sprite contact sheet', () => {
     expect(row.cells.map((c) => [c.w, c.h])).toEqual([[24, 32], [30, 14], [12, 8]])
     expect(row.height).toBe(32)
     expect(row.width).toBe(70)
+  })
+
+  it('lays images side by side bottom-aligned, and stacks them left-aligned', () => {
+    const a = rasterize(['LL', 'LL'], PAL3, 1)
+    const b = rasterize(['S'], PAL3, 1)
+    const row = hcat([a, b], 1)
+    expect([row.width, row.height]).toEqual([4, 2])
+    expect(pixel(row, 3, 1)).toEqual([0xf4, 0xcf, 0xa5, 255]) // b on the row's floor
+    expect(pixel(row, 3, 0)[3]).toBe(0)
+    const col = vcat([b, a], 1)
+    expect([col.width, col.height]).toEqual([2, 4])
+    expect(pixel(col, 0, 0)).toEqual([0xf4, 0xcf, 0xa5, 255])
+  })
+
+  it('shelves images left to right, wrapping before one would pass the width, each shelf top-aligned', () => {
+    const tall = rasterize(['L', 'L', 'L'], PAL3, 1)
+    const wide = rasterize(['SSSS'], PAL3, 1)
+    const dot = rasterize(['s'], PAL3, 1)
+    // tall (1) + gap + wide (4) = 6 fits in 6; dot would make 8, so it wraps; wider than the width, an image has a shelf alone
+    const out = shelve([tall, wide, dot, rasterize(['LLLLLLL'], PAL3, 1)], 6, 1)
+    expect([out.width, out.height]).toEqual([7, 3 + 1 + 1 + 1 + 1])
+    expect(pixel(out, 2, 0)).toEqual([0xf4, 0xcf, 0xa5, 255]) // wide on the first shelf's top, after tall and the gap
+    expect(pixel(out, 2, 2)[3]).toBe(0)
+    expect(pixel(out, 0, 4)).toEqual([0xdb, 0xa5, 0x7d, 255]) // dot opens the second shelf
+    expect(pixel(out, 6, 6)).toEqual([0x10, 0x20, 0x30, 255]) // the wide one alone on the third
+    expect(shelve([], 6, 1)).toEqual({ width: 0, height: 0, data: new Uint8ClampedArray(0) })
   })
 
   it('blits a face over rows 9-12 (+headDy) and the mark over the head, with 2 rows of headroom', () => {

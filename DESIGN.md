@@ -376,12 +376,19 @@ at `CAT_BED` (4 fills, drawn just before it).
   drawn over them, and the stretch's raised fists are outlined (an `L` over each on row 11). The cat is a tabby (`c`
   stripes, the `Q` chest, an `E` eye, 1-px ears) with a tail on its walk. The doze stays the generated frame, its
   folded arms remapped `J` to `j` (sleeves) in the manifest, 100 runs to 91. The gate is `scripts/spriteSheet.ts`
-  (`npm run sprites -- <out.png> [--walk]`): an 8x contact sheet (the cat at 16x) of each frame beside its HEAD frame,
+  (`npm run sprites -- <out.png> [--walk] [--base <ref>] [--only <prefix>]`): an 8x contact sheet (the cat at 16x) of each frame beside its HEAD frame,
   plus the cardigan, blazer and assistant looks and the four moods' faces and marks (new only), and the walk strips
   (`--walk` writes only those); a palette missing on either side, or a frame missing at HEAD, is an empty cell and a
   note on stdout. Since 0.11.0 (task 7) each frame sits beside the same frame at a base ref (`--base <ref>`, default
   `main`, where the 0.10 frames stay until the merge; a file the ref lacks is skipped with a note, and a base that
-  cannot load leaves every base cell empty), and row I is the rig head with every face (see "The rig head"). The
+  cannot load leaves every base cell empty), and row I is the rig head with every face (see "The rig head"). Since
+  task 8 the 0.10 mangaka's rows (A to E) are gone: each rig animation is a block (`--only <prefix>` draws only the
+  animations whose id starts with it), its steps' frames in order beside the 0.10 frames it replaces at the base, the
+  same strip in the cardigan and the blazer under it, and, for the assistants' animations, in each of the six
+  assistant looks; the blocks sit on shelves (`shelve`, top-aligned, no wider than the sheet's widest other row), which
+  keeps the sheet under sharp's input pixel limit, then a mood row (the rig's standing, seated and walking poses in the
+  five moods, each once its task draws it); row H's mangaka strip is the rig's walk three times over the base's
+  `MANGAKA_WALK` (see "The rig"). The
   run-count caps are `RUN_CAPS` in sprites.test.ts, 1.3x each frame's pre-redraw count, which keeps every fill
   baseline inside its 1.5x budget by construction. The ruling: **`ANCHOR_HEAD` is untouched**. The sheets' 2:1 head
   cannot fit the `FACES`, mark-slot and avatar-crop contract, and the hand-drawn head is the part that already read,
@@ -422,6 +429,38 @@ at `CAT_BED` (4 fills, drawn just before it).
   mark sat beside the hair, not on it, after two redraws: the first head was a round helmet over a moon face (the
   hair now puffs out wider than the face and the jaw rounds in sooner), and the first tired eyes, a flat lid, read as
   grumpy (the lid now droops to the outer corner).
+- **The rig** (0.11.0, task 8). A person is a 32x48 frame (Decision 4): standing, the head part (27x22: the head in
+  cols 0-23, the mark slot in cols 24-26) at (4, 0), so the mark slot is frame cols 28-30, rows 0-4, where render's
+  '!' and '?' go too; the torso (18x14) at (7, 21), its neck (9, 0) under the head's neck (12, 21); the hips on row 34
+  and the feet on row 47; seated, the head at (4, 6), the torso at (7, 27) and the hips on row 40, the desk top. Bed
+  frames are 48x32 key frames. `rig/parts.ts` `PARTS` holds every part by name with its anchors, hand-drawn after
+  `mangaka-front.png` in the head's style: the standing torso (the shoulders in the hood's shade `j`, the collar `K`
+  rising beside the jaw and either side of the neck `s`, the shirt `R` a V under it between the collar's points, a
+  `j` edge outside the collar that reads as the hood's roll in the hoodie and the lapels' shadow in the blazer, the
+  drawstring `Y` down col 9 to row 11, the hoodie `J` with its shade `j` down the right, the hem `j` on row 12, the
+  outline the hips sit on on row 13), the hanging arms (5x12: a sleeve `j` three wide in its outline, a fist `S`/`s`
+  on rows 9-10, round-cornered), and the standing legs (6x14: the trousers `F`/`f` three wide, so the hem overhangs
+  them a column, the shoe `O`/`o` a column wider on the outside with its toe turned out, the sole `L`; the two inner
+  outlines are the line between the legs, frame cols 15-16). In the hoodie (`PAL`) the collar `K` is the hoodie's own
+  grey and `Y` a white drawstring; in the cardigan and the blazer `K` is a white collar and `Y` a red tie. Each part
+  is outlined all round but where it joins another (the torso's neck row under the jaw, its shoulder caps, cols 0-2
+  and 15-17 of row 2, matching the sleeves' tops they sit over, the arms' and legs' top rows), and the standing parts
+  join with nothing left for `closeSilhouette` to close (`rigPoses.test.ts`). `rig/poses.ts` `POSES` names every pose
+  (`PoseId`): a part pose or a key frame, and where it is drawn (`at`: the actor, or the seat or the bed whatever the
+  actor's position, so a transition plays where it belongs while the actor walks; only `bed.*` poses at the bed and
+  `seat.half` at the seat). Standing: `stand.idle`, `stand.breath` (the head a row lower into the collar, the body
+  unchanged from row 23 down) and `stand.blink` (the blink eyes over the mood's face). `rig/anims.ts` `ANIMS` is the
+  fixed table of the 24 animations (`AnimId`, `ANIM_IDS`): each id's posture and looping are final, and until its art
+  task draws it each plays one 500 ms step of `stand.idle` (`STAND_IN`). `stand` loops idle and breath (500 ms each,
+  the last breath 380 ms) and blinks for 120 ms, 3 s a cycle. `rig/frames.ts` `rigFrame(pose, mood, ready)` assembles
+  a part pose with its face (`faceOf`: the mood's, the pose's own slots over it, no mark while the manuscript is
+  ready) on first use and returns the same `CastFrame` after, its id the pose and the face
+  (`stand.idle~happy.smile.sparkle`; a key frame's id is its pose's), the name the sprite cache keys its surfaces by.
+  At the gate (task 8) the standing strip read as one chibi, a little over two heads tall, its head row I's, the collar
+  and tie white and red in the cardigan and the blazer and the hoodie's own grey in the hoodie, the breath a soft sink
+  of the head into the collar and the blink a blink, after two redraws: the first legs were four columns wide with the
+  shoes no wider (the trousers now three wide, the shoes turned out a column as the reference's), and the first collar
+  vanished in the hoodie (a `j` edge now rings it).
 
 The frame sets: idle 2 frames (`frame/16 % 2`), walk 4 (`anim/100 % 4`), sit 2 (`frame/8 % 2` while working, frame 0
 otherwise), panic 2 (for 40 of every 240 frames while working on a late chapter, `Snapshot.late`), a 30x14 lying
