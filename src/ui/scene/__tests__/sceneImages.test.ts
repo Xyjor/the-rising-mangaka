@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 // sceneImages.ts builds one <img> per scene-art registry ref, once, and tells its listeners when any of them loads so
-// the scene repaints. The registry is mocked with a room and a prop, since the real records start empty.
+// the scene repaints. The registry is mocked with one room, a null flat and two props, so the test knows exactly which
+// refs exist (and which do not) without loading the real PNGs.
 import '../../../test/dom'
 import { describe, expect, it, vi } from 'vitest'
 import { NO_ART } from '../sceneArt'

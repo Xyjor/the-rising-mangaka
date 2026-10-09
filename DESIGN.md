@@ -369,7 +369,7 @@ at `CAT_BED` (4 fills, drawn just before it).
   is one skin row closed by `L`, so `breathOf` still drops row 24 cleanly. The editor's suit `G/g` is recoloured to
   `#3a3d4c`/`#2c3656`, with two-lens `P` glasses (a one-cell bridge at col 10; since 0.10.1 the frame is a mid steel
   `#6b6b78`, at least 0.25 OKLab lightness from the eye `E` and the skin `S`, where `#3b3b45` read as a dark block), a
-  `W` collar, an `N` tie, `E` shoes and the `F/f` briefcase in the trailing hand, which is two wide; its breath frame
+  `W` collar, an `N` tie, `E` shoes and the `F/f` briefcase in the right hand, which is two wide; its breath frame
   is hand-drawn so the case keeps its seven rows. Since 0.10.2 each walk's contact frames swing the arm opposite the
   stepping leg (their arm rows 20-23 swapped), the standing leg keeps the idle's shading on both, the editor's take
   `EDITOR_BODY`'s shoulders and the mangaka's legs through `recolour` (`F/f` to `G/g`, `O/o` to `E`) with the case
@@ -748,8 +748,8 @@ hold them), drawn now as the corkboard's cork (was `#b88a55`, OKLab 0.009 away) 
 filters, no sharp) and holds each plaster at most 2 colours in boxes read off the PNGs: the apartment x 8-311, rows
 14-107; the loft x 4-224 and 258-315 (either side of the brick column), rows 16-102 (1 colour each today). Both walls
 use filter 0 only, so since 0.10.2 the decoder also meets all five on a synthetic 6x5 image built in the test (one
-scanline per filter, its filtered bytes worked by hand, the Paeth row taking each neighbour and both tie orders), and
-refuses bytes without the PNG signature.
+scanline per filter, its filtered bytes worked by hand, the Paeth row taking each neighbour and the left/upper-left
+and above/upper-left ties), and refuses bytes without the PNG signature.
 
 With a tier's wall image ready, `render` draws it at (0, 0, 320, 114) (`WALL_H`), at night the `ROOM_NIGHT_DIM` fill
 over the same rows, then `TIER_FLOOR`; `TIER_WALL` paints only while the image is missing or loading (`drawRoomShell`,

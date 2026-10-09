@@ -410,8 +410,8 @@ const EDITOR_HEAD: SpriteMap = [
  * sole) dressed as a navy suit (G, its g shade down the right of the torso, on each sleeve's right column and as the
  * jacket's hem over the G trousers), after art/raw/sprites/editor.png: the collar W either side of the neck narrowing
  * to the knot of the tie N (col 11, rows 17-21), the shirt W showing beside the knot on rows 17-18, black shoes E, and
- * the 6x7 briefcase (F with its f underside in an L box, cols 18-23, rows 22-28) hanging from the trailing hand, whose
- * outline is the case's top-left corner, so that hand is two wide (S/s) where the leading one is three.
+ * the 6x7 briefcase (F with its f underside in an L box, cols 18-23, rows 22-28) hanging from the right hand, whose
+ * outline is the case's top-left corner, so that hand is two wide (S/s) where the left one is three.
  */
 const EDITOR_BODY: SpriteMap = [
   '....LLGGWWsssWWGgLL.....', // 16 the collar points either side of the neck
@@ -420,7 +420,7 @@ const EDITOR_BODY: SpriteMap = [
   '...LGGgLGGGNGGgLGGgL....', // 19 the tie down the jacket's closure
   '...LGGgLGGGNGGgLGGgL....', // 20
   '...LGGgLGGGNGGgLGGgL....', // 21
-  '...LSSsLGGGGGGgLSsLLLLLL', // 22 the hands; the trailing one holds the briefcase's top edge
+  '...LSSsLGGGGGGgLSsLLLLLL', // 22 the hands; the right one holds the briefcase's top edge
   '....LLLLGGGGGGgLLLLFFFfL', // 23
   '.......LggggggggL.LFFFfL', // 24 the jacket's hem
   '.......LGGGGGGGgL.LFFFfL', // 25 the trousers

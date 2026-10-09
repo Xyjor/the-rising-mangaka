@@ -157,7 +157,7 @@ describe('the sprites', () => {
       expect(c0.slice(25), name).not.toEqual(c2.slice(25)) // the legs swap
       // the arm swing: in frame 0 one hand sits higher than the other (the one on the frame's right, cols 16-19, at row
       // 20; the one on its left, cols 4-7, hanging to row 22), and frame 2 swaps them; which side swings up against
-      // which leg is the next test's
+      // which leg is the test 'swings the arm opposite the forward leg on each contact frame' below
       const [l0, r0, l2, r2] = [handRow(c0, 4, 7), handRow(c0, 16, 19), handRow(c2, 4, 7), handRow(c2, 16, 19)]
       for (const row of [l0, r0, l2, r2]) expect(row, name).toBeGreaterThan(0)
       expect(l0, name).not.toBe(r0)
@@ -543,7 +543,7 @@ describe('the sprites', () => {
     for (const row of e) expect(row, row).not.toMatch(/S[Gg]|[Gg]S/)
   })
 
-  it('hangs a 6x7 briefcase (F/f in its L box) at cols 18-23 from the trailing hand, a row lower on the pass frames', () => {
+  it('hangs a 6x7 briefcase (F/f in its L box) at cols 18-23 from the right hand, a row lower on the pass frames', () => {
     const box = (f: SpriteMap, top: number) => f.slice(top, top + 7).map((row) => row.slice(18, 24))
     const isCase = (rows: string[]) => {
       expect(rows[0]).toBe('LLLLLL')
