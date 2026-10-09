@@ -6,8 +6,9 @@ import { describe, expect, it, vi } from 'vitest'
 import { NO_ART } from '../sceneArt'
 
 vi.mock('../../art/registry', () => ({
-  // a room without a wall image (the flat since 0.10.1) has no ref at all, so its piece stays code-drawn
-  ROOM_ART: { apartment: { id: 'room/apartment', src: '/assets/art/room/apartment.png', w: 320, h: 114 } },
+  // a room without a wall image is null (the flat since 0.10.1) or, in this mock, left out (the loft): either way its
+  // piece stays code-drawn
+  ROOM_ART: { apartment: { id: 'room/apartment', src: '/assets/art/room/apartment.png', w: 320, h: 114 }, flat: null },
   SCENE_PROP_ART: {
     bed: { id: 'prop/bed', src: '/assets/art/prop/bed.png', w: 58, h: 26 },
     window: { id: 'prop/window', src: '/assets/art/prop/window.png', w: 48, h: 36 },

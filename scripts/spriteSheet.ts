@@ -7,15 +7,19 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import sharp from 'sharp'
-import { blank, blitFace, layoutRow, markPalette, paintOver, rasterize, type Rgba } from './lib/spriteSheet'
+import { blank, blitFace, cellOrEmpty, layoutRow, markPalette, paintOver, rasterize, type Rgba } from './lib/spriteSheet'
 
 type Frame = readonly string[]
 type Pal = Record<string, string>
-/** The slice of src/ui/scene/sprites.ts the sheet reads (loaded by path, so tsc never follows it into the DOM types). */
+/**
+ * The slice of src/ui/scene/sprites.ts the sheet reads (loaded by path, so tsc never follows it into the DOM types).
+ * The outfit and assistant palettes may be missing (a rename, a look not drawn yet): their working-tree cells are then
+ * empty, with a note, as a HEAD cell without its frame or palette is.
+ */
 type Sprites = Record<string, unknown> & {
   PAL: Pal
   OUTFIT_PALS?: Partial<Record<'hoodie' | 'cardigan' | 'blazer', Pal>>
-  ASSISTANT_PALS: Pal[]
+  ASSISTANT_PALS?: readonly (Pal | undefined)[]
   FACES: Record<string, Frame>
   MARKS: Record<string, Frame>
   MARK_PAL: Pal
@@ -115,9 +119,15 @@ async function main() {
     const like = mustNow(ref)
     return blank(like[0].length * scale, like.length * scale)
   }
-  /** One pair: the working tree's frame left, HEAD's right; `withHead` false leaves HEAD's slot empty (rows B, C). */
-  const pair = (ref: Ref, pal: (m: Sprites) => Pal | undefined, scale: number, withHead = true): Rgba => {
-    const left = rasterize(mustNow(ref), pal(now) ?? now.PAL, scale)
+  /** A working-tree frame in a working-tree palette, or an empty cell the frame's size (and a note) without one. */
+  const drawNow = (ref: Ref, pal: Pal | undefined, palName: string, scale: number): Rgba =>
+    cellOrEmpty(mustNow(ref), pal, scale, notes, `note: the working tree has no ${palName}, its cells are empty`)
+  /**
+   * One pair: the working tree's frame left, HEAD's right; `withHead` false leaves HEAD's slot empty (rows B, C).
+   * `palName` names the palette in the note when the working tree lacks it.
+   */
+  const pair = (ref: Ref, pal: (m: Sprites) => Pal | undefined, scale: number, withHead = true, palName = 'PAL'): Rgba => {
+    const left = drawNow(ref, pal(now), palName, scale)
     const right = withHead ? drawHead(ref, pal, scale) : blank(left.width, left.height)
     return hcat([left, right], GUTTER)
   }
@@ -129,7 +139,8 @@ async function main() {
     rows.push(hcat(ROW_A.map((r) => pair(r, (m) => m.PAL, SCALE)), PAIR_GAP))
     legend.push(`A (the mangaka, each pair new then HEAD): ${names(ROW_A)}`)
     for (const [row, outfit] of [['B', 'cardigan'], ['C', 'blazer']] as const) {
-      rows.push(hcat(ROW_A.map((r) => pair(r, (m) => m.OUTFIT_PALS?.[outfit], SCALE, false)), PAIR_GAP))
+      const outfitPal = (m: Sprites) => m.OUTFIT_PALS?.[outfit]
+      rows.push(hcat(ROW_A.map((r) => pair(r, outfitPal, SCALE, false, `OUTFIT_PALS.${outfit}`)), PAIR_GAP))
       legend.push(`${row} (row A in OUTFIT_PALS.${outfit}, new only, under each pair's new cell): ${names(ROW_A)}`)
     }
 
@@ -137,7 +148,7 @@ async function main() {
     const rowDNames: string[] = []
     for (const look of [1, 2, 3]) {
       for (const ref of [{ name: 'MANGAKA_SIT', index: 0 }, { name: 'ASSISTANT_DOZE' }]) {
-        rowD.push(rasterize(mustNow(ref), now.ASSISTANT_PALS[look], SCALE))
+        rowD.push(drawNow(ref, now.ASSISTANT_PALS?.[look], `ASSISTANT_PALS[${look}]`, SCALE))
         rowDNames.push(`${label(ref)} in ASSISTANT_PALS[${look}]`)
       }
     }

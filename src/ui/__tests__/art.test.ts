@@ -1,11 +1,12 @@
 // Checks the art pipeline's output on disk, without importing sharp or any browser API: manifest shape, that every
 // entry has both a raw source and a generated PNG, no orphan PNGs, and that every PNG is a small indexed (colour
 // type 3) image whose IHDR size matches its manifest `native` size and whose PLTE entries are all in its own entry's palette (base or scene),
-// and that each generated wall's plaster stays flat (its pixels decoded with node:zlib).
+// and that each generated wall's plaster stays flat (its pixels decoded with node:zlib, the decoder itself checked on a
+// synthetic image of every PNG filter type).
 import { createHash } from 'node:crypto'
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
-import { inflateSync } from 'node:zlib'
+import { deflateSync, inflateSync } from 'node:zlib'
 import { describe, expect, it } from 'vitest'
 import { ART_PALETTE, ART_PALETTE_BASE, ART_PALETTE_SCENE } from '../art/palette'
 import * as registry from '../art/registry'
@@ -149,13 +150,15 @@ function parsePng(path: string): {
 }
 
 /**
- * Decodes an 8-bit indexed (colour type 3), non-interlaced PNG to its pixels as `#rrggbb`, row by row, without a
- * library: the IDAT chunks inflated (`node:zlib`) and each scanline unfiltered (types 0-4, one byte per pixel). Anything
- * else (another bit depth or colour type, interlacing, an unknown filter) throws, since the room walls are all 8-bit
- * indexed (`scripts/pixelate.ts` writes them with sharp's palette encoder).
+ * Decodes an 8-bit indexed (colour type 3), non-interlaced PNG (its bytes; `path` names it in errors) to its pixels as
+ * `#rrggbb`, row by row, without a library: the IDAT chunks inflated (`node:zlib`) and each scanline unfiltered (types
+ * 0-4, one byte per pixel). Anything else (no PNG signature, another bit depth or colour type, interlacing, an unknown
+ * filter) throws, since the room walls are all 8-bit indexed (`scripts/pixelate.ts` writes them with sharp's palette
+ * encoder).
  */
-function decodeIndexed(path: string): { width: number; height: number; at: (x: number, y: number) => string } {
-  const buf = readFileSync(path)
+function decodeIndexed(buf: Buffer, path: string): { width: number; height: number; at: (x: number, y: number) => string } {
+  const signature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
+  if (!buf.subarray(0, 8).equals(signature)) throw new Error(`${path}: not a PNG`)
   let offset = 8
   let width = 0
   let height = 0
@@ -212,6 +215,67 @@ function decodeIndexed(path: string): { width: number; height: number; at: (x: n
   }
 }
 
+describe('the indexed PNG decoder', () => {
+  // A 6x5 indexed image, one scanline per filter type, its filtered bytes worked by hand from the PNG spec (each byte the
+  // index less the filter's prediction, mod 256) rather than by an encoder that could share a mistake with the decoder.
+  // The two room walls use filter 0 only, so this is the decoder's one meeting with types 1-4.
+  const INDICES = [
+    [3, 1, 4, 1, 5, 2],
+    [5, 2, 6, 5, 3, 0],
+    [3, 5, 0, 7, 1, 4],
+    [4, 6, 1, 3, 4, 2],
+    [2, 7, 5, 1, 5, 6],
+  ]
+  const SCANLINES = [
+    [0, 3, 1, 4, 1, 5, 2], // 0 None: the indices as they are
+    [1, 5, 253, 4, 255, 254, 253], // 1 Sub: less the pixel to the left
+    [2, 254, 3, 250, 2, 254, 4], // 2 Up: less the pixel above
+    [3, 3, 2, 254, 255, 2, 254], // 3 Average: less floor((left + above) / 2)
+    // 4 Paeth: less the neighbour nearest left + above - upper left: above, upper left, above, left, left (tied with
+    // the upper left, which left wins), above (tied with the upper left, which above wins)
+    [4, 254, 3, 4, 252, 4, 4],
+  ]
+  const PALETTE = ['#000000', '#111111', '#222222', '#333333', '#444444', '#555555', '#666666', '#777777']
+  const SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]
+
+  /** A chunk: its length, type and data, then a zero CRC (the decoder, like the art.test parser, never reads one). */
+  function chunk(type: string, data: Buffer): Buffer {
+    const head = Buffer.alloc(8)
+    head.writeUInt32BE(data.length, 0)
+    head.write(type, 4, 'ascii')
+    return Buffer.concat([head, data, Buffer.alloc(4)])
+  }
+
+  /** The image as an 8-bit indexed PNG, its deflated scanlines split over two IDAT chunks. */
+  function syntheticPng(signature = SIGNATURE): Buffer {
+    const ihdr = Buffer.alloc(13)
+    ihdr.writeUInt32BE(6, 0)
+    ihdr.writeUInt32BE(5, 4)
+    ihdr.set([8, 3, 0, 0, 0], 8) // bit depth 8, colour type 3 (indexed), deflate, adaptive filtering, no interlace
+    const plte = Buffer.from(PALETTE.flatMap((hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16))))
+    const idat = deflateSync(Buffer.from(SCANLINES.flat()))
+    const half = idat.length >> 1
+    return Buffer.concat([
+      Buffer.from(signature), chunk('IHDR', ihdr), chunk('PLTE', plte),
+      chunk('IDAT', idat.subarray(0, half)), chunk('IDAT', idat.subarray(half)), chunk('IEND', Buffer.alloc(0)),
+    ])
+  }
+
+  it('unfilters a scanline of each filter type (0-4) back to its indices', () => {
+    const png = decodeIndexed(syntheticPng(), 'synthetic.png')
+    expect([png.width, png.height]).toEqual([6, 5])
+    const decoded = INDICES.map((row, y) => row.map((_, x) => png.at(x, y)))
+    expect(decoded).toEqual(INDICES.map((row) => row.map((i) => PALETTE[i])))
+  })
+
+  it('refuses bytes without the PNG signature', () => {
+    expect(() => decodeIndexed(syntheticPng(), 'synthetic.png')).not.toThrow()
+    const wrong = [...SIGNATURE]
+    wrong[1] = 0x51 // 'Q' for 'P'
+    expect(() => decodeIndexed(syntheticPng(wrong), 'synthetic.png')).toThrow('synthetic.png: not a PNG')
+  })
+})
+
 describe('art manifest', () => {
   const manifest = loadManifest()
 
@@ -241,7 +305,11 @@ describe('art manifest', () => {
 
   it('gives the apartment and the loft a generated wall image, and the flat none: its wall is code-drawn (0.10.1)', () => {
     expect(manifest.filter((e) => e.id.startsWith('room/')).map((e) => e.id).sort()).toEqual(['room/apartment', 'room/loft'])
-    expect(Object.keys(registry.ROOM_ART).sort()).toEqual(['apartment', 'loft'])
+    // ROOM_ART lists every tier (a full record, so a new tier fails tsc until its wall is decided), the flat as null
+    expect(Object.keys(registry.ROOM_ART).sort()).toEqual(['apartment', 'flat', 'loft'])
+    expect(registry.ROOM_ART.flat).toBeNull()
+    expect(registry.ROOM_ART.apartment?.id).toBe('room/apartment')
+    expect(registry.ROOM_ART.loft?.id).toBe('room/loft')
     expect(existsSync(pngPathFor('room/flat')), 'src/assets/art/room/flat.png').toBe(false)
     expect(existsSync(join(ROOT, 'art', 'raw', 'rooms', 'flat.png')), 'art/raw/rooms/flat.png').toBe(false)
   })
@@ -454,7 +522,7 @@ describe('generated PNGs', () => {
     }
     expect(Object.keys(BOXES).sort()).toEqual(manifest.filter((e) => e.id.startsWith('room/')).map((e) => e.id).sort())
     for (const [id, boxes] of Object.entries(BOXES)) {
-      const png = decodeIndexed(pngPathFor(id))
+      const png = decodeIndexed(readFileSync(pngPathFor(id)), pngPathFor(id))
       expect([png.width, png.height], id).toEqual([320, 114])
       const colours = new Set<string>()
       for (const [x0, x1, y0, y1] of boxes) {

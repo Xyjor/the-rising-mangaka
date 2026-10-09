@@ -32,7 +32,10 @@ const COFFEE = '#5a3618'
 const NOTE = '#fff7c2'
 const URGENT = '#f7b8b0'
 const GRID = '#d9d3c5'
-/** The palette's #b98a5c (0.10.1, was #b88a55, OKLab 0.009 apart), which the kitchenette, bed and boxes sprites hold. */
+/**
+ * The palette's #b98a5c (0.10.1, was #b88a55, OKLab 0.009 apart), which the kitchenette, bed, boxes and reference shelf
+ * sprites hold.
+ */
 const CORK = '#b98a5c'
 const CORK_FRAME = '#8b5a2b'
 const SWITCH = '#f0ead6'
@@ -124,12 +127,14 @@ function rug(ctx: CanvasRenderingContext2D, field: string, border: string) {
  * sixteen 10 px teal stripes every 20 px on a pale ground (x 10-19, 30-39, ... 310-319), under the ceiling band and
  * above a dark walnut wainscot (the rail at y 84, the panels, their grooves every 32 px), which shares no colour with the
  * honey floor; the wood-beam frame, a baseboard and the trim. The night colours are hand-picked dimmer, bluer versions
- * of the day ones: the ground's is the loft's night sheen (the same grey by day), the rail's `#3d2d23` is new, the rest
- * are the 0.10.0 wall's for the same day colour. 38 fills.
+ * of the day ones, each with a lower OKLab lightness and a blue share (b over r + g + b) at least 0.01 higher
+ * (roomArt.test.ts): the ground's is the loft's night sheen (the same grey by day, +0.026), the stripe's `#425c60`
+ * (0.10.2, +0.026; was `#465f5a`, a plain dim) and the rail's `#3d2d23` are new, the panels' and the grooves' are the
+ * 0.10.0 wall's for the same day colour. 38 fills.
  */
 function flatWall(ctx: CanvasRenderingContext2D, night: boolean) {
   rawRect(ctx, 0, 0, 320, 114, night ? '#77757e' : '#cbc7bf')
-  for (let x = 10; x < 320; x += 20) rawRect(ctx, x, 3, 10, 81, night ? '#465f5a' : '#6f9a90')
+  for (let x = 10; x < 320; x += 20) rawRect(ctx, x, 3, 10, 81, night ? '#425c60' : '#6f9a90')
   rawRect(ctx, 0, 0, 320, 3, night ? '#5a4432' : '#8a5f3a')
   rawRect(ctx, 0, 86, 320, 25, night ? '#5a4432' : '#8a5f3a')
   rawRect(ctx, 0, 84, 320, 2, night ? '#3d2d23' : '#5a3d28')

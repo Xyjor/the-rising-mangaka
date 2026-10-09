@@ -43,6 +43,19 @@ export function rasterize(map: readonly string[], pal: Record<string, string>, s
   return img
 }
 
+/**
+ * A frame rasterized in its palette, or, when the palette is missing (a working tree without that outfit or look), a
+ * clear cell the frame's size with `note` added to `notes`: the sheet draws what it can and says what it left out,
+ * never falling back to another palette or throwing (as its HEAD cells do).
+ */
+export function cellOrEmpty(
+  map: readonly string[], pal: Record<string, string> | undefined, scale: number, notes: Set<string>, note: string,
+): Rgba {
+  if (pal) return rasterize(map, pal, scale)
+  notes.add(note)
+  return blank(map.reduce((w, row) => Math.max(w, row.length), 0) * scale, map.length * scale)
+}
+
 /** Paints `src` over `dst` with its top-left at (x, y): clear pixels (alpha 0) are skipped, anything off `dst` clipped. */
 export function paintOver(dst: Rgba, src: Rgba, x: number, y: number): void {
   for (let sy = 0; sy < src.height; sy++) {
