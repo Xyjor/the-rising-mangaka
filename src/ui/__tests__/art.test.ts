@@ -1,9 +1,11 @@
 // Checks the art pipeline's output on disk, without importing sharp or any browser API: manifest shape, that every
 // entry has both a raw source and a generated PNG, no orphan PNGs, and that every PNG is a small indexed (colour
-// type 3) image whose IHDR size matches its manifest `native` size and whose PLTE entries are all in its own entry's palette (base or scene).
+// type 3) image whose IHDR size matches its manifest `native` size and whose PLTE entries are all in its own entry's palette (base or scene),
+// and that each generated wall's plaster stays flat (its pixels decoded with node:zlib).
 import { createHash } from 'node:crypto'
-import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
+import { inflateSync } from 'node:zlib'
 import { describe, expect, it } from 'vitest'
 import { ART_PALETTE, ART_PALETTE_BASE, ART_PALETTE_SCENE } from '../art/palette'
 import * as registry from '../art/registry'
@@ -146,6 +148,70 @@ function parsePng(path: string): {
   return { width, height, colorType, palette: palette.filter((_, i) => !transparent.has(i)), bytes: buf.length }
 }
 
+/**
+ * Decodes an 8-bit indexed (colour type 3), non-interlaced PNG to its pixels as `#rrggbb`, row by row, without a
+ * library: the IDAT chunks inflated (`node:zlib`) and each scanline unfiltered (types 0-4, one byte per pixel). Anything
+ * else (another bit depth or colour type, interlacing, an unknown filter) throws, since the room walls are all 8-bit
+ * indexed (`scripts/pixelate.ts` writes them with sharp's palette encoder).
+ */
+function decodeIndexed(path: string): { width: number; height: number; at: (x: number, y: number) => string } {
+  const buf = readFileSync(path)
+  let offset = 8
+  let width = 0
+  let height = 0
+  const palette: string[] = []
+  const idat: Buffer[] = []
+  while (offset < buf.length) {
+    const length = buf.readUInt32BE(offset)
+    const type = buf.toString('ascii', offset + 4, offset + 8)
+    const data = buf.subarray(offset + 8, offset + 8 + length)
+    if (type === 'IHDR') {
+      width = data.readUInt32BE(0)
+      height = data.readUInt32BE(4)
+      const [depth, colorType, , , interlace] = data.subarray(8, 13)
+      if (depth !== 8) throw new Error(`${path}: bit depth ${depth}, only 8 is decoded`)
+      if (colorType !== 3) throw new Error(`${path}: colour type ${colorType}, only indexed (3) is decoded`)
+      if (interlace !== 0) throw new Error(`${path}: interlaced, only non-interlaced is decoded`)
+    } else if (type === 'PLTE') {
+      for (let i = 0; i < length; i += 3) palette.push(`#${[data[i], data[i + 1], data[i + 2]].map((v) => v.toString(16).padStart(2, '0')).join('')}`)
+    } else if (type === 'IDAT') idat.push(data)
+    else if (type === 'IEND') break
+    offset += 12 + length
+  }
+  const raw = inflateSync(Buffer.concat(idat))
+  if (raw.length !== height * (width + 1)) throw new Error(`${path}: ${raw.length} bytes inflated, ${height * (width + 1)} expected`)
+  const px = new Uint8Array(width * height)
+  for (let y = 0; y < height; y++) {
+    const filter = raw[y * (width + 1)]
+    const line = raw.subarray(y * (width + 1) + 1, (y + 1) * (width + 1))
+    for (let x = 0; x < width; x++) {
+      const a = x > 0 ? px[y * width + x - 1] : 0
+      const b = y > 0 ? px[(y - 1) * width + x] : 0
+      const c = x > 0 && y > 0 ? px[(y - 1) * width + x - 1] : 0
+      let predict: number
+      if (filter === 0) predict = 0
+      else if (filter === 1) predict = a
+      else if (filter === 2) predict = b
+      else if (filter === 3) predict = (a + b) >> 1
+      else if (filter === 4) {
+        const p = a + b - c
+        const [pa, pb, pc] = [Math.abs(p - a), Math.abs(p - b), Math.abs(p - c)]
+        predict = pa <= pb && pa <= pc ? a : pb <= pc ? b : c
+      } else throw new Error(`${path}: row ${y} has filter type ${filter}`)
+      px[y * width + x] = (line[x] + predict) & 0xff
+    }
+  }
+  return {
+    width,
+    height,
+    at: (x, y) => {
+      const hex = palette[px[y * width + x]]
+      if (!hex) throw new Error(`${path}: (${x}, ${y}) indexes past the palette`)
+      return hex
+    },
+  }
+}
+
 describe('art manifest', () => {
   const manifest = loadManifest()
 
@@ -173,9 +239,16 @@ describe('art manifest', () => {
     }
   })
 
-  it("makes every tier's room a 320x114 scene-palette wall of at most 32 colours, the raw's rows above its seam", () => {
+  it('gives the apartment and the loft a generated wall image, and the flat none: its wall is code-drawn (0.10.1)', () => {
+    expect(manifest.filter((e) => e.id.startsWith('room/')).map((e) => e.id).sort()).toEqual(['room/apartment', 'room/loft'])
+    expect(Object.keys(registry.ROOM_ART).sort()).toEqual(['apartment', 'loft'])
+    expect(existsSync(pngPathFor('room/flat')), 'src/assets/art/room/flat.png').toBe(false)
+    expect(existsSync(join(ROOT, 'art', 'raw', 'rooms', 'flat.png')), 'art/raw/rooms/flat.png').toBe(false)
+  })
+
+  it("makes each generated room a 320x114 scene-palette wall of at most 32 colours, the raw's rows above its seam", () => {
     const rooms = manifest.filter((e) => e.id.startsWith('room/'))
-    expect(rooms.map((e) => e.id).sort()).toEqual(['room/apartment', 'room/flat', 'room/loft'])
+    expect(rooms.length).toBeGreaterThan(0)
     for (const e of rooms) {
       // the scene draws every floor in code (TIER_FLOOR), so each room image is its wall, canvas rows 0-113
       expect(e.floor, `${e.id} floor`).toBe('code')
@@ -324,8 +397,9 @@ describe('generated PNGs', () => {
     const ROOM_COLOURS = [
       // the apartment: sand plaster and its streaks, the wood molding, beam and pillars, the baseboard, the tatami
       '#e6d3a8', '#ecdcb6', '#9c7550', '#c9b48a', '#b88d62', '#7a5a3e', '#cdbd7c', '#bfae6c', '#3d4a3a', '#a8984f',
-      // the flat: teal wallpaper and its stripes, the wainscot and its rail, the dark wood frame, honey planks, the rug
-      '#8fb5ac', '#6f9a90', '#8a5f3a', '#b98a5c', '#a0764c', '#6e4a2c', '#c8894e', '#a86d3a', '#b04a3f', '#e0b25a',
+      // the flat (code-drawn since 0.10.1): the teal stripes on the pale ground (#cbc7bf, below), the walnut wainscot and
+      // its grooves, frame and baseboard (its rail is the bookshelf's #5a3d28, below), honey planks, the rug
+      '#6f9a90', '#8a5f3a', '#6e4a2c', '#c8894e', '#a86d3a', '#b04a3f', '#e0b25a',
       // the loft: pale plaster and its molding, brick and mortar, the frame, the steel baseboard, concrete, the rug
       '#dcd8cf', '#a9a59c', '#b5574a', '#d9b7a5', '#6b4a32', '#4a4a55', '#bdb8ae', '#cbc7bf', '#a9a49a', '#3f4f7a',
       '#8aa0c8',
@@ -365,6 +439,28 @@ describe('generated PNGs', () => {
       for (const hex of png.palette) {
         expect(palette.has(hex), `${entry.id}: PLTE colour ${hex} not in its ${entry.palette ?? 'base'} palette`).toBe(true)
       }
+    }
+  })
+
+  it("keeps each generated wall's plaster flat: at most 2 colours in a box well inside it", () => {
+    // Boxes in output pixels, inclusive, read off the committed PNGs (row by row and column by column): the apartment's
+    // plaster is #e6d3a8 alone over x 3-316, rows 10-111 (the beam above row 10, the pillars' 3 px at each edge, the
+    // baseboard from row 112), so its box keeps 4-5 px clear of each; the loft's is #f5f1c9 alone over rows 12-106 (the
+    // steel beam above, the baseboard from row 107) on both sides of the brick column (x 229-253, its mortar edge and
+    // pink highlight included), so it has a box each side of the column, 4 px clear of everything.
+    const BOXES: Record<string, [x0: number, x1: number, y0: number, y1: number][]> = {
+      'room/apartment': [[8, 311, 14, 107]],
+      'room/loft': [[4, 224, 16, 102], [258, 315, 16, 102]],
+    }
+    expect(Object.keys(BOXES).sort()).toEqual(manifest.filter((e) => e.id.startsWith('room/')).map((e) => e.id).sort())
+    for (const [id, boxes] of Object.entries(BOXES)) {
+      const png = decodeIndexed(pngPathFor(id))
+      expect([png.width, png.height], id).toEqual([320, 114])
+      const colours = new Set<string>()
+      for (const [x0, x1, y0, y1] of boxes) {
+        for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) colours.add(png.at(x, y))
+      }
+      expect(colours.size, `${id}: ${[...colours].join(', ')}`).toBeLessThanOrEqual(2)
     }
   })
 

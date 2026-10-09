@@ -1,8 +1,8 @@
 // The room around the studio, all in canvas space (`rawRect`): each tier's wall (`TIER_WALL`, painted whenever the
-// tier has no generated wall image ready) and floor (`TIER_FLOOR`, always code-drawn), `TIER_ROOM` the two (the
-// apartment's tatami and wooden pillars, the flat's teal wallpaper, wainscot and honey planks, the loft's brick accent
-// and pale concrete), the front row of props on the floor (`TIER_FRONT`, drawn after the actors so they pass behind
-// it; each piece a generated sprite once its image is ready, since 0.10.0), the story props that picture the game (the corkboard, the calendar, the coffee cups, the serial's cover, the
+// tier has no generated wall image ready, the flat's always) and floor (`TIER_FLOOR`, always code-drawn), `TIER_ROOM`
+// the two (the apartment's tatami and wooden pillars, the flat's striped wallpaper, walnut wainscot and honey planks,
+// the loft's brick accent and pale concrete), the front row of props on the floor (`TIER_FRONT`, drawn after the
+// actors so they pass behind it; each piece a generated sprite once its image is ready, since 0.10.0), the story props that picture the game (the corkboard, the calendar, the coffee cups, the serial's cover, the
 // fan letters and the bin; story.ts reads their inputs) and the light (`drawAmbient`: the daylight shaft, the lamp's
 // pool, the monitor glow and the vignette, after the night overlay). Every piece keeps inside the phone's visible band
 // (x 60-260 for anything that matters) and off the actors' spots. Nothing here allocates per frame. Raw hex is
@@ -32,7 +32,8 @@ const COFFEE = '#5a3618'
 const NOTE = '#fff7c2'
 const URGENT = '#f7b8b0'
 const GRID = '#d9d3c5'
-const CORK = '#b88a55'
+/** The palette's #b98a5c (0.10.1, was #b88a55, OKLab 0.009 apart), which the kitchenette, bed and boxes sprites hold. */
+const CORK = '#b98a5c'
 const CORK_FRAME = '#8b5a2b'
 const SWITCH = '#f0ead6'
 const SWITCH_EDGE = '#b8b2a5'
@@ -119,16 +120,20 @@ function rug(ctx: CanvasRenderingContext2D, field: string, border: string) {
 }
 
 /**
- * The flat's wall: dusty teal wallpaper with mid-teal stripes (16, every 20 px) above a wood wainscot (rail at y 84,
- * panel grooves every 32 px), the wood-beam frame, a baseboard and the trim. 38 fills.
+ * The flat's wall, always code-drawn (the flat has no generated wall image since 0.10.1): bold even regency stripes,
+ * sixteen 10 px teal stripes every 20 px on a pale ground (x 10-19, 30-39, ... 310-319), under the ceiling band and
+ * above a dark walnut wainscot (the rail at y 84, the panels, their grooves every 32 px), which shares no colour with the
+ * honey floor; the wood-beam frame, a baseboard and the trim. The night colours are hand-picked dimmer, bluer versions
+ * of the day ones: the ground's is the loft's night sheen (the same grey by day), the rail's `#3d2d23` is new, the rest
+ * are the 0.10.0 wall's for the same day colour. 38 fills.
  */
 function flatWall(ctx: CanvasRenderingContext2D, night: boolean) {
-  rawRect(ctx, 0, 0, 320, 114, night ? '#56716c' : '#8fb5ac')
-  for (let x = 10; x < 320; x += 20) rawRect(ctx, x, 3, 2, 81, night ? '#465f5a' : '#6f9a90')
+  rawRect(ctx, 0, 0, 320, 114, night ? '#77757e' : '#cbc7bf')
+  for (let x = 10; x < 320; x += 20) rawRect(ctx, x, 3, 10, 81, night ? '#465f5a' : '#6f9a90')
   rawRect(ctx, 0, 0, 320, 3, night ? '#5a4432' : '#8a5f3a')
-  rawRect(ctx, 0, 86, 320, 25, night ? '#735638' : '#b98a5c')
-  rawRect(ctx, 0, 84, 320, 2, night ? '#5a4432' : '#8a5f3a')
-  for (let x = 16; x < 320; x += 32) rawRect(ctx, x, 88, 1, 21, night ? '#634a31' : '#a0764c')
+  rawRect(ctx, 0, 86, 320, 25, night ? '#5a4432' : '#8a5f3a')
+  rawRect(ctx, 0, 84, 320, 2, night ? '#3d2d23' : '#5a3d28')
+  for (let x = 16; x < 320; x += 32) rawRect(ctx, x, 88, 1, 21, night ? '#4a3626' : '#6e4a2c')
   frame(ctx, night ? '#4a3626' : '#6e4a2c')
   rawRect(ctx, 0, 111, 320, 3, night ? '#4a3626' : '#6e4a2c')
   trim(ctx)
@@ -178,7 +183,7 @@ function loftFloor(ctx: CanvasRenderingContext2D, night: boolean) {
 
 /**
  * Each tier's wall, canvas rows 0-113 (the wall, beams, pillars or posts, wainscot, baseboard and the trim): painted
- * only while the tier's room image (a generated wall) is missing or loading.
+ * only while the tier's room image (a generated wall) is missing or loading, so always for the flat, which has none.
  */
 export const TIER_WALL: Record<StudioTierId, RoomArt> = {
   apartment: apartmentWall,

@@ -743,6 +743,20 @@ describe('scene art (0.9.0 R1): generated images with the code-drawn look as the
     expect(art.images[0]).toMatchObject({ id: 'room/apartment', x: 0, y: 0, w: 320, h: 114, at: 0 })
   })
 
+  it("paints the flat's wall and floor in code with the whole art set ready: the flat has no wall image (0.10.1)", () => {
+    expect(fakeSceneArt().room.flat).toBeNull()
+    for (const t of [0.3, 0.9]) {
+      const night = t > 0.72
+      const shell = fakeContext()
+      drawRoomShell(shell.ctx, 'flat', night)
+      const art = paint({ tier: 'flat' }, t, fakeSceneArt())
+      expect(art.images.some((i) => i.id.startsWith('room/')), `t ${t}`).toBe(false)
+      // its own night colours, no dim: the shell's fills first, exactly
+      expect(art.log.slice(0, shell.log.length), `t ${t}`).toEqual(shell.log)
+      expect(art.log.some((c) => c.style === ROOM_NIGHT_DIM), `t ${t}`).toBe(false)
+    }
+  })
+
   it('still paints the sky over the pane after the room image', () => {
     const art = paint({}, 0.3, withRoom('apartment', fakeImage('room', 320, 114)))
     expect(covers(art.log, skyColor(0.3), 200, 60)).toBeGreaterThanOrEqual(art.images[0].at)

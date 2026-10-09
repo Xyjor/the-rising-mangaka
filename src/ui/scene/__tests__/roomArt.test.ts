@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 import type { StudioTierId } from '../../../sim'
 import { covers, coversAny, fakeContext, sceneSnapshot } from '../../../test/fakeCanvas'
 import type { FillCall } from '../../../test/fakeCanvas'
+import { hexToRgb, rgbToOklab } from '../../art/pixelOps'
 import { shadow } from '../paint'
 import { render } from '../render'
 import type { Snapshot } from '../render'
@@ -107,10 +108,42 @@ describe('each tier\'s room', () => {
     }
   })
 
-  it("stripes the flat's teal wallpaper in mid teal, 16 stripes every 20 px", () => {
-    const stripes = alone((ctx) => TIER_WALL.flat(ctx, false)).filter((c) => c.style === '#6f9a90')
-    expect(stripes.map((c) => c.x)).toEqual(Array.from({ length: 16 }, (_, i) => 10 + i * 20))
-    expect(stripes.every((c) => c.w === 2 && c.y === 3 && c.h === 81)).toBe(true)
+  it("stripes the flat's pale wallpaper with sixteen bold teal stripes, 10 px wide and 20 px apart across the wall", () => {
+    // the flat's wall is code-drawn since 0.10.1 (no generated image): the pale ground, then the stripes from the
+    // ceiling band down to the wainscot's rail, an even 10 px teal and 10 px pale from x 0 to 319
+    const at = Array.from({ length: 16 }, (_, i) => 10 + i * 20)
+    const day = alone((ctx) => TIER_WALL.flat(ctx, false))
+    expect(day[0]).toEqual({ style: '#cbc7bf', x: 0, y: 0, w: 320, h: 114 })
+    const stripes = day.filter((c) => c.style === '#6f9a90')
+    expect(stripes.map((c) => c.x)).toEqual(at)
+    for (const c of stripes) expect(c, JSON.stringify(c)).toMatchObject({ w: 10, y: 3, h: 81 })
+    // at night the same sixteen, in the night teal over the night ground
+    const night = alone((ctx) => TIER_WALL.flat(ctx, true))
+    const nightStripes = night.filter((c) => c.w === 10 && c.y === 3 && c.h === 81)
+    expect(nightStripes.map((c) => c.x)).toEqual(at)
+    expect(new Set(nightStripes.map((c) => c.style)).size).toBe(1)
+    expect(nightStripes[0].style).not.toBe(night[0].style)
+    expect(nightStripes[0].style).not.toBe('#6f9a90')
+  })
+
+  it("sets the flat's walnut wainscot apart from its honey floor: no colour shared, and darker, by day and by night", () => {
+    // the wainscot is rows 84-110 (the rail, the panels and their grooves, the switch and the outlet on it); the floor is
+    // every colour flatFloor paints (the planks, their lines, the rug). Darker: the panels' OKLab lightness at most 0.85
+    // of the planks' (0.10.0's honey panels #b98a5c were 0.98 of the planks #c8894e by day: the same wood)
+    const lightness = (hex: string) => rgbToOklab(...hexToRgb(hex))[0]
+    for (const night of [false, true]) {
+      const label = night ? 'night' : 'day'
+      const wall = alone((ctx) => TIER_WALL.flat(ctx, night))
+      const floor = alone((ctx) => TIER_FLOOR.flat(ctx, night))
+      const wainscot = new Set(wall.filter((c) => c.y >= 84 && c.y + c.h <= 111).map((c) => c.style))
+      const floorColours = new Set(floor.map((c) => c.style))
+      expect(wainscot.size, label).toBeGreaterThan(1)
+      for (const hex of wainscot) expect(floorColours.has(hex), `${label}: ${hex} is a floor colour`).toBe(false)
+      // a panel between two grooves (x 160, y 100) against a plank below the rug (x 160, y 170)
+      const panel = wall[coversAny(wall, 160, 100)].style
+      const plank = floor[coversAny(floor, 160, 170)].style
+      expect(lightness(panel) / lightness(plank), `${label}: ${panel} on ${plank}`).toBeLessThanOrEqual(0.85)
+    }
   })
 
   it('paints each tier its own way, and night differently from day', () => {
