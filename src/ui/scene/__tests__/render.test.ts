@@ -367,7 +367,7 @@ describe('the characters, from the actor table', () => {
     const left = paintWith(editorAt(-1), { visitor: 'editor' })
     expect(has(left, '#3a3d4c', 203, 103)).toBe(true)
     expect(has(left, '#2b2140', 206, 87)).toBe(true)
-    expect(has(left, '#3b3b45', 204, 95)).toBe(true)
+    expect(has(left, '#6b6b78', 204, 95)).toBe(true)
     // (the bed frame behind is the same brown, so the case is found by its exact run: row 24's FFF, cols 19-21)
     expect(left).toContainEqual({ style: '#6d4c33', x: 217, y: 109, w: 3, h: 1 })
     // facing right, col 5 mirrors to x 198 + 23 - 5 = 216; x 203 is then row 18's col 18, the outline, so no suit there

@@ -367,8 +367,9 @@ at `CAT_BED` (4 fills, drawn just before it).
   the other outfits), `S/s` hands on 3-wide arms, `F/f` brown trousers and `O/o` shoes; `T/t` are no longer on the
   mangaka. The frames share pieces (`IDLE_BODY`, `WALK_PASS`, `SIT_LAP`, `EDITOR_BODY`, `EDITOR_PASS`), and each hand
   is one skin row closed by `L`, so `breathOf` still drops row 24 cleanly. The editor's suit `G/g` is recoloured to
-  `#3a3d4c`/`#2c3656`, with two-lens `P` glasses (a one-cell bridge at col 10), a `W` collar, an `N` tie, `E` shoes
-  and the `F/f` briefcase in the trailing hand, which is two wide; its breath frame is hand-drawn so the case keeps
+  `#3a3d4c`/`#2c3656`, with two-lens `P` glasses (a one-cell bridge at col 10; since 0.10.1 the frame is a mid steel
+  `#6b6b78`, at least 0.25 OKLab lightness from the eye `E` and the skin `S`, where `#3b3b45` read as a dark block), a
+  `W` collar, an `N` tie, `E` shoes and the `F/f` briefcase in the trailing hand, which is two wide; its breath frame is hand-drawn so the case keeps
   its seven rows. The cat is a tabby (`c` stripes, the `Q` chest, an `E` eye, 1-px ears) with a tail on its walk.
   The doze stays the generated frame, its folded arms remapped `J` to `j` (sleeves) in the manifest, 100 runs to 91.
   The gate is `scripts/spriteSheet.ts` (`npm run sprites -- <out.png> [--walk]`): an 8x contact sheet (the cat at 16x)

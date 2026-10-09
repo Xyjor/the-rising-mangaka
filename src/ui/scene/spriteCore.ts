@@ -13,7 +13,8 @@ export const PAL: Record<string, string> = {
   J: '#6f7a8c', j: '#525c6b',
   T: '#2c2c3a', t: '#1f1f2a',
   O: '#c0392b', o: '#8e2a20',
-  G: '#3a3d4c', g: '#2c3656', N: '#c0392b', P: '#3b3b45',
+  // P, the editor's glasses frame: a mid steel (0.10.1), so the eye inside each lens and the frame on the skin both show
+  G: '#3a3d4c', g: '#2c3656', N: '#c0392b', P: '#6b6b78',
   F: '#6d4c33', f: '#4e3622',
   C: '#e39a4a', c: '#c67d33', Q: '#f0ead6',
   // the collar (K) and tie (Y, its shade y) on the idle and seated frames: in the hoodie (and on the assistants) they
