@@ -38,6 +38,12 @@ export function breathOf(f: SpriteMap): SpriteMap {
   return ['.'.repeat(f[0].length), ...f.slice(0, 24), ...f.slice(25)]
 }
 
+/** A map with each key in `from` swapped for the key at the same place in `to`, every other cell kept (pure: the
+ * editor walks on the mangaka's legs recoloured to his suit). */
+function recolour(map: SpriteMap, from: string, to: string): SpriteMap {
+  return map.map((row) => row.replace(/./g, (ch) => (from.includes(ch) ? to[from.indexOf(ch)] : ch)))
+}
+
 /** The standing anchor's body under ANCHOR_HEAD (task B1, after art/raw/sprites/mangaka-front.png): the hoodie's
  * torso J with its hood shadow j over the shoulders and down the right, the collar K either side of the neck over a
  * shirt V (R, the assistants' shirt colour) that the drawstring Y hangs from, three-wide darker sleeves j seamed from
@@ -81,10 +87,11 @@ export const HEAD_DY = { idle: [0, 1], sit: [0, 0], stretch: [0, 1], sip: [0, 0]
 /**
  * The idle cycle's stretch (Decision 6): the standing body with both arms flung out and up beside the head, eyes closed.
  * Each sleeve rises from its shoulder cap (row 17, as the idle) a column further out per row to a fist beside the cheek
- * (rows 12-14, one wide at the fingertips and three at the wrist, its one s at the bottom corner); the arms leave the
- * avatar crop, which is why the stretch is exempt from faceRules. Under the shoulders the torso stands alone, two
- * columns wider than the chest between the idle's seams, closed under each sleeve by an L row. STRETCH[1] is the
- * breath (`breathOf`: rows 0-23 a row lower, the hem tucked, headDy = 1), as MANGAKA_IDLE[1] is to MANGAKA_IDLE[0].
+ * (rows 12-14, one wide at the fingertips, capped by an L on row 11, and three at the wrist, its one s at the bottom
+ * corner); the arms leave the avatar crop, which is why the stretch is exempt from faceRules. Under the shoulders the
+ * torso stands alone, two columns wider than the chest between the idle's seams, closed under each sleeve by an L row.
+ * STRETCH[1] is the breath (`breathOf`: rows 0-23 a row lower, the hem tucked, headDy = 1), as MANGAKA_IDLE[1] is to
+ * MANGAKA_IDLE[0].
  */
 const STRETCH_0: SpriteMap = [
   '......LLLLLLLLLL........', // 0
@@ -98,7 +105,7 @@ const STRETCH_0: SpriteMap = [
   '..LHSSSSSSSSSSSSSSsL....', // 8
   '..LHSSSSSSSSSSSSSSsL....', // 9  eyes closed
   '..LHSSssSSSSSSssSSsL....', // 10 eyes closed
-  '..LHSSSSSSSSSSSSSSsL....', // 11 eyes closed
+  '.LLHSSSSSSSSSSSSSSsLL...', // 11 eyes closed; the L over each fist's fingertips
   'LSLSBBSSSSMMSSSSBBsLSL..', // 12 the fingertips beside the cheeks
   'LSSLSSSSSSSSSSSSSSsLSSL.', // 13
   'LSSsLSSSSSSSSSSSSsLSSsL.', // 14 the fists, three wide at the wrist, one s each
@@ -200,19 +207,19 @@ export const MANGAKA_SIP: readonly [SpriteMap, SpriteMap] = [
   ],
 ] as const
 
-/** The walk's first contact under ANCHOR_HEAD: the leading (left) arm swung forward and up, its sleeve three rows
- * and the fist at row 20, the trailing arm hanging as the idle's; the hem as the idle's; the left leg stepping out, a
- * column further per row to a long shoe whose toe reaches two columns past it, the right leg straight under the hip,
- * the crotch line (L) on the hip row above the gap. */
+/** The walk's first contact under ANCHOR_HEAD: the left leg stepping out, a column further per row to a long shoe
+ * whose toe reaches two columns past it, the right leg straight under the hip, the crotch line (L) on the hip row above
+ * the gap; the right arm swung forward and up against the stepping leg (its sleeve three rows, the fist at row 20), the
+ * left arm hanging as the idle's; the hem as the idle's. */
 const WALK_CONTACT_0: SpriteMap = [
   '....LLjjKKsssKKjjLL.....', // 16
   '...LjjjLJKRRRKjLjjjL....', // 17
   '...LjjjLJJRYRJjLjjjL....', // 18
   '...LjjjLJJJYJJjLjjjL....', // 19
-  '...LSSsLJJJYJJjLjjjL....', // 20 the leading fist, forward and up
-  '....LLLLJJJYJJjLjjjL....', // 21
-  '.......LJJJYJJjLSSsL....', // 22 the trailing hand, as the idle
-  '.......LJJJJJJjLLLL.....', // 23
+  '...LjjjLJJJYJJjLSSsL....', // 20 the right fist, forward and up
+  '...LjjjLJJJYJJjLLLL.....', // 21
+  '...LSSsLJJJYJJjL........', // 22 the left hand hanging, as the idle's
+  '....LLLLJJJJJJjL........', // 23
   '.......LjjjjjjjjL.......', // 24 the hem, as the idle
   '......LFFFFLFFFfL.......', // 25 the hips, a column out on the stepping side
   '......LFFFL.LFFfL.......', // 26 the left leg steps out, the right stays under
@@ -224,22 +231,23 @@ const WALK_CONTACT_0: SpriteMap = [
 ]
 
 /** The walk's second contact under ANCHOR_HEAD: WALK_CONTACT_0 with the legs and arms swapped (the right leg steps
- * out to the right, the right arm swings up), the shade still on the right of every run. */
+ * out to the right, the left arm swings up against it). The light does not swap: each leg keeps its own shading on
+ * both contact frames (the shade on the right of every run, the left leg under the hip as the idle's). */
 const WALK_CONTACT_2: SpriteMap = [
   '....LLjjKKsssKKjjLL.....', // 16
   '...LjjjLJKRRRKjLjjjL....', // 17
   '...LjjjLJJRYRJjLjjjL....', // 18
   '...LjjjLJJJYJJjLjjjL....', // 19
-  '...LjjjLJJJYJJjLSSsL....', // 20 the leading fist, forward and up
-  '...LjjjLJJJYJJjLLLL.....', // 21
-  '...LSSsLJJJYJJjL........', // 22 the trailing hand, as the idle
-  '....LLLLJJJJJJjL........', // 23
+  '...LSSsLJJJYJJjLjjjL....', // 20 the left fist, forward and up
+  '....LLLLJJJYJJjLjjjL....', // 21
+  '.......LJJJYJJjLSSsL....', // 22 the right hand hanging, as the idle's
+  '.......LJJJJJJjLLLL.....', // 23
   '.......LjjjjjjjjL.......', // 24 the hem, as the idle
   '.......LFFFFLFFFfL......', // 25 the hips, a column out on the stepping side
   '.......LFFFL.LFFfL......', // 26 the left leg stays under, the right steps out
   '.......LFFFL..LFFfL.....', // 27
   '.......LFFFL...LFFfL....', // 28
-  '.......LFffL...LfffL....', // 29
+  '.......LFFfL...LfffL....', // 29 the standing leg shaded as the idle's left
   '.......LOOoL...LOOOOoL..', // 30 the stepping shoe reaches out
   '.......LLLLL...LLLLLLL..', // 31
 ]
@@ -259,7 +267,8 @@ const WALK_PASS: SpriteMap = [
 
 /** The walk, 100 ms a frame: contact, pass (a row lower), contact with the legs and arms swapped, pass again. The
  * contact frames lead with different legs (the left foot reaching out on frame 0, the right on frame 2, the long shoe
- * the forward one), so the cycle steps rather than slides; the pass frames are one map. */
+ * the forward one), so the cycle steps rather than slides, and each swings up the arm opposite its forward leg (the
+ * right on frame 0, the left on frame 2), never the same side's (a pacing gait); the pass frames are one map. */
 export const MANGAKA_WALK: readonly [SpriteMap, SpriteMap, SpriteMap, SpriteMap] = [
   [...ANCHOR_HEAD, ...WALK_CONTACT_0], WALK_PASS, [...ANCHOR_HEAD, ...WALK_CONTACT_2], WALK_PASS,
 ]
@@ -444,62 +453,52 @@ export const EDITOR_IDLE: readonly [SpriteMap, SpriteMap] = [
   ],
 ]
 
+/** The briefcase as EDITOR_BODY hangs it (rows 22-28, cols 18-23): the L top edge, the F body with its f shade down
+ * the right, the f underside and the L bottom edge. */
+const CASE: SpriteMap = EDITOR_BODY.slice(6, 13).map((row) => row.slice(18))
+
+/** The editor's legs on a walk frame: the mangaka's rows from `from` down in the suit (the trousers F/f to G/g, the
+ * shoes O/o to black E), the briefcase's last four rows (CASE[3-6]) drawn over cols 18-23 of the first four, since on
+ * every walk frame the case's top edge is three rows above the first leg row; a leg stepping out passes behind it. */
+function editorLegs(walk: SpriteMap, from: number): SpriteMap {
+  return recolour(walk.slice(from), 'FfOo', 'GgEE').map((row, i) => (i < 4 ? row.slice(0, 18) + CASE[3 + i] : row))
+}
+
 /**
- * The editor's walk: MANGAKA_WALK's timing and legs (WALK_CONTACT_0, WALK_CONTACT_2 and WALK_PASS, row for row) in
- * the suit. The briefcase keeps its idle place on both contact frames (rows 22-28): under the trailing hand on frame
- * 0, and on frame 2, where the right arm swings up, hung from the raised fist's closure row by a short L handle, the
- * stepping leg passing behind it on row 28. The pass frames are one map: the idle a row lower down to and including
- * the hem (so the case drops a row with the hand), then the legs together beside it.
+ * The editor's walk, built on MANGAKA_WALK: its timing, its arm swing and its legs (`editorLegs`, the mangaka's
+ * rows recoloured to the suit), under EDITOR_HEAD and EDITOR_BODY's shoulders. The briefcase keeps its idle place on
+ * both contact frames (rows 22-28), always in the right hand: on frame 0, where the right arm swings up against the
+ * stepping left leg, it hangs from the raised fist's closure row by a short L handle; on frame 2, where the left arm
+ * swings up, the right hand holds its top edge as the idle's and the stepping right leg passes behind it on row 28.
+ * The pass frames are one map: the idle a row lower down to and including the hem (so the case drops a row with the
+ * hand), then the mangaka's legs together beside it.
  */
 const EDITOR_PASS: SpriteMap = [
   '.'.repeat(24), // 0
   ...EDITOR_0.slice(0, 25), // 1-25: rows 0-24 of the idle, the case's top three rows with them
-  '........LGGGGGgL..LFFFfL', // 26 the legs together, passing; the case a row lower
-  '........LGGGGGgL..LFFFfL', // 27
-  '........LGGGGGgL..LffffL', // 28
-  '........LGGggggL..LLLLLL', // 29
-  '........LEEEEEEL........', // 30
-  '........LLLLLLLL........', // 31
+  ...editorLegs(WALK_PASS, 26), // 26-31: the legs together, passing; the case a row lower
 ]
 export const EDITOR_WALK: readonly [SpriteMap, SpriteMap, SpriteMap, SpriteMap] = [
   [
     ...EDITOR_HEAD,
-    '....LLGGWWsssWWGgLL.....', // 16
-    '...LGGgLGWWNWWgLGGgL....', // 17
-    '...LGGgLGGWNWGgLGGgL....', // 18
-    '...LGGgLGGGNGGgLGGgL....', // 19
-    '...LSSsLGGGNGGgLGGgL....', // 20 the leading fist, forward and up
-    '....LLLLGGGNGGgLGGgL....', // 21
-    '.......LGGGGGGgLSsLLLLLL', // 22 the trailing hand on the briefcase, as the idle
-    '.......LGGGGGGgLLLLFFFfL', // 23
-    '.......LggggggggL.LFFFfL', // 24 the hem, as the idle
-    '......LGGGGLGGGgL.LFFFfL', // 25 the hips, a column out on the stepping side
-    '......LGGGL.LGGgL.LFFFfL', // 26 the left leg steps out, the right stays under
-    '.....LGGGL..LGGgL.LffffL', // 27
-    '....LGGGL...LGGgL.LLLLLL', // 28
-    '....LGGgL...LgggL.......', // 29
-    '..LEEEEEL...LEEEL.......', // 30 the forward shoe reaches its toe out
-    '..LLLLLLL...LLLLL.......', // 31
+    ...EDITOR_BODY.slice(0, 4), // 16-19: the collar, the tie's knot and the shoulders, as the standing editor's
+    '...LGGgLGGGNGGgLSSsL....', // 20 the right fist, forward and up
+    '...LGGgLGGGNGGgLLLL.....', // 21
+    '...LSSsLGGGGGGgLLLLLLLLL', // 22 the left hand hanging, as the idle's; the case hangs from the fist by its handle
+    '....LLLLGGGGGGgL..LFFFfL', // 23
+    EDITOR_BODY[8], // 24 the jacket's hem, as the idle's
+    ...editorLegs(MANGAKA_WALK[0], 25), // 25-31: the left leg steps out, the right stays under
   ],
   EDITOR_PASS,
   [
     ...EDITOR_HEAD,
-    '....LLGGWWsssWWGgLL.....', // 16
-    '...LGGgLGWWNWWgLGGgL....', // 17
-    '...LGGgLGGWNWGgLGGgL....', // 18
-    '...LGGgLGGGNGGgLGGgL....', // 19
-    '...LGGgLGGGNGGgLSSsL....', // 20 the leading fist, forward and up
-    '...LGGgLGGGNGGgLLLL.....', // 21
-    '...LSSsLGGGGGGgLLLLLLLLL', // 22 the trailing hand, as the idle; the case hangs from the fist by its handle
-    '....LLLLGGGGGGgL..LFFFfL', // 23
-    '.......LggggggggL.LFFFfL', // 24 the hem, as the idle
-    '.......LGGGGLGGGgLLFFFfL', // 25 the hips, a column out on the stepping side
-    '.......LGGgL.LGGgLLFFFfL', // 26 the left leg stays under, the right steps out
-    '.......LGGgL..LGGgLffffL', // 27
-    '.......LGGgL...LGGLLLLLL', // 28 the stepping leg passes behind the case
-    '.......LGggL...LgggL....', // 29
-    '.......LEEEL...LEEEEEL..', // 30 the stepping shoe reaches out
-    '.......LLLLL...LLLLLLL..', // 31
+    ...EDITOR_BODY.slice(0, 4), // 16-19
+    '...LSSsLGGGNGGgLGGgL....', // 20 the left fist, forward and up
+    '....LLLLGGGNGGgLGGgL....', // 21
+    '.......LGGGGGGgLSsLLLLLL', // 22 the right hand on the briefcase, as the idle's
+    '.......LGGGGGGgLLLLFFFfL', // 23
+    EDITOR_BODY[8], // 24
+    ...editorLegs(MANGAKA_WALK[2], 25), // 25-31: the right leg steps out, behind the case on row 28
   ],
   EDITOR_PASS,
 ]
@@ -664,8 +663,8 @@ export const FACES: Record<Exclude<Mood, 'neutral'>, SpriteMap> = {
 export const MARK_PAL: Record<string, string> = { W: '#f6f6f6', R: '#8fd3ff', Y: '#f5b700', L: '#1c1a26' }
 
 /** The mark at the head's top-right edge, at (x+20, y-2) (render.ts `markX`, `MARK_DY`: cols 20-22, rows -2 to 2),
- * 3 wide x 5 tall, in MARK_PAL: a sweat drop (tired), a sparkle (happy), and
- * the existing '!'/'z' glyph shapes (surprised/sleepy) recoloured to MARK_PAL's L. */
+ * 3 wide x 5 tall, in MARK_PAL: a sweat drop (tired), a sparkle (happy), and the existing '!'/'z' glyph shapes
+ * (surprised/sleepy) recoloured to MARK_PAL's L. */
 export const MARKS: Record<Exclude<Mood, 'neutral'>, SpriteMap> = {
   tired: ['.W.', 'WRW', 'WRW', '.W.', '...'],
   happy: ['.Y.', 'YWY', '.Y.', '...', '...'],

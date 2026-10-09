@@ -52,12 +52,16 @@ const CAT_AWAKE: readonly [string, SpriteMap][] = [
 ]
 
 /**
- * How many tabby stripes a cat frame has: a `c` cell with `C` on both sides on its row. The shade down the right edge
- * of the body (`c` against the `L` outline) and a `c` blob (two shade cells side by side) are not stripes.
+ * How many tabby stripe cells a cat frame has: a `c` cell with fur (`C`) on both sides on its row, counted only on
+ * the back and the tail, which lie right of the head's columns 0-4 in every frame. By rows alone the walk's and the
+ * stretch's heads share their rows with the back and the tail, so the head is left out by its columns: the groom's
+ * raised paw (its shaded underside), the face (the eye, the muzzle) and the chest all sit in cols 0-4. The shade
+ * down the body's right edge (`c` against the `L` outline) and a `c` blob (two shade cells side by side) are not
+ * stripes either.
  */
 function stripes(f: SpriteMap): number {
   let n = 0
-  for (const row of f) for (let c = 1; c < row.length - 1; c++) if (row[c] === 'c' && row[c - 1] === 'C' && row[c + 1] === 'C') n++
+  for (const row of f) for (let c = 5; c < row.length - 1; c++) if (row[c] === 'c' && row[c - 1] === 'C' && row[c + 1] === 'C') n++
   return n
 }
 
@@ -151,11 +155,12 @@ describe('the sprites', () => {
         for (let r = 26; r <= 29; r++) expect(oneSpan(contact[r].slice(0, legs)), `${name} contact row ${r}`).toBe(false)
       }
       expect(c0.slice(25), name).not.toEqual(c2.slice(25)) // the legs swap
-      // the arm swing: in frame 0 the hand on the frame's left (cols 4-7; row 21 today) sits higher than the hand on
-      // its right (cols 16-19; row 23 today), and frame 2 swaps them
+      // the arm swing: in frame 0 one hand sits higher than the other (the one on the frame's right, cols 16-19, at row
+      // 20; the one on its left, cols 4-7, hanging to row 22), and frame 2 swaps them; which side swings up against
+      // which leg is the next test's
       const [l0, r0, l2, r2] = [handRow(c0, 4, 7), handRow(c0, 16, 19), handRow(c2, 4, 7), handRow(c2, 16, 19)]
       for (const row of [l0, r0, l2, r2]) expect(row, name).toBeGreaterThan(0)
-      expect(l0, name).toBeLessThan(r0)
+      expect(l0, name).not.toBe(r0)
       expect([l2, r2], name).toEqual([r0, l0])
     }
   })
@@ -296,25 +301,28 @@ describe('the sprites', () => {
     expect(MANGAKA_STRETCH[0][17]).toBe(idle[17])
     expect(MANGAKA_STRETCH[0].slice(24)).toEqual(idle.slice(24))
     expect(MANGAKA_STRETCH[1]).toEqual(breathOf(MANGAKA_STRETCH[0]))
-    // the sip: the head above the mug, both sleeves at the shoulders (rows 17-19) and everything from the hem down;
-    // rows 12-15 hold the mug and the forearm, row 16 the raised sleeve over the hood's shadow, rows 20-23 lose the
-    // hanging arm the sip raised; frame 1 only closes the eyes
+    // the sip: the head above the mug, both sleeves at the shoulders (rows 17-19), the other arm hanging as the idle's
+    // (rows 20-23, cols 15 on) and everything from the hem down; rows 12-15 hold the mug and the forearm, row 16 the
+    // raised sleeve over the hood's shadow, and rows 20-23 left of col 15 lose the left arm the sip raised; frame 1
+    // only closes the eyes
     expect(MANGAKA_SIP[0].slice(0, 12)).toEqual(idle.slice(0, 12))
     expect(MANGAKA_SIP[0].slice(17, 20)).toEqual(idle.slice(17, 20))
+    for (let r = 20; r <= 23; r++) expect(MANGAKA_SIP[0][r].slice(15), `sip row ${r}`).toBe(idle[r].slice(15))
     expect(MANGAKA_SIP[0].slice(24)).toEqual(idle.slice(24))
     expect(MANGAKA_SIP[1].slice(0, 9)).toEqual(idle.slice(0, 9))
     expect(MANGAKA_SIP[1].slice(12)).toEqual(MANGAKA_SIP[0].slice(12))
     expect(MANGAKA_SIP[1].slice(9, 12)).not.toEqual(MANGAKA_SIP[0].slice(9, 12))
-    // the walk's contact frames: the head and shoulders (rows 0-19) and the hem (row 24); the trailing arm hangs as the
-    // idle's (frame 0's right, cols 15-23; frame 2's left, cols 0-7) while the leading one swings up; the legs stride
+    // the walk's contact frames: the head and shoulders (rows 0-19) and the hem (row 24); the arm on the stepping leg's
+    // side hangs as the idle's (frame 0's left, cols 0-7; frame 2's right, cols 15-23) while the other swings up; the
+    // legs stride
     const [c0, p1, c2, p3] = MANGAKA_WALK
     for (const c of [c0, c2]) {
       expect(c.slice(0, 20)).toEqual(idle.slice(0, 20))
       expect(c[24]).toBe(idle[24])
     }
     for (let r = 20; r <= 23; r++) {
-      expect(c0[r].slice(15), `frame 0 row ${r}`).toBe(idle[r].slice(15))
-      expect(c2[r].slice(0, 8), `frame 2 row ${r}`).toBe(idle[r].slice(0, 8))
+      expect(c0[r].slice(0, 8), `frame 0 row ${r}`).toBe(idle[r].slice(0, 8))
+      expect(c2[r].slice(15), `frame 2 row ${r}`).toBe(idle[r].slice(15))
     }
     // the pass frames: the idle a row lower down to and including the hem, then the legs together
     expect(p1).toEqual(p3)
@@ -338,6 +346,19 @@ describe('the sprites', () => {
     for (let r = 15; r <= 19; r++) expect(sip[r].slice(4, 7), `row ${r}`).toContain('j')
   })
 
+  it("closes the stretch's raised fists on top: in the arms' columns nothing but the outline sits under clear", () => {
+    // the raised arms' columns (0-3 and 20-23): every cell other than an L has a painted cell above it, so each fist's
+    // fingertips (row 12 on frame 0, a row lower on the breath) are capped by an L on the row above
+    MANGAKA_STRETCH.forEach((f, i) => {
+      for (let r = 1; r < f.length; r++) {
+        for (const c of [0, 1, 2, 3, 20, 21, 22, 23]) {
+          if (f[r][c] === '.' || f[r][c] === 'L') continue
+          expect(f[r - 1][c], `MANGAKA_STRETCH[${i}] row ${r} col ${c} (${f[r][c]}) under clear`).not.toBe('.')
+        }
+      }
+    })
+  })
+
   it('steps rather than slides: the contact frames lead with different legs on row 30', () => {
     // the shoe runs on row 30 (O with its o shade), [start, width] each
     const shoes = (f: SpriteMap) => [...f[30].matchAll(/[Oo]+/g)].map((m) => [m.index, m[0].length] as const)
@@ -350,6 +371,62 @@ describe('the sprites', () => {
     expect(s0[0][1]).toBeGreaterThan(s0[1][1])
     expect(s2[1][1]).toBeGreaterThan(s2[0][1])
     expect([s2[0][1], s2[1][1]]).toEqual([s0[1][1], s0[0][1]])
+  })
+
+  it('swings the arm opposite the forward leg on each contact frame, never the same side (a pacing gait)', () => {
+    // the forward leg steps out of the idle's stance: its shoe run on row 30 starts furthest from where the idle's same
+    // shoe starts (further left on frame 0, the left-facing lead; mirrored, further right on frame 2); the higher hand
+    // is the S nearer the top (handRow: cols 4-7 the frame's left hand, cols 16-19 its right)
+    const shoes = (f: SpriteMap) => [...f[30].matchAll(/[OoE]+/g)].map((m) => m.index)
+    for (const [name, frames, idle] of [
+      ['MANGAKA_WALK', MANGAKA_WALK, MANGAKA_IDLE[0]], ['EDITOR_WALK', EDITOR_WALK, EDITOR_IDLE[0]],
+    ] as const) {
+      const home = shoes(idle)
+      expect(home, name).toHaveLength(2)
+      const forward = [0, 2].map((i) => {
+        const f = frames[i]
+        const moved = shoes(f).map((c, k) => Math.abs(c - home[k]))
+        expect(moved, `${name}[${i}]`).toHaveLength(2)
+        expect(moved[0], `${name}[${i}]: one leg steps out further`).not.toBe(moved[1])
+        const leg = moved[0] > moved[1] ? 'left' : 'right'
+        const hand = handRow(f, 4, 7) < handRow(f, 16, 19) ? 'left' : 'right'
+        expect(hand, `${name}[${i}]: the higher hand, against the forward ${leg} leg`).not.toBe(leg)
+        return leg
+      })
+      expect(forward, name).toEqual(['left', 'right'])
+    }
+  })
+
+  it('shades each leg the same on both contact frames: the stride moves a leg, never re-lights it', () => {
+    // each leg's span on rows 26-29 (its outline either side, the trousers between); the frames mirror the stride
+    // (which leg steps out), not the light, which stays top left, so a leg reads the same standing or stepping
+    const spans = (f: SpriteMap, r: number, to: number) => f[r].slice(0, to).match(/[^.]+/g) ?? []
+    for (let r = 26; r <= 29; r++) {
+      const [w0, w2] = [spans(MANGAKA_WALK[0], r, 24), spans(MANGAKA_WALK[2], r, 24)]
+      expect(w0, `MANGAKA_WALK[0] row ${r}`).toHaveLength(2)
+      expect(w2, `MANGAKA_WALK row ${r}: frame 2's legs, left and right, read as frame 0's`).toEqual(w0)
+      // the editor's left leg, read left of the briefcase (cols 18-23; the right leg passes behind it on frame 2, so
+      // its rows are the next test's)
+      const [e0, e2] = [spans(EDITOR_WALK[0], r, 18)[0], spans(EDITOR_WALK[2], r, 18)[0]]
+      expect(e2, `EDITOR_WALK row ${r}: the left leg`).toBe(e0)
+      // the leg standing under the hip on frame 2 (the left, cols 7-11) keeps the idle's shading, cell for cell
+      expect(MANGAKA_WALK[2][r].slice(7, 12), `MANGAKA_WALK[2] row ${r}`).toBe(MANGAKA_IDLE[0][r].slice(7, 12))
+      expect(EDITOR_WALK[2][r].slice(7, 12), `EDITOR_WALK[2] row ${r}`).toBe(EDITOR_IDLE[0][r].slice(7, 12))
+    }
+  })
+
+  it("walks the editor on the mangaka's legs: each walk frame's leg rows are the mangaka's in the suit, outside the case", () => {
+    // the suit's recolour, the test's own: the trousers F/f to G/g, the shoes O/o to black E; the briefcase hangs over
+    // cols 18-23, so only cols 0-17 are compared; the leg rows start at 25 (26 on the pass frames, whose hem is on 25)
+    const suit: Record<string, string> = { F: 'G', f: 'g', O: 'E', o: 'E' }
+    const inSuit = (row: string) => row.replace(/[FfOo]/g, (k) => suit[k])
+    EDITOR_WALK.forEach((f, i) => {
+      for (let r = i % 2 === 1 ? 26 : 25; r <= 31; r++) {
+        expect(f[r].slice(0, 18), `EDITOR_WALK[${i}] row ${r}`).toBe(inSuit(MANGAKA_WALK[i][r].slice(0, 18)))
+      }
+    })
+    // and the contact frames' shoulders (rows 16-19) are the standing editor's
+    for (const f of [EDITOR_WALK[0], EDITOR_WALK[2]]) expect(f.slice(16, 20)).toEqual(EDITOR_IDLE[0].slice(16, 20))
   })
 
   // Task B3: the sit, panic and bed on that body. Written from the brief's rules, not from cell literals; RED against
@@ -508,8 +585,18 @@ describe('the sprites', () => {
     expect(CAT_GROOM[1][3][2]).toBe('c')
   })
 
-  it('stripes the tabby: two or more c cells with fur either side on every frame but the curled sleep (B5)', () => {
-    for (const [name, f] of CAT_AWAKE) expect(stripes(f), name).toBeGreaterThanOrEqual(2)
+  it('stripes the tabby: two to four c cells with fur either side down the back and tail, every frame but the sleep (B5)', () => {
+    for (const [name, f] of CAT_AWAKE) {
+      expect(stripes(f), name).toBeGreaterThanOrEqual(2)
+      expect(stripes(f), name).toBeLessThanOrEqual(4)
+    }
+    // the groom's raised paw (frame 1's shaded underside, fur either side on the ridge row) is not a stripe: both groom
+    // frames have the sit's body, so the sit's stripes
+    for (const f of CAT_GROOM) expect(stripes(f)).toBe(stripes(CAT_SIT))
+    // nor is a shade mark on the face: a c in the forehead fur (row 2 col 2) leaves the count alone
+    const marked = CAT_SIT.slice()
+    marked[2] = 'LCcCcL......'
+    expect(stripes(marked)).toBe(stripes(CAT_SIT))
   })
 
   it('points the ears: two single L tips on the first row of the head, each over fur, on every frame but the sleep (B5)', () => {
