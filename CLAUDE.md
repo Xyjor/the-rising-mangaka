@@ -143,7 +143,9 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   survives a base change within its posture), `enqueue`, `interrupt` (a one-shot that replaces the one playing),
   `advance`, `poseAt`, `settle` (everything played out: the window shown again, a settle). `idleSchedule.ts` (0.11.0)
   `nextIdle(day, who, n)`: the n-th idle moment's wait (6-14 s) and pick for a character, hashed (`mix`) from the day,
-  the character and the count; no RNG state. Memory: at most
+  the character and the count; no RNG state. `reactions.ts` (0.11.0) `reactionFor(prev, next)`: the cast's reaction to a
+  store change (a missed issue, a bad or good poll by the corkboard's `rankToneOf` (`story.ts`), a level-up, the chapter
+  turning late), with `popsFor`'s guards; a one-shot result reacts when dismissed, never as it arrives. Memory: at most
   324 frames x 9 palettes x 2 facings x 6,144 B (a 32x48 RGBA surface), about 36 MB in theory; a realistic long career
   builds about 900-1,000 surfaces, about 6 MB. `season.ts` has `seasonOf(day)` and the window's season layer; `roomArt.ts` each tier's walls and floor (`TIER_ROOM` is `TIER_WALL` then `TIER_FLOOR`:
 tatami, planks, concrete), the front row of floor props (`TIER_FRONT`, drawn after the actors), the story props (corkboard,
