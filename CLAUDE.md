@@ -107,7 +107,12 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   192×108 layout, offset by `OX 64, OY 36` into canvas space by `rect`; `rawRect` for the wall, floor, kitchenette,
   entrance and door, drawn straight in canvas space) and its `PANE_X/Y/W/H`/`BAR_X` and `paneRect` clipped to the
   window pane; `render.ts` holds the palettes, string-map sprites and `render`, one frame painted from a `Snapshot`
-  with nothing allocated per frame (`Snapshot.late` turns the seated mangaka to the panic frames); `sceneArt.ts`
+  with nothing allocated per frame (`Snapshot.late` turns the seated mangaka to the panic frames; `Snapshot.reaction`
+  is the one-shot `ReactionCue` the cast driver takes once per character, render never reads it); since 0.11.0 an
+  actor with a rig pose (`Actor.pose`, or with none while its `RIG_LIVE` switch is on, its base loop's first step) is
+  one `drawImage` of `rigFrame(pose, mood, ready)` at `poseOrigin` (the actor, or the seat or the bed), else its 0.10
+  frame; `workingOf(s)` (drawing at the desk with the clock running, shared with the driver) and
+  `assistantDesk(rig, shown)` (the 0.10 or the 0.11 row's desk, constants); `sceneArt.ts`
   `SceneArt` (render's fifth argument, before the sprite cache, default `NO_ART`): generated room walls (320x114, drawn over rows 0-113, the apartment's and the loft's; the flat has none since 0.10.1, its wall always code-drawn, `TIER_WALL`; the tier's floor is always code-drawn, `roomArt.ts` `TIER_FLOOR`) and prop sprites (structural, furniture, front row) drawn with
   `drawImage` (`ready`, `drawProp`; a sprite keeps its aspect at `PROP_SPRITE`, placed by `spriteBox` (`placeSprite` under `PROP_ALIGN`, sized by `PROP_SPRITE`/`PROP_MIN_H`/`PROP_MAX_W`; a desk by `hangSprite`) at render.ts's
   `PROP_BOX`, the fallback inside `PROP_FOOTPRINT`), each falling back to its code-drawn piece
@@ -181,7 +186,12 @@ canvas space; `story.ts` `storyLook`, the story props' five snapshot inputs read
   scene's greeting bubble hides while the guide is on screen, `clock.ts` `guideVisible`, not while a step waits); `sceneAnchor.ts` `sceneToCss` mapping scene pixels to the canvas's cover-fit CSS box; `Bubble.tsx`
   and `Pops.tsx` the DOM speech bubbles and floating money/fans/xp numbers, styled by `scene.css`;
   `StudioScene.tsx` is the component and its 24 fps frame loop (reading `studioLook` through `useShallow`, lighting
-  from the presentation clock, playing the `knock` and `pop` cues); every render is checked against a hand-measured
+  from the presentation clock, playing the `knock` and `pop` cues; since 0.11.0 it steps the cast driver every loop
+  step on a scene clock of its own, `sceneMs`, the sum of the loop's steps, so it never jumps across a hidden stretch
+  (`settleCast` on mount and a loaded save, `resumeCast` when the stopped loop restarts), turns `reactionFor` into a
+  `ReactionCue` on the snapshot (never while the window is hidden), and in a dev build `?rig` turns both rig switches
+  on, `?rig=<anim>` also playing that animation over every base of its posture; a production build never reads it,
+  `import.meta.env.DEV`); every render is checked against a hand-measured
   fillRect baseline (`render.test.ts` 274, `studioArt.test.ts` 309; with every scene image ready, 157 and 193; the
   rest scene with the doze, `render.test.ts` 303; re-measured by the 0.9.0 cast redraw, the art baselines rose by
   the apartment's code floor in 0.10.0, and all five fell in 0.11.0 once every character became one `drawImage` from the

@@ -4,14 +4,16 @@ import { describe, expect, it } from 'vitest'
 import { covers, coversAny, fakeContext, fakeImage, fakeSceneArt, sceneSnapshot } from '../../../test/fakeCanvas'
 import type { FillCall, ImageCall } from '../../../test/fakeCanvas'
 import type { StudioTierId } from '../../../sim'
-import { H, PROP_BOX, PROP_FOOTPRINT, SKY_LUT, W, render, skyColor } from '../render'
+import { H, PROP_BOX, PROP_FOOTPRINT, SKY_LUT, W, assistantDesk, poseOrigin, render, skyColor } from '../render'
 import type { Snapshot } from '../render'
 import { TIER_FLOOR, drawRoomShell } from '../roomArt'
 import { DOORWAY_BOX, DOOR_BOX, NO_EQUIPMENT } from '../studioArt'
 import { DESK_PROPS, NO_ART, PROP_ALIGN, PROP_MIN_H, PROP_SPRITE, ROOM_NIGHT_DIM, fitDesk, fitSprite, hangSprite, placeSprite, ready } from '../sceneArt'
 import type { SceneArt, ScenePropId } from '../sceneArt'
 import type { Season } from '../season'
-import { newActorTable } from '../actors'
+import { RIG_SPOTS, newActorTable, planActors, setRigLive, settleActors } from '../actors'
+import { ANIMS } from '../rig/anims'
+import { rigFrame } from '../rig/frames'
 import { ASSISTANT_DOZE, CAT_SIT, CAT_SLEEP, MANGAKA_LIE, MANGAKA_SIT } from '../sprites'
 import { runCount } from '../../art/pixelOps'
 import type { Actor, ActorTable } from '../actors'
@@ -1184,5 +1186,69 @@ describe('furniture, equipment and the front row as sprites (0.10.0 P1)', () => 
     const bin = imageAt(images, 'bin')
     const pages = log.filter((f, i) => f.style === '#fdfcf7' && f.y >= 151 && f.y <= 152 && f.x >= 234 && i <= bin)
     expect(pages).toHaveLength(3)
+  })
+})
+
+describe('the rig path (0.11.0 task 10)', () => {
+  const standing = (over: Partial<Actor> = {}) => {
+    const t = newActorTable()
+    Object.assign(t.mangaka, { x: 170, y: 81, targetX: 170, targetY: 81, state: 'standing', goal: 'standing', pose: 'stand.idle' }, over)
+    return t
+  }
+  const draw = (over: Partial<Snapshot>, frame = 0) => {
+    const f = fakeContext()
+    render(f.ctx, sceneSnapshot({ phase: 'idle', ...over }), 0.3, frame)
+    return f
+  }
+
+  it('draws a posed mangaka from the rig: one image of the pose with the mood\'s face, in the outfit\'s palette, at the actor', () => {
+    expect(castAt(draw({ actors: standing() }).images, 170, 81)).toMatchObject({ id: 'cast/stand.idle~open.closed.none/pal', w: 32, h: 48 })
+    expect(castAt(draw({ actors: standing(), cheer: true }).images, 170, 81)?.id).toBe('cast/stand.idle~happy.smile.sparkle/pal')
+    expect(castAt(draw({ actors: standing(), level: 10 }).images, 170, 81)?.id).toBe('cast/stand.idle~open.closed.none/blazer')
+  })
+
+  it('grounds a standing or walking rig figure with a shadow under its feet, and mirrors the walk facing right', () => {
+    const { log, images } = draw({ actors: standing() })
+    const under = log.findIndex((c) => c.style === 'rgba(40, 24, 16, 0.28)' && c.x === 176 && c.y === 127 && c.w === 20 && c.h === 2)
+    expect(under).toBeGreaterThan(-1)
+    expect(castAt(images, 170, 81)!.at).toBeGreaterThan(under)
+    const walk = draw({ actors: standing({ state: 'walking', targetX: 100, facing: 1 }) })
+    expect(castAt(walk.images, 170, 81)?.id).toBe('cast/stand.idle~open.closed.none/pal/r')
+  })
+
+  it('shows the ready ! in the rig\'s mark slot, the face\'s own mark left out', () => {
+    const { log, images } = draw({ actors: standing(), phase: 'ready', stamina: 10 })
+    expect(castAt(images, 170, 81)?.id).toBe('cast/stand.idle~squint.frown.none/pal')
+    expect(covers(log, '#e5484d', 199, 81)).toBeGreaterThan(-1) // the '!' at (170 + 28, 81), its stroke in col 1
+  })
+
+  it('draws a posed assistant from the rig in its look', () => {
+    const t = newActorTable()
+    planActors(t, sceneSnapshot({ actors: t }))
+    settleActors(t)
+    t.assistants[0].pose = 'stand.idle'
+    expect(castAt(draw({ phase: 'drawing', actors: t }).images, 66, 89)?.id).toBe('cast/stand.idle~open.closed.none/look0')
+  })
+
+  it('keeps the 0.10 frame for an actor with no pose while the rig is off, and its base\'s first step once it is on', () => {
+    expect(castAt(draw({ phase: 'drawing' }).images, 132, 67)?.id).toBe('cast/mangaka.sit.0/pal')
+    setRigLive({ mangaka: true, assistants: true })
+    try {
+      const first = ANIMS['seat-draw'].steps[0].pose
+      expect(castAt(draw({ phase: 'drawing' }).images, 124, 58)?.id).toBe(`cast/${rigFrame(first, 'neutral', false).id}/pal`)
+    } finally {
+      setRigLive({ mangaka: false, assistants: false })
+    }
+  })
+
+  it('places the seat\'s and the bed\'s poses at their spots, everything else at the actor', () => {
+    const a = { x: 5, y: 6 }
+    expect([poseOrigin('actor', a), poseOrigin('seat', a), poseOrigin('bed', a)]).toEqual([a, RIG_SPOTS.mangaka.seat, RIG_SPOTS.mangaka.bed])
+  })
+
+  it('lays the assistants\' desk under their row: 0.10 from x 62, 8 + 20 per assistant; 0.11 from 2 px left of the first seat, 36 + 34 per further one', () => {
+    expect([1, 2, 3].map((n) => assistantDesk(false, n))).toEqual([{ x: 62, w: 28 }, { x: 62, w: 48 }, { x: 62, w: 68 }])
+    expect([1, 2, 3].map((n) => assistantDesk(true, n))).toEqual([{ x: 19, w: 36 }, { x: 19, w: 70 }, { x: 19, w: 104 }])
+    expect(assistantDesk(true, 1)).toBe(assistantDesk(true, 1)) // a constant: nothing allocated per frame
   })
 })

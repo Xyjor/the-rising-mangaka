@@ -256,6 +256,93 @@ puts everyone in place at once, used on mount and on a loaded save so nobody wal
 never walk: they are placed straight into their seat, seated or asleep, and while working each draws its own page
 (3 fills) with a couple of ink lines.
 
+**The 0.11 spots** (0.11.0, `actors.ts`). The rig's people are 32x48 frames (48x32 in bed), so they stand on spots of
+their own; each is still the top-left of its pose's frame, as in 0.10, and each is checked against the furniture by
+`actors.test.ts` ("fits the 0.11 spots around the furniture"):
+
+| Spot | 0.10 (24x32) | 0.11 (32x48 rig) | Why |
+|---|---|---|---|
+| The mangaka's seat | (132, 67) | (124, 58) | the waist (row 40) on the desk top, y 98; the head (rows 6-27, y 64-85) under the corkboard (to y 63); the right edge 155, clear of the arm lamp (x 156) |
+| The standing spot | (170, 81) | (170, 81) | the feet on row 47 at y 128; the head below the sill's coffee machine and trophies (to y 80); the left edge clear of the arm lamp (to x 169) |
+| The bed | (216, 106) | (201, 90) | the 48x32 bed frame: the lying head (cols 23-46, rows 8-29) at x 224-247, y 98-119, over the pillow (x 232-245) |
+| The mangaka's door | the door spot (254, 85) | (250, 69) | the feet at y 116, the editor's door floor line, centred on the door |
+| The cat's bed | (196, 118) | (202, 118) | clear of the standing frame (to x 201) and of the lying head (from x 224), on the blanket |
+| The assistants' seats | x 66, 86, 106, y 89 | x 21, 55, 89, y 80 | one row, 34 px apart (below) |
+
+The assistants sit in one row, 34 px apart, in front of the main desk. Between the phone crop's left edge (x 24) and
+the main desk (the stock desk from x 116, the drafting table's overhang from x 108) there are 84-92 px, and three
+32-wide figures 34 apart need 100: from x 21 the row fits with the first head (x 25-48) and its page (x 24-29) inside
+the crop and the third head ending at x 116, the stock desk's left edge. "Two in front and one behind" was rejected:
+34 px apart, two 24-wide heads leave a 10 px gap, so the third head behind them would be two thirds hidden, and the
+kitchenette counter and the bookshelf leave no wall for a second desk. By depth the row is in front of the main desk
+(its desk's floor line y 132 against the main desk's 118-131), so it is drawn after it once the assistants' switch is
+on for good (task 19; until then the rig assistants still draw before the main desk, the drafting table's overhang
+over the third head). The row's desk (`render.ts` `assistantDesk`) runs from 2 px left of the first seat, 36 px plus
+34 per further assistant (x 19-122 for three), y 120-131 as before, the seated waist (row 40) on its top (y 80 + 40 =
+120); the 0.10 stools go (a seated 32x48 body covers them). The 0.10 desk was x 62, 8 px plus 20 per assistant.
+
+**The rig switch.** `RIG_LIVE` holds each character's switch, the mangaka's and the assistants', off until its set
+of poses is complete (task 17 turns the mangaka's on for good, task 19 the assistants'); `setRigLive` flips them (the
+tests turn them on and back off, and a dev build's `?rig`, below). `liveSpots()` is the spot set the live cast stands
+on: the rig's for each character the rig draws (the cat's bed moves with the mangaka's switch), else the 0.10 ones
+(`LEGACY_SPOTS`, `RIG_SPOTS`); `planActors` takes it by default.
+
+**The cast driver** (`castPlay.ts`, 0.11.0) poses every rig-drawn actor each loop step (`stepCast`): it writes the
+pose showing now on the actor (`Actor.pose`) from an animation player (`animation.ts`) per character. The base loop
+follows the actor's state (`baseAnimFor`): seated, `seat-draw` while drawing with the clock running (`seat-draw-late`
+while the chapter is late, the mangaka only), else `seat-idle`; standing, `stand` (`stand-ready` while the manuscript
+is ready); `walk`; in bed `sleep` (an assistant's `doze`). A change of state plays its transition first
+(`transitionFor`: down into the chair and up out of it, into bed and out of it), drawn where it belongs, at the seat
+or the bed (`PoseDef.at`), while the actor already walks: no actor ever waits for an animation. Idle moments come
+from a seeded schedule (`idleSchedule.ts` `nextIdle`: a wait of 6-14 s and a pick, hashed from the game day, the
+character and the count that day; a new day restarts the count, never the wait): standing, a look round or a sip; at
+the desk, a stretch, a sip or a page flipped, or, tired, rubbing the eyes. A new base within one posture keeps the
+moment playing; across postures it drops it. A reaction (below) cuts an idle moment short and otherwise waits behind
+a transition or another reaction (at most two wait); one the character cannot play in its state is dropped. The
+assistants' loops start 150 ms apart (`PHASE_MS`), so their pens never move in step. Under reduced motion every
+character holds its base loop's first step, and no transition, moment or reaction plays. `settleCast` (a mount, a
+loaded save) puts everyone on their base loop from now, the waiting cue taken as seen; `resumeCast` (the loop
+restarting after the window was hidden) jumps every transition and moment to its end. `StudioScene` runs it on a
+scene clock of its own, `sceneMs`, the sum of the loop's steps, so it never jumps across a stretch the window was
+hidden, and fills one input object in place each step (`fillCast`). Until each animation's art task draws it, it plays
+one 500 ms step of `stand.idle` (see "The rig" below).
+
+**Drawing the rig** (`render.ts`, 0.11.0 task 10). An actor with a pose, or with none while its switch is on (a
+settled table: its base loop's first step, `poseOf`), is drawn from the rig; with the switch off, from its 0.10
+frames. The rig mangaka is one `drawImage` of `rigFrame(pose, mood, ready)` in its outfit's palette, at the actor, or
+at the seat or the bed for a pose placed there (`poseOrigin`). Standing or walking it has a 20 px contact shadow
+under its feet (x + 6, y + 46), and walking right it is mirrored. In bed it takes no mood (the bed frames bake their own face) and the Zs
+rise beside the lying head, from the frame's (36, 2); a pose at the bed draws the blanket over the shoulders (x 196-224, y
+112-121). Standing, the ready manuscript's `!` (the face's own mark left out) and the idle `?` (a neutral mood, only on
+the standing loop's own poses, never mid-moment) go in the rig's mark slot, frame col 28 on the head's top row. A rig
+assistant draws its pose in its look, its mood's face (tired or happy only), and, dozing, a Z at (x + 25, y + 11).
+The mangaka's bubble and pops sit above the rig head's centre (`headCentre`: col 16, 35 in the bed frame) and top
+(`headTop`: row 0, 6 seated, 8 in bed) while its switch is on.
+
+**Reactions** (`reactions.ts`, 0.11.0). One store change brings at most one reaction (`reactionFor`, by priority),
+never across a save load, a new career's world seed, a jump of more than a day, or in a read-only tab (the pops'
+guards); `StudioScene` also skips them while the window is hidden. Each becomes a cue on the snapshot
+(`Snapshot.reaction`, `{ id, kind }`, the id counting up for the session from 1), which every character takes once:
+
+| Kind | Transition (before to after) | The mangaka | The assistants |
+|---|---|---|---|
+| `missed` | the issues missed by every serial, running or archived (`missedIssuesOf`), grew | `seat-tear` if seated | none |
+| `bad-poll` | the newest poll placed in the bottom third (`rankToneOf` 'low': rank x 3 > entrants x 2) | `stand-slump` standing, `seat-slump` seated | none |
+| `good-poll` | the newest poll placed in the top three (`rankToneOf` 'top': rank <= 3) | `stand-cheer` standing, `seat-cheer` seated | `seat-cheer` if seated |
+| `level-up` | the player's level grew | `stand-cheer` standing, `seat-cheer` seated | none |
+| `late` | the chapter's deadline turned late | `seat-panic` if seated | none |
+
+"The newest poll" is a one-shot result dismissed (pending before, gone after: the player has seen it, so the reveal
+is never spoiled) or a new chapter result of the serial running before (looked up among the archived serials too when
+the same tick archived it), the rule that pins the corkboard's star and red mark. While late, the seated base loop is
+`seat-draw-late`, which opens on the panic (640 ms in every 3,640 ms, 0.10's 40 frames in 240) once its art lands, so
+the panic recurs as before and reduced motion still shows it.
+
+**The `?rig` dev preview.** A dev build (`npm run dev`) opened at `?rig` turns the rig on for the whole cast (both
+switches, so the 0.11 spots too); `?rig=<animation>` (an `AnimId`, such as `?rig=stand-look`) also plays that
+animation over every base of its posture whenever nothing else plays, so an art task sees its moments and reactions
+in the running scene. A production build never reads the URL (the read sits behind `import.meta.env.DEV`).
+
 **The editor's visit** (`visitor.ts`, `useArrival`) picks the one reason they are at the desk, in priority order:
 a pending chapter result, a pending offer, the project ready to submit, an anime offer, a random event, then an
 unread year review; each reason has its own carried prop (envelope, letter, contract or trophy) and greeting line.

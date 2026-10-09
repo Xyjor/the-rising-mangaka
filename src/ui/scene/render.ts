@@ -4,8 +4,15 @@
 // prop image replaces its piece at the same footprint and the same place in the draw order. This module never imports
 // the art registry.
 import type { EquipmentId, StudioTierId } from '../../sim'
-import { ASSISTANT_SEAT_X } from './actors'
-import type { Actor, ActorTable } from './actors'
+import { ASSISTANT_SEAT_X, RIG_LIVE, RIG_MANGAKA, RIG_SEATS } from './actors'
+import type { Actor, ActorTable, Spot } from './actors'
+import { baseAnimFor } from './castPlay'
+import type { CastContext, CastWho } from './castPlay'
+import type { ReactionCue } from './reactions'
+import { ANIMS } from './rig/anims'
+import { rigFrame } from './rig/frames'
+import { POSES } from './rig/poses'
+import type { PoseDef, PoseId } from './rig/poses'
 import {
   FACES, HEAD_DY, MARKS, MARK_PAL, PAL, PROP_CONTRACT, PROP_ENVELOPE, PROP_LETTER, PROP_PAL, PROP_TROPHY, drawSprite,
 } from './sprites'
@@ -147,16 +154,85 @@ function drawVisitorProp(ctx: CanvasRenderingContext2D, prop: Snapshot['visitorP
   glyph(ctx, '!', x + 11, y - 8 - (Math.floor(frame / 16) % 2), '#e5484d')
 }
 
+/** The scene is drawing: at the desk, with the clock running (render's `working`, shared with the cast driver). */
+export function workingOf(s: Snapshot): boolean {
+  const absent = s.away || s.activity === 'job'
+  return !absent && s.phase === 'drawing' && s.activity === 'work' && s.stamina > 0 && s.running
+}
+
+/** Where a rig pose is drawn: at the actor, or, for the seat's half pose and the bed's frames, at that spot. */
+export function poseOrigin(at: PoseDef['at'], a: Spot): Spot {
+  return at === 'actor' ? a : RIG_MANGAKA[at]
+}
+
+const LEGACY_DESKS = [{ x: 62, w: 28 }, { x: 62, w: 48 }, { x: 62, w: 68 }] as const
+const RIG_DESKS = [36, 70, 104].map((w) => ({ x: RIG_SEATS.xs[0] - 2, w }))
+
+/** The assistants' desk under `shown` (1-3) seats: the 0.10 row's or the 0.11 row's, a constant either way. */
+export function assistantDesk(rig: boolean, shown: number): { x: number; w: number } {
+  return (rig ? RIG_DESKS : LEGACY_DESKS)[shown - 1]
+}
+
+/** The rig's mark slot column in a frame (the head at col 4, its slot at col 24): the '!' and '?' go there. */
+const RIG_MARK_X = 28
+/** The standing loop's own poses: the idle '?' shows only on them, never mid-moment. */
+const STAND_POSES: ReadonlySet<PoseId> = new Set(ANIMS.stand.steps.map((st) => st.pose))
+const castCtx: CastContext = { working: false, late: false, ready: false }
+
+/** The pose an actor shows: the one the cast driver set, else (a settled table, reduced motion) its base loop's first, when its rig is on. */
+function poseOf(a: Actor, who: CastWho, live: boolean, s: Snapshot, working: boolean): PoseId | '' {
+  if (a.pose || !live) return a.pose
+  castCtx.working = working
+  castCtx.late = s.late
+  castCtx.ready = s.phase === 'ready'
+  const base = baseAnimFor(who, a.state, castCtx)
+  return base === null ? '' : ANIMS[base].steps[0].pose
+}
+
+/** The rig mangaka: its frame (the mood's face baked in), the shadow under its feet, the bed's blanket and Zz, the ! or ?. */
+function drawRigMangaka(
+  ctx: CanvasRenderingContext2D, cast: SpriteCache, s: Snapshot, a: Actor, pose: PoseId, frame: number, working: boolean, night: boolean,
+) {
+  const def = POSES[pose]
+  const ready = s.phase === 'ready' && a.state === 'standing'
+  const mood = a.state === 'sleeping' ? 'neutral' : moodFor(s.actors.editor.state === 'standing', s.cheer, s.stamina, night && working && a.state === 'seated')
+  const o = poseOrigin(def.at, a)
+  // a pose drawn at the seat or the bed (a transition while the actor already walks) has no feet under the actor
+  const afoot = def.at === 'actor' && (a.state === 'standing' || a.state === 'walking')
+  if (afoot) shadow(ctx, a.x + 6, a.y + 46, 20)
+  drawCast(ctx, cast, rigFrame(pose, mood, ready), outfitPalette(s.level), o.x, o.y, afoot && a.state === 'walking' && a.facing === 1)
+  if (def.at === 'bed') {
+    // the blanket over the shoulders, up to the lying head's left edge (x 224)
+    rawRect(ctx, 196, 112, 29, 10, '#c94b4b')
+    rawRect(ctx, 196, 112, 29, 2, '#a83c3c')
+  }
+  if (a.state === 'sleeping') {
+    const zz = Math.floor(frame / 20) % 3
+    for (let i = 0; i <= zz; i++) glyph(ctx, 'Z', o.x + 36 + i * 3, o.y + 2 - i * 4, '#2f5ecf')
+  }
+  if (a.state === 'standing') {
+    if (ready) glyph(ctx, '!', a.x + RIG_MARK_X, a.y, '#e5484d')
+    else if (mood === 'neutral' && STAND_POSES.has(pose) && frame % 120 < 40) glyph(ctx, '?', a.x + RIG_MARK_X, a.y, '#2f5ecf')
+  }
+}
+
 /**
- * The mangaka, in whatever pose the table holds (24x32 frames, 30x14 in bed), each one drawImage from the sprite cache
- * (`cast`; the mood overlay stays code-drawn over it). Called twice: before the desk (paints only when y < 75: seated at
- * 67, behind the desk top) and after it (only when y >= 75: standing, walking, at the door or in bed, in front of it).
+ * The mangaka, in whatever pose the table holds, each one drawImage from the sprite cache (`cast`). A rig pose (the
+ * cast driver's, or its base loop's first step while the rig is on) is drawn by `drawRigMangaka`; with none, the 0.10
+ * frames (24x32, 30x14 in bed; the mood overlay stays code-drawn over them). Called twice: before the desk (paints only
+ * when y < 75: seated, behind the desk top) and after it (only when y >= 75: standing, walking, at the door or in bed,
+ * in front of it).
  */
 function drawMangaka(
   ctx: CanvasRenderingContext2D, s: Snapshot, a: Actor, frame: number, working: boolean, front: boolean, night: boolean,
   cast: SpriteCache,
 ) {
   if ((a.y >= 75) !== front) return
+  const pose = poseOf(a, 'mangaka', RIG_LIVE.mangaka, s, working)
+  if (pose) {
+    drawRigMangaka(ctx, cast, s, a, pose, frame, working, night)
+    return
+  }
   const x = a.x
   const y = a.y
   switch (a.state) {
@@ -450,6 +526,8 @@ export interface Snapshot extends StoryLook {
   late: boolean
   /** Set for CHEER_MS after a fans or level pop fires (mood.ts): a happy mood for the mangaka and the assistants. */
   cheer: boolean
+  /** A one-shot reaction cue (reactions.ts), consumed once per character by the cast driver; render does not read it. */
+  reaction: ReactionCue | null
   /** Every character's place and pose, planned and walked by actors.ts; render only reads it. */
   actors: ActorTable
 }
@@ -465,10 +543,9 @@ export function render(
 ) {
   const night = t > 0.72 || t < 0.06
   const absent = s.away || s.activity === 'job'
-  // busy = seated at the desk (the pose, which actors.ts plans); working = busy and the clock runs (the animation).
-  // Pausing freezes the mangaka mid-stroke instead of sending them to bed.
-  const busy = !absent && s.phase === 'drawing' && s.activity === 'work' && s.stamina > 0
-  const working = busy && s.running
+  // working = seated at the desk (the pose, which actors.ts plans) with the clock running (the animation). Pausing
+  // freezes the mangaka mid-stroke instead of sending them to bed.
+  const working = workingOf(s)
   const sky = skyColor(t)
 
   // a room image is the wall alone (canvas rows 0-113), dimmed at night; the tier's floor is always code-drawn
@@ -541,16 +618,22 @@ export function render(
   drawEntrance(ctx, absent, ready(art.prop[door.id]))
   drawFanLetters(ctx, s.fanLevel)
 
-  // the assistants (front left, only when staff exists): their stools, each one seated or dozing, then the desk, then
-  // each working assistant's page on it (after the desk, so it shows)
+  // the assistants (front left, only when staff exists): their stools (the 0.10 row's; a seated rig body covers them),
+  // each one seated or dozing, then the desk, then each working assistant's page on it (after the desk, so it shows)
   if (s.assistants.length) {
     const shown = Math.min(3, s.assistants.length)
-    for (let i = 0; i < shown; i++) rawRect(ctx, ASSISTANT_SEAT_X[i] + 7, 118, 10, 4, '#4a4a55')
+    if (!RIG_LIVE.assistants) for (let i = 0; i < shown; i++) rawRect(ctx, ASSISTANT_SEAT_X[i] + 7, 118, 10, 4, '#4a4a55')
     for (let i = 0; i < shown; i++) {
       const actor = s.actors.assistants[i]
       if (actor.state === 'hidden' || actor.state === 'away') continue
       const look = lookPalette(s.assistants[i].look)
-      if (actor.state === 'sleeping') {
+      const pose = poseOf(actor, 'assistant', RIG_LIVE.assistants, s, working)
+      if (pose) {
+        // assistants only ever go tired or happy (Decision 5); asleep, the doze's face is its own
+        const mood = actor.state === 'sleeping' ? 'neutral' : moodFor(false, s.cheer, s.assistants[i].stamina, false)
+        drawCast(ctx, cast, rigFrame(pose, mood, false), look, actor.x, actor.y, false)
+        if (actor.state === 'sleeping') glyph(ctx, 'Z', actor.x + 25, actor.y + 11, '#2f5ecf')
+      } else if (actor.state === 'sleeping') {
         drawCast(ctx, cast, OLD_CAST.assistantDoze, look, actor.x, actor.y, false)
         glyph(ctx, 'Z', actor.x + 18, actor.y - 2, '#2f5ecf')
       } else {
@@ -562,9 +645,9 @@ export function render(
         drawMood(ctx, mood, actor.x, actor.y, HEAD_DY.sit[idx])
       }
     }
-    const dw = 8 + 20 * shown
-    shadow(ctx, 62, 132, dw)
-    rawRect(ctx, 62, 120, dw, 3, '#8b5a2b'); rawRect(ctx, 62, 123, dw, 9, '#70461f')
+    const desk = assistantDesk(RIG_LIVE.assistants, shown)
+    shadow(ctx, desk.x, 132, desk.w)
+    rawRect(ctx, desk.x, 120, desk.w, 3, '#8b5a2b'); rawRect(ctx, desk.x, 123, desk.w, 9, '#70461f')
     if (working) drawPages(ctx, s, shown, false, deskSpriteReady)
   }
   // chair (before the player: they sit in it)

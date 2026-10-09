@@ -14,6 +14,7 @@ import type { GameState } from '../../sim'
 import { useClock } from '../../state/clock'
 import { useStore } from '../../state/store'
 import { StudioScene } from '../scene/StudioScene'
+import { setRigLive } from '../scene/actors'
 import { createSpriteCache, installCastCache } from '../scene/spriteCache'
 
 const PETAL = '#f7b6c8'
@@ -116,6 +117,17 @@ describe('StudioScene', () => {
     expect(fake.log.length).toBeGreaterThan(0)
     expect(fake.images.some((i) => i.id === 'cast/mangaka.sit.0/pal' && i.x === 132 && i.y === 67)).toBe(true)
     expect(fake.images.some(panic)).toBe(false)
+  })
+
+  it('drives the cast with the rig on: the mangaka drawn from its base pose at the 0.11 standing spot', () => {
+    setRigLive({ mangaka: true, assistants: true })
+    try {
+      render(<StudioScene running={false} />)
+      act(() => useStore.setState({ game: { ...game, studio: { tier: 'loft', owned: [] } } }))
+      expect(fake.images.some((i) => i.id === 'cast/stand.idle~open.closed.none/pal' && i.x === 170 && i.y === 81)).toBe(true)
+    } finally {
+      setRigLive({ mangaka: false, assistants: false })
+    }
   })
 
   describe('the editor visits', () => {

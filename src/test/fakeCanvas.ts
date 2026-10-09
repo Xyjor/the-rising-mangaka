@@ -120,7 +120,7 @@ export function fakeContext(): FakeContext {
 /**
  * The reference scene: drawing phase, the mangaka working with the clock running, half the pages done,
  * stamina 80, one assistant (look 0, stamina 80), in spring, in the bare apartment (nothing owned, no volumes, no
- * anime poster, no trophies), no visitor, the chapter not late, and no story (no deadline, serial, poll or fan letters). The call-count baseline is measured on this snapshot. Unless `over.actors`
+ * anime poster, no trophies), no visitor, the chapter not late, no reaction, and no story (no deadline, serial, poll or fan letters). The call-count baseline is measured on this snapshot. Unless `over.actors`
  * is given, a fresh actor table is planned from the snapshot and settled (everyone in place, nobody walking).
  */
 export function sceneSnapshot(over: Partial<Snapshot> = {}): Snapshot {
@@ -143,6 +143,7 @@ export function sceneSnapshot(over: Partial<Snapshot> = {}): Snapshot {
     visitorProp: 'none',
     late: false,
     cheer: false,
+    reaction: null,
     daysLeft: -1,
     serialOn: false,
     posterHue: 0,
