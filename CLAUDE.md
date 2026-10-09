@@ -131,7 +131,10 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   (the mangaka's outfit by level: hoodie, cardigan, blazer); `mood.ts` `moodOf` (the mood priority order),
   `cheersFor` (a fans or level-up pop starts a `CHEER_MS` cheer) and `idleFrame`/`catFrame` (the standing mangaka's
   and the sitting cat's idle cycles); `spriteSvg.ts` `spriteRects` and
-  `SpriteAvatar.tsx`, the staff portrait drawn from `ANCHOR_HEAD`, the anchor frame's chibi head (rows 0-15, cols 2-19); `season.ts` has `seasonOf(day)` and the window's season layer; `roomArt.ts` each tier's walls and floor (`TIER_ROOM` is `TIER_WALL` then `TIER_FLOOR`:
+  `SpriteAvatar.tsx`, the staff portrait drawn from `ANCHOR_HEAD`, the anchor frame's chibi head (rows 0-15, cols 2-19); `rig/` (0.11.0) the cast rig:
+  `types.ts` (parts with anchors, part poses and key poses, faces, `CastFrame`, `Mood`) and `assemble.ts`
+  (`assemblePose`: parts layered back to front by their join anchors (`JOIN`), the outline closed where they meet,
+  the face stamped into the head; `partRules`, `poseRules`). `season.ts` has `seasonOf(day)` and the window's season layer; `roomArt.ts` each tier's walls and floor (`TIER_ROOM` is `TIER_WALL` then `TIER_FLOOR`:
 tatami, planks, concrete), the front row of floor props (`TIER_FRONT`, drawn after the actors), the story props (corkboard,
 calendar, cups, the serial's cover, fan letters, bin) and `drawAmbient` (daylight shaft, lamp pool, vignette), all in
 canvas space; `story.ts` `storyLook`, the story props' five snapshot inputs read from the game; `studioArt.ts` the

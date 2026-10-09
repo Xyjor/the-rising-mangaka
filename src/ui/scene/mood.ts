@@ -2,8 +2,9 @@
 // (cheersFor). No React, no DOM; render.ts and StudioScene.tsx both read this.
 import { LOW_STAMINA_THRESHOLD } from '../../sim'
 import type { PopKind } from './Pops'
+import type { Mood } from './rig/types'
 
-export type Mood = 'neutral' | 'happy' | 'tired' | 'surprised' | 'sleepy'
+export type { Mood }
 
 export interface MoodInput {
   /** The mangaka (or assistant) is in the studio, not away or at the job. */
