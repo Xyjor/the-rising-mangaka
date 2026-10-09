@@ -137,7 +137,11 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   the face stamped into the head; `partRules`, `poseRules`); `spriteCache.ts` (0.11.0) the per-session sprite cache: each
   cast frame painted once per palette (`PaletteId`: `pal`, the outfits, `look0`-`look5`) and facing into an
   OffscreenCanvas (a `<canvas>` without one or when it gives no 2D context, a stand-in in node), keyed by frame id;
-  `drawCast` is one `drawImage`; `getCastCache`/`installCastCache` (tests install a recording one). Memory: at most
+  `drawCast` is one `drawImage`; `getCastCache`/`installCastCache` (tests install a recording one). `animation.ts` (0.11.0)
+  the pure animation player: `Anim` (steps of a pose and ms, a loop or a one-shot, a `Posture`), `PlayerState` (the base
+  loop and its start, the one-shot over it, a queue of at most `QUEUE_MAX` 2), `switchBase` (a transition first; a moment
+  survives a base change within its posture), `enqueue`, `interrupt` (a one-shot that replaces the one playing),
+  `advance`, `poseAt`, `settle` (everything played out: the window shown again, a settle). Memory: at most
   324 frames x 9 palettes x 2 facings x 6,144 B (a 32x48 RGBA surface), about 36 MB in theory; a realistic long career
   builds about 900-1,000 surfaces, about 6 MB. `season.ts` has `seasonOf(day)` and the window's season layer; `roomArt.ts` each tier's walls and floor (`TIER_ROOM` is `TIER_WALL` then `TIER_FLOOR`:
 tatami, planks, concrete), the front row of floor props (`TIER_FRONT`, drawn after the actors), the story props (corkboard,
