@@ -6,7 +6,8 @@ import { describe, expect, it, vi } from 'vitest'
 import { NO_ART } from '../sceneArt'
 
 vi.mock('../../art/registry', () => ({
-  ROOM_ART: { flat: { id: 'room/flat', src: '/assets/art/room/flat.png', w: 320, h: 114 } },
+  // a room without a wall image (the flat since 0.10.1) has no ref at all, so its piece stays code-drawn
+  ROOM_ART: { apartment: { id: 'room/apartment', src: '/assets/art/room/apartment.png', w: 320, h: 114 } },
   SCENE_PROP_ART: {
     bed: { id: 'prop/bed', src: '/assets/art/prop/bed.png', w: 58, h: 26 },
     window: { id: 'prop/window', src: '/assets/art/prop/window.png', w: 48, h: 36 },
@@ -18,9 +19,9 @@ const { onSceneImageLoad, sceneImages } = await import('../sceneImages')
 describe('sceneImages', () => {
   it('builds one image per registry ref, and none for a piece without one', () => {
     const art = sceneImages()
-    expect(art.room.flat).toBeInstanceOf(HTMLImageElement)
-    expect((art.room.flat as HTMLImageElement).src).toContain('/assets/art/room/flat.png')
-    expect(art.room.apartment).toBeNull()
+    expect(art.room.apartment).toBeInstanceOf(HTMLImageElement)
+    expect((art.room.apartment as HTMLImageElement).src).toContain('/assets/art/room/apartment.png')
+    expect(art.room.flat).toBeNull()
     expect(art.room.loft).toBeNull()
     expect(art.prop.bed).toBeInstanceOf(HTMLImageElement)
     expect((art.prop.bed as HTMLImageElement).src).toContain('/assets/art/prop/bed.png')
@@ -38,7 +39,7 @@ describe('sceneImages', () => {
     const a = sceneImages()
     const b = sceneImages()
     expect(b).toBe(a)
-    expect(b.room.flat).toBe(a.room.flat)
+    expect(b.room.apartment).toBe(a.room.apartment)
     expect(b.prop.bed).toBe(a.prop.bed)
   })
 
@@ -46,7 +47,7 @@ describe('sceneImages', () => {
     const art = sceneImages()
     const repaint = vi.fn()
     const off = onSceneImageLoad(repaint)
-    ;(art.room.flat as HTMLImageElement).dispatchEvent(new Event('load'))
+    ;(art.room.apartment as HTMLImageElement).dispatchEvent(new Event('load'))
     expect(repaint).toHaveBeenCalledTimes(1)
     ;(art.prop.bed as HTMLImageElement).dispatchEvent(new Event('load'))
     expect(repaint).toHaveBeenCalledTimes(2)

@@ -198,13 +198,13 @@ export const TIER_ART_THUMB: Record<StudioTierId, ArtRef> = {
 // ---------- the live scene (0.9.0): drawn into the canvas by render through src/ui/scene/sceneImages.ts ----------
 
 /**
- * Each tier's room wall, 320x114 (canvas rows 0-113: the wall, beams, pillars, baseboard; no floor, no furniture), the
- * raw's rows above its wall/floor seam. The scene draws every floor in code (roomArt.ts `TIER_FLOOR`); until a wall
- * loads, the tier's code-drawn shell (`drawRoomShell`) paints instead.
+ * The generated room walls, 320x114 (canvas rows 0-113: the wall, beams, pillars, baseboard; no floor, no furniture),
+ * each the raw's rows above its wall/floor seam: the apartment's and the loft's. A tier may have none: the flat's wall is
+ * code-drawn since 0.10.1 (roomArt.ts `TIER_WALL`), so `sceneImages` leaves its room null. The scene draws every floor
+ * in code (roomArt.ts `TIER_FLOOR`); until a wall loads, the tier's code-drawn shell (`drawRoomShell`) paints instead.
  */
-export const ROOM_ART: Record<StudioTierId, ArtRef> = {
+export const ROOM_ART: Partial<Record<StudioTierId, ArtRef>> = {
   apartment: art('room/apartment', 320, 114),
-  flat: art('room/flat', 320, 114),
   loft: art('room/loft', 320, 114),
 }
 

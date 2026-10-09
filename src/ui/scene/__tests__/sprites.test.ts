@@ -8,7 +8,7 @@ import {
   PROP_CONTRACT, PROP_ENVELOPE, PROP_LETTER, PROP_PAL, PROP_TROPHY, faceRules, frameRules, outfitOf, type SpriteMap,
 } from '../sprites'
 import { LOOK_HAIRS, LOOK_HAIRS_SHADE, LOOK_SHIRTS, LOOK_SHIRTS_SHADE } from '../../looks'
-import { runCount } from '../../art/pixelOps'
+import { hexToRgb, rgbToOklab, runCount } from '../../art/pixelOps'
 import { ASSISTANT_DOZE_C2 } from '../generated/assistant-doze'
 
 /**
@@ -431,6 +431,16 @@ describe('the sprites', () => {
     expect(EDITOR_IDLE[0].slice(0, 9)).toEqual(ANCHOR_HEAD.slice(0, 9))
     expect(EDITOR_IDLE[1].slice(1, 13)).toEqual(EDITOR_IDLE[0].slice(0, 12))
     expect(EDITOR_WALK[1].slice(1, 13)).toEqual(EDITOR_IDLE[0].slice(0, 12))
+  })
+
+  it("draws the glasses' frame (P) a mid steel, an OKLab lightness step of at least 0.25 from the eye, its highlight and the skin", () => {
+    // 0.10.1: P was #3b3b45 (OKLab L 0.356), only 0.134 above the eye E (0.222), so at scene scale each lens read as
+    // one dark block. At least 0.25 either side keeps the eye (E) and its highlight (W) legible inside the frame and the
+    // frame legible on the skin (S, 0.876): P's L between 0.472 and 0.626.
+    const lightness = (hex: string) => rgbToOklab(...hexToRgb(hex))[0]
+    expect(lightness(PAL.P) - lightness(PAL.E), 'P over E').toBeGreaterThanOrEqual(0.25)
+    expect(lightness(PAL.W) - lightness(PAL.P), 'W over P').toBeGreaterThanOrEqual(0.25)
+    expect(lightness(PAL.S) - lightness(PAL.P), 'S over P').toBeGreaterThanOrEqual(0.25)
   })
 
   it('dresses the editor in a navy suit (G/g) over black shoes (E), a white collar (W) and a tie (N) down the chest', () => {

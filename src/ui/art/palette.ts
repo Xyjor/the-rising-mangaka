@@ -40,8 +40,9 @@ const SCENE_ADDITIONS: readonly string[] = [
   // The room shells (0.9.0, roomArt.ts and studioArt.ts, day colours: at night the scene dims the image instead).
   // The apartment's plaster, woods and tatami
   '#e6d3a8', '#ecdcb6', '#9c7550', '#c9b48a', '#b88d62', '#7a5a3e', '#cdbd7c', '#bfae6c', '#3d4a3a', '#a8984f',
-  // The flat's teal wallpaper, wainscot, frame, planks and rug
-  '#8fb5ac', '#8a5f3a', '#b98a5c', '#a0764c', '#6e4a2c', '#c8894e', '#a86d3a', '#b04a3f', '#6f9a90',
+  // The flat's wainscot, frame, planks and rug; #b98a5c and #a0764c (its 0.10.0 panels and grooves, still held by prop
+  // PNGs) are drawn as the corkboard's cork and the drafting table's body since 0.10.1; #6f9a90 the wallpaper's stripe
+  '#8a5f3a', '#b98a5c', '#a0764c', '#6e4a2c', '#c8894e', '#a86d3a', '#b04a3f', '#6f9a90',
   // The loft's plaster, brick, frame, steel, concrete and rug
   '#dcd8cf', '#b5574a', '#d9b7a5', '#6b4a32', '#4a4a55', '#bdb8ae', '#a9a49a', '#3f4f7a',
   // Switches and outlets; the window frame, the sill and the bookshelf's woods

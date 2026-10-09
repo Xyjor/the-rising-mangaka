@@ -367,7 +367,7 @@ describe('the characters, from the actor table', () => {
     const left = paintWith(editorAt(-1), { visitor: 'editor' })
     expect(has(left, '#3a3d4c', 203, 103)).toBe(true)
     expect(has(left, '#2b2140', 206, 87)).toBe(true)
-    expect(has(left, '#3b3b45', 204, 95)).toBe(true)
+    expect(has(left, '#6b6b78', 204, 95)).toBe(true)
     // (the bed frame behind is the same brown, so the case is found by its exact run: row 24's FFF, cols 19-21)
     expect(left).toContainEqual({ style: '#6d4c33', x: 217, y: 109, w: 3, h: 1 })
     // facing right, col 5 mirrors to x 198 + 23 - 5 = 216; x 203 is then row 18's col 18, the outline, so no suit there
@@ -741,6 +741,20 @@ describe('scene art (0.9.0 R1): generated images with the code-drawn look as the
   it('draws the room image of the whole art set at height 114', () => {
     const art = paint({}, 0.3, fakeSceneArt())
     expect(art.images[0]).toMatchObject({ id: 'room/apartment', x: 0, y: 0, w: 320, h: 114, at: 0 })
+  })
+
+  it("paints the flat's wall and floor in code with the whole art set ready: the flat has no wall image (0.10.1)", () => {
+    expect(fakeSceneArt().room.flat).toBeNull()
+    for (const t of [0.3, 0.9]) {
+      const night = t > 0.72
+      const shell = fakeContext()
+      drawRoomShell(shell.ctx, 'flat', night)
+      const art = paint({ tier: 'flat' }, t, fakeSceneArt())
+      expect(art.images.some((i) => i.id.startsWith('room/')), `t ${t}`).toBe(false)
+      // its own night colours, no dim: the shell's fills first, exactly
+      expect(art.log.slice(0, shell.log.length), `t ${t}`).toEqual(shell.log)
+      expect(art.log.some((c) => c.style === ROOM_NIGHT_DIM), `t ${t}`).toBe(false)
+    }
   })
 
   it('still paints the sky over the pane after the room image', () => {

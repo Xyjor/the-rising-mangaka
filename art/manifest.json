@@ -2656,41 +2656,6 @@
     }
   },
   {
-    "id": "room/flat",
-    "source": "hf-space:mcp-tools/Z-Image-Turbo",
-    "model": "Z-Image-Turbo",
-    "resolution": "2048x1152 ( 16:9 )",
-    "seed": 243842,
-    "steps": 8,
-    "shift": 3,
-    "prompt": "Completely empty 16-bit pixel art video game background, straight-on orthographic view of the back wall of a small studio flat, no perspective, no side walls, no furniture, no window, no door, no rug, no objects, no people. Top: white ceiling with a thin wooden crown moulding. Middle: wallpaper with bold two-tone vertical stripes, a saturated teal stripe alternating with a pale grey-teal stripe, every stripe the same width, above a honey wood wainscot panel on the lower third of the wall, with a wooden rail on top of the wainscot. The wall meets the floor in a perfectly straight horizontal line at 80 percent of the image height; the floor may be cut off. Bottom: a thin strip of honey-coloured wooden plank floor. Perfectly flat even lighting, no vignette, no gradient, no light pool, no shadows, uniform colours, limited palette, crisp pixels, no text.",
-    "preamble": "none",
-    "native": [
-      320,
-      114
-    ],
-    "sample": "area",
-    "cutout": false,
-    "outline": false,
-    "colors": 32,
-    "palette": "scene",
-    "sheet": {
-      "src": "rooms/flat.png"
-    },
-    "lightness": 0.15,
-    "crop": [
-      53,
-      0,
-      1995,
-      1152
-    ],
-    "seam": {
-      "src": 1106,
-      "dst": 114
-    },
-    "floor": "code"
-  },
-  {
     "id": "room/loft",
     "source": "hf-space:mcp-tools/Z-Image-Turbo",
     "model": "Z-Image-Turbo",
