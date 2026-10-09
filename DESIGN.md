@@ -570,6 +570,36 @@ at `CAT_BED` (4 fills, drawn just before it).
   step read as standing, a 12-wide one as a lunge, and the first down and pass legs kinked their knees out sideways a
   column and back, which wobbled (the down step's back leg and the passing leg are now straight, the stepping leg's
   knee a slant into a straight shin).
+- **The desk** (0.11.0, task 12). Six part poses on the seated body (`seat()` in `rig/poses.ts`: the torso at (7, 27),
+  so the head lands at (4, 6) and the hips on row 40, the desk top's line at the seat, y 98 at the mangaka's seat; the
+  assistants' desk top at y 120 likewise), the mangaka's and every assistant's. The seated legs (`leg-*-seat`, 6x8,
+  rows 40-47, behind the desk in the scene; drawn for the sheet and the half pose): the thigh foreshortened toward the
+  viewer, its lit top a column wider than the standing trousers, the shin in its shade turning in under the knee, so
+  the knees sit apart over the feet, the shoe three wide. The arms come down the torso's sides to the desk top, the
+  hands on rows 37-38 and the outline under them on row 39: at rest (`seat.rest`) the near arm's forearm comes toward
+  the viewer a column wider and the open hand lies flat on the desk a column out past the cuff (`arm-l-rest`, 8x11),
+  the far arm's trailing forearm the same on the right with its hand at its end (`arm-r-desk`, 7x11, kept while
+  drawing). Drawing, the near arm reaches the pen across the page, the fist on rows 37-38 every step so the stroke is
+  a level slide: at the page's left (`arm-l-desk-a`, 10x11) the forearm lies out along the desk, 0.10's `MANGAKA_SIT`
+  pen arm at 1.5x, the fist at its end; at the middle (`-b`, 9x11) the elbow a column wider and the fist two columns
+  out from the shoulder; at the right (`-c`, 8x11) the forearm foreshortened, two wide and turned in, the fist under
+  it. The pen (`pen`, 2x6, the prop layer, on the hand) is a one-cell `L` line rising up the fist's left edge and a
+  column out to the left at its top, its steel nib `P` at the hand; the nib lands on the silhouette's edge on every
+  step (the frame's lowest row there, or beside a clear cell), so the assembler outlines it, as the fist's edge under
+  it. The pen sits at frame cols 1-2, 3-4 and 5-6 (scene x 125-130 at the seat, on the page stack's x 121-134), a row
+  higher at the page's left: lifted at the stroke's far end. `seat-draw` is left, middle, right, middle, 150 ms a
+  step, 600 ms a stroke; `seat-idle` rests and breathes (`seat.breath`: the head a row lower) 500 ms each, the last
+  breath 380 ms, and blinks for 120 ms (`seat.blink`), 2 s a cycle; `seat-draw-late` opens on four 160 ms steps (the
+  pen hand, `seat.draw-a`, a stand-in until task 16 draws the panic), then five strokes: 640 ms in every 3,640, as
+  0.10's panic took 40 frames in 240. The seated mark slot (frame cols 28-30, rows 6-10) stays clear. Every desk arm
+  and leg is outlined all round but its top, and every seated pose joins closed by itself but the pen's nib. At the
+  gate (task 12, `--only seat-`) the pen walked left, middle, right and back in the hoodie, the cardigan, the blazer
+  and the six looks, both hands lay flat at rest, the breath and blink read, and every mood's mark sat beside the
+  seated head, after four tries: the first desk arms slanted out from the shoulder like a shrug (they now hang to the
+  desk and turn out along it), the pen at the page's left merged with the raised fist's top edge into a hook (the fist
+  now sits level with the other steps and the pen leans out from its corner), the first seated legs read as short
+  standing ones (the knees now sit apart over turned-in shins), and the first open hand lost its top corner to the
+  outline (it now has its own top edge).
 
 The frame sets: idle 2 frames (`frame/16 % 2`), walk 4 (`anim/100 % 4`), sit 2 (`frame/8 % 2` while working, frame 0
 otherwise), panic 2 (for 40 of every 240 frames while working on a late chapter, `Snapshot.late`), a 30x14 lying

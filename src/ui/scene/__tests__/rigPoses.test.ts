@@ -1,6 +1,7 @@
 // The cast's pose families keep their contracts (0.11.0): written from each family's rules, not cell literals, so a
 // redraw that keeps the rules passes. Pure data, node environment.
 import { describe, expect, it } from 'vitest'
+import { RIG_SPOTS } from '../actors'
 import { placeLayers } from '../rig/assemble'
 import { ANIMS } from '../rig/anims'
 import { rigFrame } from '../rig/frames'
@@ -184,5 +185,72 @@ describe('the walk (task 11)', () => {
     expect(walkParts).toHaveLength(14)
     for (const name of walkParts) expect(openCells(PARTS[name].map).filter(({ y }) => y !== 0), name).toEqual([])
     for (const id of WALK) expect(openCells(rawFrame(id)), id).toEqual([])
+  })
+})
+
+describe('the desk (task 12)', () => {
+  it('catalogues the seated legs, the desk arms and the pen', () => {
+    expectCatalogue({
+      'leg-l-seat': [6, 8, { hipL: [3, 0] }], 'leg-r-seat': [6, 8, { hipR: [2, 0] }],
+      'arm-l-desk-a': [10, 11, { shoulderL: [8, 0], hand: [1, 9] }], 'arm-l-desk-b': [9, 11, { shoulderL: [7, 0], hand: [2, 10] }],
+      'arm-l-desk-c': [8, 11, { shoulderL: [6, 0], hand: [3, 10] }], 'arm-l-rest': [8, 11, { shoulderL: [6, 0], hand: [2, 10] }],
+      'arm-r-desk': [7, 11, { shoulderR: [1, 0], hand: [3, 10] }], pen: [2, 6, { hand: [1, 5] }],
+    })
+  })
+
+  it('seats the head at rows 6-27 and the hips on row 40, the desk top\'s line at the seat', () => {
+    expect([at('seat.rest', 'head'), at('seat.rest', 'torso'), at('seat.rest', 'legFront')]).toEqual([{ x: 4, y: 6 }, { x: 7, y: 27 }, { x: 10, y: 40 }])
+    expect(RIG_SPOTS.mangaka.seat.y + 40).toBe(98)
+    expect(frame('seat.rest')[47]).toMatch(/[^.]/)
+  })
+
+  it('moves the pen across the page and back: left, middle, right, middle, 150 ms each', () => {
+    expect(ANIMS['seat-draw'].steps).toEqual([
+      { pose: 'seat.draw-a', ms: 150 }, { pose: 'seat.draw-b', ms: 150 }, { pose: 'seat.draw-c', ms: 150 }, { pose: 'seat.draw-b', ms: 150 },
+    ])
+    expect((['seat.draw-a', 'seat.draw-b', 'seat.draw-c'] as const).map((id) => at(id, 'prop')?.x)).toEqual([1, 3, 5])
+  })
+
+  it('rests both forearms on the desk when not drawing, breathing, blinking once in 2 s', () => {
+    expect(ANIMS['seat-idle'].steps).toEqual([
+      { pose: 'seat.rest', ms: 500 }, { pose: 'seat.breath', ms: 500 }, { pose: 'seat.rest', ms: 500 },
+      { pose: 'seat.breath', ms: 380 }, { pose: 'seat.blink', ms: 120 },
+    ])
+    expect(at('seat.breath', 'head')).toEqual({ x: 4, y: 7 })
+  })
+
+  it('runs late: four 160 ms panic steps, then five drawing cycles (3640 ms, the panic as often as 0.10\'s 40 frames in 240)', () => {
+    const s = ANIMS['seat-draw-late'].steps
+    expect(s.slice(0, 4).map((x) => x.ms)).toEqual([160, 160, 160, 160])
+    expect(s.slice(4)).toEqual(Array.from({ length: 5 }, () => ANIMS['seat-draw'].steps).flat())
+  })
+
+  it('lays every hand on the desk top: both arms end on row 39, over the desk\'s line, in every seated pose', () => {
+    for (const id of ['seat.rest', 'seat.breath', 'seat.blink', 'seat.draw-a', 'seat.draw-b', 'seat.draw-c'] as const) {
+      for (const layer of ['armFront', 'armBack'] as const) {
+        expect(at(id, layer)!.y + PARTS[part(id)[layer]!.part].map.length - 1, `${id} ${layer}`).toBe(39)
+      }
+    }
+  })
+
+  it('outlines each seated leg and desk arm all round but its top, and joins every seated pose closed by itself but the pen\'s nib', () => {
+    for (const name of ['leg-l-seat', 'leg-r-seat', 'arm-l-desk-a', 'arm-l-desk-b', 'arm-l-desk-c', 'arm-l-rest', 'arm-r-desk']) {
+      expect(openCells(PARTS[name].map).filter(({ y }) => y !== 0), name).toEqual([])
+    }
+    for (const id of ['seat.rest', 'seat.breath', 'seat.blink'] as const) expect(openCells(rawFrame(id)), id).toEqual([])
+    // the pen is a line one cell wide, all outline but its steel nib, which lands on the hand at the silhouette's edge
+    // (the outline the assembler closes there)
+    const hand = PARTS.pen.anchors.hand!
+    expect(openCells(PARTS.pen.map)).toEqual([hand])
+    for (const id of ['seat.draw-a', 'seat.draw-b', 'seat.draw-c'] as const) {
+      const pen = at(id, 'prop')!
+      expect(openCells(rawFrame(id)), id).toEqual([{ x: pen.x + hand.x, y: pen.y + hand.y }])
+    }
+  })
+
+  it('leaves the seated mark slot (cols 28-30, rows 6-10) clear for the mood mark', () => {
+    for (const id of ['seat.rest', 'seat.draw-a', 'seat.draw-b', 'seat.draw-c'] as const) {
+      for (let r = 6; r <= 10; r++) expect(frame(id)[r].slice(28, 31), `${id} row ${r}`).toBe('...')
+    }
   })
 })

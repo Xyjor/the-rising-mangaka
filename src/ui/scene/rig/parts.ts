@@ -1,7 +1,7 @@
-// The rig's parts (0.11.0): every torso, arm and leg the cast is built from, each a hand-drawn string map in PAL keys
-// (uppercase the base, lowercase its shade, L the outline, the light from the top left) with its named anchors, after
-// art/raw/sprites/mangaka-front.png. Each part is outlined all round but where it joins another: the torso's neck row
-// under the head's jaw, its shoulder caps over the arms' tops, the legs' tops under its hem (closeSilhouette closes
+// The rig's parts (0.11.0): every torso, arm, leg and prop the cast is built from, each a hand-drawn string map in PAL
+// keys (uppercase the base, lowercase its shade, L the outline, the light from the top left) with its named anchors,
+// after art/raw/sprites/mangaka-front.png. Each part is outlined all round but where it joins another: the torso's neck
+// row under the head's jaw, its shoulder caps over the arms' tops, the legs' tops under its hem (closeSilhouette closes
 // them if a pose ever shows them). Sleeve and hand are separate runs, so OUTFIT_PALS' darker j darkens the sleeves.
 import { HEAD } from './head'
 import type { Part, PartLib } from './types'
@@ -418,6 +418,181 @@ const ARM_R_SWING_BACK: Part = {
   anchors: { shoulderR: { x: 1, y: 0 }, hand: { x: 3, y: 11 } },
 }
 
+/**
+ * The near (left) leg seated, 6 x 8, placed from the hip on frame row 40 (hipL (3, 0)), so it fills rows 40-47 behind
+ * the desk (drawn for the sheet and the half pose; the desk hides it in the scene). The thigh comes toward the viewer,
+ * foreshortened: its lit top F a column wider than the standing trousers on rows 1-2 (the knee, its shade f on the
+ * right); under the knee (row 3) the outline creases in and the shin, in the thigh's shade f, turns in toward the other
+ * one (rows 3-4), so the knees sit apart over the feet; the shoe O/o on rows 5-6, three wide (its toe toward the
+ * viewer), the sole L on row 7.
+ */
+const LEG_L_SEAT: Part = {
+  map: [
+    '.LFFfL', // 0
+    'LFFFFL', // 1
+    'LFFFfL', // 2
+    '.LLffL', // 3
+    '..LffL', // 4
+    '.LOOoL', // 5
+    '.LOooL', // 6
+    '.LLLLL', // 7
+  ],
+  anchors: { hipL: { x: 3, y: 0 } },
+}
+
+/** The far (right) leg seated: LEG_L_SEAT's mirror in LEG_R_STAND's shading (the shade on the right of every run), 6 x 8 (hipR (2, 0)). */
+const LEG_R_SEAT: Part = {
+  map: [
+    'LFffL.', // 0
+    'LFFffL', // 1
+    'LFFffL', // 2
+    'LffLL.', // 3
+    'LffL..', // 4
+    'LOOoL.', // 5
+    'LOooL.', // 6
+    'LLLLL.', // 7
+  ],
+  anchors: { hipR: { x: 2, y: 0 } },
+}
+
+/**
+ * The near (left) arm drawing at the page's left, 10 x 11 (shoulderL (8, 0), so the part's left edge is frame col 1):
+ * the sleeve j hangs from the shoulder cap as ARM_L_HANG's (frame cols 7-9, rows 29-35), then the forearm lies out
+ * along the desk to the left (rows 37-38, its top edge on row 36 from the elbow out over the fist), the fist S/s round
+ * the pen at its end (frame cols 3-5, rows 37-38, the shade on the right and underneath), the outline under the
+ * forearm and fist on row 39, the desk top's line. The hand (1, 9) is the fist's left edge on its lower row (frame
+ * (2, 38)), so the pen stands a row higher than in the other two steps: lifted at the far end of the stroke. The pen
+ * runs down the fist's left edge, which it covers.
+ */
+const ARM_L_DESK_A: Part = {
+  map: [
+    '.....LjjjL', // 0
+    '.....LjjjL', // 1
+    '.....LjjjL', // 2
+    '.....LjjjL', // 3
+    '.....LjjjL', // 4
+    '.....LjjjL', // 5
+    '.....LjjjL', // 6
+    '..LLLLjjjL', // 7
+    '.LSSsjjjjL', // 8
+    '.LSssjjjjL', // 9
+    '.LLLLLLLLL', // 10
+  ],
+  anchors: { shoulderL: { x: 8, y: 0 }, hand: { x: 1, y: 9 } },
+}
+
+/**
+ * The near (left) arm drawing at the page's middle, 9 x 11 (shoulderL (7, 0), the part's left edge frame col 2): the
+ * sleeve down to row 34, the elbow a column wider on rows 35-36 (the forearm coming forward and out), the fist two
+ * columns out from the shoulder (frame cols 5-7, rows 37-38) with the forearm's end j beside it, the outline on row 39.
+ * The hand (2, 10) is the outline under the fist's left edge (frame (4, 39)), where the pen's nib lands.
+ */
+const ARM_L_DESK_B: Part = {
+  map: [
+    '....LjjjL', // 0
+    '....LjjjL', // 1
+    '....LjjjL', // 2
+    '....LjjjL', // 3
+    '....LjjjL', // 4
+    '....LjjjL', // 5
+    '...LjjjjL', // 6
+    '...LjjjjL', // 7
+    '..LSSsjjL', // 8
+    '..LSssjjL', // 9
+    '..LLLLLLL', // 10
+  ],
+  anchors: { shoulderL: { x: 7, y: 0 }, hand: { x: 2, y: 10 } },
+}
+
+/**
+ * The near (left) arm drawing at the page's right, 8 x 11 (shoulderL (6, 0), the part's left edge frame col 3): the
+ * sleeve down to row 33, then the forearm toward the viewer, foreshortened, two wide and turned in toward the page's
+ * right (frame cols 8-9, rows 34-36), the fist under it (frame cols 7-9, rows 37-38), the outline on row 39. The hand
+ * (3, 10) is the outline under the fist's left edge (frame (6, 39)); the pen's top rises a column clear of the forearm.
+ */
+const ARM_L_DESK_C: Part = {
+  map: [
+    '...LjjjL', // 0
+    '...LjjjL', // 1
+    '...LjjjL', // 2
+    '...LjjjL', // 3
+    '...LjjjL', // 4
+    '....LjjL', // 5
+    '....LjjL', // 6
+    '....LjjL', // 7
+    '...LSSsL', // 8
+    '...LSssL', // 9
+    '...LLLLL', // 10
+  ],
+  anchors: { shoulderL: { x: 6, y: 0 }, hand: { x: 3, y: 10 } },
+}
+
+/**
+ * The near (left) arm resting, 8 x 11 (shoulderL (6, 0), the part's left edge frame col 3): the sleeve down to row 34,
+ * the forearm on the desk coming toward the viewer, a column wider (rows 35-36), and the open hand flat on the desk
+ * (frame cols 4-7, rows 37-38: the back of the hand S, its shade s on the right, the fingers' underside s), a column out
+ * past the cuff, its top edge outlined on row 36; the outline on row 39, the desk top's line (hand (2, 10), frame
+ * (5, 39)).
+ */
+const ARM_L_REST: Part = {
+  map: [
+    '...LjjjL', // 0
+    '...LjjjL', // 1
+    '...LjjjL', // 2
+    '...LjjjL', // 3
+    '...LjjjL', // 4
+    '...LjjjL', // 5
+    '..LjjjjL', // 6
+    '.LLjjjjL', // 7
+    'LSSSsjjL', // 8
+    'LssssjjL', // 9
+    '.LLLLLLL', // 10
+  ],
+  anchors: { shoulderL: { x: 6, y: 0 }, hand: { x: 2, y: 10 } },
+}
+
+/**
+ * The far (right) arm on the desk, 7 x 11 (shoulderR (1, 0), the part's left edge on the torso's seam, frame col 21):
+ * the sleeve down to row 34, the trailing forearm on the desk a column wider out to the right (rows 35-36), the hand
+ * S/s on the desk at its end (frame cols 24-26, rows 37-38), the outline on row 39 (hand (3, 10), frame (24, 39)).
+ * Both the drawing and the resting poses keep it; the near arm's open hand mirrors it, a column wider.
+ */
+const ARM_R_DESK: Part = {
+  map: [
+    'LjjjL..', // 0
+    'LjjjL..', // 1
+    'LjjjL..', // 2
+    'LjjjL..', // 3
+    'LjjjL..', // 4
+    'LjjjL..', // 5
+    'LjjjjL.', // 6
+    'LjjjjL.', // 7
+    'LjjSSsL', // 8
+    'LjjSssL', // 9
+    'LLLLLL.', // 10
+  ],
+  anchors: { shoulderR: { x: 1, y: 0 }, hand: { x: 3, y: 10 } },
+}
+
+/**
+ * The pen, 2 x 6: a line one cell wide in L rising up and left from the hand (1, 5), where its steel nib P is: up the
+ * hand's column (rows 2-5), then a column out to the left for its last two cells (rows 0-1), so it leans away from the
+ * fist. Drawn over the drawing arm (the prop layer), it covers the fist's left edge. The nib lands on the silhouette's
+ * edge in every drawing step (the frame's lowest row there, or beside a clear cell), so the assembler's outline closes
+ * it to L; it shows as steel only where a hand encloses it.
+ */
+const PEN: Part = {
+  map: [
+    'L.', // 0
+    'L.', // 1
+    '.L', // 2
+    '.L', // 3
+    '.L', // 4
+    '.P', // 5
+  ],
+  anchors: { hand: { x: 1, y: 5 } },
+}
+
 /** Every part a pose may name, by name. */
 export const PARTS: PartLib = {
   head: HEAD, torso: TORSO, 'arm-l-hang': ARM_L_HANG, 'arm-r-hang': ARM_R_HANG,
@@ -428,4 +603,7 @@ export const PARTS: PartLib = {
   'leg-r-lift': LEG_R_LIFT, 'leg-r-reach': LEG_R_REACH,
   'arm-l-swing-fwd': ARM_L_SWING_FWD, 'arm-l-swing-back': ARM_L_SWING_BACK,
   'arm-r-swing-fwd': ARM_R_SWING_FWD, 'arm-r-swing-back': ARM_R_SWING_BACK,
+  'leg-l-seat': LEG_L_SEAT, 'leg-r-seat': LEG_R_SEAT,
+  'arm-l-desk-a': ARM_L_DESK_A, 'arm-l-desk-b': ARM_L_DESK_B, 'arm-l-desk-c': ARM_L_DESK_C, 'arm-l-rest': ARM_L_REST,
+  'arm-r-desk': ARM_R_DESK, pen: PEN,
 }

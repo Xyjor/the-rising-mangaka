@@ -26,6 +26,15 @@ const WALK_STEPS = ([
   'walk.contact-l', 'walk.down-l', 'walk.pass-l', 'walk.up-l', 'walk.contact-r', 'walk.down-r', 'walk.pass-r', 'walk.up-r',
 ] as const).map((pose) => ({ pose, ms: 75 }))
 
+/** The pen across the page and back: left, middle, right, middle, 150 ms a step, 600 ms a stroke. */
+const DRAW_STEPS: readonly Step<PoseId>[] = [
+  { pose: 'seat.draw-a', ms: 150 }, { pose: 'seat.draw-b', ms: 150 }, { pose: 'seat.draw-c', ms: 150 }, { pose: 'seat.draw-b', ms: 150 },
+]
+/** The panic opening the late loop: a stand-in (the pen hand) until task 16 draws the panic. */
+const LATE_PANIC: readonly Step<PoseId>[] = [
+  { pose: 'seat.draw-a', ms: 160 }, { pose: 'seat.draw-a', ms: 160 }, { pose: 'seat.draw-a', ms: 160 }, { pose: 'seat.draw-a', ms: 160 },
+]
+
 /** One step of the standing pose, while an animation's art has not landed. */
 const STAND_IN: readonly Step<PoseId>[] = [{ pose: 'stand.idle', ms: 500 }]
 
@@ -37,9 +46,12 @@ export const ANIMS: Readonly<Record<AnimId, Anim<PoseId>>> = {
   ]),
   'stand-ready': anim('stand-ready', 'stand', true, STAND_IN),
   walk: anim('walk', 'walk', true, WALK_STEPS),
-  'seat-draw': anim('seat-draw', 'seat', true, STAND_IN),
-  'seat-draw-late': anim('seat-draw-late', 'seat', true, STAND_IN),
-  'seat-idle': anim('seat-idle', 'seat', true, STAND_IN),
+  'seat-draw': anim('seat-draw', 'seat', true, DRAW_STEPS),
+  'seat-draw-late': anim('seat-draw-late', 'seat', true, [...LATE_PANIC, ...DRAW_STEPS, ...DRAW_STEPS, ...DRAW_STEPS, ...DRAW_STEPS, ...DRAW_STEPS]),
+  'seat-idle': anim('seat-idle', 'seat', true, [
+    { pose: 'seat.rest', ms: 500 }, { pose: 'seat.breath', ms: 500 }, { pose: 'seat.rest', ms: 500 },
+    { pose: 'seat.breath', ms: 380 }, { pose: 'seat.blink', ms: 120 },
+  ]),
   sleep: anim('sleep', 'bed', true, STAND_IN),
   doze: anim('doze', 'bed', true, STAND_IN),
   'sit-down': anim('sit-down', 'seat', false, STAND_IN),

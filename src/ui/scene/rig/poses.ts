@@ -6,6 +6,7 @@ import type { PartPose, Place, Pose } from './types'
 export type PoseId =
   | 'stand.idle' | 'stand.breath' | 'stand.blink'
   | 'walk.contact-l' | 'walk.down-l' | 'walk.pass-l' | 'walk.up-l' | 'walk.contact-r' | 'walk.down-r' | 'walk.pass-r' | 'walk.up-r'
+  | 'seat.rest' | 'seat.breath' | 'seat.blink' | 'seat.draw-a' | 'seat.draw-b' | 'seat.draw-c'
 
 export interface PoseDef { readonly pose: Pose; readonly at: 'actor' | 'seat' | 'bed' }
 
@@ -31,6 +32,15 @@ function walk(bob: 0 | 1, legFront: string, legBack: string, armFront: string, a
   })
 }
 
+/** Seated: the torso at (7, 27), so the head lands at (4, 6) and the hips on row 40, the desk top's line at the seat. */
+function seat(over: Over = {}): PartPose {
+  return {
+    kind: 'parts', w: W, h: H, torso: { part: 'torso', x: 7, y: 27 }, head: HEAD,
+    armBack: { part: 'arm-r-desk' }, armFront: { part: 'arm-l-rest' },
+    legBack: { part: 'leg-r-seat' }, legFront: { part: 'leg-l-seat' }, ...over,
+  }
+}
+
 export const POSES: Readonly<Record<PoseId, PoseDef>> = {
   'stand.idle': { pose: stand(), at: 'actor' },
   'stand.breath': { pose: stand({ head: { part: 'head', dy: 1 } }), at: 'actor' },
@@ -43,4 +53,10 @@ export const POSES: Readonly<Record<PoseId, PoseDef>> = {
   'walk.down-r': { pose: walk(1, 'leg-l-plant-bend', 'leg-r-step-bend', 'arm-l-swing-fwd', 'arm-r-swing-back'), at: 'actor' },
   'walk.pass-r': { pose: walk(0, 'leg-l-lift', 'leg-r-stand', 'arm-l-hang', 'arm-r-hang'), at: 'actor' },
   'walk.up-r': { pose: walk(0, 'leg-l-reach', 'leg-r-stand', 'arm-l-hang', 'arm-r-hang'), at: 'actor' },
+  'seat.rest': { pose: seat(), at: 'actor' },
+  'seat.breath': { pose: seat({ head: { part: 'head', dy: 1 } }), at: 'actor' },
+  'seat.blink': { pose: seat({ face: { eyes: 'blink' } }), at: 'actor' },
+  'seat.draw-a': { pose: seat({ armFront: { part: 'arm-l-desk-a' }, prop: { part: 'pen' } }), at: 'actor' },
+  'seat.draw-b': { pose: seat({ armFront: { part: 'arm-l-desk-b' }, prop: { part: 'pen' } }), at: 'actor' },
+  'seat.draw-c': { pose: seat({ armFront: { part: 'arm-l-desk-c' }, prop: { part: 'pen' } }), at: 'actor' },
 }
