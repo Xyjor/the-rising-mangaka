@@ -383,6 +383,14 @@ at `CAT_BED` (4 fills, drawn just before it).
   keeps every fill baseline inside its 1.5x budget by construction. The ruling: **`ANCHOR_HEAD` is untouched**. The
   sheets' 2:1 head cannot fit the `FACES`, mark-slot and avatar-crop contract, and the hand-drawn head is the part
   that already read, so the staff portraits do not change.
+- **Drawing through the cache** (0.11.0, task 6). Every character is one `drawImage` of its frame from
+  `spriteCache.ts`, painted once per palette and facing into its own surface; the 0.10 maps are `oldCast.ts`'s cast
+  frames (`OLD_CAST`, each with the id the cache names it by) until each rig release replaces them (the mangaka's, then
+  the assistants'); the mood overlay stays code-drawn over the mangaka's and the assistants' images until their rig
+  heads bake it. The cache's memory: at most 324 frames x 9 palettes x 2 facings x 6,144 B (a 32x48 RGBA surface),
+  about 36 MB in theory; a realistic long career builds about 900-1,000 surfaces, about 6 MB. `render` takes the cache
+  as its last argument (the session's by default, `getCastCache()`), so a test hands it a recording one
+  (`fakeSurface`) and reads each character as an entry in `images`, named `cast/<frame>/<palette>`, `/r` mirrored.
 
 The frame sets: idle 2 frames (`frame/16 % 2`), walk 4 (`anim/100 % 4`), sit 2 (`frame/8 % 2` while working, frame 0
 otherwise), panic 2 (for 40 of every 240 frames while working on a late chapter, `Snapshot.late`), a 30x14 lying
@@ -447,6 +455,13 @@ against the redrawn seat it replaces); task B5's tabby (`CAT_SLEEP` 31 to 39, `C
 the four and 6 to the rest scene. The pins were then 701 and 1125 (budgets 1051.5 and 1687.5), 549 and 974 with the art
 ready (823.5 and 1461), and the rest scene 506 (759); the 0.10.0 walls (Release C) took the two art pins to 584 and
 1009 (876 and 1513.5), the apartment's code floor (see "The walls").
+The 0.11.0 sprite cache (task 6) took all five down once, by every character's runs, each re-measured by hand in its
+test's docblock: 274 and 309 (budgets 411 and 463.5), 157 and 193 with the art ready (235.5 and 289.5) and the rest
+scene 303 (454.5). The reference scene loses MANGAKA_SIT[0] twice (the mangaka and the assistant, 194 runs each) and
+CAT_SLEEP (39): 701 - 427 = 274; the full scene loses MANGAKA_SIT[0] three times (582), MANGAKA_SIT[1] (195) and
+CAT_SLEEP (39): 1125 - 816 = 309; the art twins lose the same, 584 - 427 = 157 and 1009 - 816 = 193; the rest scene
+loses MANGAKA_LIE (72), CAT_SIT (40) and ASSISTANT_DOZE (91): 506 - 203 = 303. What stays a fill is the mood overlay
+(the sleepy face's 17), the Zs, the blanket and the cushion.
 
 ### Art
 The live scene is code-drawn `fillRect` (`render.ts`, `roomArt.ts`, `studioArt.ts`, `sprites.ts`), and since 0.9.0 it
@@ -765,8 +780,9 @@ memo; `StudioScene` passes the result to `render`, and each image's load clears 
 the next step repaints it.
 `render.ts` never imports the registry. In tests, `fakeCanvas.ts` records each `drawImage` in `images` (with `at`, the
 fill log's length at the call, for order checks) and `fakeImage(id, w, h)` makes an image `ready` accepts; the fill
-`log` stays fillRect-only, so the 701/1125 baselines measure what is still code-drawn (with `NO_ART` they are
-unchanged), and `fakeSceneArt()` readies every image at once for the art baselines (584/1009 since the 0.10.0 walls). `ART_PALETTE_SCENE` (for `"palette": "scene"` entries) holds the room shells' day colours (the plasters, the tatami, the planks, the concrete, the
+`log` stays fillRect-only, so the 274/309 baselines (701/1125 before the 0.11.0 sprite cache drew the characters as
+images) measure what is still code-drawn (with `NO_ART` they are unchanged), and `fakeSceneArt()` readies every image at
+once for the art baselines (157/193; 584/1009 before the cache). `ART_PALETTE_SCENE` (for `"palette": "scene"` entries) holds the room shells' day colours (the plasters, the tatami, the planks, the concrete, the
 woods, the brick, the rugs and the flat's teal stripe), so a generated wall snaps to the drawn room's colours.
 
 **The title hero** (`TitleScreen.tsx`) renders `TITLE_ART` (manifest id `title/hero`, native 320x180) directly rather

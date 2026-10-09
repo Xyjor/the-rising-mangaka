@@ -7,11 +7,11 @@ import type { EquipmentId, StudioTierId } from '../../sim'
 import { ASSISTANT_SEAT_X } from './actors'
 import type { Actor, ActorTable } from './actors'
 import {
-  ASSISTANT_DOZE, ASSISTANT_PALS, CAT_GROOM, CAT_SIT, CAT_SLEEP, CAT_STRETCH, CAT_WALK, EDITOR_IDLE, EDITOR_WALK, FACES, HEAD_DY,
-  MANGAKA_IDLE, MANGAKA_LIE, MANGAKA_PANIC, MANGAKA_SIP, MANGAKA_SIT, MANGAKA_STRETCH, MANGAKA_WALK, MARKS, MARK_PAL, OUTFIT_PALS, PAL,
-  PROP_CONTRACT, PROP_ENVELOPE, PROP_LETTER, PROP_PAL, PROP_TROPHY, drawSprite, outfitOf,
+  FACES, HEAD_DY, MARKS, MARK_PAL, PAL, PROP_CONTRACT, PROP_ENVELOPE, PROP_LETTER, PROP_PAL, PROP_TROPHY, drawSprite,
 } from './sprites'
-import type { SpriteMap } from './sprites'
+import { OLD_CAST } from './oldCast'
+import { drawCast, getCastCache, lookPalette, outfitPalette } from './spriteCache'
+import type { CastFrame, SpriteCache } from './spriteCache'
 import { BREATHE_POSES, catFrame, idleFrame, moodOf } from './mood'
 import type { Mood, MoodInput } from './mood'
 import { BAR_X, paneRect, rawRect, rect, shadow } from './paint'
@@ -148,24 +148,23 @@ function drawVisitorProp(ctx: CanvasRenderingContext2D, prop: Snapshot['visitorP
 }
 
 /**
- * The mangaka, in whatever pose the table holds (24x32 frames, 30x14 in bed). Called twice: before the desk (paints only
- * when y < 75: seated at 67, behind the desk top) and after it (only when y >= 75: standing, walking, at the door or in
- * bed, in front of it).
+ * The mangaka, in whatever pose the table holds (24x32 frames, 30x14 in bed), each one drawImage from the sprite cache
+ * (`cast`; the mood overlay stays code-drawn over it). Called twice: before the desk (paints only when y < 75: seated at
+ * 67, behind the desk top) and after it (only when y >= 75: standing, walking, at the door or in bed, in front of it).
  */
 function drawMangaka(
   ctx: CanvasRenderingContext2D, s: Snapshot, a: Actor, frame: number, working: boolean, front: boolean, night: boolean,
+  cast: SpriteCache,
 ) {
   if ((a.y >= 75) !== front) return
   const x = a.x
   const y = a.y
-  const outfit = OUTFIT_PALS[outfitOf(s.level)]
   switch (a.state) {
     case 'seated': {
       // late on a chapter, the mangaka throws up their hands for 40 frames in every 240
       const panicking = working && s.late && frame % 240 < 40
       const idx = working ? Math.floor(frame / 8) % 2 : 0
-      const map = panicking ? MANGAKA_PANIC[idx] : MANGAKA_SIT[idx]
-      drawSprite(ctx, map, x, y, undefined, outfit)
+      drawCast(ctx, cast, panicking ? OLD_CAST.mangakaPanic[idx] : OLD_CAST.mangakaSit[idx], outfitPalette(s.level), x, y, false)
       if (!panicking) {
         const mood = moodFor(s.actors.editor.state === 'standing', s.cheer, s.stamina, night && working)
         drawMood(ctx, mood, x, y, HEAD_DY.sit[idx])
@@ -177,14 +176,14 @@ function drawMangaka(
       const ready = s.phase === 'ready'
       // the manuscript is in hand while ready, so the idle cycle (Decision 6) applies only otherwise
       const pose = ready ? BREATHE_POSES[Math.floor(frame / 16) % 2] : idleFrame(frame)
-      let map: SpriteMap
+      let castFrame: CastFrame
       let headDy: number
       // only the breathing pose is head-steady: the stretch and sip bake their own expression into the frame
       let faceSteady: boolean
-      if (pose.set === 'stretch') { map = MANGAKA_STRETCH[pose.index]; headDy = HEAD_DY.stretch[pose.index]; faceSteady = false }
-      else if (pose.set === 'sip') { map = MANGAKA_SIP[pose.index]; headDy = HEAD_DY.sip[pose.index]; faceSteady = false }
-      else { map = MANGAKA_IDLE[pose.index]; headDy = HEAD_DY.idle[pose.index]; faceSteady = true }
-      drawSprite(ctx, map, x, y, undefined, outfit)
+      if (pose.set === 'stretch') { castFrame = OLD_CAST.mangakaStretch[pose.index]; headDy = HEAD_DY.stretch[pose.index]; faceSteady = false }
+      else if (pose.set === 'sip') { castFrame = OLD_CAST.mangakaSip[pose.index]; headDy = HEAD_DY.sip[pose.index]; faceSteady = false }
+      else { castFrame = OLD_CAST.mangakaIdle[pose.index]; headDy = HEAD_DY.idle[pose.index]; faceSteady = true }
+      drawCast(ctx, cast, castFrame, outfitPalette(s.level), x, y, false)
       const mood = moodFor(s.actors.editor.state === 'standing', s.cheer, s.stamina, false)
       // only one mark above the head at a time: the ready manuscript's '!' beats the mood mark, which beats the
       // idle '?' (fix round 1); the face overlay only ever shows on the head-steady breathing pose
@@ -198,11 +197,11 @@ function drawMangaka(
     }
     case 'walking':
       shadow(ctx, x + 4, y + 30, 16)
-      drawSprite(ctx, MANGAKA_WALK[Math.floor(a.anim / 100) % 4], x, y, 32, outfit, a.facing === 1)
+      drawCast(ctx, cast, OLD_CAST.mangakaWalk[Math.floor(a.anim / 100) % 4], outfitPalette(s.level), x, y, a.facing === 1)
       return
     case 'sleeping': {
       // the head on the pillow, the body under the blanket (canvas 196-229 x 114-121) and its fold
-      drawSprite(ctx, MANGAKA_LIE, x, y)
+      drawCast(ctx, cast, OLD_CAST.mangakaLie, 'pal', x, y, false)
       rawRect(ctx, 196, 114, 34, 8, '#c94b4b')
       rawRect(ctx, 196, 114, 34, 2, '#a83c3c')
       const zz = Math.floor(frame / 20) % 3
@@ -459,8 +458,11 @@ export interface Snapshot extends StoryLook {
  * Paints one frame. `t` is the time of day (0..1; night when t > 0.72 or t < 0.06); `frame` drives the animation and
  * is 0 under reduced motion, so everything that moves holds still there. `art` holds the generated images; each one
  * missing or still loading paints its code-drawn piece instead (`NO_ART`, the default, is today's scene exactly).
+ * `cast` is the sprite cache the characters are drawn from (the session's by default; a test passes a recording one).
  */
-export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, frame: number, art: SceneArt = NO_ART) {
+export function render(
+  ctx: CanvasRenderingContext2D, s: Snapshot, t: number, frame: number, art: SceneArt = NO_ART, cast: SpriteCache = getCastCache(),
+) {
   const night = t > 0.72 || t < 0.06
   const absent = s.away || s.activity === 'job'
   // busy = seated at the desk (the pose, which actors.ts plans); working = busy and the clock runs (the animation).
@@ -547,13 +549,13 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
     for (let i = 0; i < shown; i++) {
       const actor = s.actors.assistants[i]
       if (actor.state === 'hidden' || actor.state === 'away') continue
-      const pal = ASSISTANT_PALS[s.assistants[i].look % ASSISTANT_PALS.length]
+      const look = lookPalette(s.assistants[i].look)
       if (actor.state === 'sleeping') {
-        drawSprite(ctx, ASSISTANT_DOZE, actor.x, actor.y, 32, pal)
+        drawCast(ctx, cast, OLD_CAST.assistantDoze, look, actor.x, actor.y, false)
         glyph(ctx, 'Z', actor.x + 18, actor.y - 2, '#2f5ecf')
       } else {
         const idx = working ? Math.floor((frame + i * 3) / 8) % 2 : 0
-        drawSprite(ctx, MANGAKA_SIT[idx], actor.x, actor.y, 32, pal)
+        drawCast(ctx, cast, OLD_CAST.mangakaSit[idx], look, actor.x, actor.y, false)
         // assistants only ever go tired or happy (Decision 5): editorHere and lateNight stay false so surprised and
         // sleepy never fire here
         const mood = moodFor(false, s.cheer, s.assistants[i].stamina, false)
@@ -570,7 +572,7 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
   else prop(ctx, art, 'chair', stockChair)
 
   // the mangaka seated at the desk (behind its top)
-  drawMangaka(ctx, s, s.actors.mangaka, frame, working, false, night)
+  drawMangaka(ctx, s, s.actors.mangaka, frame, working, false, night, cast)
 
   // desk (or the drafting table in its place) and the lamp
   if (s.owned['drafting-table']) equipment(ctx, s, art, 'drafting-table', frame, night)
@@ -591,7 +593,7 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
   if (absent) { rect(ctx, 96, 58, 8, 5, '#fff7c2'); rect(ctx, 97, 59, 6, 1, '#b8b2a5'); rect(ctx, 97, 61, 4, 1, '#b8b2a5') }
 
   // the mangaka in front of the desk (standing, walking or in bed), then the editor on a visit
-  drawMangaka(ctx, s, s.actors.mangaka, frame, working, true, night)
+  drawMangaka(ctx, s, s.actors.mangaka, frame, working, true, night, cast)
   if (!absent && s.phase === 'submitted') {
     const d = Math.floor((s.running ? frame : 0) / 12) % 4
     for (let i = 0; i < d; i++) glyph(ctx, '.', 214 + i * 3, 92, '#16161a')
@@ -605,20 +607,20 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
     const cy = Math.round(cat.y) + 3
     rawRect(ctx, cx + 3, cy, 10, 1, CUSHION); rawRect(ctx, cx, cy + 1, 16, 4, CUSHION)
     rawRect(ctx, cx + 1, cy + 5, 14, 1, CUSHION_SHADE); rawRect(ctx, cx + 3, cy + 6, 10, 1, CUSHION_SHADE)
-    drawSprite(ctx, CAT_SLEEP, cat.x, cat.y, 8, undefined, catFlip)
+    drawCast(ctx, cast, OLD_CAST.catSleep, 'pal', cat.x, cat.y, catFlip)
   }
-  else if (cat.state === 'walking') drawSprite(ctx, CAT_WALK[Math.floor(cat.anim / 125) % 2], cat.x, cat.y, 8, undefined, catFlip)
+  else if (cat.state === 'walking') drawCast(ctx, cast, OLD_CAST.catWalk[Math.floor(cat.anim / 125) % 2], 'pal', cat.x, cat.y, catFlip)
   else if (cat.state !== 'hidden' && cat.state !== 'away') {
     // the sitting cat's own idle cycle (Decision 6): sit, then a groom, then a stretch
     const pose = catFrame(frame)
-    const map = pose.set === 'sit' ? CAT_SIT : pose.set === 'groom' ? CAT_GROOM[pose.index] : CAT_STRETCH
-    drawSprite(ctx, map, cat.x, cat.y, 8, undefined, catFlip)
+    const catCast = pose.set === 'sit' ? OLD_CAST.catSit : pose.set === 'groom' ? OLD_CAST.catGroom[pose.index] : OLD_CAST.catStretch
+    drawCast(ctx, cast, catCast, 'pal', cat.x, cat.y, catFlip)
   }
   const editor = s.actors.editor
   const editorFlip = editor.facing === 1
   if (editor.state !== 'hidden' && editor.state !== 'away') shadow(ctx, editor.x + 4, editor.y + 30, 16)
-  if (editor.state === 'walking') drawSprite(ctx, EDITOR_WALK[Math.floor(editor.anim / 100) % 4], editor.x, editor.y, 32, undefined, editorFlip)
-  else if (editor.state !== 'hidden' && editor.state !== 'away') drawSprite(ctx, EDITOR_IDLE[Math.floor(frame / 16) % 2], editor.x, editor.y, 32, undefined, editorFlip)
+  if (editor.state === 'walking') drawCast(ctx, cast, OLD_CAST.editorWalk[Math.floor(editor.anim / 100) % 4], 'pal', editor.x, editor.y, editorFlip)
+  else if (editor.state !== 'hidden' && editor.state !== 'away') drawCast(ctx, cast, OLD_CAST.editorIdle[Math.floor(frame / 16) % 2], 'pal', editor.x, editor.y, editorFlip)
   if (s.visitor === 'editor' && editor.state === 'standing' && editor.facing === -1) drawVisitorProp(ctx, s.visitorProp, editor.x, editor.y, frame)
 
   // the front row, in front of everyone

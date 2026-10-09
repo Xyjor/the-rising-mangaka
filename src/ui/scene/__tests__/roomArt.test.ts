@@ -204,12 +204,14 @@ describe('the front row', () => {
 
   it('is drawn after the actors, so the cat walks behind it', () => {
     const s = sceneSnapshot({ tier: 'flat' })
-    const log = paint({ tier: 'flat' })
-    const front = alone((ctx) => TIER_FRONT.flat(ctx, s, 100, false, NO_ART))
-    const cat = covers(log, '#e39a4a', 197, 121)
-    expect(cat).toBeGreaterThan(-1)
+    const { ctx, log, images } = fakeContext()
+    render(ctx, sceneSnapshot({ tier: 'flat' }), 0.3, 100)
+    const front = alone((c) => TIER_FRONT.flat(c, s, 100, false, NO_ART))
+    // the cat asleep at the foot of the bed is one cache image
+    const cat = images.find((i) => i.id.startsWith('cast/cat.'))
+    expect(cat).toBeDefined()
     const first = log.findIndex((c) => key([c]) === key([front[0]]))
-    expect(first).toBeGreaterThan(cat)
+    expect(first).toBeGreaterThanOrEqual(cat!.at)
   })
 })
 
@@ -322,11 +324,15 @@ describe('contact shadows', () => {
   })
 
   it('grounds the standing mangaka: a shadow under the feet, drawn before them', () => {
-    const log = paint({ phase: 'ready' })
-    // the standing spot's sprite is at (170, 81): its soles on row 31 (cols 6-16, x 176-186, y 112)
+    const { ctx, log, images } = fakeContext()
+    render(ctx, sceneSnapshot({ phase: 'ready' }), 0.3, 100)
+    // the standing spot's frame is one image at (170, 81), its soles on row 31 (y 112): the shadow row under the feet
+    // (x 174-189, y 111-112) is painted before it
     const under = covers(log, SHADOW, 178, 112)
     expect(under).toBeGreaterThan(-1)
-    expect(coversAny(log, 178, 112)).toBeGreaterThan(under)
+    const hero = images.find((i) => i.id.startsWith('cast/mangaka.') && i.x === 170 && i.y === 81)
+    expect(hero).toBeDefined()
+    expect(hero!.at).toBeGreaterThan(under)
   })
 
   it('grounds the desk, the bed and the bookshelf', () => {

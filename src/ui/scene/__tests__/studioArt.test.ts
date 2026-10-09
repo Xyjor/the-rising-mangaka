@@ -4,7 +4,7 @@
 import { describe, expect, it } from 'vitest'
 import { EQUIPMENT_IDS } from '../../../sim'
 import type { EquipmentId, StudioTierId } from '../../../sim'
-import { covers, fakeContext, fakeSceneArt, sceneSnapshot } from '../../../test/fakeCanvas'
+import { fakeContext, fakeSceneArt, sceneSnapshot } from '../../../test/fakeCanvas'
 import type { FillCall } from '../../../test/fakeCanvas'
 import { PROP_BOX, render } from '../render'
 import type { Snapshot } from '../render'
@@ -73,8 +73,12 @@ const EVERYTHING: Partial<Snapshot> = {
  * mangaka and assistants 0-1) and one from index 1 (the third assistant), as the 0.4.0 term: 10 + 10 + 10 + 8 = 38.
  * Upgrade 0.9.0 Task B5 re-measured it the same way at 1125 (+8): CAT_SLEEP goes from 31 to 39 runs (two stripes down
  * the curled back, `c` between fur at cols 5 and 8 on rows 4-5, each row +4), and `BARE_FULL` draws the cat asleep.
+ * Upgrade 0.11.0 Task 6 re-measured it the same way at 309 (-816): every character is one drawImage from the sprite
+ * cache (spriteCache.ts) now, so its runs leave the fill log: MANGAKA_SIT[0] three times (the mangaka and assistants 0
+ * and 1) 582, MANGAKA_SIT[1] once (assistant 2) 195 and CAT_SLEEP 39: 1125 - 582 - 195 - 39 = 309. The sleepy face's 17
+ * fills over the mangaka stay fills (the mood overlay is code-drawn until the rig head bakes it).
  */
-const FULL_BASELINE = 1125
+const FULL_BASELINE = 309
 
 /**
  * fillRect calls for `BARE_FULL` at night, t 0.9, frame 100, with every generated image ready (`fakeSceneArt`),
@@ -88,10 +92,11 @@ const FULL_BASELINE = 1125
  * 974 (+8): CAT_SLEEP 31 to 39, as the 1125's +8 (the images replace no sprite): 966 + 8 = 974. Upgrade 0.10.0 Task C0
  * re-measured it the same way at 1009 (+35): the room image is the wall alone now, and the apartment's code-drawn
  * floor paints under it (`TIER_FLOOR`: the tatami fill 1, the weave lines 21, the three heri 3 and the seams 10), as
- * the 584's +35: 974 + 35 = 1009. The full scene with the art ready must stay under 1.5 times this (its own budget,
- * 1513.5).
+ * the 584's +35: 974 + 35 = 1009. Upgrade 0.11.0 Task 6 re-measured it the same way at 193 (-816), as the 309's (the
+ * images replace no sprite): 1009 - 582 - 195 - 39 = 193. The full scene with the art ready must stay under 1.5 times
+ * this (its own budget, 289.5).
  */
-const FULL_ART_BASELINE = 1009
+const FULL_ART_BASELINE = 193
 
 function paint(over: Partial<Snapshot> = {}, t = 0.3, frame = 100): FillCall[] {
   const { ctx, log } = fakeContext()
@@ -196,13 +201,13 @@ describe('the studio in the scene', () => {
     expect(key(paint({ trophies: 2 }))).not.toBe(key(paint({ trophies: 1 })))
   })
 
-  it('paints the scene with no studio look in its measured 1125 fills', () => {
+  it('paints the scene with no studio look in its measured 309 fills', () => {
     expect(paint(BARE_FULL, 0.9, 100)).toHaveLength(FULL_BASELINE)
   })
 
   it('keeps the full scene inside the canvas, free of magenta and under 1.5 times its own baseline', () => {
     const budget = FULL_BASELINE * 1.5
-    expect(budget).toBe(1687.5)
+    expect(budget).toBe(463.5)
     for (const [t, frame, visiting] of [[0.9, 100, 0], [0.9, 0, 0], [0.3, 100, 0], [0.9, 100, 1]]) {
       const log = paint(visiting ? { ...EVERYTHING, visitor: 'editor', visitorProp: 'contract' } : EVERYTHING, t, frame)
       expect(log.some((c) => c.style === '#f0f'), `t ${t} frame ${frame}`).toBe(false)
@@ -222,13 +227,14 @@ describe('the studio in the scene', () => {
     render(bare.ctx, sceneSnapshot(BARE_FULL), 0.9, 100, art)
     expect(bare.log).toHaveLength(FULL_ART_BASELINE)
     const budget = FULL_ART_BASELINE * 1.5
-    expect(budget).toBe(1513.5)
+    expect(budget).toBe(289.5)
     for (const [t, frame, visiting] of [[0.9, 100, 0], [0.9, 0, 0], [0.3, 100, 0], [0.9, 100, 1]]) {
       const { ctx, log, images } = fakeContext()
       render(ctx, sceneSnapshot(visiting ? { ...EVERYTHING, visitor: 'editor', visitorProp: 'contract' } : EVERYTHING), t, frame, art)
       // the loft: its room, the doorway and four more props (the anime poster hides the stock one), every piece of
-      // equipment but the pen tablet in its own place in the order, then the loft's front row
-      expect(images.map((i) => i.id), `t ${t} frame ${frame}`).toEqual([
+      // equipment but the pen tablet in its own place in the order, then the loft's front row (the characters are cache
+      // images too, left out here)
+      expect(images.filter((i) => !i.id.startsWith('cast/')).map((i) => i.id), `t ${t} frame ${frame}`).toEqual([
         'room/loft', 'kitchenette', 'window', 'coffee-machine', 'bookshelf', 'reference-shelf', 'bed', 'doorway',
         'tall-chair', 'drafting-table', 'arm-lamp', 'floor-lamp', 'sofa', 'bin',
       ])
@@ -492,16 +498,18 @@ describe('the studio\'s draw order', () => {
   })
 
   it('seats the hero in the tall chair (drawn before the hero) behind the drafting table (drawn after)', () => {
-    const log = paint(EVERYTHING, 0.3, 100)
-    // the seated mangaka's hair, row 2 col 8 of the frame at (132, 67)
-    const hero = covers(log, '#2b2140', 140, 69)
-    expect(hero).toBeGreaterThan(-1)
+    const { ctx, log, images } = fakeContext()
+    render(ctx, sceneSnapshot(EVERYTHING), 0.3, 100)
+    // the seated mangaka's cached frame, drawn at the seat (132, 67)
+    const seated = images.find((i) => i.id === 'cast/mangaka.sit.0/pal')
+    expect(seated).toBeDefined()
+    const hero = seated!.at
     for (const i of at(log, alone((ctx) => EQUIPMENT_ART.chair(ctx, FULL, 100, false)))) {
       expect(i).toBeGreaterThan(-1)
       expect(i).toBeLessThan(hero)
     }
     for (const i of at(log, alone((ctx) => EQUIPMENT_ART['drafting-table'](ctx, FULL, 100, false)))) {
-      expect(i).toBeGreaterThan(hero)
+      expect(i).toBeGreaterThanOrEqual(hero)
     }
   })
 

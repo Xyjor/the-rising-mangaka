@@ -4,6 +4,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { fakeContext } from '../../../test/fakeCanvas'
 import type { FillCall } from '../../../test/fakeCanvas'
+import { OLD_CAST } from '../oldCast'
 import { ASSISTANT_PALS, OUTFIT_PALS, PAL, drawSprite } from '../sprites'
 import {
   CAST_PALETTES, castSurfaceId, createSpriteCache, defaultSurface, drawCast, getCastCache, installCastCache, lookPalette,
@@ -51,6 +52,25 @@ describe('the sprite cache', () => {
       { style: '#1c1a26', x: 2, y: 0, w: 1, h: 1 }, { style: '#c9a24a', x: 1, y: 0, w: 1, h: 1 },
       { style: '#c9a24a', x: 1, y: 1, w: 1, h: 1 }, { style: '#1c1a26', x: 0, y: 1, w: 1, h: 1 },
     ])
+  })
+
+  it('paints each run of one key as one fill, mirrored runs too', () => {
+    const { made, cache } = recording()
+    cache.image(OLD_CAST.mangakaSit[0], 'pal', false)
+    // row 1 '....LLHHHHHHHHHhLL......': one 9-wide hair run from col 6
+    expect(made[0].log).toContainEqual({ style: '#2b2140', x: 6, y: 1, w: 9, h: 1 })
+    expect(made[0].log).not.toContainEqual({ style: '#2b2140', x: 7, y: 1, w: 1, h: 1 })
+    cache.image(OLD_CAST.editorIdle[0], 'pal', true)
+    // row 24 '.......LggggggggL.LFFFfL' mirrored: FFF at cols 2-4, the hem's g at cols 8-15
+    expect(made[1].log).toContainEqual({ style: '#6d4c33', x: 2, y: 24, w: 3, h: 1 })
+    expect(made[1].log).toContainEqual({ style: '#2c3656', x: 8, y: 24, w: 8, h: 1 })
+  })
+
+  it('paints every 0.10 cast frame in each palette it is drawn in, never magenta', () => {
+    const { made, cache } = recording()
+    const frames = Object.values(OLD_CAST).flatMap((f) => (Array.isArray(f) ? f : [f])) as CastFrame[]
+    for (const f of frames) for (const pal of ['pal', 'cardigan', 'blazer', 'look0', 'look5'] as const) cache.image(f, pal, false)
+    for (const m of made) expect(m.log.some((c) => c.style === '#f0f'), m.id).toBe(false)
   })
 
   it('names each surface cast/<frame>/<palette>, /r when mirrored, which the stand-in carries', () => {

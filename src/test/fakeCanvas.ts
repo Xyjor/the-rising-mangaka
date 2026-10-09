@@ -11,6 +11,7 @@
 import { newActorTable, planActors, settleActors } from '../ui/scene/actors'
 import type { Snapshot } from '../ui/scene/render'
 import type { SceneArt } from '../ui/scene/sceneArt'
+import type { Surface } from '../ui/scene/spriteCache'
 
 export interface FillCall {
   style: string
@@ -53,6 +54,14 @@ export interface FakeImage {
 export function fakeImage(id: string, w: number, h: number): CanvasImageSource & FakeImage {
   const img: FakeImage = { id, complete: true, naturalWidth: w, naturalHeight: h, width: w, height: h }
   return img as unknown as CanvasImageSource & FakeImage
+}
+
+/**
+ * A surface for a test's sprite cache: a `fakeImage` named by the surface's id and a recording context, so `images`
+ * names each cast frame drawn.
+ */
+export function fakeSurface(w: number, h: number, id: string): Surface {
+  return { image: fakeImage(id, w, h), ctx: fakeContext().ctx }
 }
 
 /**

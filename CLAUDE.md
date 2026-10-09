@@ -137,7 +137,12 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   the face stamped into the head; `partRules`, `poseRules`); `spriteCache.ts` (0.11.0) the per-session sprite cache: each
   cast frame painted once per palette (`PaletteId`: `pal`, the outfits, `look0`-`look5`) and facing into an
   OffscreenCanvas (a `<canvas>` without one or when it gives no 2D context, a stand-in in node), keyed by frame id;
-  `drawCast` is one `drawImage`; `getCastCache`/`installCastCache` (tests install a recording one). `animation.ts` (0.11.0)
+  `drawCast` is one `drawImage`; `getCastCache`/`installCastCache` (tests install a recording one). Memory: at most
+  324 frames x 9 palettes x 2 facings x 6,144 B (a 32x48 RGBA surface), about 36 MB in theory; a realistic long career
+  builds about 900-1,000 surfaces, about 6 MB. `oldCast.ts` (0.11.0) the 0.10 maps as cast frames (`OLD_CAST`), drawn
+  through the cache until each character's rig release; `render`'s last argument is the cache (`getCastCache()` by
+  default), each character one `drawImage` and the mood overlay still code-drawn over the mangaka's and the
+  assistants'. `animation.ts` (0.11.0)
   the pure animation player: `Anim` (steps of a pose and ms, a loop or a one-shot, a `Posture`), `PlayerState` (the base
   loop and its start, the one-shot over it, a queue of at most `QUEUE_MAX` 2), `switchBase` (a transition first; a moment
   survives a base change within its posture), `enqueue`, `interrupt` (a one-shot that replaces the one playing),
@@ -145,9 +150,7 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   `nextIdle(day, who, n)`: the n-th idle moment's wait (6-14 s) and pick for a character, hashed (`mix`) from the day,
   the character and the count; no RNG state. `reactions.ts` (0.11.0) `reactionFor(prev, next)`: the cast's reaction to a
   store change (a missed issue, a bad or good poll by the corkboard's `rankToneOf` (`story.ts`), a level-up, the chapter
-  turning late), with `popsFor`'s guards; a one-shot result reacts when dismissed, never as it arrives. Memory: at most
-  324 frames x 9 palettes x 2 facings x 6,144 B (a 32x48 RGBA surface), about 36 MB in theory; a realistic long career
-  builds about 900-1,000 surfaces, about 6 MB. `season.ts` has `seasonOf(day)` and the window's season layer; `roomArt.ts` each tier's walls and floor (`TIER_ROOM` is `TIER_WALL` then `TIER_FLOOR`:
+  turning late), with `popsFor`'s guards; a one-shot result reacts when dismissed, never as it arrives. `season.ts` has `seasonOf(day)` and the window's season layer; `roomArt.ts` each tier's walls and floor (`TIER_ROOM` is `TIER_WALL` then `TIER_FLOOR`:
 tatami, planks, concrete), the front row of floor props (`TIER_FRONT`, drawn after the actors), the story props (corkboard,
 calendar, cups, the serial's cover, fan letters, bin) and `drawAmbient` (daylight shaft, lamp pool, vignette), all in
 canvas space; `story.ts` `storyLook`, the story props' five snapshot inputs read from the game; `studioArt.ts` the
@@ -161,9 +164,10 @@ canvas space; `story.ts` `storyLook`, the story props' five snapshot inputs read
   and `Pops.tsx` the DOM speech bubbles and floating money/fans/xp numbers, styled by `scene.css`;
   `StudioScene.tsx` is the component and its 24 fps frame loop (reading `studioLook` through `useShallow`, lighting
   from the presentation clock, playing the `knock` and `pop` cues); every render is checked against a hand-measured
-  fillRect baseline (`render.test.ts` 701, `studioArt.test.ts` 1125; with every scene image ready, 584 and 1009; the
-  rest scene with the doze, `render.test.ts` 506; each re-measured by the 0.9.0 cast redraw, and the art baselines rose by
-  the apartment's code floor in 0.10.0) and must stay under 1.5x
+  fillRect baseline (`render.test.ts` 274, `studioArt.test.ts` 309; with every scene image ready, 157 and 193; the
+  rest scene with the doze, `render.test.ts` 303; re-measured by the 0.9.0 cast redraw, the art baselines rose by
+  the apartment's code floor in 0.10.0, and all five fell in 0.11.0 once every character became one `drawImage` from the
+  sprite cache and left the fill log) and must stay under 1.5x
   it),
   `components.tsx` (Bar, Pips, Modal, RankChart), `format.ts` (money/compact/plural formatters), `Icon.tsx`
   (inline SVG icon set), `SaveFileSection.tsx` and `useSaveFile.ts` (export and load, in Settings and on the
@@ -198,7 +202,7 @@ canvas space; `story.ts` `storyLook`, the story props' five snapshot inputs read
 - `src/test/` — shared test-only helpers: `dom.ts` (happy-dom setup, imported for side effects), `fixtures.ts`
   (game-state builders such as `withPendingResult`, shared across UI test files), `fakeSound.ts` (a recording
   sound engine for `connectSound` or `installSound`) and `fakeCanvas.ts` (a recording 2D context that logs each
-  fillRect with its fillStyle, and each drawImage apart in `images` with `fakeImage` to feed it, `covers`/`coversAny`, how many fills paint a pixel, and `sceneSnapshot`, the scene's reference state, for `render` tests).
+  fillRect with its fillStyle, and each drawImage apart in `images` with `fakeImage` to feed it, `covers`/`coversAny`, how many fills paint a pixel, `fakeSurface`, a surface for a test's sprite cache (`installCastCache(createSpriteCache(fakeSurface))` in a happy-dom scene test, whose canvas paints nothing), so `images` names each cast frame drawn, and `sceneSnapshot`, the scene's reference state, for `render` tests).
 - `src/styles/tokens.css` (design tokens, light + dark), `base.css` (primitives), `app.css` (layout and panels),
   `cards.css` (desk cards; on phones they follow the project card), `stage.css` (the full-bleed stage layout),
   `hud.css` (the corner overlays, rail and status card).
