@@ -369,15 +369,20 @@ at `CAT_BED` (4 fills, drawn just before it).
   is one skin row closed by `L`, so `breathOf` still drops row 24 cleanly. The editor's suit `G/g` is recoloured to
   `#3a3d4c`/`#2c3656`, with two-lens `P` glasses (a one-cell bridge at col 10; since 0.10.1 the frame is a mid steel
   `#6b6b78`, at least 0.25 OKLab lightness from the eye `E` and the skin `S`, where `#3b3b45` read as a dark block), a
-  `W` collar, an `N` tie, `E` shoes and the `F/f` briefcase in the trailing hand, which is two wide; its breath frame is hand-drawn so the case keeps
-  its seven rows. The cat is a tabby (`c` stripes, the `Q` chest, an `E` eye, 1-px ears) with a tail on its walk.
-  The doze stays the generated frame, its folded arms remapped `J` to `j` (sleeves) in the manifest, 100 runs to 91.
-  The gate is `scripts/spriteSheet.ts` (`npm run sprites -- <out.png> [--walk]`): an 8x contact sheet (the cat at 16x)
-  of each frame beside its HEAD frame, plus the cardigan, blazer and assistant looks and the four moods' faces and
-  marks (new only), and the walk strips (`--walk` writes only those). The run-count caps are `RUN_CAPS` in sprites.test.ts, 1.3x each frame's
-  pre-redraw count, which keeps every fill baseline inside its 1.5x budget by construction. The ruling: **`ANCHOR_HEAD` is
-  untouched**. The sheets' 2:1 head cannot fit the `FACES`, mark-slot and avatar-crop contract, and the hand-drawn
-  head is the part that already read, so the staff portraits do not change.
+  `W` collar, an `N` tie, `E` shoes and the `F/f` briefcase in the right hand, which is two wide; its breath frame
+  is hand-drawn so the case keeps its seven rows. Since 0.10.2 each walk's contact frames swing the arm opposite the
+  stepping leg (their arm rows 20-23 swapped), the standing leg keeps the idle's shading on both, the editor's take
+  `EDITOR_BODY`'s shoulders and the mangaka's legs through `recolour` (`F/f` to `G/g`, `O/o` to `E`) with the case
+  drawn over them, and the stretch's raised fists are outlined (an `L` over each on row 11). The cat is a tabby (`c`
+  stripes, the `Q` chest, an `E` eye, 1-px ears) with a tail on its walk. The doze stays the generated frame, its
+  folded arms remapped `J` to `j` (sleeves) in the manifest, 100 runs to 91. The gate is `scripts/spriteSheet.ts`
+  (`npm run sprites -- <out.png> [--walk]`): an 8x contact sheet (the cat at 16x) of each frame beside its HEAD frame,
+  plus the cardigan, blazer and assistant looks and the four moods' faces and marks (new only), and the walk strips
+  (`--walk` writes only those); a palette missing on either side, or a frame missing at HEAD, is an empty cell and a
+  note on stdout. The run-count caps are `RUN_CAPS` in sprites.test.ts, 1.3x each frame's pre-redraw count, which
+  keeps every fill baseline inside its 1.5x budget by construction. The ruling: **`ANCHOR_HEAD` is untouched**. The
+  sheets' 2:1 head cannot fit the `FACES`, mark-slot and avatar-crop contract, and the hand-drawn head is the part
+  that already read, so the staff portraits do not change.
 
 The frame sets: idle 2 frames (`frame/16 % 2`), walk 4 (`anim/100 % 4`), sit 2 (`frame/8 % 2` while working, frame 0
 otherwise), panic 2 (for 40 of every 240 frames while working on a late chapter, `Snapshot.late`), a 30x14 lying
@@ -666,7 +671,9 @@ lightness term of the snap and the colour cap's re-snap (`nearestPaletteIndex`):
 chroma at the cost of its lightness, and the lighting flattens to a few steps. Apartment 0.1, flat 0.03, loft 0.25 (superseded by "The walls" below: no room entry remaps a floor since 0.10.0,
 and the flat's lightness is 0.15);
 every earlier entry has none, so it regenerates byte for byte. At night the `ROOM_NIGHT_DIM` fill and the night
-overlay leave the flat a slate teal and the loft a warm grey-pink, both still reading as their rooms.
+overlay leave the flat a slate teal and the loft a warm grey-pink, both still reading as their rooms (superseded for
+the flat: since 0.10.1 its wall is code-drawn in its own night colours, with no `ROOM_NIGHT_DIM`; see "The flat's wall
+in code" below).
 
 **The walls (0.10.0, Release C).** Ruling: generated walls only, code-drawn floors. The R2 shells' perspective floors
 sat badly under the flat front row, so a room image is now the wall alone, canvas rows 0-113 (`ROOM_ART`, 320x114),
@@ -699,7 +706,16 @@ flat it would merge the two stripe tones, so the flat sets none. `npm run art` p
 each flattened wall (`room/apartment: flatten mode #..., N% of the wall`), so a regeneration where the wood or a stripe
 wins the count shows at the console. The apartment's 0.25 is the smallest radius that
 clears the vignette's corners with the beam and pillars whole (the baseboard's lit row joins the plaster); the loft's
-0.2 removes the shadow band under its beam, the bricks, beam and baseboard unchanged. The plaster's colours, counted
+0.2 removes the shadow band under its beam, the bricks, beam and baseboard unchanged. A 0.10.2 retry kept the
+apartment's recipe: no crop and radius keep both the plaster one colour and the baseboard's lit row (output row 111,
+the raw's rows 1010-1017, about a third of them plaster). Before the flatten that row lies 0.124 to 0.24 OKLab from
+the mode (`#dac69d`, median 0.16), inside the plaster's own spread: only the grey top corners lie beyond 0.2 (none
+between x 60 and 259), but 3766 plaster pixels lie beyond 0.124, the band under the beam (rows 10-25 across the
+middle) and both sides down to the baseboard. So a crop that drops the corners allows 0.2, which still turns the lit
+row's middle to plaster, and a radius that keeps the row whole (under 0.124) leaves the band, which no crop can drop
+without the beam. Measured: at 0.2 the lit row keeps 95 of 320 pixels (at the ends) and the art.test box holds 3
+colours (grey and wood wedges in the corners); cropping x to 230-1872 (no edge posts) gets the box to 2 but leaves the
+lit row 244 of 320 plaster; at 0.12 the lit row is whole and the box holds 6 colours. The plaster's colours, counted
 in plaster-only boxes: before (the R2 walls cut to 320x114) the apartment 3 (`#c9b48a`, `#b88d62`, `#9c7550`), the
 flat 3 (`#6f9a90`, `#8fb5ac`, `#66666f`), the loft 8; after, the apartment 1 (`#e6d3a8`), the loft 1 (`#f5f1c9`),
 the flat its two stripe tones `#6f9a90` and `#cbc7bf` (each teal stripe with a 1 px `#8fb5ac` edge). The walls are
@@ -711,20 +727,29 @@ keep theirs. The 0.10.0 flat had one stripe twice as wide as the rest and its ho
 floor's own `#c8894e` and `#a86d3a`, and in five generations on the Space Z-Image gave even stripes only under a light pool
 (the snap then spreads the pale stripe over 9 to 13 greys at any `lightness`) or flat light only with uneven stripes.
 So the `room/flat` manifest entry, its PNG and its raw are gone (git keeps them), `ROOM_ART` lists the apartment and
-the loft only (a `Partial` record: a tier may have no wall image), `sceneImages` leaves `room.flat` null, and `render`
+the loft only (a `Partial` record: a tier may have no wall image; since 0.10.2 a full record again, every tier, the
+flat `null`, so a new tier fails `tsc` until its wall is decided), `sceneImages` leaves `room.flat` null, and `render`
 paints `drawRoomShell` for the flat, wall and floor, with their own night colours and no `ROOM_NIGHT_DIM`.
 `roomArt.ts` `flatWall` is redrawn as the generation was asked for: sixteen 10 px teal stripes (`#6f9a90`, night
-`#465f5a`) every 20 px on a pale ground (`#cbc7bf`, night `#77757e`, the loft's night sheen), even from x 0 to 319,
-over a walnut wainscot that shares no colour with the floor (panels `#8a5f3a`, night `#5a4432`; the rail `#5a3d28`,
-night `#3d2d23`; the grooves, frame and baseboard `#6e4a2c`, night `#4a3626`), the panels' OKLab lightness at most
-0.85 of the planks' by day and by night (`roomArt.test.ts`). Still 38 fills, the flat's room 83 (cap 84); no baseline
-moved (the reference scenes are the apartment). The palette: `#8fb5ac`, the old pale teal ground, left
-`SCENE_ADDITIONS` (only the flat's PNG held it; regenerating `prop/books` now changes one pixel, `#a9a59c` to
-`#bdb8ae`, and the committed PNG stays); `#b98a5c` and `#a0764c`, the old honey panels and grooves, stay (prop PNGs hold
-them), drawn now as the corkboard's cork (was `#b88a55`, OKLab 0.009 away) and the drafting table's body (was
+`#425c60` since 0.10.2, was `#465f5a`) every 20 px on a pale ground (`#cbc7bf`, night `#77757e`, the loft's night
+sheen), even from x 0 to 319, over a walnut wainscot that shares no colour with the floor (panels `#8a5f3a`, night
+`#5a4432`; the rail `#5a3d28`, night `#3d2d23`; the grooves, frame and baseboard `#6e4a2c`, night `#4a3626`), the
+panels' OKLab lightness at most 0.85 of the planks' by day and by night (`roomArt.test.ts`). Each night colour is
+dimmer and a little bluer than its day one: a lower OKLab lightness and a blue share (b over r + g + b) at least 0.01
+higher, which a plain dim (every channel scaled alike, the share moved by rounding only) fails; the old night stripe
+was one (+0.001), `#425c60` is +0.026 (the ground +0.026, the woods +0.036 to +0.041), and the night stripe stays at
+least 0.1 OKLab from the night ground (0.117; by day 0.19) (`roomArt.test.ts`, 0.10.2). Still 38 fills, the flat's
+room 83 (cap 84); no baseline moved (the reference scenes are the apartment). The palette: `#8fb5ac`, the old pale
+teal ground, left `SCENE_ADDITIONS` (only the flat's PNG held it; regenerating `prop/books` changes one pixel,
+`#a9a59c` to `#bdb8ae`, committed in 0.10.2 with the bookshelf's five; the kitchenette's 423 wait, see "2026-10-09,
+the remaining minors" under "Rulings"); `#b98a5c` and `#a0764c`, the old honey panels and grooves, stay (prop PNGs
+hold them), drawn now as the corkboard's cork (was `#b88a55`, OKLab 0.009 away) and the drafting table's body (was
 `#a0703c`, 0.02 away). `art.test.ts` decodes the two image walls (8-bit indexed only, `node:zlib` and the five PNG
 filters, no sharp) and holds each plaster at most 2 colours in boxes read off the PNGs: the apartment x 8-311, rows
-14-107; the loft x 4-224 and 258-315 (either side of the brick column), rows 16-102 (1 colour each today).
+14-107; the loft x 4-224 and 258-315 (either side of the brick column), rows 16-102 (1 colour each today). Both walls
+use filter 0 only, so since 0.10.2 the decoder also meets all five on a synthetic 6x5 image built in the test (one
+scanline per filter, its filtered bytes worked by hand, the Paeth row taking each neighbour and the left/upper-left
+and above/upper-left ties), and refuses bytes without the PNG signature.
 
 With a tier's wall image ready, `render` draws it at (0, 0, 320, 114) (`WALL_H`), at night the `ROOM_NIGHT_DIM` fill
 over the same rows, then `TIER_FLOOR`; `TIER_WALL` paints only while the image is missing or loading (`drawRoomShell`,
@@ -734,8 +759,10 @@ paint no fills, so the code floor is new to the art baselines: `render.test.ts` 
 (the tatami 1, its weave lines 21, the heri 3, the seams 5 + 5); 701, 1125 and 506 are unchanged.
 
 `sceneImages.ts` builds one `HTMLImageElement` per ref in the registry's `ROOM_ART` and `SCENE_PROP_ART` records
-(full records since R2; any image still loading keeps its piece code-drawn), once, behind a module-level memo; `StudioScene` passes the
-result to `render`, and each image's load clears the loop's last-painted snapshot so the next step repaints it.
+(`SCENE_PROP_ART` a ref per prop; `ROOM_ART` a ref or `null` per tier, a `Partial` record in 0.10.1 and a full one
+again since 0.10.2; a null ref, or an image still loading, keeps its piece code-drawn), once, behind a module-level
+memo; `StudioScene` passes the result to `render`, and each image's load clears the loop's last-painted snapshot so
+the next step repaints it.
 `render.ts` never imports the registry. In tests, `fakeCanvas.ts` records each `drawImage` in `images` (with `at`, the
 fill log's length at the call, for order checks) and `fakeImage(id, w, h)` makes an image `ready` accepts; the fill
 `log` stays fillRect-only, so the 701/1125 baselines measure what is still code-drawn (with `NO_ART` they are
@@ -777,7 +804,7 @@ PNG gets one more palette entry for transparency (never drawn, so `art.test.ts` 
 | `EVENT_ART` (96x54) | `event/<EventId>` | the event desk card's header, 2x (1x at 640 px and below) |
 | `ANIME_ART` | `anime/<AnimeStudioId>` | the anime offer card's studio columns, 1x (32x32: the round emblems read better square than at 48x32) |
 | `TIER_ART_THUMB` (96x54) | `tier/<StudioTierId>` | Studio's tier rows, 1x |
-| `ROOM_ART` (320x114) | `room/apartment`, `room/loft` | the live scene's tier's wall, drawn by `render` over canvas rows 0-113 (0.9.0; a wall only since 0.10.0; the flat has none since 0.10.1, its wall code-drawn; see "The walls") |
+| `ROOM_ART` (320x114) | `room/apartment`, `room/loft` | the live scene's tier's wall, drawn by `render` over canvas rows 0-113 (0.9.0; a wall only since 0.10.0; the flat has none since 0.10.1, its wall code-drawn, and is `null` in the record since 0.10.2; see "The walls") |
 | `SCENE_PROP_ART` (`PROP_SPRITE`) | `prop/<ScenePropId>` | the live scene's props, at `PROP_BOX` (the structural ones 0.9.0, the furniture and front row 0.10.0) |
 
 **Sheets (batch 2, 0.8.0), a second host.** The remaining 51 assets came from twelve sheets generated on
@@ -1638,3 +1665,23 @@ sprites"). The 0.9.0 to 0.11.0 labels elsewhere in this file are the scene-art p
 wall is dropped and its wall drawn in code (even 10 px stripes, a walnut wainscot apart from the honey floor), since no
 generation gave both even stripes and flat light; the apartment and the loft keep their images, and `art.test.ts`
 holds their plaster to at most 2 colours.
+
+**2026-10-09, the remaining minors.** Release 0.10.2 (plan: `docs/plans/2026-10-09-remaining-minors.md`) fixes the
+minor findings the 0.9.0, 0.10.0 and 0.10.1 reviews left. Its rulings:
+
+- The walks (see "The cast redraw" under "The sprites"): each contact frame swings the arm opposite the stepping leg,
+  the standing leg keeps its shading on both contact frames, the editor's walk legs are the mangaka's through
+  `recolour` with his briefcase drawn over them, and the stretch's raised fists are outlined; no fill baseline moved.
+- The flat's night stripe is `#425c60` (was `#465f5a`, a plain dim), and every night colour of the flat's wall is
+  tested dimmer and at least 0.01 bluer in blue share than its day one (see "The flat's wall in code").
+- The apartment's wall keeps its recipe (crop, seam, `flatten` 0.25): no crop and radius keep both its plaster flat
+  and its baseboard's lit row (see "The walls").
+- `art.test.ts`'s decoder meets the five PNG filters on a synthetic image and refuses a wrong signature.
+- `prop/books` (1 pixel) and `prop/bookshelf` (5) are regenerated against the 0.10.1 palette; `prop/kitchenette` is
+  not, since its regeneration changes 423 of 3364 pixels (the dark green `#262f25` edges turn `#1f2129`, the pale
+  `#cbc7bf` wall behind it `#b9b6ad`, the warm `#dba57d` highlights grey), a visible change left to the owner, so
+  `npm run art -- --all` still rewrites that one PNG. With the pre-0.10.0 palette all three regenerate byte for byte:
+  the drift is the palette's (`#8fb5ac` and `#9dc2b9` out, `#6f9a90` in), not the pipeline's.
+- `ROOM_ART` is a full record again (the flat `null`); the corkboard's `CORK` comment names every sprite holding
+  `#b98a5c` (the kitchenette, bed, boxes and reference shelf); `npm run sprites` draws an empty cell and prints a note
+  when the working tree lacks an outfit or assistant palette, as it already did for HEAD.

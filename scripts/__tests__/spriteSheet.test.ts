@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { blitFace, layoutRow, markKey, paintOver, rasterize } from '../lib/spriteSheet'
+import { blitFace, cellOrEmpty, layoutRow, markKey, paintOver, rasterize } from '../lib/spriteSheet'
 
 // The contact sheet's pure parts (scripts/spriteSheet.ts draws and writes the PNG with sharp; these build its pixels).
 const PAL3 = { L: '#102030', S: '#f4cfa5', s: '#dba57d' }
@@ -31,6 +31,21 @@ describe('the sprite contact sheet', () => {
     expect(pixel(dst, 2, 1)).toEqual([0x10, 0x20, 0x30, 255])
     paintOver(dst, rasterize(['L'], PAL3, 1), -1, -1) // wholly outside: nothing, no throw
     expect(pixel(dst, 0, 0)).toEqual([0xf4, 0xcf, 0xa5, 255])
+  })
+
+  it('draws a frame in its palette, or an empty cell its size and a note when the palette is missing', () => {
+    const notes = new Set<string>()
+    const drawn = cellOrEmpty(['LS.', '.sL'], PAL3, 2, notes, 'note: no PAL3')
+    expect(drawn).toEqual(rasterize(['LS.', '.sL'], PAL3, 2))
+    expect([...notes]).toEqual([])
+    // no palette (a working tree without that outfit or look): no fallback palette, no throw
+    const empty = cellOrEmpty(['LS.', '.sL'], undefined, 2, notes, 'note: no OUTFIT_PALS.cardigan')
+    expect([empty.width, empty.height]).toEqual([6, 4])
+    expect(empty.data.every((v) => v === 0)).toBe(true)
+    expect([...notes]).toEqual(['note: no OUTFIT_PALS.cardigan'])
+    // the note is said once however many cells miss the palette
+    cellOrEmpty(['L'], undefined, 1, notes, 'note: no OUTFIT_PALS.cardigan')
+    expect(notes.size).toBe(1)
   })
 
   it('lays a row out left to right with the gap and reports its height', () => {

@@ -20,8 +20,9 @@ export function onSceneImageLoad(cb: () => void): () => void {
   return () => { listeners.delete(cb) }
 }
 
-function image(ref: ArtRef | undefined): HTMLImageElement | null {
-  // no DOM (node tests, a server render): nothing to load, so the piece stays code-drawn
+function image(ref: ArtRef | null | undefined): HTMLImageElement | null {
+  // no ref (a tier without a wall image, the flat's) or no DOM (node tests, a server render): nothing to load, so the
+  // piece stays code-drawn
   if (!ref || typeof Image === 'undefined') return null
   const img = new Image(ref.w, ref.h)
   img.decoding = 'async'

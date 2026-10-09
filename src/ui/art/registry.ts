@@ -199,12 +199,14 @@ export const TIER_ART_THUMB: Record<StudioTierId, ArtRef> = {
 
 /**
  * The generated room walls, 320x114 (canvas rows 0-113: the wall, beams, pillars, baseboard; no floor, no furniture),
- * each the raw's rows above its wall/floor seam: the apartment's and the loft's. A tier may have none: the flat's wall is
- * code-drawn since 0.10.1 (roomArt.ts `TIER_WALL`), so `sceneImages` leaves its room null. The scene draws every floor
- * in code (roomArt.ts `TIER_FLOOR`); until a wall loads, the tier's code-drawn shell (`drawRoomShell`) paints instead.
+ * each the raw's rows above its wall/floor seam: the apartment's and the loft's. Every tier is listed, so a new tier
+ * fails `tsc` until its wall is decided; null is a tier with none: the flat's wall is code-drawn since 0.10.1
+ * (roomArt.ts `TIER_WALL`), so `sceneImages` leaves its room null. The scene draws every floor in code (roomArt.ts
+ * `TIER_FLOOR`); until a wall loads, the tier's code-drawn shell (`drawRoomShell`) paints instead.
  */
-export const ROOM_ART: Partial<Record<StudioTierId, ArtRef>> = {
+export const ROOM_ART: Record<StudioTierId, ArtRef | null> = {
   apartment: art('room/apartment', 320, 114),
+  flat: null,
   loft: art('room/loft', 320, 114),
 }
 

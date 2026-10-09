@@ -126,6 +126,39 @@ describe('each tier\'s room', () => {
     expect(nightStripes[0].style).not.toBe('#6f9a90')
   })
 
+  it("dims each of the flat's wall colours at night and turns it a little bluer, the stripe still apart from the ground", () => {
+    // flatWall paints the same rects by day and by night, so each day fill pairs with the night fill in its place; only
+    // the trim (the switch and the outlet) keeps its colour. Each other night colour has a lower OKLab lightness and a
+    // blue share (b over r + g + b) at least 0.01 higher: a plain dim, every channel scaled alike, moves the share by
+    // rounding only (under 0.005), so 0.01 asks for a real shift to blue
+    const lightness = (hex: string) => rgbToOklab(...hexToRgb(hex))[0]
+    const blueShare = (hex: string) => { const [r, g, b] = hexToRgb(hex); return b / (r + g + b) }
+    const day = alone((ctx) => TIER_WALL.flat(ctx, false))
+    const night = alone((ctx) => TIER_WALL.flat(ctx, true))
+    expect(night.map(({ x, y, w, h }) => [x, y, w, h])).toEqual(day.map(({ x, y, w, h }) => [x, y, w, h]))
+    const pairs = new Map<string, Set<string>>()
+    day.forEach((c, i) => pairs.set(c.style, (pairs.get(c.style) ?? new Set()).add(night[i].style)))
+    const kept = [...pairs].filter(([d, n]) => n.has(d)).map(([d]) => d).sort()
+    expect(kept).toEqual(['#b8b2a5', '#f0ead6'])
+    const dimmed = [...pairs].filter(([d]) => !kept.includes(d))
+    // the ground, the stripe, the wainscot's panels (and the ceiling band), its rail, and its grooves (and the frame and
+    // the baseboard)
+    expect(dimmed).toHaveLength(5)
+    for (const [d, n] of dimmed) {
+      expect(n.size, `${d} has one night colour`).toBe(1)
+      const [hex] = n
+      expect(lightness(hex), `${d} to ${hex}: dimmer`).toBeLessThan(lightness(d))
+      expect(blueShare(hex) - blueShare(d), `${d} to ${hex}: bluer`).toBeGreaterThanOrEqual(0.01)
+    }
+    // the night stripe stays apart from the night ground: at least 0.1 OKLab (the day pair is 0.19 apart)
+    const oklab = (hex: string) => rgbToOklab(...hexToRgb(hex))
+    const apart = (a: string, b: string) => Math.hypot(...oklab(a).map((v, i) => v - oklab(b)[i]))
+    const stripeAt = coversAny(night, 15, 40)
+    const groundAt = coversAny(night, 5, 40)
+    expect(night[stripeAt].style).not.toBe(night[groundAt].style)
+    expect(apart(night[stripeAt].style, night[groundAt].style)).toBeGreaterThanOrEqual(0.1)
+  })
+
   it("sets the flat's walnut wainscot apart from its honey floor: no colour shared, and darker, by day and by night", () => {
     // the wainscot is rows 84-110 (the rail, the panels and their grooves, the switch and the outlet on it); the floor is
     // every colour flatFloor paints (the planks, their lines, the rug). Darker: the panels' OKLab lightness at most 0.85
