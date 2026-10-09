@@ -461,7 +461,11 @@ scene 303 (454.5). The reference scene loses MANGAKA_SIT[0] twice (the mangaka a
 CAT_SLEEP (39): 701 - 427 = 274; the full scene loses MANGAKA_SIT[0] three times (582), MANGAKA_SIT[1] (195) and
 CAT_SLEEP (39): 1125 - 816 = 309; the art twins lose the same, 584 - 427 = 157 and 1009 - 816 = 193; the rest scene
 loses MANGAKA_LIE (72), CAT_SIT (40) and ASSISTANT_DOZE (91): 506 - 203 = 303. What stays a fill is the mood overlay
-(the sleepy face's 17), the Zs, the blanket and the cushion.
+(the sleepy face's 17), the Zs, the blanket and the cushion. The fixed extras that did not shrink (the flat's
+code-drawn wall, the night, the editor's shadow, prop and `!`) left three budget loops under 2 fills of their 1.5x
+budget, so each loop's worst scene has its own pin and the loop is held to 1.5x that: the flat in spring at night with
+the art ready 235 (budget 352.5, `render.test.ts` `ART_WORST_FILLS`), and the full scene with the editor visiting 462
+(693, `studioArt.test.ts` `VISIT_FULL_BASELINE`), 285 with the art ready (427.5, `VISIT_ART_BASELINE`).
 
 ### Art
 The live scene is code-drawn `fillRect` (`render.ts`, `roomArt.ts`, `studioArt.ts`, `sprites.ts`), and since 0.9.0 it

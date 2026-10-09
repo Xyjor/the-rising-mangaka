@@ -60,6 +60,22 @@ const ART_BASELINE_FILLS = 157
 const ART_BUDGET = ART_BASELINE_FILLS * 1.5
 
 /**
+ * fillRect calls for the worst scene of the art loop (every tier, season and time of day with every generated image
+ * ready): the flat in spring at night, `sceneSnapshot({ tier: 'flat', season: 'spring' })` at t = 0.9 and frame 100:
+ * 235 (Upgrade 0.11.0 Task 6, measured the same way by rendering it into the recording context and reading
+ * `log.length`). ART_BASELINE_FILLS' 157 is the apartment by day, so once the characters' runs left the fill log the
+ * loop's old budget, 235.5, was cleared by half a fill: this scene has its own pin. By hand, against the 157: the flat's
+ * code-drawn wall and floor 83 (it has no room image since 0.10.1) in place of the apartment's floor 35 under its
+ * image, +48; and the night, +30: the stars 9 and the moon 2 in place of the sun 1 (+10), the sleepy face 12 and its
+ * mark 5 on the working mangaka (+17), the night overlay 1 and the working glow 1 (+2), the lamp pool 3 in place of the
+ * daylight shaft's 4 (-1) and the lit doorway's halo and spill 2 (+2); no room-image dim, since the flat has no image
+ * (the apartment at night is 157 + 29 = 186, with that dim and no doorway light): 157 + 48 + 30 = 235. The same
+ * scene by day is 205, the loft at night 185. Every scene in the loop must stay under 1.5 times this (352.5).
+ */
+const ART_WORST_FILLS = 235
+const ART_WORST_BUDGET = ART_WORST_FILLS * 1.5
+
+/**
  * fillRect calls for the rest scene (`sceneSnapshot({ activity: 'rest' })`: the reference scene on a rest day, the
  * assistant dozing at the desk under the generated ASSISTANT_DOZE, 0.11.0) at t = 0.3 and frame 100, measured the same
  * way: 509. By hand, from the 673: the seated mangaka goes to bed (MANGAKA_SIT[0] 184 out; MANGAKA_LIE 72, the blanket
@@ -126,7 +142,7 @@ describe('render', () => {
     }
   })
 
-  it('stays under 1.5 times its own measured baseline with every generated image ready, in every tier and season', () => {
+  it('stays under 1.5 times its own measured worst case with every generated image ready, in every tier and season', () => {
     expect(ART_BUDGET).toBe(235.5)
     const ref = fakeContext()
     render(ref.ctx, sceneSnapshot(), 0.3, 100, fakeSceneArt())
@@ -135,15 +151,25 @@ describe('render', () => {
       'room/apartment', 'kitchenette', 'window', 'bookshelf', 'poster', 'bed', 'door', 'cast/mangaka.sit.0/look0',
       'chair', 'cast/mangaka.sit.0/pal', 'desk', 'cast/cat.sleep/pal', 'zabuton', 'boxes', 'bin',
     ])
+    // the loop's worst scene has its own pin (the flat in spring at night, ART_WORST_FILLS), and the loop is held to 1.5
+    // times that
+    expect(ART_WORST_BUDGET).toBe(352.5)
+    const worst = fakeContext()
+    render(worst.ctx, sceneSnapshot({ tier: 'flat', season: 'spring' }), 0.9, 100, fakeSceneArt())
+    expect(worst.log).toHaveLength(ART_WORST_FILLS)
+    let most = 0
     for (const tier of ['apartment', 'flat', 'loft'] as StudioTierId[]) {
       for (const season of ['spring', 'summer', 'autumn', 'winter'] as Season[]) {
         for (const t of [0.3, 0.9]) {
           const { ctx, log } = fakeContext()
           render(ctx, sceneSnapshot({ tier, season }), t, 100, fakeSceneArt())
-          expect(log.length, `${tier} ${season} t ${t}`).toBeLessThan(ART_BUDGET)
+          expect(log.length, `${tier} ${season} t ${t}`).toBeLessThan(ART_WORST_BUDGET)
+          most = Math.max(most, log.length)
         }
       }
     }
+    // no other scene has overtaken the pinned one
+    expect(most).toBe(ART_WORST_FILLS)
   })
 
   it("spans the bookshelf's contact shadow over its sprite when the image is ready, and keeps the old one without art", () => {

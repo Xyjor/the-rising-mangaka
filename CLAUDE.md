@@ -167,7 +167,9 @@ canvas space; `story.ts` `storyLook`, the story props' five snapshot inputs read
   fillRect baseline (`render.test.ts` 274, `studioArt.test.ts` 309; with every scene image ready, 157 and 193; the
   rest scene with the doze, `render.test.ts` 303; re-measured by the 0.9.0 cast redraw, the art baselines rose by
   the apartment's code floor in 0.10.0, and all five fell in 0.11.0 once every character became one `drawImage` from the
-  sprite cache and left the fill log) and must stay under 1.5x
+  sprite cache and left the fill log; the budget loops that sweep many scenes have their own worst-case pins: the flat
+  in spring at night with the art ready 235, the full scene with the editor visiting 462, 285 with the art ready) and
+  must stay under 1.5x
   it),
   `components.tsx` (Bar, Pips, Modal, RankChart), `format.ts` (money/compact/plural formatters), `Icon.tsx`
   (inline SVG icon set), `SaveFileSection.tsx` and `useSaveFile.ts` (export and load, in Settings and on the

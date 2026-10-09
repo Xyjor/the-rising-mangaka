@@ -98,6 +98,37 @@ const FULL_BASELINE = 309
  */
 const FULL_ART_BASELINE = 193
 
+/**
+ * fillRect calls for the worst scene of the full-scene loop with no art (`EVERYTHING`: the loft, every piece of
+ * equipment, 24 volumes, the anime poster, 4 trophies, three assistants, winter) with the editor visiting and a contract
+ * in hand, at night, t 0.9, frame 100: 462 (Upgrade 0.11.0 Task 6, measured the same way by rendering it into the
+ * recording context and reading `log.length`). FULL_BASELINE's 309 is the bare apartment, so once the characters' runs
+ * left the fill log the loop's old budget, 463.5, was cleared by 1.5 fills: this scene has its own pin. By hand, each
+ * change measured alone against the 309 (they add up with no interaction): the loft +27 (its room 70 for the
+ * apartment's 61 +9, its doorway 6 for the plain door's 5 +1, the sill plant and the floor plant 15, the doorway's halo
+ * and spill at night 2; the front row is 19 in both), the coffee machine +6, the arm lamp +9 (its 9 for the stock lamp's
+ * 3 +6, its bulb and glow at night 3), the reference shelf +14, the tall chair +4 (8 for the stock chair's 4), the
+ * drafting table +4 (11 for the stock desk's 7), the pen tablet +4 (3 and its glow 1), 24 volumes +24, the anime poster
+ * +12 (16 for the stock poster's 4) and 4 trophies +16: 309 + 120 = 429. The editor's visit adds 33: his contact shadow
+ * 1, the contract 19 and the ! above him 4 (24), and the mangaka's mood goes from sleepy (face 12, mark 5) to surprised
+ * (face 22, mark 4), +9: 429 + 33 = 462. The loop's other scenes are 429 (frame 0), 429 and 399 (by day). Every scene in
+ * the loop must stay under 1.5 times this (693).
+ */
+const VISIT_FULL_BASELINE = 462
+
+/**
+ * fillRect calls for the same worst scene (the editor visiting, t 0.9, frame 100) with every generated image ready
+ * (`fakeSceneArt`): 285 (Upgrade 0.11.0 Task 6; the loop's old budget, 289.5, was cleared by 4.5 fills). By hand, each
+ * change measured alone against the 193: the loft -1 (its floor 17 under the room image for the apartment's 35 -18, the
+ * sill plant and the floor plant +15, the doorway's halo and spill +2), the coffee machine, arm lamp, reference shelf,
+ * tall chair and drafting table 0 each (sprites; the lamp's bulb and glow 3 replace the stock lamp's 3), the pen tablet
+ * +4 (3 and its glow 1; it has no sprite), 24 volumes +24, the anime poster +16 (code-drawn, the stock poster's image
+ * is not drawn) and 4 trophies +16: 193 + 59 = 252. The visit adds the same 33 as the 462's (shadow 1, contract 19, ! 4,
+ * sleepy to surprised +9): 252 + 33 = 285. The loop's other scenes are 252 (frame 0), 252 and 221 (by day). Every scene
+ * in the loop must stay under 1.5 times this (427.5).
+ */
+const VISIT_ART_BASELINE = 285
+
 function paint(over: Partial<Snapshot> = {}, t = 0.3, frame = 100): FillCall[] {
   const { ctx, log } = fakeContext()
   render(ctx, sceneSnapshot(over), t, frame)
@@ -203,11 +234,15 @@ describe('the studio in the scene', () => {
 
   it('paints the scene with no studio look in its measured 309 fills', () => {
     expect(paint(BARE_FULL, 0.9, 100)).toHaveLength(FULL_BASELINE)
+    expect(FULL_BASELINE * 1.5).toBe(463.5)
   })
 
-  it('keeps the full scene inside the canvas, free of magenta and under 1.5 times its own baseline', () => {
-    const budget = FULL_BASELINE * 1.5
-    expect(budget).toBe(463.5)
+  it('keeps the full scene inside the canvas, free of magenta and under 1.5 times its own worst case', () => {
+    // the loop's worst scene, the editor visiting, has its own pin (VISIT_FULL_BASELINE), and the loop is held to 1.5
+    // times that
+    const budget = VISIT_FULL_BASELINE * 1.5
+    expect(budget).toBe(693)
+    let most = 0
     for (const [t, frame, visiting] of [[0.9, 100, 0], [0.9, 0, 0], [0.3, 100, 0], [0.9, 100, 1]]) {
       const log = paint(visiting ? { ...EVERYTHING, visitor: 'editor', visitorProp: 'contract' } : EVERYTHING, t, frame)
       expect(log.some((c) => c.style === '#f0f'), `t ${t} frame ${frame}`).toBe(false)
@@ -218,16 +253,24 @@ describe('the studio in the scene', () => {
       // the studio art is really there, and the whole scene stays within its budget
       expect(log.length, `t ${t} frame ${frame}`).toBeGreaterThan(FULL_BASELINE)
       expect(log.length, `t ${t} frame ${frame}`).toBeLessThan(budget)
+      if (visiting) expect(log, `t ${t} frame ${frame}`).toHaveLength(VISIT_FULL_BASELINE)
+      most = Math.max(most, log.length)
     }
+    // no other scene has overtaken the pinned one
+    expect(most).toBe(VISIT_FULL_BASELINE)
   })
 
-  it('keeps the full scene with every generated image ready under 1.5 times its own measured baseline', () => {
+  it('keeps the full scene with every generated image ready under 1.5 times its own measured worst case', () => {
     const art = fakeSceneArt()
     const bare = fakeContext()
     render(bare.ctx, sceneSnapshot(BARE_FULL), 0.9, 100, art)
     expect(bare.log).toHaveLength(FULL_ART_BASELINE)
-    const budget = FULL_ART_BASELINE * 1.5
-    expect(budget).toBe(289.5)
+    expect(FULL_ART_BASELINE * 1.5).toBe(289.5)
+    // the loop's worst scene, the editor visiting, has its own pin (VISIT_ART_BASELINE), and the loop is held to 1.5
+    // times that
+    const budget = VISIT_ART_BASELINE * 1.5
+    expect(budget).toBe(427.5)
+    let most = 0
     for (const [t, frame, visiting] of [[0.9, 100, 0], [0.9, 0, 0], [0.3, 100, 0], [0.9, 100, 1]]) {
       const { ctx, log, images } = fakeContext()
       render(ctx, sceneSnapshot(visiting ? { ...EVERYTHING, visitor: 'editor', visitorProp: 'contract' } : EVERYTHING), t, frame, art)
@@ -240,7 +283,11 @@ describe('the studio in the scene', () => {
       ])
       expect(log.length, `t ${t} frame ${frame}`).toBeGreaterThan(FULL_ART_BASELINE)
       expect(log.length, `t ${t} frame ${frame}`).toBeLessThan(budget)
+      if (visiting) expect(log, `t ${t} frame ${frame}`).toHaveLength(VISIT_ART_BASELINE)
+      most = Math.max(most, log.length)
     }
+    // no other scene has overtaken the pinned one
+    expect(most).toBe(VISIT_ART_BASELINE)
   })
 
   it('replaces the stock lamp, chair, desk and poster instead of painting over them', () => {
