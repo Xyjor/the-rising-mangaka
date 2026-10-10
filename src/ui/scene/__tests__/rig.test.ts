@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { partRules, poseRules } from '../rig/assemble'
 import { ANIMS, ANIM_IDS } from '../rig/anims'
 import type { AnimId } from '../rig/anims'
-import { MOODS, faceOf, rigFrame } from '../rig/frames'
+import { MOODS, faceArtOf, faceOf, frontHand, rigFrame } from '../rig/frames'
 import { FACE_ART } from '../rig/head'
 import { PARTS } from '../rig/parts'
 import { POSES } from '../rig/poses'
@@ -14,8 +14,8 @@ import { frameRules } from '../spriteCore'
 
 /** The anchors a part must carry, by its name: the layer it is drawn on decides. */
 function needs(name: string): AnchorName[] {
-  if (name === 'head') return ['neck']
-  if (name === 'torso') return ['neck', 'shoulderL', 'shoulderR', 'hipL', 'hipR']
+  if (name === 'head' || name.endsWith('-head')) return ['neck']
+  if (name === 'torso' || name.endsWith('-torso')) return ['neck', 'shoulderL', 'shoulderR', 'hipL', 'hipR']
   if (name.startsWith('arm-l-')) return ['shoulderL', 'hand']
   if (name.startsWith('arm-r-')) return ['shoulderR', 'hand']
   if (name.startsWith('leg-l-')) return ['hipL']
@@ -36,8 +36,23 @@ describe('the rig tables', () => {
       expect([def.pose.w, def.pose.h], id).toEqual([32, 48])
       const pose = def.pose
       const faces = MOODS.flatMap((m) => [faceOf(pose, m, false), faceOf(pose, m, true)])
-      expect(poseRules(pose, PARTS, FACE_ART, faces), id).toEqual([])
+      expect(poseRules(pose, PARTS, faceArtOf(pose), faces), id).toEqual([])
     }
+  })
+
+  it("picks the face art by the pose's head, and refuses a head it has no art for", () => {
+    const stand = POSES['stand.idle'].pose
+    if (stand.kind !== 'parts') throw new Error('stand.idle is a key frame')
+    expect(faceArtOf(stand)).toBe(FACE_ART)
+    expect(() => faceArtOf({ ...stand, head: { part: 'nope' } })).toThrow('no face art for the head nope')
+  })
+
+  it("finds each part pose's front hand once: the hanging arm's fist at (8, 33) standing, none for a key frame", () => {
+    // arm-l-hang at (6, 23), its hand anchor (2, 10); the walk's swung-back arm's fist a column in and a row down
+    expect(frontHand('stand.idle')).toEqual({ x: 8, y: 33 })
+    expect(frontHand('stand.idle')).toBe(frontHand('stand.idle'))
+    expect(frontHand('walk.contact-l')).toEqual({ x: 7, y: 34 })
+    expect(frontHand('key.panic-0')).toBeNull()
   })
 
   it('draws every key frame to its size, the frame rules kept: 48x32 in bed, 32x48 otherwise', () => {

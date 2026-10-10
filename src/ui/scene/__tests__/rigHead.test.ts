@@ -9,6 +9,13 @@ const EYE_IDS: EyesId[] = ['open', 'blink', 'closed', 'ring', 'squint', 'happy']
 const MOUTH_IDS: MouthId[] = ['closed', 'open', 'smile', 'frown', 'o']
 
 describe('the rig head', () => {
+  it('reports a slot that lies outside the head map, and nothing else for it', () => {
+    const wide = { ...HEAD, slots: { ...HEAD.slots, mark: { x: 25, y: 0, w: 3, h: 5 } } }
+    expect(headRules(wide, FACE_ART)).toEqual(['mark slot 25,0 3x5 lies outside the 27x22 head'])
+    const low = { ...HEAD, slots: { ...HEAD.slots, mouth: { x: 10, y: 21, w: 4, h: 2 } } }
+    expect(headRules(low, FACE_ART)).toEqual(['mouth slot 10,21 4x2 lies outside the 27x22 head'])
+  })
+
   it('is 27 wide and 22 tall, its outline closed, its slots where the face and the mark go', () => {
     expect(HEAD.map).toHaveLength(22)
     expect(HEAD.map.every((row) => row.length === 27)).toBe(true)
