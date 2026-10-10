@@ -155,8 +155,8 @@ Forecast calibration is a balance band: over year one the offer chances quoted a
   `clock.ts` is the separate, never-persisted presentation clock (the light cycle, the studio log's read marker).
 - `src/ui/` — React components. `scene/` is the pixel-art canvas studio (`render.ts` paints a frame from a snapshot,
   `season.ts` the window's season, `studioArt.ts` the player's studio, `paint.ts` the shared pixel helpers,
-  `StudioScene.tsx` runs the frame loop). `hud/` is the corner overlays and rail; `hooks/` are the presentation-clock
-  and rolled-number hooks. `panels/` are the management screens.
+  `StudioScene.tsx` runs the frame loop; since 0.11.0 `rig/` the cast rig and `castPlay.ts` its driver). `hud/` is
+  the corner overlays and rail; `hooks/` are the presentation-clock and rolled-number hooks. `panels/` are the management screens.
 - `src/audio/` — Web Audio sound, synthesised, no files (see Sound).
 - `src/platform/` — where the game runs (browser or desktop) and the only place that imports the desktop APIs;
   `src-tauri/` is the Windows desktop shell itself (see The desktop app and save files).
@@ -243,7 +243,10 @@ the desk again. On phones the scene is a band above the desk, so there is nothin
 Draw order: the tier's room first; the coffee machine and the trophies after the sill and its snow; the volumes and the reference shelf after
 the bookshelf; the tier after the bed (the doorway stops where the bed begins, y 66, so the two never overlap) and
 before the sleeping mangaka's Zz; the chair before the mangaka at the desk, the drafting table, the lamp and the tablet
-after; the corkboard and the calendar after the clock; the fan letters after the entrance; the cups after the desk;
+after; the seated rig mangaka's rows 0-39 (everything above the desk top's line) a second time right after the page
+stack and its two lines, before the ink pot, the mug, the tablet and the cups (one cropped drawImage of the same cached
+frame, `drawCastTop`), so the pen and its hand lie on the pages, while the stack itself stays after the desk (the
+drafting table's sprite box starts at y 95 and would hide its foot); the corkboard and the calendar after the clock; the fan letters after the entrance; the cups after the desk;
 the front row after the editor; the lamp's glow and the doorway's spill over the night overlay, then the light. Everything stays off the mangaka at the
 desk and at the standing spot.
 
@@ -255,6 +258,106 @@ kitchen spot); `stepActors` walks everyone toward them at `WALK_PX_PER_S` 40, on
 puts everyone in place at once, used on mount and on a loaded save so nobody walks in from off-screen. The assistants
 never walk: they are placed straight into their seat, seated or asleep, and while working each draws its own page
 (3 fills) with a couple of ink lines.
+
+**The 0.11 spots** (0.11.0, `actors.ts`). The rig's people are 32x48 frames (48x32 in bed), so they stand on spots of
+their own; each is still the top-left of its pose's frame, as in 0.10 (the bed spot of a standing frame, whose head
+sits on the lying head; the bed frames have their own origin, `MANGAKA_BED_FRAME`), and each is checked against the
+furniture by `actors.test.ts` ("fits the 0.11 spots around the furniture"). Since task 17 the mangaka's spots and the
+cat's bed, and since task 19 the assistants' seats, are the only ones, under the 0.10 names (`MANGAKA_SEAT`,
+`MANGAKA_STAND`, `MANGAKA_BED`, the new `MANGAKA_DOOR`, `CAT_BED`, `ASSISTANT_SEAT_X`/`_Y`):
+
+| Spot | 0.10 (24x32) | 0.11 (32x48 rig) | Why |
+|---|---|---|---|
+| The mangaka's seat | (132, 67) | (124, 58) | the waist (row 40) on the desk top, y 98; the head (rows 6-27, y 64-85) under the corkboard (to y 63); the right edge 155, clear of the arm lamp (x 156) |
+| The standing spot | (170, 81) | (170, 81) | the feet on row 47 at y 128; the head below the sill's coffee machine and trophies (to y 80); the left edge clear of the arm lamp (to x 169) |
+| The bed | (216, 106) | (220, 90); the bed frames at (201, 90) | the actor's spot: its standing head (cols 4-27, rows 0-21) sits on the bed frames' lying and sitting-up head, so walking into or out of bed the head never jumps; the 48x32 bed frames at their own origin (`MANGAKA_BED_FRAME`, 19 px left of it): the lying head (cols 23-46, rows 8-29) at x 224-247, y 98-119, over the pillow (x 232-245) |
+| The mangaka's door | the door spot (254, 85) | (250, 69) | the feet at y 116, the editor's door floor line, centred on the door |
+| The cat's bed | (196, 118) | (202, 118) | clear of the standing frame (to x 201), of the lying head (from x 224) and of the standing frame at the bed (from x 220), on the blanket |
+| The assistants' seats | x 66, 86, 106, y 89 | x 21, 55, 89, y 80 | one row, 34 px apart (below) |
+
+The assistants sit in one row, 34 px apart, in front of the main desk. Between the phone crop's left edge (x 24) and
+the main desk (the stock desk from x 116, the drafting table's overhang from x 108) there are 84-92 px, and three
+32-wide figures 34 apart need 100: from x 21 the row fits with the first head (x 25-48) and its page (x 24-29) inside
+the crop and the third head ending at x 116, the stock desk's left edge. "Two in front and one behind" was rejected:
+34 px apart, two 24-wide heads leave a 10 px gap, so the third head behind them would be two thirds hidden, and the
+kitchenette counter and the bookshelf leave no wall for a second desk. By depth the row is in front of the main desk
+(its desk's floor line y 132 against the main desk's 118-131), so it is drawn after it: `render`'s `drawAssistants`
+runs after the desk group (the desk, the lamp, the page stack and the seated mangaka's top rows over it, the ink pot,
+the mug, the tablet, the cups and the absent note) and before the mangaka's front pass, so the third head goes over the
+drafting table's overhang and lightbox (x 108-118, y 95-107) instead of hiding behind them, the 0.10 row's flaw (its
+third assistant's eye sat under the desk). The row's desk (`render.ts` `assistantDesk(shown)`, a constant per count)
+runs from 2 px left of the first seat, 36 px plus 34 per further assistant (x 19-122 for three), y 120-131, the seated
+waist (row 40) on its top (y 80 + 40 = 120); each working assistant's page (6x4 from the seat's col 3, y 120) and its
+ink lines (round(progress x 3) at x + 4 from y 121) lie on it, clear of the main desk's box whichever desk stands
+there. The 0.10 row is history: stools behind a desk at x 62, 8 px plus 20 per assistant, the seats at x 66, 86, 106,
+y 89, and `PAGE_UNDER_DESK`, which redrew a page the drafting table's sprite would cover (gone with the stools at task
+19; a 32x48 seated body covers where a stool stood).
+
+**The rig everywhere.** The mangaka draws from the rig since task 17 and the assistants since task 19 (0.11.0); the
+switch that staged them (`RIG_LIVE`, `setRigLive`, `liveSpots`, the two spot sets) is gone. `planActors(table, snap)`
+sends the mangaka to its 0.11 spots through `MANGAKA_DOOR`, the cat to `CAT_BED` and seats the assistants at
+`ASSISTANT_SEAT_X` [21, 55, 89], `ASSISTANT_SEAT_Y` 80; the driver poses all four every step and render draws them
+from the rig, the editor and the cat from their 0.10 maps (`oldCast.ts`) until 0.12.0 and 0.13.0.
+
+**The cast driver** (`castPlay.ts`, 0.11.0) poses every rig-drawn actor each loop step (`stepCast`): it writes the
+pose showing now on the actor (`Actor.pose`) from an animation player (`animation.ts`) per character. The base loop
+follows the actor's state (`baseAnimFor`): seated, `seat-draw` while drawing with the clock running (`seat-draw-late`
+while the chapter is late, the mangaka only), else `seat-idle`; standing, `stand` (`stand-ready` while the manuscript
+is ready); `walk`; in bed `sleep` (an assistant's `doze`). A change of state plays its transition first
+(`transitionFor`: down into the chair and up out of it, into bed and out of it), drawn where it belongs, at the seat
+or the bed (`PoseDef.at`), while the actor already walks: no actor ever waits for an animation. Idle moments come
+from a seeded schedule (`idleSchedule.ts` `nextIdle`: a wait of 6-14 s and a pick, hashed from the game day, the
+character and the count that day; a new day restarts the count, never the wait): standing, a look round or a sip; at
+the desk, a stretch, a sip or a page flipped, or, tired, rubbing the eyes. A new base within one posture keeps the
+moment playing; across postures it drops it. A reaction (below) cuts an idle moment short and otherwise waits behind
+a transition or another reaction (at most two wait); one the character cannot play in its state is dropped. The
+assistants' loops start 150 ms apart (`PHASE_MS`), so their pens never move in step. Under reduced motion every
+character holds its base loop's first step, and no transition, moment or reaction plays. `settleCast` (a mount, a
+loaded save) puts everyone on their base loop from now, the waiting cue taken as seen; `resumeCast` (the loop
+restarting after the window was hidden) jumps every transition and moment to its end. `StudioScene` runs it on a
+scene clock of its own, `sceneMs`, the sum of the loop's steps, so it never jumps across a stretch the window was
+hidden, and fills one input object in place each step (`fillCast`). Every animation is drawn; until its art task drew
+it, each played one 500 ms step of `stand.idle` (`STAND_IN`, gone with the doze, task 18; see "The rig" below).
+
+**Drawing the rig** (`render.ts`, 0.11.0 task 10). The mangaka (since task 17) and the assistants (since task 19) are
+drawn from the rig: the actor's pose, or with none (a settled table) its base loop's first step (`poseOf`). The
+mangaka is one `drawImage` of `rigFrame(pose, mood, ready)` in its
+outfit's palette, at the actor, or for a pose placed there at the seat or at the bed frames' origin (`poseOrigin`;
+`MANGAKA_BED_FRAME` (201, 90), 19 px left of the actor's bed spot, which stands on the lying head); seated at the
+desk, its rows 0-39 go on a second time over the page stack (`drawCastTop`, task 12). Standing or walking it has a 20 px contact shadow under its
+feet (x + 6, y + 46), and walking right it is mirrored. In bed it takes no mood (the bed frames bake their own face);
+on the sleep loop's lying poses only (never the sitting-up frame of lying down, whose head they would cross) the Zs
+rise beside the lying head, from the bed frame's (36, 2); a pose at the bed draws the blanket over the shoulders (x
+196-224, y 112-121). Standing, the ready manuscript's `!` (the face's own mark left out) and the idle `?` (a neutral
+mood, only on the standing loop's own poses, never mid-moment) go in the rig's mark slot, frame col 28 on the head's
+top row. An assistant draws its pose in its look, its mood's face (tired or happy only), and, dozing, a Z at (x +
+25, y + 11).
+The mangaka's bubble and pops sit above the rig head's centre (`headCentre`: col 16 from the actor in every state, in
+bed too, its spot on the lying head's column) and top (`headTop`: row 0, 6 seated, 8 in bed).
+
+**Reactions** (`reactions.ts`, 0.11.0). One store change brings at most one reaction (`reactionFor`, by priority),
+never across a save load, a new career's world seed, a jump of more than a day, or in a read-only tab (the pops'
+guards); `StudioScene` also skips them while the window is hidden. Each becomes a cue on the snapshot
+(`Snapshot.reaction`, `{ id, kind }`, the id counting up for the session from 1), which every character takes once:
+
+| Kind | Transition (before to after) | The mangaka | The assistants |
+|---|---|---|---|
+| `missed` | the issues missed by every serial, running or archived (`missedIssuesOf`), grew | `seat-tear` if seated | none |
+| `bad-poll` | the newest poll placed in the bottom third (`rankToneOf` 'low': rank x 3 > entrants x 2) | `stand-slump` standing, `seat-slump` seated | none |
+| `good-poll` | the newest poll placed in the top three (`rankToneOf` 'top': rank <= 3) | `stand-cheer` standing, `seat-cheer` seated | `seat-cheer` if seated |
+| `level-up` | the player's level grew | `stand-cheer` standing, `seat-cheer` seated | none |
+| `late` | the chapter's deadline turned late | `seat-panic` if seated | none |
+
+"The newest poll" is a one-shot result dismissed (pending before, gone after: the player has seen it, so the reveal
+is never spoiled) or a new chapter result of the serial running before (looked up among the archived serials too when
+the same tick archived it), the rule that pins the corkboard's star and red mark. While late, the seated base loop is
+`seat-draw-late`, which opens on the panic (640 ms in every 3,640 ms, 0.10's 40 frames in 240), so
+the panic recurs as before and reduced motion still shows it.
+
+**The `?rig` dev preview.** A dev build's `?rig=<animation>` (`npm run dev`, an `AnimId`, such as `?rig=stand-look`)
+plays that animation over every base of its posture whenever nothing else plays, so an art task sees its moments and
+reactions in the running scene (since task 19 there is no switch for `?rig` alone to turn on). A production build never
+reads the URL (the read sits behind `import.meta.env.DEV`).
 
 **The editor's visit** (`visitor.ts`, `useArrival`) picks the one reason they are at the desk, in priority order:
 a pending chapter result, a pending offer, the project ready to submit, an anime offer, a random event, then an
@@ -276,62 +379,370 @@ visiting. `Pops.tsx` floats money, fans and xp numbers up from the mangaka (or t
 for `POP_MS` 1200 each, capped at `POP_MAX` 6 on screen, guarded against a save load, a seed change or a multi-day
 jump so a pop never fires from anything but one step of play.
 
-**The sprites** (`sprites.ts`) are string maps, one character per pixel, drawn by `drawSprite`, which merges each
-horizontal run of one key into one fillRect and mirrors a frame to face right. People are 24x32 frames facing left, in
-chibi proportions (upgrade 0.4.0): the head is rows 0-15 (18 px wide, cols 2-19), the body rows 16-31 (2 heads tall).
-`PAL` keys are an uppercase base and its lowercase shade (light from the top left, so the shade sits on the right and
-underneath), `L` the outline; `ASSISTANT_PALS[look]` swaps the hair and shirt. Every 24x32 frame passes `frameRules`
-(every row full width, every key in the palette, feet on the last row, a closed outline); `MANGAKA_PANIC` is the one
-redrawn in upgrade 0.5.0 with both hands clamped on top of the head (the arms raised, the elbows out at cols 0-3 and
-20-23, the hands meeting the hair at rows 1-3, frame 1 a row lower), replacing the earlier ruling's fists beside the
-head at rows 5-8: with the raised arms the hands read as hands, not ears. The cat has a cream chest patch (`Q`,
-`#f0ead6`) in every frame where its chest shows (not the curled `CAT_SLEEP`), and sleeps on a round mustard cushion
-at `CAT_BED` (4 fills, drawn just before it).
+**The sprites.** Since 0.11.0 the mangaka and the assistants are the rig (`src/ui/scene/rig/`): 32x48 people (48x32
+in bed) assembled from hand-drawn parts and key frames, the mood's face baked into each frame (`rigFrame(pose, mood,
+ready)`), each frame painted once per palette and facing into the sprite cache and drawn as one `drawImage`; the cast
+driver (`castPlay.ts`, above) picks the pose. Every map is in `PAL` keys: an uppercase base and its lowercase shade
+(light from the top left, so the shade sits on the right and underneath), `L` the outline; `ASSISTANT_PALS[look]`
+swaps the hair and shirt for the six assistant looks, `OUTFIT_PALS` the mangaka's outfit. The bullets below describe
+the rig in the order its tasks drew it, then what every character shares. The editor (until 0.12.0) and the cat (until
+0.13.0) are still the 0.10 string maps, described with their history after the rig ("The 0.10 string maps").
 
-- **Expressions** are an overlay, not baked into most frames: `FACES[mood]` (14 wide x 4 tall, `mood.ts`'s `Mood`,
-  excluding `neutral`) is drawn at `(x+4, y+9+headDy)`, only on head-steady poses (the standing mangaka's breathing
-  idle, the seated mangaka outside panic, the seated assistants). Walking, panic, bed and doze keep their own
-  baked-in expression. `neutral` draws no overlay at all (the anchor's own face shows).
+- **The rig head** (0.11.0, task 7). `rig/head.ts` `HEAD` is a new hand-drawn chibi head, 27 wide x 22 tall, after
+  `art/raw/sprites/mangaka-front.png` (proportions, hair mass, colours) in 0.10's style (`PAL` keys, the shade on the
+  right and underneath, `L` outline): cols 0-23 the head, cols 24-26 the mark slot, clear on every row. The hair `H`
+  (its shade `h` two columns down the right) puffs out to the full width on rows 6-9, the bangs reach row 9 with a
+  parting notch of skin over each eye, side locks run down the temples to row 12, and the ears sit at cols 0-1 and
+  22-23 on rows 11-14 under the hair's edge, each parted from the cheek by an `L`; blush `B` on row 14 under each eye;
+  the cheeks round in to the chin, its underside `s` on row 20 and its outline on row 21, where the neck anchor
+  (12, 21) sits. Three slots: the eyes (rows 10-13, cols 4-19; each eye inside slot cols 1-4 and 11-14, head cols 5-8
+  and 15-18, with skin around it, where the editor's glasses go in 0.12.0), the mouth (rows 15-16, cols 10-13) and the
+  mark (rows 0-4, cols 24-26, beside the hair's top right). The slots hold the neutral face, so the bare head is
+  neutral. Six eyes (`EYES`, each 16x4): open (3-wide dark pupils, the outer top corner round, a `W` highlight on the
+  left of each, the light from the top left), blink (a one-row line where the lids meet), closed (a downward curve,
+  asleep), ring (the whites round a 2x2 pupil, surprised), squint (a heavy lid drooping to the outer corner over the
+  lower half of the eye, tired) and happy (an upward curve); five mouths (`MOUTHS`, each 4x2): closed (a short line),
+  open, smile, frown and o; four marks (`MARK_ART`, each 3x5), 0.10's `MARKS` in `PAL` keys: the sweat drop `A`
+  (`#8fd3ff`) and the sparkle `X` (`#f5b700`) join `PAL`, with `w` (`#b8b2a5`, `W`'s shade, the paper's lines).
+  `FACE_BY_MOOD`: neutral open, closed, no mark; happy happy, smile, sparkle; tired squint, frown, sweat; surprised
+  ring, o, bang; sleepy closed, closed, zee. `headRules` (`rig/assemble.ts`) holds the head to its slots: the eye and
+  mouth slots hold only face keys (`FACE_KEYS`, `S s E W M B L`) and already hold the open eyes and the closed mouth,
+  the mark slot is clear, every eyes and mouth drawing fills its slot (its size, no `.`), and every mark is the slot's
+  size in mark keys (`MARK_KEYS`, `L W A X`). `headWith(face)` stamps a whole face, the mark beside the hair. The staff
+  portrait (`SpriteAvatar`) draws `headWith(NEUTRAL_FACE)` cropped to the head, rows 0-21 and cols 0-23
+  (`AVATAR_CROP`, 24x22; the SVG viewBox adds a blank row above and below, 24x24, so the backdrop fills the 48x48 box), in each assistant's colours. `ANCHOR_HEAD` stays for the editor's
+  0.10 frames and `scripts/pixelate.ts`'s graft. The gate's row I (`npm run sprites`) is the head with every eyes x
+  mouth x mark at 8x, one row per eyes in `EYES` order; at task 7 every face read as its mood at a glance and each
+  mark sat beside the hair, not on it, after two redraws: the first head was a round helmet over a moon face (the
+  hair now puffs out wider than the face and the jaw rounds in sooner), and the first tired eyes, a flat lid, read as
+  grumpy (the lid now droops to the outer corner).
+- **The rig** (0.11.0, task 8). A person is a 32x48 frame (Decision 4): standing, the head part (27x22: the head in
+  cols 0-23, the mark slot in cols 24-26) at (4, 0), so the mark slot is frame cols 28-30, rows 0-4, where render's
+  '!' and '?' go too; the torso (18x14) at (7, 21), its neck (9, 0) under the head's neck (12, 21); the hips on row 34
+  and the feet on row 47; seated, the head at (4, 6), the torso at (7, 27) and the hips on row 40, the desk top. Bed
+  frames are 48x32 key frames. `rig/parts.ts` `PARTS` holds every part by name with its anchors, hand-drawn after
+  `mangaka-front.png` in the head's style: the standing torso (the shoulders in the hood's shade `j`, the collar `K`
+  rising beside the jaw and either side of the neck `s`, the shirt `R` a V under it between the collar's points, a
+  `j` edge outside the collar that reads as the hood's roll in the hoodie and the lapels' shadow in the blazer, the
+  drawstring `Y` down col 9 to row 11, the hoodie `J` with its shade `j` down the right, the hem `j` on row 12, the
+  outline the hips sit on on row 13), the hanging arms (5x12: a sleeve `j` three wide in its outline, a fist `S`/`s`
+  on rows 9-10, round-cornered), and the standing legs (6x14: the trousers `F`/`f` three wide, so the hem overhangs
+  them a column, the shoe `O`/`o` a column wider on the outside with its toe turned out, the sole `L`; the two inner
+  outlines are the line between the legs, frame cols 15-16). In the hoodie (`PAL`) the collar `K` is the hoodie's own
+  grey and `Y` a white drawstring; in the cardigan and the blazer `K` is a white collar and `Y` a red tie. Each part
+  is outlined all round but where it joins another (the torso's neck row under the jaw, its shoulder caps, cols 0-2
+  and 15-17 of row 2, matching the sleeves' tops they sit over, the arms' and legs' top rows), and the standing parts
+  join with nothing left for `closeSilhouette` to close (`rigPoses.test.ts`). `rig/poses.ts` `POSES` names every pose
+  (`PoseId`): a part pose or a key frame, and where it is drawn (`at`: the actor, or the seat or the bed whatever the
+  actor's position, so a transition plays where it belongs while the actor walks; only `bed.*` poses at the bed and
+  `seat.half` at the seat). Standing: `stand.idle`, `stand.breath` (the head a row lower into the collar, the body
+  unchanged from row 23 down) and `stand.blink` (the blink eyes over the mood's face). `rig/anims.ts` `ANIMS` is the
+  fixed table of the 24 animations (`AnimId`, `ANIM_IDS`): each id's posture and looping are final, and until its art
+  task drew it each played one 500 ms step of `stand.idle` (`STAND_IN`, gone since the doze, task 18). `stand` loops idle and breath (500 ms each,
+  the last breath 380 ms) and blinks for 120 ms, 3 s a cycle. `rig/frames.ts` `rigFrame(pose, mood, ready)` assembles
+  a part pose with its face (`faceOf`: the mood's, the pose's own slots over it, no mark while the manuscript is
+  ready) on first use and returns the same `CastFrame` after, its id the pose and the face
+  (`stand.idle~happy.smile.sparkle`; a key frame's id is its pose's), the name the sprite cache keys its surfaces by.
+  At the gate (task 8) the standing strip read as one chibi, a little over two heads tall, its head row I's, the collar
+  and tie white and red in the cardigan and the blazer and the hoodie's own grey in the hoodie, the breath a soft sink
+  of the head into the collar and the blink a blink, after two redraws: the first legs were four columns wide with the
+  shoes no wider (the trousers now three wide, the shoes turned out a column as the reference's), and the first collar
+  vanished in the hoodie (a `j` edge now rings it).
+- **The walk** (0.11.0, task 11). Eight part poses on the standing body (`walk()` in `rig/poses.ts`: `stand()` with
+  the torso `bob` rows lower, its legs and arms), 75 ms each, 600 ms a cycle (24 px at 40 px/s, 1.5x the 0.10
+  stride): `walk.contact-l`, `walk.down-l`, `walk.pass-l`, `walk.up-l`, then the same four on the right leg. On the
+  contact the leg steps out (`leg-l-step`, 10x14: a straight leg out a column every three rows, the long shoe's toe two
+  columns past the trousers, its top cut so it points, four columns past the standing shoe on frame row 47) while the
+  other stands; on the down step the torso, head and arms sink a row (the bob), the stepping leg plants with the knee
+  giving (`-step-bend`, 10x13: the thigh out a column a row to the knee, the shin straight down to the shoe the contact
+  put down, the same frame cells) and the other leg is a trouser row shorter under its hip (`-plant-bend`, 6x13); on
+  the pass the other leg is lifted two rows under its hip (`-lift`, 6x12) and on the up step it reaches out a column,
+  still lifted (`-reach`, 7x12), before its own contact. The arms swing against the legs on the contact and down steps:
+  the arm opposite the stepping leg forward (`arm-*-swing-fwd`, 6x10: the forearm toward the viewer a column wider
+  out, the fist four wide and two rows higher than the hanging one) and the other back (`arm-*-swing-back`, 5x12: the
+  forearm and fist two wide, tucked against the torso's seam by the hip); both hang on the pass and up steps. Each
+  right part mirrors the left one's shape and keeps `LEG_R_STAND`'s shading (the shade on the right of every run, the
+  fists lit from the left), so the light never swaps between the halves. Every walk part is outlined all round but its
+  top and every step joins closed by itself. The plan's step legs were 8 wide (`hipL` (5, 0)); at the gate their
+  contact put the shoe two columns past the stance and at 1x the strip read as standing, so they are 10 wide (`hipL`
+  (7, 0), `hipR` (2, 0)), four columns past as 0.10's contact was past its idle. At the gate (task 11, `--only walk`
+  and `--walk`) the strip stepped in the hoodie, the cardigan and the blazer and mirrored, after three tries: the 8-wide
+  step read as standing, a 12-wide one as a lunge, and the first down and pass legs kinked their knees out sideways a
+  column and back, which wobbled (the down step's back leg and the passing leg are now straight, the stepping leg's
+  knee a slant into a straight shin).
+- **The desk** (0.11.0, task 12). Six part poses on the seated body (`seat()` in `rig/poses.ts`: the torso at (7, 27),
+  so the head lands at (4, 6) and the hips on row 40, the desk top's line at the seat, y 98 at the mangaka's seat; the
+  assistants' desk top at y 120 likewise), the mangaka's and every assistant's. The seated legs (`leg-*-seat`, 6x8,
+  rows 40-47, behind the desk in the scene; drawn for the sheet): the thigh foreshortened toward the
+  viewer, its lit top a column wider than the standing trousers, the shin in its shade turning in under the knee, so
+  the knees sit apart over the feet, the shoe three wide. The arms come down the torso's sides to the desk top, the
+  hands on rows 37-38 and the outline under them on row 39: at rest (`seat.rest`) the near arm's forearm comes toward
+  the viewer a column wider and the open hand lies flat on the desk a column out past the cuff (`arm-l-rest`, 8x11),
+  the far arm's trailing forearm the same on the right with its hand at its end (`arm-r-desk`, 7x11, kept while
+  drawing). Drawing, the near arm reaches the pen across the page, the fist on rows 37-38 every step so the stroke is
+  a level slide: at the page's left (`arm-l-desk-a`, 10x11) the forearm lies out along the desk, 0.10's `MANGAKA_SIT`
+  pen arm at 1.5x, the fist at its end; at the middle (`-b`, 9x11) the elbow a column wider and the fist two columns
+  out from the shoulder; at the right (`-c`, 8x11) the forearm foreshortened, two wide and turned in, the fist under
+  it. The pen (`pen`, 2x6, the prop layer, on the hand) is a one-cell `L` line rising up the fist's left edge and a
+  column out to the left at its top, its steel nib `P` at the hand; the nib lands on the silhouette's edge on every
+  step (the frame's lowest row there, or beside a clear cell), so the assembler outlines it, as the fist's edge under
+  it. The pen sits at frame cols 1-2, 3-4 and 5-6 (scene x 125-130 at the seat, on the page stack's x 121-134), a row
+  higher at the page's left: lifted at the stroke's far end. `seat-draw` is left, middle, right, middle, 150 ms a
+  step, 600 ms a stroke; `seat-idle` rests and breathes (`seat.breath`: the head a row lower) 500 ms each, the last
+  breath 380 ms, and blinks for 120 ms (`seat.blink`), 2 s a cycle; `seat-draw-late` opens on four 160 ms steps (the
+  panic since task 16, `PANIC_STEPS`; until then the pen hand, `seat.draw-a`, stood in), then five strokes: 640 ms
+  in every 3,640, as 0.10's panic took 40 frames in 240. The seated mark slot (frame cols 28-30, rows 6-10) stays clear. Every desk arm
+  and leg is outlined all round but its top, and every seated pose joins closed by itself but the pen's nib. At the
+  gate (task 12, `--only seat-`) the pen walked left, middle, right and back in the hoodie, the cardigan, the blazer
+  and the six looks, both hands lay flat at rest, the breath and blink read, and every mood's mark sat beside the
+  seated head, after four tries: the first desk arms slanted out from the shoulder like a shrug (they now hang to the
+  desk and turn out along it), the pen at the page's left merged with the raised fist's top edge into a hook (the fist
+  now sits level with the other steps and the pen leans out from its corner), the first seated legs read as short
+  standing ones (the knees now sit apart over turned-in shins), and the first open hand lost its top corner to the
+  outline (it now has its own top edge).
+- **The bed and the ready stance** (0.11.0, task 13). The bed's three poses are key frames (`rig/keyFrames.ts`, 48x32,
+  Decision 5), drawn at the bed (`MANGAKA_BED_FRAME`, canvas (201, 90)) in the outfit's palette, their face baked in (no
+  mood). `bed.lie-0` (`BED_LIE_0`, after 0.10's `MANGAKA_LIE`): the rig head lying on the pillow, upright and frontal,
+  at cols 23-46, rows 8-29 (canvas x 224-247, y 98-119), the eyes closed (the head's `closed` curve) and the mouth
+  closed; the shoulders lie to its left at cols 3-26, rows 24-31 (the top outline meeting the jaw's, the hood's shade
+  `j` over the hoodie `J`, its underside `j`, the left end's corners round), with the collar `K` at their end under the
+  jaw (the hoodie's grey in the hoodie, a white collar in the cardigan and the blazer). Render's blanket (x 196-224, y
+  112-121) covers them but for that end by the chin (cols 24-26), and the Zs rise from (36, 2), clear of the head.
+  `bed.lie-1` (`BED_LIE_1`) is the breath: the shoulders a row lower (their top on row 25), the head unchanged.
+  `sleep` loops the two, 900 ms each. `bed.sit` (`BED_SIT`, for the lie-down and get-up transitions, task 14) sits up:
+  the head with open eyes at cols 23-46, rows 0-21 (canvas y 90-111), the standing torso under it three rows shorter,
+  the arms at its sides, the fists on rows 29-30 beside the hem, the bust closed by its outline on row 31 (canvas y
+  121), the lap under the bedding. The ready stance holds the finished manuscript at the chest: `stand()` with the near
+  arm `arm-l-hold` (7x9, shoulderL (5, 0), hand (2, 7): the sleeve from the shoulder cap as the hanging arm's, the
+  forearm forward and out to the left, the hand across on rows 29-30) and the prop `manuscript` (8x10, hand (6, 6): a
+  stack of pages, the top sheet `W` ruled with three `w` lines, the last one short, the sheets under it a `w` edge, in
+  an `L` outline), placed at frame (0, 24), beside the chest (canvas x 170-177, y 105-114 at the stand, where 0.10's
+  code-drawn page was x 162-169, y 98-107); drawn over the arm, it hides the forearm, so the sleeve shows two wide
+  between the pages' edge and the torso's seam and the fist grips the pages' right edge. `ready.idle`,
+  `ready.breath` (the head a row lower) and `ready.blink` (the blink eyes) loop as `stand-ready`: idle, breath and
+  idle 500 ms each, then the breath 380 ms and the blink 120 ms, 2 s a cycle; the face is the mood's with no mark (`faceOf`, ready), so the
+  mark slot (cols 28-30, rows 0-4) stays clear for render's `!`. At the gate (task 13, `--only sleep`, `--only
+  stand-ready`, in the hoodie, the cardigan and the blazer, and a scratch composite of the bed, its blanket, the Zs and
+  the cat at 1x and 8x) the head slept on the pillow beside the blanket with the shoulders' end by the chin, the breath
+  a row's sink there, the sitting-up bust read over the bed's head end, and the pages read as held in the hand, the
+  `!` above the tired head with its sweat mark left out; one redraw: the shoulders' left end, square, read as a box in the sheet (its
+  corners now round; the blanket hides it in the scene).
+- **The transitions** (0.11.0, task 14). Down into the chair and up out of it go through `seat.half`, the one part pose
+  drawn at the seat (`at: 'seat'`, `MANGAKA_SEAT`, whatever the actor's position): the torso at (7, 24), so the
+  head lands at (4, 3), halfway between standing (row 0) and seated (row 6), and the hips on row 37; the arms hang
+  (`arm-*-hang`) and the legs bend halfway down to the chair (`leg-l-half`, 6x11, hipL (3, 0); `leg-r-half` its mirror
+  in `LEG_R_STAND`'s shading, hipR (2, 0); rows 37-47): the thigh leaves the hip as the standing trousers, then comes
+  forward toward the viewer, its lit top a column wider out down to the knee (rows 2-4), the shin under it in the
+  knee's shade (rows 5-7), the standing shoe on rows 8-9, its sole on row 10 (frame row 47), the seated leg's language
+  (a lit thigh over a shaded shin) at half its bend. Both legs are outlined all round but their tops and the pose joins
+  closed by itself. In the scene the desk hides the legs but for the rows over its top; the half pose shows as the head
+  and body three rows above the seated ones. Into bed and out of it go through `bed.sit` (task 13), at the bed.
+  `sit-down` is `seat.half` for 140 ms, `stand-up` `seat.half` for 80 ms, `lie-down` and `get-up` `bed.sit` for 220 ms.
+  No actor waits for a transition (decision 1): arriving, it plays where the walk stopped, so the walk runs straight
+  into it; leaving, the actor walks while the pose holds at the seat or the bed, so the walk's first frame shows where
+  the actor has got to. Standing up at the plan's 140 ms the half pose held four 24 fps frames and the walk then
+  appeared 8 px right of the seat (the brief's 6 px, plus the frame the walk starts on and the hold to the next frame),
+  which read in a scratch filmstrip of the real walk, driver and render as a hesitation and then a hop; at 80 ms it
+  holds two frames and the walk shows 5 px on (6 at the 50 ms steps of a 60 Hz display), one quick rise into the step,
+  so `stand-up` is 80 ms (the brief's literal changed with it) and `sit-down`, with no pop, keeps 140. At the bed the
+  frames' geometry first added a jump of its own: with the actor's bed spot on the bed frames' origin, the bed frame's
+  head (its col 23) sat 19 px right of the standing frame's (col 4), so the head jumped 19 px arriving and 31 leaving
+  (22 even at the shortest step). Ruled in the task's fix round: the actor's bed spot moved to (220, 90), the standing
+  head on the lying and sitting-up head, and the frames kept their origin as `RIG_BED_FRAME` (201, 90; named
+  `MANGAKA_BED_FRAME` since task 17); arriving there
+  is now no jump, and leaving only the timing's: the walk shows 12 px left of the sitting-up head (8.8 px at 40 px/s,
+  held to the next frame), so `get-up` keeps its 220 ms, the sitting-up beat that reads as "sits up, then is up". The
+  Zs, drawn whenever the actor was asleep, crossed the sitting-up head for the 220 ms of lying down; they now rise only
+  on the sleep loop's lying poses. At the gate (task 14, `--only
+  sit-`, `--only stand-up`, `--only lie-`, `--only get-`, in the hoodie, the cardigan and the blazer; the transitions
+  are the mangaka's alone) the half pose read at 8x and at 1x as an in-between of the standing and seated frames,
+  after one redraw: the first knees, a column out over a lit shin with a shaded band under the knee, read as baggy
+  trousers (the shin is now in the knee's shade, as the seated shin is).
+- **The idle moments** (0.11.0, task 15). Six one-shots over the base loops, picked by the driver's seeded schedule
+  (`idlePool`): standing, `stand-look` and `stand-sip`; at the desk, `seat-stretch`, `seat-sip` and `seat-flip`, or,
+  tired, `seat-rub` and `seat-sip`; the seated ones are the assistants' too. Thirteen part poses on `stand()` and
+  `seat()`. The glance (`stand.look-l`, `stand.look-r`) moves the head a column either way (`dx`), the body unchanged;
+  `stand-look` is left 500 ms, the stance 150, right 500, the stance 150 (render's idle `?`, which shows only on the
+  standing loop's poses, can show on those two 150 ms stance steps). The sip (`stand.sip-raise`, `stand.sip`,
+  `seat.sip-raise`, `seat.sip`): the near arm half raised (`arm-l-mug-half`, 6x6: the fist by the jaw, the cuff, the
+  sleeve's underside on the shoulder line) holds the mug under the chin, then raised (`arm-l-mug`, 7x9: the sleeve a
+  column in every two rows up from the shoulder to a fist three rows tall) holds it over the mouth with the eyes
+  closed; the mug (`mug`, 5x4) is a white body three wide and two tall, its shade `w` at the bottom right, in an `L`
+  outline, the hand at its left wall. `stand-sip` and `seat-sip` are under the chin 200 ms, at the mouth 700, under
+  the chin 200. Every raised arm ends at the shoulder line (the catalogue's anchors), the upper arm foreshortened toward
+  the viewer, so below the shoulder the torso stands alone, closed under the raised sleeve by its underside, as 0.10's
+  raised sleeves were. The stretch: both arms out level at shoulder height (`arm-l-out`, `arm-r-out`, 8x5: a sleeve
+  three rows tall to a fist at its end), then flung up and out along the jaw to fists beside it, outside the head's
+  width (`arm-l-up`, `arm-r-up`, 8x10, after 0.10's `MANGAKA_STRETCH` at 1.5x), the eyes closed; `seat-stretch` is out
+  250 ms, up 700, out 250. The page flip: the near arm takes a page (`page`, 5x4: a sheet `W` with a short ruled `w`
+  line in an `L` outline, the hand at its foot) by the body (`arm-l-flip-a`, 6x11: the page at frame (9, 36), the
+  fist's left column showing at its edge), lifts it (`-b`, 7x9: the page at (4, 32), above the fist) and lays it down
+  on the left (`-c`, 9x10: the page at (0, 35), the knuckles at its right edge), over the page stack in the scene;
+  `seat-flip` is 200 ms a step. The rub: the near arm up in front of the cheek, the fist over the left eye
+  (`arm-l-rub-a`, 6x14), then a row lower (`-b`, 6x13), the eyes squinting, the mouth and the other eye clear;
+  `seat-rub` is a, b, a, b, 250 ms each. An arm drawn over the face closes its own outline (the assembler outlines
+  only against clear cells, so a fist on the cheek would merge with it): each moment arm is outlined all round but
+  where it joins the shoulder, and every pose with a near arm moved joins closed by itself (the glances bare a collar
+  tip beside the shifted chin, and the raised far arm leaves the far shoulder cap's underside open under the torso;
+  the assembler closes both). Every seated moment's arms, mug and page stay above the desk top (frame row 40), where
+  the scene draws the figure again over the page stack, and the mark slot stays clear in every mood. At the gate
+  (task 15, `--only stand-look`, `--only stand-sip`, `--only seat-`, in the hoodie, the cardigan and the blazer and,
+  at the desk, the six looks; and a scratch scene mock with the desk and the stack at 1x, 3x and 8x) the sip read as
+  drinking from a white cup, the stretch as arms out and then up beside the head, the flip as a page carried in an
+  arc from the body to the stack, the rub as a fist at the eye and the glance as a turn of the head; one redraw: the
+  first mug, two whites wide beside a handle, read at 8x as a lens, so its body is three wide and the handle is turned
+  into the hand.
+- **The reactions** (0.11.0, task 16). Six one-shots over thirteen key frames, the moments the parts cannot
+  make (`rig/keyFrames.ts`, 32x48, drawn at the actor, each started from the nearest assembled pose with the rig head
+  and its face baked in). The cheer (`key.cheer-*`, the good poll and the level-up; the seated one is the assistants'
+  too): both arms straight up beside the head, banzai, the fists closed above it (rows 1-4), then the hands open (two
+  fingers parted, the thumb in) a row higher, the face happy (the smile, then the mouth open); standing, it springs from
+  a crouch (the head a crown lower at (4, 5), the knees bent in the seated legs' shape) up a row on the open hands.
+  `stand-cheer` and `seat-cheer` are fists 200 ms, open 200, fists 200, open 200, fists 400. The slump (`key.slump-*`,
+  the bad poll): the head bowed into the shoulders (standing at (4, 4); seated down towards the desk at (4, 9), the arms
+  limp at the sides), the eyes closed and the frown, then a sigh a row lower; 800 ms each. The panic (`key.panic-*`,
+  the chapter turning late, after 0.10's `MANGAKA_PANIC`): both hands spread over the hair's top corners, the forearms
+  out to elbows beside the head and the sleeves down its sides to the shoulders, the ringed eyes and the mouth open,
+  then the hands pressed a row lower; `seat-panic` is 160 ms a step, twice, and the same four steps (`PANIC_STEPS`)
+  open the late loop `seat-draw-late` (640 ms in every 3640), so the panic recurs while late and reduced motion, which
+  holds the loop's first step, still shows it. The torn page (`key.tear-*`, a missed issue): a page held up at the
+  chest in both hands (cols 9-22, rows 29-37, three ruled lines), creased (its top notched at the middle, a fold
+  down), then in two halves pulled apart, their torn edges zigzagged, the shirt in the gap, the arms out; the frown;
+  `seat-tear` is held 250 ms, creased 200, apart 300, creased 200, apart 300. Every seated reaction's hands, page and
+  tear read above the desk top (row 40). Every key frame is closed by rule (rig.test: no painted cell but `L` beside a
+  clear one or the frame's edge). At the gate (task 16, `--only` each reaction and `seat-draw-late` beside 0.10's
+  panic, the three outfits, the seated cheer in the six looks; a scratch scene mock at 1x, 2x and 6x) the cheer read as
+  banzai, the slump as a hung head, the tear as a page ripped in two; one redraw: the first panic's hands, three cells
+  at the hair's corners, read as ears, so each hand now spreads six wide over the crown.
+- **The doze** (0.11.0, task 18). The assistants' base loop asleep at the row's desk (`doze`, posture `bed`, the
+  slot an assistant's sleep fills), two key frames (`rig/keyFrames.ts` `DOZE_0`, `DOZE_1`, 32x48, at the actor), after
+  0.10's generated `ASSISTANT_DOZE` at 1.5x: the head down on the arms folded on the desk. The rig head (`seat.rest`'s,
+  eyes shut, the blush) at (4, 16), its crown's outline on row 16, the mouth and chin behind the arms; the shoulders
+  hunched either side of it (rows 29-31, J lit on the left, j in shade on the right); the forearms folded across rows
+  32-39 in the sleeves' j, round at the ends, the elbows a column wider, the near forearm's cuff at col 14 and its hand
+  lying out of it on the far forearm (cols 15-17, rows 34-35); their underside on row 39, the desk-top line (canvas y
+  120 at the assistants' y 80); rows 40-47 `seat.rest`'s hips, legs and shoes, which the desk covers. The breath
+  (`DOZE_1`) sinks the head and the shoulders a row into the arms. 900 ms each, as the bed's sleep. Render's Z goes at
+  (25, 11): cols 25-27, rows 11-15 stay clear (rigPoses.test). In the six looks the hair H/h carries the look; the
+  shirt R/r is hidden under the bowed head, as in 0.10's doze. At the gate (task 18, `--only doze` beside
+  `ASSISTANT_DOZE`, the three outfits and the six looks, and a 1x crop) it read as a head bowed on a pillow of arms;
+  two redraws: the first draft's upper arms rose beside the head as posts and its forearms were eight rows stacked,
+  which read as a grey bar held up, so the arms became one rounded band with small hunched shoulders and the head a row
+  lower (the mouth hidden in both beats); and a hand centred on the band read as a button, so it lies out of the near
+  cuff. The doze was the last `STAND_IN`: every animation is drawn and the stand-in is gone.
+- **Expressions** are baked into each rig frame since 0.11.0 (`rigFrame(pose, mood, ready)`, see "The rig"): the
+  mangaka's since task 17, the assistants' since task 19, so no overlay paints over a character and `FACES`, `MARKS`,
+  `MARK_PAL`, `HEAD_DY` and render's `drawMood` are gone. The doze keeps its own baked-in expression. History: up to
+  task 19 an expression was an overlay over the 0.10 frames, `FACES[mood]` (14 wide x 4 tall, no `neutral`) drawn at
+  `(x+4, y+9+headDy)` on head-steady poses (the breathing idle, the seated frames outside panic), its mark in
+  `MARK_PAL` (whose colours live in `PAL.A`/`PAL.X`/`PAL.W`/`PAL.L` since task 7).
 - **Moods and marks** (`mood.ts` `moodOf`, priority order): `surprised` (the editor is standing in the studio and the
   mangaka is home) beats `happy` (`cheer`, set for `CHEER_MS` 2400 ms by `cheersFor` after a fans pop or a level-up
   pop, never a plain xp gain) beats `tired` (stamina below `LOW_STAMINA_THRESHOLD`) beats `sleepy` (working late at
   night: the seated mangaka is drawing, the clock is running, and it is night) beats `neutral`. Panic (the seated
-  mangaka late on a chapter) is not a mood; it beats every one of them and stays the existing `MANGAKA_PANIC` frames.
-  Each mood also has a mark at the head's top-right edge, `(x+20, y-2)` (cols 20-22, rows -2 to 2: right of the hair,
-  clear of its outline; `markX` mirrors it to cols 1-3 for a frame facing right) in `MARK_PAL`: a sweat drop (tired), a sparkle (happy),
-  `!` (surprised), `z` (sleepy). Only one mark ever occupies that slot: the standing mangaka's ready-manuscript `!`
-  beats the mood mark, which beats the idle `?`.
-- **Idle cycles** are pure functions of the frame counter in `mood.ts`. The standing mangaka's 360-frame cycle
-  (`idleFrame`) is 0-239 breathing (today's `frame/16 % 2`), 240-299 a stretch (`MANGAKA_STRETCH`, 2 frames,
-  `frame/15 % 2`), 300-359 a sip from a mug (`MANGAKA_SIP`, 2 frames); it applies only outside the `ready` phase (the
-  manuscript is in hand then). The cat's 480-frame sitting cycle (`catFrame`) is 0-359 `CAT_SIT`, 360-419 a groom
-  (`CAT_GROOM`, 2 frames, `frame/15 % 2`; the ledger's ruling keeps the head in place and raises a paw over the ear
-  gap instead of the spec's "head lowered one row", which hid the change), 420-479 a stretch (`CAT_STRETCH`). Frame 0
-  (reduced motion) is always the plain idle for both.
+  mangaka late on a chapter) is not a mood; it beats every one of them: since 0.11.0 it is the late loop's panic key
+  frames (`seat-draw-late`, their face their own), up to 0.10 the `MANGAKA_PANIC` frames. Each mood also has a mark,
+  a sweat drop (tired), a sparkle (happy), `!` (surprised), `z` (sleepy), which the rig stamps into the frame's mark
+  slot (cols 28-30; over a 0.10 frame it went at the head's top-right edge, `(x+20, y-2)`). Only one mark ever occupies that slot: the standing mangaka's
+  ready-manuscript `!` beats the mood mark (the ready frame leaves its own out), which beats the idle `?`.
+- **Idle cycles.** The cat's is a pure function of the frame counter in `mood.ts`: its 480-frame sitting cycle
+  (`catFrame`) is 0-359 `CAT_SIT`, 360-419 a groom (`CAT_GROOM`, 2 frames, `frame/15 % 2`; the ledger's ruling keeps
+  the head in place and raises a paw over the ear gap instead of the spec's "head lowered one row", which hid the
+  change), 420-479 a stretch (`CAT_STRETCH`); frame 0 (reduced motion) is the plain sit. The mangaka's idle moments are
+  the rig's since 0.11.0 (task 17): the cast driver's seeded schedule (a look round or a sip standing; a stretch, a
+  sip, a page flipped or rubbing the eyes at the desk; see "The cast driver"). History: up to 0.10 the standing
+  mangaka had a 360-frame cycle of its own (`idleFrame`: breathing, then a stretch, `MANGAKA_STRETCH`, then a sip,
+  `MANGAKA_SIP`, outside the `ready` phase), retired with its frames at task 17.
 - **Outfits by level** (`outfitOf`, `OUTFIT_PALS`), the mangaka only, swap `J`/`j` in the palette: levels 1-4 a hoodie
   (`#6f7a8c`/`#525c6b`, the original palette), 5-9 a cardigan (`#c9a24a`/`#a8832f`), 10+ a blazer
   (`#2e3a78`/`#222b5c`). The idle and seated frames carry a collar (`K`, either side of the neck) and a tie (`Y`, shade
   `y`, down the shirt): the cardigan and the blazer show them white and red; in the hoodie (`PAL`) and on every
   assistant (`ASSISTANT_PALS`, `y` their own shirt colour) they keep the colours of the cells they replaced, so those
   look unchanged. Purely cosmetic, so no UI hint is needed.
-- **Face rules and generated frames** (0.11.0, task C1). `faceRules(frame)`, next to `frameRules`, lists what stops a
-  head-steady frame taking the mood overlay: rows 9-12, cols 4-17 (where `FACES` lands) may hold only face keys (`S s
-  E W M B L`), rows 0-2, cols 20-22 (the mark slot) must be clear, and the head (rows 0-15) must stay inside cols 2-19,
-  the `SpriteAvatar` crop. `ANCHOR_HEAD` is the hand-drawn anchor head (rows 0-15 of `MANGAKA_IDLE[0]`, asserted
-  equal); the staff portrait draws it, and the `--sprite` pipeline (see "### Art") grafts it onto a generated frame
-  whose own head fails `faceRules` (the graft rule: rows 0-15 replaced, recorded per frame in the manifest as
-  `graft: "anchor-head"`). `breathOf` is the idle's breath (rows 0-23 a row lower, `breathOf(MANGAKA_IDLE[0])` being
-  exactly `MANGAKA_IDLE[1]`). **None of the C1 frames is drawn**: the readability gate (`sprites-C1.png`, every
-  frame next to its hand-drawn one, 8x, three outfits, every mood) found the idle (a narrow column, no arms or
-  shoes), the two seated frames (the stool baked in, no pen arm, two unrelated cells that jitter when they alternate),
+- **Drawing through the cache** (0.11.0, task 6). Every character is one `drawImage` of its frame from
+  `spriteCache.ts`, painted once per palette and facing into its own surface; the 0.10 maps are `oldCast.ts`'s cast
+  frames (`OLD_CAST`, each with the id the cache names it by) until each rig release replaces them: the mangaka's went
+  at task 17 and the assistants' (the seated pair and the generated doze) at task 19, so `OLD_CAST` holds the editor's
+  and the cat's; the mood overlay over the people went with them (baked into the rig frames). The cache's memory: at most 324 frames x 9 palettes x 2 facings x 6,144 B (a 32x48 RGBA surface),
+  about 36 MB in theory; a realistic long career builds about 900-1,000 surfaces, about 6 MB. `render` takes the cache
+  as its last argument (the session's by default, `getCastCache()`), so a test hands it a recording one
+  (`fakeSurface`) and reads each character as an entry in `images`, named `cast/<frame>/<palette>`, `/r` mirrored.
+- **The gate** (`scripts/spriteSheet.ts`, `npm run sprites -- <out.png> [--walk] [--base <ref>] [--only <prefix>]`):
+  an 8x contact sheet (the cat at 16x). Each rig animation is a block (`--only <prefix>` draws only the animations
+  whose id starts with it): its steps' frames in order in `PAL` (neutral, ready in `stand-ready`) beside the 0.10
+  frames it replaces at a base ref (`--base`, default `main`, where the 0.10 frames stay until the merge; a file the
+  ref lacks is skipped with a note, and a base that cannot load leaves every base cell empty), the same strip in the
+  cardigan and the blazer under it and, for the assistants' animations, in each of the six assistant looks; the blocks
+  sit on shelves (`shelve`, top-aligned, no wider than the sheet's widest other row), which keeps the sheet under
+  sharp's input pixel limit. Then a mood row (the standing, seated and walking poses in the five moods), row F the
+  editor and row G the cat beside the base, row H the walk strips (the rig's walk three times over the base's
+  `MANGAKA_WALK`, then the editor's and the cat's; `--walk` writes only those) and row I the rig head with every face
+  (see "The rig head"). A palette missing on either side, or a frame or file missing at the base, is an empty cell and
+  a note on stdout. Since 0.11.0 task 8 the 0.10 mangaka's rows (A to E) are gone, each replaced by its animation's
+  block.
+
+**The 0.10 string maps** (history; the editor and the cat are still drawn from them). `sprites.ts`'s string maps are
+one character per pixel, drawn by `drawSprite`, which merges each horizontal run of one key into one fillRect and
+mirrors a frame to face right; since 0.11.0 each is a cast frame (`oldCast.ts`) painted once into the sprite cache
+like the rig's. People were 24x32 frames facing left, in chibi proportions (upgrade 0.4.0): the head rows 0-15 (18 px
+wide, cols 2-19), the body rows 16-31 (2 heads tall). Every 24x32 frame passes `frameRules` (every row full width,
+every key in the palette, feet on the last row, a closed outline); `MANGAKA_PANIC` was redrawn in upgrade 0.5.0 with
+both hands clamped on top of the head (the arms raised, the elbows out at cols 0-3 and 20-23, the hands meeting the
+hair at rows 1-3, frame 1 a row lower), replacing the earlier ruling's fists beside the head at rows 5-8: with the
+raised arms the hands read as hands, not ears. The cat has a cream chest patch (`Q`, `#f0ead6`) in every frame where
+its chest shows (not the curled `CAT_SLEEP`), and sleeps on a round mustard cushion at `CAT_BED` (4 fills, drawn just
+before it).
+
+The string-map frame sets still drawn are the editor's idle and walk and the 12x8 cat (sleep, sit, its groom and
+stretch, walk `anim/125 % 2`). The 0.10 people's sets (idle 2, walk 4, sit 2, panic 2 for 40 of every 240 frames on a
+late chapter, a 30x14 lying sprite under the blanket, the idle cycle's stretch and sip, the generated doze) left
+`sprites.ts` with the mangaka's switch to the rig (task 17) and the assistants' (task 19), all but the standing frame
+and the walk (`LEGACY_IDLE`, `LEGACY_WALK`): they stay undrawn as the editor's source (his walk is their legs in his
+suit) and as the anchor `scripts/pixelate.ts` checks `faceRules` against. Props (envelope, letter, contract, trophy)
+are small maps of their own. `SpriteAvatar` draws the rig head (since 0.11.0: rows 0-21, cols 0-23, 24x22; the SVG
+viewBox adds a blank row above and below, 24x24, so the backdrop fills the 48x48 box) as SVG rects (`spriteSvg.ts`) for the staff portraits.
+
+- **The cast redraw** (0.9.0, Release B). Every string-map frame but `ANCHOR_HEAD` is hand-redrawn by Claude in the
+  same format, with the four Higgsfield sheets in `art/raw/sprites/` used as reference for proportions, colours and
+  poses only. The 0.10 mangaka's body was a `J` torso with `j` sleeves and hood shadow (so `OUTFIT_PALS` gives darker
+  gold and navy sleeves), the `R` shirt as a V under the `K` collar, the `Y` column (a drawstring in the hoodie, a tie
+  in the other outfits), `S/s` hands on 3-wide arms, `F/f` brown trousers and `O/o` shoes; `T/t` were no longer on the
+  mangaka. The frames share pieces (`IDLE_BODY`, `WALK_PASS`, `EDITOR_BODY`, `EDITOR_PASS`; `SIT_LAP` went with the
+  seated pair at task 19), and each hand is one skin row closed by `L`, so 0.10's `breathOf` dropped row 24 cleanly.
+  The editor's suit `G/g` is recoloured to
+  `#3a3d4c`/`#2c3656`, with two-lens `P` glasses (a one-cell bridge at col 10; since 0.10.1 the frame is a mid steel
+  `#6b6b78`, at least 0.25 OKLab lightness from the eye `E` and the skin `S`, where `#3b3b45` read as a dark block), a
+  `W` collar, an `N` tie, `E` shoes and the `F/f` briefcase in the right hand, which is two wide; its breath frame
+  is hand-drawn so the case keeps its seven rows. Since 0.10.2 each walk's contact frames swing the arm opposite the
+  stepping leg (their arm rows 20-23 swapped), the standing leg keeps the idle's shading on both, the editor's take
+  `EDITOR_BODY`'s shoulders and the mangaka's legs through `recolour` (`F/f` to `G/g`, `O/o` to `E`) with the case
+  drawn over them, and the 0.10 stretch's raised fists were outlined (an `L` over each on row 11). The cat is a tabby (`c`
+  stripes, the `Q` chest, an `E` eye, 1-px ears) with a tail on its walk. The doze stayed the generated frame, its
+  folded arms remapped `J` to `j` (sleeves) in the manifest, 100 runs to 91 (retired at 0.11.0 task 19, the recipe
+  and its remap kept). Its gate was `npm run sprites` ("The gate" above, the 0.10 rows since replaced). The
+  run-count caps are `RUN_CAPS` in sprites.test.ts, 1.3x each frame's pre-redraw count, which kept every fill
+  baseline inside its 1.5x budget by construction; since task 19 only the editor's and the cat's rows are left (the
+  only string maps still drawn). The ruling: **`ANCHOR_HEAD` is untouched**. The sheets' 2:1 head
+  cannot fit the `FACES`, mark-slot and avatar-crop contract, and the hand-drawn head is the part that already read,
+  so the staff portraits do not change (until the rig head, 0.11.0).
+- **Face rules and generated frames** (0.11.0, task C1). `faceRules(frame)`, next to `frameRules`, lists what stopped
+  a 0.10 head-steady frame taking the mood overlay: rows 9-12, cols 4-17 (where `FACES` landed) may hold only face
+  keys (`S s E W M B L`), rows 0-2, cols 20-22 (the mark slot) must be clear, and the head (rows 0-15) must stay inside cols 2-19,
+  the 0.10 `SpriteAvatar` crop. `ANCHOR_HEAD` is the hand-drawn anchor head (rows 0-15 of `LEGACY_IDLE`, the 0.10
+  standing frame, asserted equal); the staff portrait drew it until the rig head (0.11.0, below), and the `--sprite`
+  pipeline (see "### Art") grafts it onto a generated frame whose own head fails `faceRules` (the graft rule: rows 0-15
+  replaced, recorded per frame in the manifest as `graft: "anchor-head"`). The 0.10 breath (`breathOf`, rows 0-23 a row
+  lower) went with the 0.10 mangaka at task 19. **None of the C1 frames is drawn**: the readability gate
+  (`sprites-C1.png`, every frame next to its hand-drawn one, 8x, three outfits, every mood) found the idle (a narrow
+  column, no arms or shoes), the two seated frames (the stool baked in, no pen arm, two unrelated cells that jitter when they alternate),
   panic (mush) and the bed (a front view peeking over a blue mound, nothing like the pillow pose) read worse at 24x32,
-  so every pose keeps its hand-drawn frame (the plan's fallback). Only the four side-on walk frames read, and they lost
+  so every pose kept its hand-drawn frame (the plan's fallback). Only the four side-on walk frames read, and they lost
   to the hand-drawn walk at the final review (in motion they slide, with no pass frame and no bob, and face side-on
   against the front-facing set). All nine C1 candidates are retired (see "Retired candidates" below). Stretch, sip
   and the doze had no cell on the sheet. Every hand-drawn frame
-  that takes the overlay (the breathing idle, the seated frames) passes `faceRules`, and so does the sip; the stretch
-  does not (its flung arms leave the avatar crop), which is harmless: render draws only the mood mark on the stretch
-  and the sip (`faceSteady` false), never the face. `spriteCore.ts` holds `PAL`, `SpriteMap`, `ANCHOR_HEAD`,
+  that took the overlay (the breathing idle, the seated frames) passed `faceRules`, and so did the sip; the stretch
+  did not (its flung arms left the avatar crop), which was harmless: render drew only the mood mark on the stretch
+  and the sip, never the face. `spriteCore.ts` holds `PAL`, `SpriteMap`, `ANCHOR_HEAD`,
   `frameRules` and `faceRules` as a leaf module with no imports (sprites.ts re-exports them), so the pipeline checks a
   frame without loading the generated frames or the scene.
 - **Generated frames in the scene** (0.11.0, task C2). Four retry sheets (Higgsfield `z_image`, 2026-10-01: a front
@@ -339,7 +750,7 @@ at `CAT_BED` (4 fills, drawn just before it).
   (`sprites-C2.png`: each candidate next to the hand-drawn frame it would replace, 8x at the actor's own spot on the
   apartment shell, the three outfits or three assistant looks, the real render in the scene at 4x, and every mood's
   face and mark on the head-steady frames; `walk-C2.gif` and `walk-C2-strip.png` show the cycles in motion). **The
-  one generated frame drawn is the assistants' doze** (`ASSISTANT_DOZE`, `sprite/assistant-doze`): the front sheet's
+  one generated frame drawn (until 0.11.0 task 19) was the assistants' doze** (`ASSISTANT_DOZE`, `sprite/assistant-doze`): the front sheet's
   dozing cell fitted to a 20x23 box on the frame's last rows, the head down on folded arms, eyes shut, eight cells
   touched (three stray specks, the right eye's shut line). It reads as asleep more clearly than the hand-drawn head
   on a block (113 fills before, 100 then; 91 since the 0.9.0 remap). Every other pose stays hand-drawn. The standing idle
@@ -353,64 +764,39 @@ at `CAT_BED` (4 fills, drawn just before it).
   front idle to profile mid-cycle. On the editor, the glasses and hair snap into a mask on the idle, and the walk's
   three-quarter steps carry red specks and no shoes. The cat, at 12x8, is a 5-7 column blob in every cell, with no
   eye or ears. Every loser, the idle included, is retired.
-- **Retired candidates** (0.11.0 final review). Every C1 probe-sheet frame and every C2 candidate except the doze
-  carries `"retired": true` in `art/manifest.json`: its recipe (sheet, crop, keys, fit, remap, cells) and its raw
-  sheet in `art/raw/sprites/` stay committed, its `src/ui/scene/generated/*.ts` module does not. `npm run art -- --all`
+- **Retired candidates** (0.11.0 final review). Every C1 probe-sheet frame and every C2 candidate carries `"retired":
+  true` in `art/manifest.json`, the assistants' doze too: the one generated frame drawn since 0.11.0 C2, retired in
+  0.11.0 task 19 for the rig's hand-drawn doze (`DOZE_0`, `DOZE_1`, "The doze" below). Each one's recipe (sheet, crop,
+  keys, fit, remap, cells) and raw sheet in `art/raw/sprites/` stay committed, its `src/ui/scene/generated/*.ts` module does not. `npm run art -- --all`
   skips a retired entry; to restore one, run `npm run art -- sprite/<name>` (it notes the entry is retired and writes
   the module anyway), then drop the flag and import the module. art.test checks a retired entry only for its raw
   sheet and a crop inside it (read from the IHDR), requires a module for every other sprite entry, and fails on any
-  `generated/*.ts` without a non-retired entry, so `generated/` holds exactly `assistant-doze.ts`.
-- **The cast redraw** (0.9.0, Release B). Every string-map frame but `ANCHOR_HEAD` is hand-redrawn by Claude in the
-  same format, with the four Higgsfield sheets in `art/raw/sprites/` used as reference for proportions, colours and
-  poses only. The mangaka's body is a `J` torso with `j` sleeves and hood shadow (so `OUTFIT_PALS` gives darker gold
-  and navy sleeves), the `R` shirt as a V under the `K` collar, the `Y` column (a drawstring in the hoodie, a tie in
-  the other outfits), `S/s` hands on 3-wide arms, `F/f` brown trousers and `O/o` shoes; `T/t` are no longer on the
-  mangaka. The frames share pieces (`IDLE_BODY`, `WALK_PASS`, `SIT_LAP`, `EDITOR_BODY`, `EDITOR_PASS`), and each hand
-  is one skin row closed by `L`, so `breathOf` still drops row 24 cleanly. The editor's suit `G/g` is recoloured to
-  `#3a3d4c`/`#2c3656`, with two-lens `P` glasses (a one-cell bridge at col 10; since 0.10.1 the frame is a mid steel
-  `#6b6b78`, at least 0.25 OKLab lightness from the eye `E` and the skin `S`, where `#3b3b45` read as a dark block), a
-  `W` collar, an `N` tie, `E` shoes and the `F/f` briefcase in the right hand, which is two wide; its breath frame
-  is hand-drawn so the case keeps its seven rows. Since 0.10.2 each walk's contact frames swing the arm opposite the
-  stepping leg (their arm rows 20-23 swapped), the standing leg keeps the idle's shading on both, the editor's take
-  `EDITOR_BODY`'s shoulders and the mangaka's legs through `recolour` (`F/f` to `G/g`, `O/o` to `E`) with the case
-  drawn over them, and the stretch's raised fists are outlined (an `L` over each on row 11). The cat is a tabby (`c`
-  stripes, the `Q` chest, an `E` eye, 1-px ears) with a tail on its walk. The doze stays the generated frame, its
-  folded arms remapped `J` to `j` (sleeves) in the manifest, 100 runs to 91. The gate is `scripts/spriteSheet.ts`
-  (`npm run sprites -- <out.png> [--walk]`): an 8x contact sheet (the cat at 16x) of each frame beside its HEAD frame,
-  plus the cardigan, blazer and assistant looks and the four moods' faces and marks (new only), and the walk strips
-  (`--walk` writes only those); a palette missing on either side, or a frame missing at HEAD, is an empty cell and a
-  note on stdout. The run-count caps are `RUN_CAPS` in sprites.test.ts, 1.3x each frame's pre-redraw count, which
-  keeps every fill baseline inside its 1.5x budget by construction. The ruling: **`ANCHOR_HEAD` is untouched**. The
-  sheets' 2:1 head cannot fit the `FACES`, mark-slot and avatar-crop contract, and the hand-drawn head is the part
-  that already read, so the staff portraits do not change.
-
-The frame sets: idle 2 frames (`frame/16 % 2`), walk 4 (`anim/100 % 4`), sit 2 (`frame/8 % 2` while working, frame 0
-otherwise), panic 2 (for 40 of every 240 frames while working on a late chapter, `Snapshot.late`), a 30x14 lying
-sprite for the bed (under a blanket, only head and shoulders show), the assistants' doze, the editor's idle and walk,
-the standing idle cycle's stretch and sip, and the 12x8 cat (sleep, sit, its groom and stretch, walk `anim/125 % 2`).
-Props (envelope, letter, contract, trophy) are small maps of their own. `SpriteAvatar` draws the anchor frame's chibi
-head (rows 0-15, cols 2-19, 18x16; the SVG viewBox matches) as SVG rects (`spriteSvg.ts`) for the staff portraits.
+  `generated/*.ts` without a non-retired entry; since task 19 `generated/` is empty (no generated frame is drawn).
 
 | Spot | Canvas (top left of the frame) |
 |---|---|
-| `MANGAKA_SEAT` | (132, 67) |
+| `MANGAKA_SEAT` | (124, 58) (0.10: (132, 67)) |
 | `MANGAKA_STAND` | (170, 81) |
-| `MANGAKA_BED` | (216, 106) |
+| `MANGAKA_BED` | (220, 90), the bed frames at `MANGAKA_BED_FRAME` (201, 90) (0.10: (216, 106)) |
+| `MANGAKA_DOOR` | (250, 69) (0.10: the door spot) |
 | `DOOR_SPOT` | (254, 85) |
 | `EDITOR_SPOT` | (198, 85) |
-| `CAT_BED` | (196, 118), at the foot of the bed on the blanket's lower edge |
+| `CAT_BED` | (202, 118), on the blanket (0.10: (196, 118)) |
 | `CAT_KITCHEN` | (44, 150) |
-| `ASSISTANT_SEAT_X` / `_Y` | [66, 86, 106] / 89 |
+| `ASSISTANT_SEAT_X` / `_Y` | [21, 55, 89] / 80 (0.10: [66, 86, 106] / 89) |
 
-Actors whose frame top is at canvas y 75 or below (standing, walking, at the door, in bed) are drawn in the front pass, after the desk; the seated mangaka (y 67) is drawn before it. The assistants sit on stools behind their own desk
-(canvas x 62, width 8 + 20n for n assistants shown, at most 3, y 120-131), drawn after them so only head and shoulders
-show; each seated assistant's page is drawn after the desk, on its top, with one ink line per third of progress.
+Actors whose frame top is at canvas y 75 or below (standing, walking, in bed, the editor and the cat) are drawn in the front pass, after the desk; the seated mangaka (y 58) and the mangaka at its door (y 69) are drawn before it. The assistants' row comes between: after the whole desk group, before the mangaka's front pass (the plan's
+decision 3, its depth in front of the main desk): each assistant from the rig, then their own desk (canvas x 19, width
+36 + 34(n - 1) for n assistants shown, at most 3, y 120-131), drawn after them so only head and shoulders show, then
+each working assistant's page on its top, with one ink line per third of progress.
 
-The scene's fillRect budget is measured, not guessed: the one-assistant reference frame is a baseline of 673 calls
+The scene's fillRect budget is measured, not guessed. Today's pins are the last ones below (task 19: 273 and 289,
+156 and 173 with the art ready, the rest scene 302, the worst-case loops 217, 433 and 256); how they got there
+follows. The one-assistant reference frame was first a baseline of 673 calls
 (`render.test.ts`), and the bare full scene (`BARE_FULL`: three assistants, looks 0-2 at stamina 80, in winter,
 otherwise the reference scene, at night, t 0.9, frame 100) a baseline of 1079 (`studioArt.test.ts`; the full scene
 with every piece of equipment, the loft, the editor, a contract and every story prop stays well inside that
-ceiling); every render must stay under 1.5x its own baseline (1009.5 and 1618.5), so a new sprite or a new studio piece fails its test the moment it pushes the frame
+ceiling); every render must stay under 1.5x its own baseline (then 1009.5 and 1618.5), so a new sprite or a new studio piece fails its test the moment it pushes the frame
 past budget. Upgrade 0.4.0's chibi cast (Task 6) moved both baselines up from 649 and 1025: the redrawn `MANGAKA_SIT`
 frames (used by both the mangaka and every seated assistant) cost 5 (frame 0) or 8 (frame 1) more fillRect runs each
 than the old sit frames, purely from the wider chibi head and torso; nothing else in the redesign (the face overlay,
@@ -447,6 +833,34 @@ against the redrawn seat it replaces); task B5's tabby (`CAT_SLEEP` 31 to 39, `C
 the four and 6 to the rest scene. The pins were then 701 and 1125 (budgets 1051.5 and 1687.5), 549 and 974 with the art
 ready (823.5 and 1461), and the rest scene 506 (759); the 0.10.0 walls (Release C) took the two art pins to 584 and
 1009 (876 and 1513.5), the apartment's code floor (see "The walls").
+The 0.11.0 sprite cache (task 6) took all five down once, by every character's runs, each re-measured by hand in its
+test's docblock: 274 and 309 (budgets 411 and 463.5), 157 and 193 with the art ready (235.5 and 289.5) and the rest
+scene 303 (454.5). The reference scene loses MANGAKA_SIT[0] twice (the mangaka and the assistant, 194 runs each) and
+CAT_SLEEP (39): 701 - 427 = 274; the full scene loses MANGAKA_SIT[0] three times (582), MANGAKA_SIT[1] (195) and
+CAT_SLEEP (39): 1125 - 816 = 309; the art twins lose the same, 584 - 427 = 157 and 1009 - 816 = 193; the rest scene
+loses MANGAKA_LIE (72), CAT_SIT (40) and ASSISTANT_DOZE (91): 506 - 203 = 303. What stays a fill is the mood overlay
+(the sleepy face's 17), the Zs, the blanket and the cushion. The fixed extras that did not shrink (the flat's
+code-drawn wall, the night, the editor's shadow, prop and `!`) left two budget loops under 2 fills of their 1.5x
+budget and the third under 5, so each loop's worst scene has its own pin and the loop is held to 1.5x that: the flat
+in spring at night with the art ready 235 (budget 352.5, `render.test.ts` `ART_WORST_FILLS`), and the full scene with the editor visiting 462
+(693, `studioArt.test.ts` `VISIT_FULL_BASELINE`), 285 with the art ready (427.5, `VISIT_ART_BASELINE`).
+The mangaka's switch to the rig (task 17) took the mood overlay over it out of the fill log, the face and mark now in
+its frame: the scenes where it showed lose it, `BARE_FULL`'s sleepy face 12 and mark 5, 309 - 17 = 292 and 193 - 17 =
+176 with the art ready (budgets 438 and 264), the flat at night with the art ready the same, 235 - 17 = 218 (327), and
+the visit's surprised face 22 and mark 4, 462 - 26 = 436 and 285 - 26 = 259 (654 and 388.5). The reference scene
+(neutral by day, 274 and 157) and the rest scene (the bed frame one image as the lying sprite was, the blanket 2 and the
+Zs 27 still fills, 303) keep their pins; the seated mangaka's second image (its rows 0-39 over the page stack) is a
+`drawImage`, not a fill.
+The assistants' switch to the rig (task 19) took the 0.10 row's stools out (one 10x4 fill per assistant shown) and
+their mood overlay (`drawMood`, gone): the reference scene and its art twin lose the one stool, 274 - 1 = 273 and
+157 - 1 = 156 (budgets 409.5 and 234), the rest scene the same, 303 - 1 = 302 (453; the doze's Z stays 9 fills, now
+at the seat's (25, 11)), `BARE_FULL` and its art twin three stools, 292 - 3 = 289 and 176 - 3 = 173 (433.5 and
+259.5), the art loop's worst, the flat at night, its one stool, 218 - 1 = 217 (325.5), and the visit three stools,
+436 - 3 = 433 and 259 - 3 = 256 (649.5 and 384). The overlay's removal is 0 in every pinned scene (each assistant
+there is neutral: stamina 80, no cheer, and assistants never go sleepy or surprised); where it showed, a tired
+assistant's face and sweat mark took 18 fills (the reference scene with the assistant tired, 292 before, 273 after
+with its stool).
+Moving the row's desk and pages after the desk group changes no count.
 
 ### Art
 The live scene is code-drawn `fillRect` (`render.ts`, `roomArt.ts`, `studioArt.ts`, `sprites.ts`), and since 0.9.0 it
@@ -540,7 +954,8 @@ own typed records here (for example a `Record<GenreId, ArtRef>`) built on the sa
 crisp in every browser; its `alt` defaults to `''` (decorative) except where the image carries real meaning, such as
 the title hero.
 
-**Scene images (0.9.0).** `render(ctx, s, t, frame, art = NO_ART)` takes a `SceneArt` (`src/ui/scene/sceneArt.ts`):
+**Scene images (0.9.0).** `render(ctx, s, t, frame, art = NO_ART, cast)` takes a `SceneArt` (`src/ui/scene/sceneArt.ts`;
+the fifth argument, the sprite cache after it since 0.11.0):
 `room`, one image or null per tier, and `prop`, one per prop (`ScenePropId`: `window`, the window's frame;
 `door`, the apartment's plain front door; `doorway`, the flat's and the loft's lit doorway; `kitchenette`;
 `bookshelf`; `bed`; `poster`, the stock poster, shown while no serial or anime takes its place; and since 0.10.0 the
@@ -765,8 +1180,9 @@ memo; `StudioScene` passes the result to `render`, and each image's load clears 
 the next step repaints it.
 `render.ts` never imports the registry. In tests, `fakeCanvas.ts` records each `drawImage` in `images` (with `at`, the
 fill log's length at the call, for order checks) and `fakeImage(id, w, h)` makes an image `ready` accepts; the fill
-`log` stays fillRect-only, so the 701/1125 baselines measure what is still code-drawn (with `NO_ART` they are
-unchanged), and `fakeSceneArt()` readies every image at once for the art baselines (584/1009 since the 0.10.0 walls). `ART_PALETTE_SCENE` (for `"palette": "scene"` entries) holds the room shells' day colours (the plasters, the tatami, the planks, the concrete, the
+`log` stays fillRect-only, so the 274/309 baselines (701/1125 before the 0.11.0 sprite cache drew the characters as
+images) measure what is still code-drawn (with `NO_ART` they are unchanged), and `fakeSceneArt()` readies every image at
+once for the art baselines (157/193; 584/1009 before the cache). `ART_PALETTE_SCENE` (for `"palette": "scene"` entries) holds the room shells' day colours (the plasters, the tatami, the planks, the concrete, the
 woods, the brick, the rugs and the flat's teal stripe), so a generated wall snaps to the drawn room's colours.
 
 **The title hero** (`TitleScreen.tsx`) renders `TITLE_ART` (manifest id `title/hero`, native 320x180) directly rather
@@ -1560,7 +1976,8 @@ scene. Task R1 laid the plumbing, with no art yet:
   Every image has a code-drawn fallback, used while it is missing or still loading (a frame is never blank), and the
   characters stay string-map sprites. This replaces the 2026-09-28 rule that nothing generated is composited into the
   canvas.
-- `render` takes the images as a `SceneArt` (`sceneArt.ts`, last argument, default `NO_ART`, today's scene exactly);
+- `render` takes the images as a `SceneArt` (`sceneArt.ts`, the fifth argument, before the sprite cache, default
+  `NO_ART`, today's scene exactly);
   `sceneImages.ts` builds them once from the registry's `ROOM_ART` and `SCENE_PROP_ART` and `StudioScene` repaints on
   each load. `render.ts` never imports the registry.
 - Night keeps the scene's own overlay; a room image gets one extra `rgba(20,24,60,0.25)` fill right after it (the
@@ -1611,7 +2028,8 @@ generated sprites (see "The furniture" under "Scene images"):
 - The assistants' bench stays code-drawn (its width follows the staff); the pen tablet and the other small desk
   pieces too.
 - Art baselines 546/953 move to 521/928 (budgets 781.5 and 1392); 673/1079 are unchanged.
-- Final review (controller ruling): with the drafting table's image ready its left leg (x 111-122, y ~120-123) hid seat 3's page and ink lines, so a seated assistant's page is drawn after the active desk sprite when its box overlaps the sprite's box and the sprite is ready (`PAGE_UNDER_DESK`, precomputed per seat); with no image the order is unchanged. Same fill counts, baselines unchanged.
+- Final review (controller ruling): with the drafting table's image ready its left leg (x 111-122, y ~120-123) hid seat 3's page and ink lines, so a seated assistant's page is drawn after the active desk sprite when its box overlaps the sprite's box and the sprite is ready (`PAGE_UNDER_DESK`, precomputed per seat); with no image the order is unchanged. Same fill counts, baselines unchanged. (Gone in 0.11.0
+task 19: the 0.11 row's pages lie on the assistants' own desk, clear of either main desk.)
 
 **2026-10-02, the tutorial.** Release 0.8.0 Task A1 adds the guided first career's state (see "Tutorial"):
 

@@ -3899,6 +3899,7 @@
   {
     "id": "sprite/assistant-doze",
     "kind": "sprite",
+    "retired": true,
     "source": "higgsfield:z_image",
     "model": "z_image",
     "seed": null,

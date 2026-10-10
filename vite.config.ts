@@ -13,6 +13,9 @@ export default defineConfig({
     // Keep every generated art PNG as its own file (never base64-inlined), so PixelArt.tsx's <img src>
     // stays a real URL the browser can lazily load and cache.
     assetsInlineLimit: (filePath) => (filePath.includes('/assets/art/') ? false : undefined),
+    // The cast's hand-drawn string maps load with the first frame, so they stay in the main chunk: 497 kB at 0.10.2,
+    // about 541 kB at 0.11.0, over Vite's 500 kB default; 600 still flags real growth.
+    chunkSizeWarningLimit: 600,
   },
   test: {
     exclude: ['**/node_modules/**', '**/.git/**', 'dist/**', 'src-tauri/**', '.claude/**'],

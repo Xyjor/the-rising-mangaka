@@ -3,7 +3,7 @@ import { act, render } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import '../../test/dom'
 import { stubReducedMotion } from '../../test/dom'
-import { covers, fakeContext } from '../../test/fakeCanvas'
+import { fakeContext, fakeSurface } from '../../test/fakeCanvas'
 import type { FakeContext } from '../../test/fakeCanvas'
 import { installSound, nullEngine } from '../../audio/instance'
 import { acceptOffer, chapterDeadline, createGame } from '../../sim'
@@ -14,6 +14,7 @@ import type { GameState } from '../../sim'
 import { useClock } from '../../state/clock'
 import { useStore } from '../../state/store'
 import { StudioScene } from '../scene/StudioScene'
+import { createSpriteCache, installCastCache } from '../scene/spriteCache'
 
 const PETAL = '#f7b6c8'
 const SNOW = '#f4f8ff'
@@ -32,6 +33,8 @@ beforeEach(() => {
   restoreMotion = stubReducedMotion(true)
   fake = fakeContext()
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(fake.ctx as never)
+  // a cache whose surfaces are recording images: happy-dom paints no canvas, and `fake.images` names each cast frame drawn
+  installCastCache(createSpriteCache(fakeSurface))
   game = createGame('Rin', 1)
   useStore.setState({ game, speed: 0, modal: 'none', toasts: [], tutorialStep: -1, readOnly: false })
   useClock.setState({ t: 0.3 })
@@ -40,6 +43,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.restoreAllMocks()
   restoreMotion()
+  installCastCache(null)
 })
 
 describe('StudioScene', () => {
@@ -101,28 +105,58 @@ describe('StudioScene', () => {
     expect(chapterDeadline(late)?.status).toBe('late')
     render(<StudioScene running />)
     fake.log.length = 0
+    fake.images.length = 0
     act(() => useStore.setState({ game: late }))
-    // PANIC[0] row 1 col 3, the leading hand on top of the head, at the seat (132, 67)
-    expect(covers(fake.log, '#f4cfa5', 135, 68)).toBeGreaterThanOrEqual(0)
+    // the panic frame (the late loop's first step), drawn at the seat (124, 58)
+    const panic = (i: { id: string; x: number; y: number }) => i.id === 'cast/key.panic-0/pal' && i.x === 124 && i.y === 58
+    expect(fake.images.some(panic)).toBe(true)
     fake.log.length = 0
+    fake.images.length = 0
     act(() => useStore.setState({ game: { ...late, serial: { ...late.serial!, nextDueDay: late.day + 60 } } }))
     expect(fake.log.length).toBeGreaterThan(0)
-    expect(covers(fake.log, '#f4cfa5', 135, 68)).toBe(-1)
+    expect(fake.images.some((i) => i.id === 'cast/seat.draw-a~open.closed.none/pal' && i.x === 124 && i.y === 58)).toBe(true)
+    expect(fake.images.some(panic)).toBe(false)
+  })
+
+  it('drives the cast: the mangaka drawn from its base pose at the 0.11 standing spot', () => {
+    render(<StudioScene running={false} />)
+    act(() => useStore.setState({ game: { ...game, studio: { tier: 'loft', owned: [] } } }))
+    expect(fake.images.some((i) => i.id === 'cast/stand.idle~open.closed.none/pal' && i.x === 170 && i.y === 81)).toBe(true)
+  })
+
+  it('cheers when a good one-shot result is dismissed', () => {
+    restoreMotion()
+    restoreMotion = stubReducedMotion(false)
+    vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame', 'performance'] })
+    try {
+      const pending = withPendingResult()
+      const good: GameState = { ...pending, pendingResult: { ...pending.pendingResult!, rank: 1 } }
+      useStore.setState({ game: good })
+      render(<StudioScene running={false} />)
+      vi.advanceTimersByTime(3000) // the editor walks in; everyone settles
+      fake.images.length = 0
+      act(() => useStore.setState({ game: { ...good, pendingResult: null } }))
+      vi.advanceTimersByTime(120)
+      expect(fake.images.some((i) => i.id.startsWith('cast/key.cheer-stand-'))).toBe(true)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   describe('the editor visits', () => {
     let sound: FakeSound
-    const hair = () => covers(fake.log, '#2b2140', 206, 87)
+    const editorHere = () => fake.images.some((i) => i.id.startsWith('cast/editor.') && i.x === 198 && i.y === 85)
     beforeEach(() => { sound = createFakeSound(); installSound(sound) })
     afterEach(() => { installSound(nullEngine) })
 
     it('knocks once when the editor arrives with the results, and paints them at the spot', () => {
       render(<StudioScene running={false} />)
       fake.log.length = 0
+      fake.images.length = 0
       const pending = withPendingResult()
       act(() => useStore.setState({ game: pending }))
       expect(sound.plays).toEqual(['knock'])
-      expect(hair()).toBeGreaterThan(-1)
+      expect(editorHere()).toBe(true)
       act(() => useStore.setState({ game: { ...pending, day: pending.day } }))
       expect(sound.plays).toEqual(['knock'])
     })
@@ -147,15 +181,16 @@ describe('StudioScene', () => {
       render(<StudioScene running={false} />)
       // a studio change repaints at once (reduced motion snaps the walk)
       act(() => useStore.setState({ game: { ...game, studio: { tier: 'loft', owned: [] } } }))
-      expect(hair()).toBeGreaterThan(-1)
+      expect(editorHere()).toBe(true)
       expect(sound.plays).toEqual(['knock'])
     })
 
     it('walks in with a knock when the tutorial starts in a running scene (a replay)', () => {
       render(<StudioScene running={false} />)
       fake.log.length = 0
+      fake.images.length = 0
       act(() => useStore.setState({ tutorialStep: 0 }))
-      expect(hair()).toBeGreaterThan(-1)
+      expect(editorHere()).toBe(true)
       expect(sound.plays).toEqual(['knock'])
     })
 
@@ -163,7 +198,7 @@ describe('StudioScene', () => {
       useStore.setState({ tutorialStep: 8 })
       render(<StudioScene running={false} />)
       act(() => useStore.setState({ game: { ...game, studio: { tier: 'loft', owned: [] } } }))
-      expect(hair()).toBeGreaterThan(-1)
+      expect(editorHere()).toBe(true)
       expect(sound.plays).toEqual([])
     })
 
@@ -171,20 +206,22 @@ describe('StudioScene', () => {
       useStore.setState({ tutorialStep: 3 })
       render(<StudioScene running={false} />)
       act(() => useStore.setState({ game: { ...game, studio: { tier: 'loft', owned: [] } } }))
-      expect(hair()).toBeGreaterThan(-1)
+      expect(editorHere()).toBe(true)
       fake.log.length = 0
+      fake.images.length = 0
       act(() => useStore.setState({ tutorialStep: -1 }))
       expect(fake.log.length).toBeGreaterThan(0)
-      expect(hair()).toBe(-1)
+      expect(editorHere()).toBe(false)
     })
 
     it('a real reason still takes the visit during the tutorial', () => {
       useStore.setState({ tutorialStep: 7 })
       render(<StudioScene running={false} />)
       fake.log.length = 0
+      fake.images.length = 0
       act(() => useStore.setState({ game: withPendingResult() }))
       // the envelope at the spot: the result reason, not the tutorial's empty hands
-      expect(hair()).toBeGreaterThan(-1)
+      expect(editorHere()).toBe(true)
     })
 
     it('the editor leaves once the result is dismissed', () => {
@@ -192,11 +229,12 @@ describe('StudioScene', () => {
       const pending = withPendingResult()
       act(() => useStore.setState({ game: pending }))
       fake.log.length = 0
+      fake.images.length = 0
       act(() => useStore.setState({
         game: { ...pending, pendingResult: null, pendingOffer: null, event: null, animeOffer: null, reviewUnread: null },
       }))
       expect(fake.log.length).toBeGreaterThan(0)
-      expect(hair()).toBe(-1)
+      expect(editorHere()).toBe(false)
     })
   })
 })

@@ -23,7 +23,8 @@ export const NO_STORY: StoryLook = { daysLeft: -1, serialOn: false, posterHue: 0
 
 export const POSTER_HUES = 6
 
-function toneOf(rank: number, entrants: number): RankTone {
+/** The tone of a poll: the top three, the bottom third (rank x 3 > entrants x 2), or in between. The corkboard's and the cast's reactions' one rule. */
+export function rankToneOf(rank: number, entrants: number): RankTone {
   if (rank <= 3) return 'top'
   return rank * 3 > entrants * 2 ? 'low' : 'mid'
 }
@@ -49,7 +50,7 @@ export function storyLook(g: GameState | null): StoryLook {
     daysLeft: deadline ? Math.max(0, deadline.daysLeft) : -1,
     serialOn: !!ser,
     posterHue: ser ? Math.max(0, GENRES.findIndex((x) => x.id === ser.genre)) % POSTER_HUES : 0,
-    rankTone: last ? toneOf(last.rank, last.entrants) : 'none',
+    rankTone: last ? rankToneOf(last.rank, last.entrants) : 'none',
     fanLevel: fans < 100 ? 0 : fans < 1000 ? 1 : fans < 10000 ? 2 : 3,
   }
 }

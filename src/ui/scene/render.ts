@@ -4,15 +4,20 @@
 // prop image replaces its piece at the same footprint and the same place in the draw order. This module never imports
 // the art registry.
 import type { EquipmentId, StudioTierId } from '../../sim'
-import { ASSISTANT_SEAT_X } from './actors'
-import type { Actor, ActorTable } from './actors'
-import {
-  ASSISTANT_DOZE, ASSISTANT_PALS, CAT_GROOM, CAT_SIT, CAT_SLEEP, CAT_STRETCH, CAT_WALK, EDITOR_IDLE, EDITOR_WALK, FACES, HEAD_DY,
-  MANGAKA_IDLE, MANGAKA_LIE, MANGAKA_PANIC, MANGAKA_SIP, MANGAKA_SIT, MANGAKA_STRETCH, MANGAKA_WALK, MARKS, MARK_PAL, OUTFIT_PALS, PAL,
-  PROP_CONTRACT, PROP_ENVELOPE, PROP_LETTER, PROP_PAL, PROP_TROPHY, drawSprite, outfitOf,
-} from './sprites'
-import type { SpriteMap } from './sprites'
-import { BREATHE_POSES, catFrame, idleFrame, moodOf } from './mood'
+import { ASSISTANT_SEAT_X, MANGAKA_BED_FRAME, MANGAKA_SEAT } from './actors'
+import type { Actor, ActorTable, Spot } from './actors'
+import { baseAnimFor } from './castPlay'
+import type { CastContext, CastWho } from './castPlay'
+import type { ReactionCue } from './reactions'
+import { ANIMS } from './rig/anims'
+import { rigFrame } from './rig/frames'
+import { POSES } from './rig/poses'
+import type { PoseDef, PoseId } from './rig/poses'
+import { PROP_CONTRACT, PROP_ENVELOPE, PROP_LETTER, PROP_PAL, PROP_TROPHY, drawSprite } from './sprites'
+import { OLD_CAST } from './oldCast'
+import { drawCast, drawCastTop, getCastCache, lookPalette, outfitPalette } from './spriteCache'
+import type { CastFrame, PaletteId, SpriteCache } from './spriteCache'
+import { catFrame, moodOf } from './mood'
 import type { Mood, MoodInput } from './mood'
 import { BAR_X, paneRect, rawRect, rect, shadow } from './paint'
 import { drawSeasonNight, drawSeasonPane, drawSeasonSill, drawSeasonWall } from './season'
@@ -88,35 +93,9 @@ function glyph(ctx: CanvasRenderingContext2D, ch: string, x: number, y: number, 
 }
 
 /**
- * The mark slot at the head's top-right edge: a 3x5 glyph at cols 20-22, rows -2 to 2 of a 24x32 frame, right of the
- * hair (whose outline reaches col 18 on row 2 and col 19 from row 3) and clear of it; mirrored (cols 1-3) when the
- * frame faces right.
- */
-const MARK_DX = 20
-const MARK_DY = -2
-function markX(x: number, flip = false): number {
-  return flip ? x + 24 - MARK_DX - 3 : x + MARK_DX
-}
-
-/**
- * The mood overlay for a head-steady pose: the face (FACES[mood], rows 9-12 of the anchor, at x+4/x+6 flipped,
- * y+9+headDy) and, when `mark` is true, its mark at the head's top-right edge (MARKS[mood], at `markX`, y-2, in
- * MARK_PAL). Nothing
- * when neutral. Only one glyph ever occupies the mark slot above the head at once (fix round 1): the standing
- * mangaka's ready-manuscript '!' beats the mood mark, which beats the idle '?', so `mark` lets a caller draw the
- * face without the mark when something else already claims that slot. `face` is false for a pose that is not
- * head-steady (the idle cycle's stretch and sip, Decision 6): the mark may still show, but the pose's own baked-in
- * expression (closed eyes, a mug at the mouth) is left alone.
- */
-function drawMood(ctx: CanvasRenderingContext2D, mood: Mood, x: number, y: number, headDy: number, mark = true, face = true) {
-  if (mood === 'neutral') return
-  if (face) drawSprite(ctx, FACES[mood], x + 4, y + 9 + headDy, 4, PAL)
-  if (mark) drawSprite(ctx, MARKS[mood], markX(x), y + MARK_DY, 5, MARK_PAL)
-}
-
-/**
  * One scratch object moodOf reads from, mutated field by field before each call so render allocates nothing per
- * frame; `home` is true at every call site (the mangaka or an assistant, always in the studio when this runs).
+ * frame; `home` is true at every call site (the mangaka or an assistant, always in the studio when this runs). The
+ * mood's face and mark are baked into each rig frame (`rigFrame`), so no overlay is drawn over a character.
  */
 const moodScratch: MoodInput = { home: true, editorHere: false, cheer: false, stamina: 0, lateNight: false }
 
@@ -147,71 +126,107 @@ function drawVisitorProp(ctx: CanvasRenderingContext2D, prop: Snapshot['visitorP
   glyph(ctx, '!', x + 11, y - 8 - (Math.floor(frame / 16) % 2), '#e5484d')
 }
 
+/** The scene is drawing: at the desk, with the clock running (render's `working`, shared with the cast driver). */
+export function workingOf(s: Snapshot): boolean {
+  const absent = s.away || s.activity === 'job'
+  return !absent && s.phase === 'drawing' && s.activity === 'work' && s.stamina > 0 && s.running
+}
+
 /**
- * The mangaka, in whatever pose the table holds (24x32 frames, 30x14 in bed). Called twice: before the desk (paints only
- * when y < 75: seated at 67, behind the desk top) and after it (only when y >= 75: standing, walking, at the door or in
- * bed, in front of it).
+ * Where a rig pose is drawn: at the actor, the seat's half pose at the seat, the bed's frames at their own origin
+ * (`MANGAKA_BED_FRAME`, 19 px left of the actor's bed spot, which stands on the lying head).
+ */
+export function poseOrigin(at: PoseDef['at'], a: Spot): Spot {
+  return at === 'actor' ? a : at === 'seat' ? MANGAKA_SEAT : MANGAKA_BED_FRAME
+}
+
+/** The assistants' desks: from 2 px left of the first seat, 36 wide for one, 34 more per further assistant. */
+const ASSISTANT_DESKS = [36, 70, 104].map((w) => ({ x: ASSISTANT_SEAT_X[0] - 2, w }))
+
+/** The assistants' desk under `shown` (1-3) seats, a constant (nothing allocated per frame). */
+export function assistantDesk(shown: number): { x: number; w: number } {
+  return ASSISTANT_DESKS[shown - 1]
+}
+
+/** The rig's mark slot column in a frame (the head at col 4, its slot at col 24): the '!' and '?' go there. */
+const RIG_MARK_X = 28
+/** The standing loop's own poses: the idle '?' shows only on them, never mid-moment. */
+const STAND_POSES: ReadonlySet<PoseId> = new Set(ANIMS.stand.steps.map((st) => st.pose))
+/** The sleep loop's lying poses: the Zs rise only over them, never over the sitting-up frame of lying down. */
+const SLEEP_POSES: ReadonlySet<PoseId> = new Set(ANIMS.sleep.steps.map((st) => st.pose))
+const castCtx: CastContext = { working: false, late: false, ready: false }
+
+/** The seated frame's rows above the desk top's line (row 40, y 98 at the seat): drawn a second time over the pages. */
+const SEAT_TOP_ROWS = 40
+/**
+ * The seated rig mangaka as `drawRigMangaka` drew it this frame (its frame, palette and place), for the second draw of
+ * its rows 0-39 over the page stack; `render` clears it at the start of every frame. Mutated, never rebuilt.
+ */
+const seatedTop: { frame: CastFrame | null; pal: PaletteId; x: number; y: number } = { frame: null, pal: 'pal', x: 0, y: 0 }
+
+/**
+ * The pose an actor shows: the one the cast driver set, else (a settled table, reduced motion) its base loop's first;
+ * '' when it has none (away or hidden).
+ */
+function poseOf(a: Actor, who: CastWho, s: Snapshot, working: boolean): PoseId | '' {
+  if (a.pose) return a.pose
+  castCtx.working = working
+  castCtx.late = s.late
+  castCtx.ready = s.phase === 'ready'
+  const base = baseAnimFor(who, a.state, castCtx)
+  return base === null ? '' : ANIMS[base].steps[0].pose
+}
+
+/** The rig mangaka: its frame (the mood's face baked in), the shadow under its feet, the bed's blanket and Zz, the ! or ?. */
+function drawRigMangaka(
+  ctx: CanvasRenderingContext2D, cast: SpriteCache, s: Snapshot, a: Actor, pose: PoseId, frame: number, working: boolean, night: boolean,
+) {
+  const def = POSES[pose]
+  const ready = s.phase === 'ready' && a.state === 'standing'
+  const mood = a.state === 'sleeping' ? 'neutral' : moodFor(s.actors.editor.state === 'standing', s.cheer, s.stamina, night && working && a.state === 'seated')
+  const o = poseOrigin(def.at, a)
+  // a pose drawn at the seat or the bed (a transition while the actor already walks) has no feet under the actor
+  const afoot = def.at === 'actor' && (a.state === 'standing' || a.state === 'walking')
+  if (afoot) shadow(ctx, a.x + 6, a.y + 46, 20)
+  const castFrame = rigFrame(pose, mood, ready)
+  const pal = outfitPalette(s.level)
+  drawCast(ctx, cast, castFrame, pal, o.x, o.y, afoot && a.state === 'walking' && a.facing === 1)
+  if (a.state === 'seated' && def.at === 'actor') {
+    // remembered for its rows 0-39 again over the page stack (render, after the stack's lines)
+    seatedTop.frame = castFrame
+    seatedTop.pal = pal
+    seatedTop.x = o.x
+    seatedTop.y = o.y
+  }
+  if (def.at === 'bed') {
+    // the blanket over the shoulders, up to the lying head's left edge (x 224)
+    rawRect(ctx, 196, 112, 29, 10, '#c94b4b')
+    rawRect(ctx, 196, 112, 29, 2, '#a83c3c')
+  }
+  if (a.state === 'sleeping' && SLEEP_POSES.has(pose)) {
+    // beside the lying head, from the bed frame's (36, 2), clear of it (the lying head starts on row 8)
+    const zz = Math.floor(frame / 20) % 3
+    for (let i = 0; i <= zz; i++) glyph(ctx, 'Z', o.x + 36 + i * 3, o.y + 2 - i * 4, '#2f5ecf')
+  }
+  if (a.state === 'standing') {
+    if (ready) glyph(ctx, '!', a.x + RIG_MARK_X, a.y, '#e5484d')
+    else if (mood === 'neutral' && STAND_POSES.has(pose) && frame % 120 < 40) glyph(ctx, '?', a.x + RIG_MARK_X, a.y, '#2f5ecf')
+  }
+}
+
+/**
+ * The mangaka, always from the rig (since 0.11.0's task 17): the pose the cast driver set, or its base loop's first
+ * step on a settled table (reduced motion), one drawImage from the sprite cache (`cast`) by `drawRigMangaka`; nothing
+ * while away or hidden. Called twice: before the desk (paints only when y < 75: seated, behind the desk top, or at
+ * its door) and after it (only when y >= 75: standing, walking or in bed, in front of it).
  */
 function drawMangaka(
   ctx: CanvasRenderingContext2D, s: Snapshot, a: Actor, frame: number, working: boolean, front: boolean, night: boolean,
+  cast: SpriteCache,
 ) {
   if ((a.y >= 75) !== front) return
-  const x = a.x
-  const y = a.y
-  const outfit = OUTFIT_PALS[outfitOf(s.level)]
-  switch (a.state) {
-    case 'seated': {
-      // late on a chapter, the mangaka throws up their hands for 40 frames in every 240
-      const panicking = working && s.late && frame % 240 < 40
-      const idx = working ? Math.floor(frame / 8) % 2 : 0
-      const map = panicking ? MANGAKA_PANIC[idx] : MANGAKA_SIT[idx]
-      drawSprite(ctx, map, x, y, undefined, outfit)
-      if (!panicking) {
-        const mood = moodFor(s.actors.editor.state === 'standing', s.cheer, s.stamina, night && working)
-        drawMood(ctx, mood, x, y, HEAD_DY.sit[idx])
-      }
-      return
-    }
-    case 'standing': {
-      shadow(ctx, x + 4, y + 30, 16)
-      const ready = s.phase === 'ready'
-      // the manuscript is in hand while ready, so the idle cycle (Decision 6) applies only otherwise
-      const pose = ready ? BREATHE_POSES[Math.floor(frame / 16) % 2] : idleFrame(frame)
-      let map: SpriteMap
-      let headDy: number
-      // only the breathing pose is head-steady: the stretch and sip bake their own expression into the frame
-      let faceSteady: boolean
-      if (pose.set === 'stretch') { map = MANGAKA_STRETCH[pose.index]; headDy = HEAD_DY.stretch[pose.index]; faceSteady = false }
-      else if (pose.set === 'sip') { map = MANGAKA_SIP[pose.index]; headDy = HEAD_DY.sip[pose.index]; faceSteady = false }
-      else { map = MANGAKA_IDLE[pose.index]; headDy = HEAD_DY.idle[pose.index]; faceSteady = true }
-      drawSprite(ctx, map, x, y, undefined, outfit)
-      const mood = moodFor(s.actors.editor.state === 'standing', s.cheer, s.stamina, false)
-      // only one mark above the head at a time: the ready manuscript's '!' beats the mood mark, which beats the
-      // idle '?' (fix round 1); the face overlay only ever shows on the head-steady breathing pose
-      drawMood(ctx, mood, x, y, headDy, !ready, faceSteady)
-      if (ready) {
-        // the manuscript in the leading hand (row 22)
-        rawRect(ctx, x - 8, y + 17, 8, 10, '#fdfcf7'); rawRect(ctx, x - 7, y + 19, 6, 1, '#b8b2a5'); rawRect(ctx, x - 7, y + 21, 6, 1, '#b8b2a5')
-        glyph(ctx, '!', markX(x), y + MARK_DY, '#e5484d')
-      } else if (faceSteady && mood === 'neutral' && frame % 120 < 40) glyph(ctx, '?', markX(x), y + MARK_DY, '#2f5ecf')
-      return
-    }
-    case 'walking':
-      shadow(ctx, x + 4, y + 30, 16)
-      drawSprite(ctx, MANGAKA_WALK[Math.floor(a.anim / 100) % 4], x, y, 32, outfit, a.facing === 1)
-      return
-    case 'sleeping': {
-      // the head on the pillow, the body under the blanket (canvas 196-229 x 114-121) and its fold
-      drawSprite(ctx, MANGAKA_LIE, x, y)
-      rawRect(ctx, 196, 114, 34, 8, '#c94b4b')
-      rawRect(ctx, 196, 114, 34, 2, '#a83c3c')
-      const zz = Math.floor(frame / 20) % 3
-      for (let i = 0; i <= zz; i++) glyph(ctx, 'Z', x + 18 + i * 3, y - 6 - i * 4, '#2f5ecf')
-      return
-    }
-    default:
-      return
-  }
+  const pose = poseOf(a, 'mangaka', s, working)
+  if (pose) drawRigMangaka(ctx, cast, s, a, pose, frame, working, night)
 }
 
 // ---------- the props (each a generated sprite when one is ready, else these fills) ----------
@@ -327,34 +342,45 @@ export const PROP_BOX: Record<ScenePropId, Footprint> = {
   bin: FRONT_BOX.bin,
 }
 
+/** A working assistant's page on their own desk (from the seat's col 3, on the desk top, y 120) and its ink lines. */
 const PAGE_X = 3
 const PAGE_Y = 120
 const PAGE_W = 6
 const PAGE_H = 4
-function pagesOverlap(box: Footprint): boolean[] {
-  return ASSISTANT_SEAT_X.map((x) => x + PAGE_X < box.x + box.w && x + PAGE_X + PAGE_W > box.x
-    && PAGE_Y < box.y + box.h && PAGE_Y + PAGE_H > box.y)
-}
-/** Per seat: its page (and ink lines) overlaps the desk sprite's box, so the sprite would cover it. */
-const PAGE_UNDER_DESK: Record<'desk' | 'drafting-table', boolean[]> = {
-  desk: pagesOverlap(PROP_BOX.desk),
-  'drafting-table': pagesOverlap(PROP_BOX['drafting-table']),
-}
 
-/**
- * The working assistants' pages and their ink lines. A page the ready desk sprite would cover is drawn after the
- * desk (`afterDesk`), the rest before it, as always; without the sprite every page is drawn before.
- */
-function drawPages(ctx: CanvasRenderingContext2D, s: Snapshot, shown: number, afterDesk: boolean, deskSpriteReady: boolean) {
-  const under = PAGE_UNDER_DESK[s.owned['drafting-table'] ? 'drafting-table' : 'desk']
+/** The working assistants' pages and their ink lines (round(progress x 3), one a row from y 121), on their desk. */
+function drawPages(ctx: CanvasRenderingContext2D, s: Snapshot, shown: number) {
   const inked = Math.round(s.progress * 3)
   for (let i = 0; i < shown; i++) {
     const actor = s.actors.assistants[i]
     if (actor.state !== 'seated') continue
-    if ((deskSpriteReady && under[i]) !== afterDesk) continue
     rawRect(ctx, actor.x + PAGE_X, PAGE_Y, PAGE_W, PAGE_H, PROP_PAPER)
     for (let k = 0; k < inked; k++) rawRect(ctx, actor.x + 4, 121 + k, 4, 1, PROP_LINE)
   }
+}
+
+/**
+ * The assistants' row (front left, only when staff exists; the plan's decision 3): each one seated or dozing from the
+ * rig in its look, the doze's Z beside the bowed head, then their desk, then each working assistant's page on it. The
+ * row stands in front of the main desk by depth (its desk's floor line y 132 against the main desk's 118-131), so
+ * `render` calls this after the desk group: the third head goes over the drafting table's overhang, never under it.
+ */
+function drawAssistants(ctx: CanvasRenderingContext2D, s: Snapshot, working: boolean, cast: SpriteCache) {
+  const shown = Math.min(3, s.assistants.length)
+  for (let i = 0; i < shown; i++) {
+    const actor = s.actors.assistants[i]
+    const pose = poseOf(actor, 'assistant', s, working)
+    if (!pose) continue
+    // assistants only ever go tired or happy (Decision 5): editorHere and lateNight stay false, so surprised and sleepy
+    // never fire here; asleep, the doze's face is its own
+    const mood = actor.state === 'sleeping' ? 'neutral' : moodFor(false, s.cheer, s.assistants[i].stamina, false)
+    drawCast(ctx, cast, rigFrame(pose, mood, false), lookPalette(s.assistants[i].look), actor.x, actor.y, false)
+    if (actor.state === 'sleeping') glyph(ctx, 'Z', actor.x + 25, actor.y + 11, '#2f5ecf')
+  }
+  const desk = assistantDesk(shown)
+  shadow(ctx, desk.x, 132, desk.w)
+  rawRect(ctx, desk.x, 120, desk.w, 3, '#8b5a2b'); rawRect(ctx, desk.x, 123, desk.w, 9, '#70461f')
+  if (working) drawPages(ctx, s, shown)
 }
 
 /** `drawProp` at the prop's sprite box (its image) or its footprint (its fallback fills, which carry their own coordinates). */
@@ -451,6 +477,8 @@ export interface Snapshot extends StoryLook {
   late: boolean
   /** Set for CHEER_MS after a fans or level pop fires (mood.ts): a happy mood for the mangaka and the assistants. */
   cheer: boolean
+  /** A one-shot reaction cue (reactions.ts), consumed once per character by the cast driver; render does not read it. */
+  reaction: ReactionCue | null
   /** Every character's place and pose, planned and walked by actors.ts; render only reads it. */
   actors: ActorTable
 }
@@ -459,14 +487,17 @@ export interface Snapshot extends StoryLook {
  * Paints one frame. `t` is the time of day (0..1; night when t > 0.72 or t < 0.06); `frame` drives the animation and
  * is 0 under reduced motion, so everything that moves holds still there. `art` holds the generated images; each one
  * missing or still loading paints its code-drawn piece instead (`NO_ART`, the default, is today's scene exactly).
+ * `cast` is the sprite cache the characters are drawn from (the session's by default; a test passes a recording one).
  */
-export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, frame: number, art: SceneArt = NO_ART) {
+export function render(
+  ctx: CanvasRenderingContext2D, s: Snapshot, t: number, frame: number, art: SceneArt = NO_ART, cast: SpriteCache = getCastCache(),
+) {
   const night = t > 0.72 || t < 0.06
   const absent = s.away || s.activity === 'job'
-  // busy = seated at the desk (the pose, which actors.ts plans); working = busy and the clock runs (the animation).
-  // Pausing freezes the mangaka mid-stroke instead of sending them to bed.
-  const busy = !absent && s.phase === 'drawing' && s.activity === 'work' && s.stamina > 0
-  const working = busy && s.running
+  seatedTop.frame = null
+  // working = seated at the desk (the pose, which actors.ts plans) with the clock running (the animation). Pausing
+  // freezes the mangaka mid-stroke instead of sending them to bed.
+  const working = workingOf(s)
   const sky = skyColor(t)
 
   // a room image is the wall alone (canvas rows 0-113), dimmed at night; the tier's floor is always code-drawn
@@ -539,49 +570,24 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
   drawEntrance(ctx, absent, ready(art.prop[door.id]))
   drawFanLetters(ctx, s.fanLevel)
 
-  // the assistants (front left, only when staff exists): their stools, each one seated or dozing, then the desk, then
-  // each working assistant's page on it (after the desk, so it shows)
-  if (s.assistants.length) {
-    const shown = Math.min(3, s.assistants.length)
-    for (let i = 0; i < shown; i++) rawRect(ctx, ASSISTANT_SEAT_X[i] + 7, 118, 10, 4, '#4a4a55')
-    for (let i = 0; i < shown; i++) {
-      const actor = s.actors.assistants[i]
-      if (actor.state === 'hidden' || actor.state === 'away') continue
-      const pal = ASSISTANT_PALS[s.assistants[i].look % ASSISTANT_PALS.length]
-      if (actor.state === 'sleeping') {
-        drawSprite(ctx, ASSISTANT_DOZE, actor.x, actor.y, 32, pal)
-        glyph(ctx, 'Z', actor.x + 18, actor.y - 2, '#2f5ecf')
-      } else {
-        const idx = working ? Math.floor((frame + i * 3) / 8) % 2 : 0
-        drawSprite(ctx, MANGAKA_SIT[idx], actor.x, actor.y, 32, pal)
-        // assistants only ever go tired or happy (Decision 5): editorHere and lateNight stay false so surprised and
-        // sleepy never fire here
-        const mood = moodFor(false, s.cheer, s.assistants[i].stamina, false)
-        drawMood(ctx, mood, actor.x, actor.y, HEAD_DY.sit[idx])
-      }
-    }
-    const dw = 8 + 20 * shown
-    shadow(ctx, 62, 132, dw)
-    rawRect(ctx, 62, 120, dw, 3, '#8b5a2b'); rawRect(ctx, 62, 123, dw, 9, '#70461f')
-    if (working) drawPages(ctx, s, shown, false, deskSpriteReady)
-  }
   // chair (before the player: they sit in it)
   if (s.owned.chair) equipment(ctx, s, art, 'chair', frame, night)
   else prop(ctx, art, 'chair', stockChair)
 
   // the mangaka seated at the desk (behind its top)
-  drawMangaka(ctx, s, s.actors.mangaka, frame, working, false, night)
+  drawMangaka(ctx, s, s.actors.mangaka, frame, working, false, night, cast)
 
   // desk (or the drafting table in its place) and the lamp
   if (s.owned['drafting-table']) equipment(ctx, s, art, 'drafting-table', frame, night)
   else prop(ctx, art, 'desk', stockDesk)
-  // the pages the desk sprite would cover (its box overlaps theirs) go on top of it
-  if (working && s.assistants.length) drawPages(ctx, s, Math.min(3, s.assistants.length), true, deskSpriteReady)
   if (s.owned.lamp) equipment(ctx, s, art, 'lamp', frame, night)
   else { rect(ctx, 100, 50, 1, 12, '#3b3b45'); rect(ctx, 96, 47, 9, 4, '#3fa66c'); if (night || working) rect(ctx, 97, 51, 7, 2, '#fff2a8') }
   const stack = Math.round(1 + s.progress * 8)
   rect(ctx, 57, 62 - stack, 14, stack, '#fdfcf7'); for (let i = 0; i < stack; i += 2) rect(ctx, 57, 62 - stack + i, 14, 1, '#e9e5da')
   rect(ctx, 59, 60 - stack, 10, 1, '#b8b2a5'); rect(ctx, 59, 58 - stack, 7, 1, '#b8b2a5')
+  // the seated rig mangaka's rows 0-39 again, over the pages, so the pen and its hand lie on the stack (the stack itself
+  // stays after the desk: the drafting table's sprite box starts at y 95 and would hide its foot)
+  if (seatedTop.frame) drawCastTop(ctx, cast, seatedTop.frame, seatedTop.pal, seatedTop.x, seatedTop.y, SEAT_TOP_ROWS)
   // the ink pot moves right to make room for the pen tablet
   const ink = s.owned.tablet ? 96 : 90
   rect(ctx, ink, 58, 4, 4, '#1b1b1b'); rect(ctx, ink + 1, 57, 2, 1, '#1b1b1b')
@@ -590,8 +596,11 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
   drawCups(ctx, s, ready(art.prop[deskId]))
   if (absent) { rect(ctx, 96, 58, 8, 5, '#fff7c2'); rect(ctx, 97, 59, 6, 1, '#b8b2a5'); rect(ctx, 97, 61, 4, 1, '#b8b2a5') }
 
+  // the assistants' row, in front of the main desk by depth (the plan's decision 3), after the desk group
+  if (s.assistants.length) drawAssistants(ctx, s, working, cast)
+
   // the mangaka in front of the desk (standing, walking or in bed), then the editor on a visit
-  drawMangaka(ctx, s, s.actors.mangaka, frame, working, true, night)
+  drawMangaka(ctx, s, s.actors.mangaka, frame, working, true, night, cast)
   if (!absent && s.phase === 'submitted') {
     const d = Math.floor((s.running ? frame : 0) / 12) % 4
     for (let i = 0; i < d; i++) glyph(ctx, '.', 214 + i * 3, 92, '#16161a')
@@ -605,20 +614,20 @@ export function render(ctx: CanvasRenderingContext2D, s: Snapshot, t: number, fr
     const cy = Math.round(cat.y) + 3
     rawRect(ctx, cx + 3, cy, 10, 1, CUSHION); rawRect(ctx, cx, cy + 1, 16, 4, CUSHION)
     rawRect(ctx, cx + 1, cy + 5, 14, 1, CUSHION_SHADE); rawRect(ctx, cx + 3, cy + 6, 10, 1, CUSHION_SHADE)
-    drawSprite(ctx, CAT_SLEEP, cat.x, cat.y, 8, undefined, catFlip)
+    drawCast(ctx, cast, OLD_CAST.catSleep, 'pal', cat.x, cat.y, catFlip)
   }
-  else if (cat.state === 'walking') drawSprite(ctx, CAT_WALK[Math.floor(cat.anim / 125) % 2], cat.x, cat.y, 8, undefined, catFlip)
+  else if (cat.state === 'walking') drawCast(ctx, cast, OLD_CAST.catWalk[Math.floor(cat.anim / 125) % 2], 'pal', cat.x, cat.y, catFlip)
   else if (cat.state !== 'hidden' && cat.state !== 'away') {
     // the sitting cat's own idle cycle (Decision 6): sit, then a groom, then a stretch
     const pose = catFrame(frame)
-    const map = pose.set === 'sit' ? CAT_SIT : pose.set === 'groom' ? CAT_GROOM[pose.index] : CAT_STRETCH
-    drawSprite(ctx, map, cat.x, cat.y, 8, undefined, catFlip)
+    const catCast = pose.set === 'sit' ? OLD_CAST.catSit : pose.set === 'groom' ? OLD_CAST.catGroom[pose.index] : OLD_CAST.catStretch
+    drawCast(ctx, cast, catCast, 'pal', cat.x, cat.y, catFlip)
   }
   const editor = s.actors.editor
   const editorFlip = editor.facing === 1
   if (editor.state !== 'hidden' && editor.state !== 'away') shadow(ctx, editor.x + 4, editor.y + 30, 16)
-  if (editor.state === 'walking') drawSprite(ctx, EDITOR_WALK[Math.floor(editor.anim / 100) % 4], editor.x, editor.y, 32, undefined, editorFlip)
-  else if (editor.state !== 'hidden' && editor.state !== 'away') drawSprite(ctx, EDITOR_IDLE[Math.floor(frame / 16) % 2], editor.x, editor.y, 32, undefined, editorFlip)
+  if (editor.state === 'walking') drawCast(ctx, cast, OLD_CAST.editorWalk[Math.floor(editor.anim / 100) % 4], 'pal', editor.x, editor.y, editorFlip)
+  else if (editor.state !== 'hidden' && editor.state !== 'away') drawCast(ctx, cast, OLD_CAST.editorIdle[Math.floor(frame / 16) % 2], 'pal', editor.x, editor.y, editorFlip)
   if (s.visitor === 'editor' && editor.state === 'standing' && editor.facing === -1) drawVisitorProp(ctx, s.visitorProp, editor.x, editor.y, frame)
 
   // the front row, in front of everyone

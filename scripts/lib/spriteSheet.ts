@@ -99,7 +99,7 @@ export function markPalette(pal: Record<string, string>, markPal: Record<string,
   return out
 }
 
-/** Rows and columns where render.ts's drawMood puts a face (x+4, y+9+headDy) and a mark (markX: x+20, y-2). */
+/** Rows and columns where 0.10's drawMood (gone in 0.11.0) put a face (x+4, y+9+headDy) and a mark (x+20, y-2). */
 const FACE_ROW = 9
 const FACE_COL = 4
 const MARK_COL = 20
@@ -127,4 +127,52 @@ export function blitFace(
   stamp(face, HEADROOM + FACE_ROW + headDy, FACE_COL, (k) => k)
   stamp(mark, 0, MARK_COL, markKey)
   return rows.map((row) => row.join(''))
+}
+
+/** Images side by side, `gap` apart, bottom-aligned (so the bed pose and the cat sit on the row's floor). */
+export function hcat(imgs: readonly Rgba[], gap: number): Rgba {
+  const row = layoutRow(imgs.map((i) => ({ w: i.width, h: i.height })), gap)
+  const out = blank(row.width, row.height)
+  imgs.forEach((img, i) => paintOver(out, img, row.cells[i].x, row.height - img.height))
+  return out
+}
+
+/** Images stacked top to bottom, `gap` apart, left-aligned. */
+export function vcat(imgs: readonly Rgba[], gap: number): Rgba {
+  const width = imgs.reduce((w, i) => Math.max(w, i.width), 0)
+  const height = imgs.reduce((h, i) => h + i.height, 0) + gap * Math.max(0, imgs.length - 1)
+  const out = blank(width, height)
+  let y = 0
+  for (const img of imgs) {
+    paintOver(out, img, 0, y)
+    y += img.height + gap
+  }
+  return out
+}
+
+/**
+ * Images on shelves: left to right, `gap` apart, a new shelf (`gap` below) before one would pass `width` (an image
+ * wider than that has a shelf to itself), each shelf top-aligned (so every block's first strip starts on one line), the
+ * shelves left-aligned (`vcat`). Keeps the sheet's area near its content's, under sharp's input pixel limit, as the
+ * animations grow.
+ */
+export function shelve(imgs: readonly Rgba[], width: number, gap: number): Rgba {
+  const shelves: Rgba[][] = []
+  let used = 0
+  for (const img of imgs) {
+    const last = shelves[shelves.length - 1]
+    if (last && used + gap + img.width <= width) {
+      last.push(img)
+      used += gap + img.width
+    } else {
+      shelves.push([img])
+      used = img.width
+    }
+  }
+  return vcat(shelves.map((shelf) => {
+    const row = layoutRow(shelf.map((i) => ({ w: i.width, h: i.height })), gap)
+    const out = blank(row.width, row.height)
+    shelf.forEach((img, i) => paintOver(out, img, row.cells[i].x, 0))
+    return out
+  }), gap)
 }

@@ -2,7 +2,8 @@
  * Studio scene test helpers. `fakeContext` is a recording 2D context: it draws nothing, and every
  * `fillRect(x, y, w, h)` is logged with the `fillStyle` set at that moment, so a test reads back what the scene painted,
  * where and in what order. `drawImage(img, x, y, w?, h?)` is recorded apart, in `images` (its `at` is the fill log's
- * length when it was called, so a test can order an image against the fills around it); `log` stays fillRect-only, so
+ * length when it was called, so a test can order an image against the fills around it), and the cropped
+ * `drawImage(img, sx, sy, sw, sh, x, y, w, h)` as where it lands (x, y, w, h); `log` stays fillRect-only, so
  * the fill budgets keep measuring what is still code-drawn. Only `fillStyle`, `fillRect`, `drawImage` and
  * `imageSmoothingEnabled` exist, so a render that reaches for anything else throws. `fakeImage` makes an image the
  * scene's `ready` accepts; `fakeSceneArt` is every room and prop image the game has, ready at once (no flat wall).
@@ -11,6 +12,7 @@
 import { newActorTable, planActors, settleActors } from '../ui/scene/actors'
 import type { Snapshot } from '../ui/scene/render'
 import type { SceneArt } from '../ui/scene/sceneArt'
+import type { Surface } from '../ui/scene/spriteCache'
 
 export interface FillCall {
   style: string
@@ -53,6 +55,14 @@ export interface FakeImage {
 export function fakeImage(id: string, w: number, h: number): CanvasImageSource & FakeImage {
   const img: FakeImage = { id, complete: true, naturalWidth: w, naturalHeight: h, width: w, height: h }
   return img as unknown as CanvasImageSource & FakeImage
+}
+
+/**
+ * A surface for a test's sprite cache: a `fakeImage` named by the surface's id and a recording context, so `images`
+ * names each cast frame drawn.
+ */
+export function fakeSurface(w: number, h: number, id: string): Surface {
+  return { image: fakeImage(id, w, h), ctx: fakeContext().ctx }
 }
 
 /**
@@ -101,7 +111,9 @@ export function fakeContext(): FakeContext {
     fillRect(x: number, y: number, w: number, h: number) {
       log.push({ style: fake.fillStyle, x, y, w, h })
     },
-    drawImage(img: Partial<FakeImage>, x: number, y: number, w?: number, h?: number) {
+    drawImage(img: Partial<FakeImage>, ...args: number[]) {
+      // (img, x, y), (img, x, y, w, h), or (img, sx, sy, sw, sh, x, y, w, h): a source crop, recorded where it lands
+      const [x, y, w, h] = args.length === 8 ? args.slice(4) : args
       images.push({ id: img.id ?? '?', x, y, w: w ?? img.width ?? 0, h: h ?? img.height ?? 0, at: log.length })
     },
   }
@@ -111,7 +123,7 @@ export function fakeContext(): FakeContext {
 /**
  * The reference scene: drawing phase, the mangaka working with the clock running, half the pages done,
  * stamina 80, one assistant (look 0, stamina 80), in spring, in the bare apartment (nothing owned, no volumes, no
- * anime poster, no trophies), no visitor, the chapter not late, and no story (no deadline, serial, poll or fan letters). The call-count baseline is measured on this snapshot. Unless `over.actors`
+ * anime poster, no trophies), no visitor, the chapter not late, no reaction, and no story (no deadline, serial, poll or fan letters). The call-count baseline is measured on this snapshot. Unless `over.actors`
  * is given, a fresh actor table is planned from the snapshot and settled (everyone in place, nobody walking).
  */
 export function sceneSnapshot(over: Partial<Snapshot> = {}): Snapshot {
@@ -134,6 +146,7 @@ export function sceneSnapshot(over: Partial<Snapshot> = {}): Snapshot {
     visitorProp: 'none',
     late: false,
     cheer: false,
+    reaction: null,
     daysLeft: -1,
     serialOn: false,
     posterHue: 0,

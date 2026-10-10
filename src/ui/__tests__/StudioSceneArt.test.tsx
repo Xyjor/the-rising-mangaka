@@ -6,13 +6,14 @@ import { render } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import '../../test/dom'
 import { stubReducedMotion } from '../../test/dom'
-import { fakeContext, fakeImage } from '../../test/fakeCanvas'
+import { fakeContext, fakeImage, fakeSurface } from '../../test/fakeCanvas'
 import type { FakeContext } from '../../test/fakeCanvas'
 import { createGame } from '../../sim'
 import { useClock } from '../../state/clock'
 import { useStore } from '../../state/store'
 import { NO_ART } from '../scene/sceneArt'
 import type { SceneArt } from '../scene/sceneArt'
+import { createSpriteCache, installCastCache } from '../scene/spriteCache'
 
 const hooks = vi.hoisted(() => ({ listeners: [] as (() => void)[] }))
 const room = fakeImage('room/apartment', 320, 114)
@@ -37,6 +38,8 @@ beforeEach(() => {
   restoreMotion = stubReducedMotion(true)
   fake = fakeContext()
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(fake.ctx as never)
+  // a cache whose surfaces are recording images: happy-dom paints no canvas (the characters are cache images, not art)
+  installCastCache(createSpriteCache(fakeSurface))
   useStore.setState({ game: createGame('Rin', 1), speed: 0, modal: 'none', toasts: [], tutorialStep: 0, readOnly: false })
   useClock.setState({ t: 0.3 })
   room.complete = false
@@ -46,6 +49,7 @@ afterEach(() => {
   vi.useRealTimers()
   vi.restoreAllMocks()
   restoreMotion()
+  installCastCache(null)
 })
 
 describe('StudioScene with generated art', () => {
@@ -53,7 +57,7 @@ describe('StudioScene with generated art', () => {
     render(<StudioScene running={false} />)
     vi.advanceTimersByTime(1100)
     expect(fake.log.length).toBeGreaterThan(0)
-    expect(fake.images).toEqual([])
+    expect(fake.images.filter((i) => !i.id.startsWith('cast/'))).toEqual([])
 
     // nothing changed: the loop skips the frame
     fake.log.length = 0
@@ -64,7 +68,7 @@ describe('StudioScene with generated art', () => {
     expect(hooks.listeners).toHaveLength(1)
     hooks.listeners[0]()
     vi.advanceTimersByTime(1100)
-    expect(fake.images[0]).toMatchObject({ id: 'room/apartment', x: 0, y: 0, w: 320, h: 114 })
+    expect(fake.images.find((i) => i.id === 'room/apartment')).toMatchObject({ id: 'room/apartment', x: 0, y: 0, w: 320, h: 114 })
   })
 
   it('stops listening for loads when it unmounts', () => {

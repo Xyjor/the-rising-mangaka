@@ -1,56 +1,110 @@
-// The sprite contact sheet: every cast frame at 8x (the cat at 16x) on a flat grey ground, each working-tree frame
-// beside the same frame at HEAD, so a redraw is judged against what it replaces (Release B's readability gate).
-// Run with: npm run sprites -- <out.png> [--walk]   (--walk writes only the walk strips, row H)
+// The sprite contact sheet at 8x (the cat at 16x) on a flat grey ground, judged against what each drawing replaces
+// (`--base <ref>`, default main, where the 0.10 frames stay until the 0.11.0 merge): per rig animation (0.11.0) a strip
+// of its steps' frames beside the 0.10 frames it replaces at the base, the same strip in the cardigan and the blazer
+// under it (and, for the assistants' animations, in each of the six assistant looks), then a mood row (the rig's
+// standing, seated and walking poses in the five moods); the editor and the cat beside the base (rows F, G); the walk
+// strips (row H); and the rig head with every eyes x mouth x mark (row I).
+// Run with: npm run sprites -- <out.png> [--walk] [--base <ref>] [--only <prefix>]   (--walk writes only the walk
+// strips, row H; --only draws only the animations whose id starts with the prefix)
 // The PNG has no text; stdout names each row's cells in order. The pure pixel work is scripts/lib/spriteSheet.ts.
 import { execFileSync } from 'node:child_process'
-import { mkdirSync, writeFileSync } from 'node:fs'
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import sharp from 'sharp'
-import { blank, blitFace, cellOrEmpty, layoutRow, markPalette, paintOver, rasterize, type Rgba } from './lib/spriteSheet'
+import { blank, cellOrEmpty, hcat, paintOver, rasterize, shelve, vcat, type Rgba } from './lib/spriteSheet'
+import { ANIMS, ANIM_IDS } from '../src/ui/scene/rig/anims'
+import type { AnimId } from '../src/ui/scene/rig/anims'
+import { MOODS, rigFrame } from '../src/ui/scene/rig/frames'
+import { EYES, MOUTHS, headWith } from '../src/ui/scene/rig/head'
+import { POSES } from '../src/ui/scene/rig/poses'
+import type { PoseId } from '../src/ui/scene/rig/poses'
+import type { EyesId, MarkId, MouthId } from '../src/ui/scene/rig/types'
 
 type Frame = readonly string[]
 type Pal = Record<string, string>
 /**
  * The slice of src/ui/scene/sprites.ts the sheet reads (loaded by path, so tsc never follows it into the DOM types).
  * The outfit and assistant palettes may be missing (a rename, a look not drawn yet): their working-tree cells are then
- * empty, with a note, as a HEAD cell without its frame or palette is.
+ * empty, with a note, as a base cell without its frame or palette is.
  */
 type Sprites = Record<string, unknown> & {
   PAL: Pal
   OUTFIT_PALS?: Partial<Record<'hoodie' | 'cardigan' | 'blazer', Pal>>
   ASSISTANT_PALS?: readonly (Pal | undefined)[]
-  FACES: Record<string, Frame>
-  MARKS: Record<string, Frame>
-  MARK_PAL: Pal
-  HEAD_DY: Record<string, readonly number[]>
 }
 
 const SCALE = 8
 const CAT_SCALE = 16
 const GROUND = '#d9d9d9'
-const GUTTER = 2 * SCALE // around the sheet, inside a new/HEAD pair, between mood cells and strip frames
+const GUTTER = 2 * SCALE // around the sheet, inside a new/base pair, between mood cells and strip frames
 const PAIR_GAP = 6 * SCALE // between pairs and between rows, wider than inside a pair
-const MOODS = ['happy', 'tired', 'surprised', 'sleepy'] as const
+/** The 0.10 people's frame, the size of a base cell the base ref lacks. */
+const OLD_W = 24
+const OLD_H = 32
+/** The six assistant looks the assistants' strips are drawn in. */
+const LOOKS = [0, 1, 2, 3, 4, 5] as const
+/** The animations the assistants play too: their strips are also drawn in every assistant look. */
+const ASSISTANT_ANIMS: ReadonlySet<AnimId> = new Set<AnimId>([
+  'seat-draw', 'seat-idle', 'seat-stretch', 'seat-sip', 'seat-flip', 'seat-rub', 'seat-cheer', 'doze',
+])
+/** The mood row's poses, each drawn in the five moods once its art task has landed it in POSES. */
+const MOOD_POSES = ['stand.idle', 'seat.rest', 'walk.contact-l'] as const
+/** Row I's marks, across each mouth: none first, then the four moods' marks. */
+const ROW_I_MARKS: readonly MarkId[] = ['none', 'sweat', 'sparkle', 'bang', 'zee']
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const posix = (p: string) => p.replaceAll('\\', '/')
 
-/** HEAD's sprite modules, written under node_modules/.cache with the looks import pointed at the working tree. */
-async function loadHead(): Promise<Sprites | null> {
-  const dir = resolve(root, 'node_modules/.cache/rising-mangaka-sprites/head')
+/**
+ * The base ref's sprite modules, written under node_modules/.cache (cleared first, so no other ref's file is left
+ * behind) with the looks import pointed at the working tree. A file the ref lacks is skipped with a note; if sprites.ts
+ * then cannot load, every base cell is empty.
+ */
+async function loadBase(ref: string): Promise<Sprites | null> {
+  const dir = resolve(root, 'node_modules/.cache/rising-mangaka-sprites/base')
   const looks = posix(resolve(root, 'src/ui/looks.ts'))
-  try {
-    for (const file of ['sprites.ts', 'spriteCore.ts', 'generated/assistant-doze.ts']) {
-      const src = execFileSync('git', ['show', `HEAD:src/ui/scene/${file}`], { cwd: root, encoding: 'utf8' })
-      mkdirSync(dirname(resolve(dir, file)), { recursive: true })
-      writeFileSync(resolve(dir, file), src.replaceAll("from '../looks'", `from '${looks}'`))
+  rmSync(dir, { recursive: true, force: true })
+  // the base's sprites.ts still imports its generated doze (on main until the 0.11.0 merge; the working tree retired it
+  // at task 19, and its own rows read only the rig, the editor and the cat)
+  for (const file of ['sprites.ts', 'spriteCore.ts', 'generated/assistant-doze.ts']) {
+    let src: string
+    try {
+      src = execFileSync('git', ['show', `${ref}:src/ui/scene/${file}`], { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
+    } catch {
+      console.log(`note: ${ref} has no src/ui/scene/${file}, skipped`)
+      continue
     }
+    mkdirSync(dirname(resolve(dir, file)), { recursive: true })
+    writeFileSync(resolve(dir, file), src.replaceAll("from '../looks'", `from '${looks}'`))
+  }
+  try {
     return (await import(/* @vite-ignore */ posix(resolve(dir, 'sprites.ts')))) as Sprites
   } catch (err) {
-    console.log(`note: HEAD's sprites could not be loaded, every HEAD cell is empty (${(err as Error).message.split('\n')[0]})`)
+    console.log(`note: ${ref}'s sprites could not be loaded, every base cell is empty (${(err as Error).message.split('\n')[0]})`)
     return null
   }
+}
+
+/** The out path, `--walk`, `--base <ref>` (default main) and `--only <prefix>` from the command line. */
+function parseArgs(args: readonly string[]): { out?: string; walkOnly: boolean; ref: string; only: string } {
+  let out: string | undefined
+  let ref = 'main'
+  let only = ''
+  let walkOnly = false
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--walk') walkOnly = true
+    else if (args[i] === '--base' || args[i] === '--only') {
+      const flag = args[i]
+      const next = args[++i]
+      if (!next || next.startsWith('--')) {
+        throw new Error(flag === '--base' ? '--base needs a ref, such as main or HEAD' : '--only needs an animation id prefix, such as stand or seat-')
+      }
+      if (flag === '--base') ref = next
+      else only = next
+    } else if (!args[i].startsWith('--') && out === undefined) out = args[i]
+  }
+  return { out, walkOnly, ref, only }
 }
 
 type Ref = { name: string; index?: number }
@@ -65,128 +119,129 @@ function frameOf(mod: Sprites | null, ref: Ref): Frame | undefined {
   return Array.isArray(f) && typeof f[0] === 'string' ? (f as Frame) : undefined
 }
 
-/** Images side by side, `gap` apart, bottom-aligned (so the bed pose and the cat sit on the row's floor). */
-function hcat(imgs: readonly Rgba[], gap: number): Rgba {
-  const row = layoutRow(imgs.map((i) => ({ w: i.width, h: i.height })), gap)
-  const out = blank(row.width, row.height)
-  imgs.forEach((img, i) => paintOver(out, img, row.cells[i].x, row.height - img.height))
-  return out
+/** The 0.10 frames each rig animation replaces, read from the base ref (none: a new animation, nothing beside it). */
+const REPLACES: Partial<Record<AnimId, Ref[]>> = {
+  stand: refs('MANGAKA_IDLE', 2), 'stand-ready': [{ name: 'MANGAKA_IDLE', index: 0 }], walk: refs('MANGAKA_WALK', 4),
+  'seat-draw': refs('MANGAKA_SIT', 2), 'seat-idle': [{ name: 'MANGAKA_SIT', index: 0 }],
+  'seat-draw-late': refs('MANGAKA_PANIC', 2), 'seat-panic': refs('MANGAKA_PANIC', 2), sleep: [{ name: 'MANGAKA_LIE' }],
+  'stand-sip': refs('MANGAKA_SIP', 2), 'seat-sip': refs('MANGAKA_SIP', 2), 'seat-stretch': refs('MANGAKA_STRETCH', 2),
+  doze: [{ name: 'ASSISTANT_DOZE' }],
 }
 
-/** Images stacked top to bottom, `gap` apart, left-aligned. */
-function vcat(imgs: readonly Rgba[], gap: number): Rgba {
-  const width = imgs.reduce((w, i) => Math.max(w, i.width), 0)
-  const height = imgs.reduce((h, i) => h + i.height, 0) + gap * Math.max(0, imgs.length - 1)
-  const out = blank(width, height)
-  let y = 0
-  for (const img of imgs) {
-    paintOver(out, img, 0, y)
-    y += img.height + gap
-  }
-  return out
-}
-
-const ROW_A: Ref[] = [
-  ...refs('MANGAKA_IDLE', 2), ...refs('MANGAKA_STRETCH', 2), ...refs('MANGAKA_SIP', 2), ...refs('MANGAKA_WALK', 4),
-  ...refs('MANGAKA_SIT', 2), ...refs('MANGAKA_PANIC', 2), { name: 'MANGAKA_LIE' }, { name: 'ASSISTANT_DOZE' },
-]
 const ROW_F: Ref[] = [...refs('EDITOR_IDLE', 2), ...refs('EDITOR_WALK', 4)]
 const ROW_G: Ref[] = [
   { name: 'CAT_SLEEP' }, { name: 'CAT_SIT' }, ...refs('CAT_WALK', 2), ...refs('CAT_GROOM', 2), { name: 'CAT_STRETCH' },
 ]
 
 async function main() {
-  const args = process.argv.slice(2)
-  const out = args.find((a) => !a.startsWith('--'))
-  if (!out) throw new Error('usage: npm run sprites -- <out.png> [--walk]')
-  const walkOnly = args.includes('--walk')
+  const { out, walkOnly, ref: baseRef, only } = parseArgs(process.argv.slice(2))
+  if (!out) throw new Error('usage: npm run sprites -- <out.png> [--walk] [--base <ref>] [--only <prefix>]')
 
   const now = (await import(/* @vite-ignore */ posix(resolve(root, 'src/ui/scene/sprites.ts')))) as Sprites
-  const head = await loadHead()
+  const base = await loadBase(baseRef)
 
   const notes = new Set<string>()
-  const mustNow = (ref: Ref): Frame => {
-    const f = frameOf(now, ref)
-    if (!f) throw new Error(`the working tree has no ${label(ref)}`)
+  const mustNow = (r: Ref): Frame => {
+    const f = frameOf(now, r)
+    if (!f) throw new Error(`the working tree has no ${label(r)}`)
     return f
   }
-  /** HEAD's frame in HEAD's own palette, or an empty cell the working tree frame's size (and a note) when it is missing. */
-  const drawHead = (ref: Ref, pal: (m: Sprites) => Pal | undefined, scale: number): Rgba => {
-    const f = frameOf(head, ref)
-    const p = head ? pal(head) : undefined
+  /** The base's frame in its own palette, or an empty cell the working tree frame's size (and a note) when it is missing. */
+  const drawBase = (r: Ref, pal: (m: Sprites) => Pal | undefined, scale: number): Rgba => {
+    const f = frameOf(base, r)
+    const p = base ? pal(base) : undefined
     if (f && p) return rasterize(f, p, scale)
-    if (head) notes.add(`note: HEAD has no ${label(ref)} (or its palette), its cell is empty`)
-    const like = mustNow(ref)
+    if (base) notes.add(`note: the base (${baseRef}) has no ${label(r)} (or its palette), its cell is empty`)
+    const like = mustNow(r)
     return blank(like[0].length * scale, like.length * scale)
   }
+  /** A 0.10 frame the rig replaces, at the base in its PAL, or an empty 24x32 cell (and a note) when the base lacks it. */
+  const oldCell = (r: Ref): Rgba => {
+    const f = frameOf(base, r)
+    if (f && base) return rasterize(f, base.PAL, SCALE)
+    if (base) notes.add(`note: the base (${baseRef}) has no ${label(r)}, its cell is empty`)
+    return blank(OLD_W * SCALE, OLD_H * SCALE)
+  }
   /** A working-tree frame in a working-tree palette, or an empty cell the frame's size (and a note) without one. */
-  const drawNow = (ref: Ref, pal: Pal | undefined, palName: string, scale: number): Rgba =>
-    cellOrEmpty(mustNow(ref), pal, scale, notes, `note: the working tree has no ${palName}, its cells are empty`)
-  /**
-   * One pair: the working tree's frame left, HEAD's right; `withHead` false leaves HEAD's slot empty (rows B, C).
-   * `palName` names the palette in the note when the working tree lacks it.
-   */
-  const pair = (ref: Ref, pal: (m: Sprites) => Pal | undefined, scale: number, withHead = true, palName = 'PAL'): Rgba => {
-    const left = drawNow(ref, pal(now), palName, scale)
-    const right = withHead ? drawHead(ref, pal, scale) : blank(left.width, left.height)
-    return hcat([left, right], GUTTER)
+  const drawNow = (r: Ref, pal: Pal | undefined, palName: string, scale: number): Rgba =>
+    cellOrEmpty(mustNow(r), pal, scale, notes, `note: the working tree has no ${palName}, its cells are empty`)
+  /** One pair: the working tree's frame left, the base's right. */
+  const pair = (r: Ref, pal: (m: Sprites) => Pal | undefined, scale: number): Rgba =>
+    hcat([drawNow(r, pal(now), 'PAL', scale), drawBase(r, pal, scale)], GUTTER)
+  /** A rig animation's steps in order, each frame neutral (ready in `stand-ready`), in one palette, a gutter apart. */
+  const rigStrip = (id: AnimId, pal: Pal | undefined, palName: string, times = 1): Rgba => {
+    const steps = Array.from({ length: times }, () => ANIMS[id].steps).flat()
+    return hcat(steps.map((st) => cellOrEmpty(rigFrame(st.pose, 'neutral', id === 'stand-ready').map, pal, SCALE, notes,
+      `note: the working tree has no ${palName}, its cells are empty`)), GUTTER)
   }
 
+  const blocks: Rgba[] = []
   const rows: Rgba[] = []
   const legend: string[] = []
 
   if (!walkOnly) {
-    rows.push(hcat(ROW_A.map((r) => pair(r, (m) => m.PAL, SCALE)), PAIR_GAP))
-    legend.push(`A (the mangaka, each pair new then HEAD): ${names(ROW_A)}`)
-    for (const [row, outfit] of [['B', 'cardigan'], ['C', 'blazer']] as const) {
-      const outfitPal = (m: Sprites) => m.OUTFIT_PALS?.[outfit]
-      rows.push(hcat(ROW_A.map((r) => pair(r, outfitPal, SCALE, false, `OUTFIT_PALS.${outfit}`)), PAIR_GAP))
-      legend.push(`${row} (row A in OUTFIT_PALS.${outfit}, new only, under each pair's new cell): ${names(ROW_A)}`)
+    const ids = ANIM_IDS.filter((a) => a.startsWith(only))
+    if (!ids.length) throw new Error(`no animation id starts with ${only}`)
+    legend.push(`the animations, a block each, left to right on shelves: the strip in PAL (each step neutral, ready in `
+      + `stand-ready) beside the base's frames it replaces, then the strip in each palette named, a row each`)
+    for (const id of ids) {
+      const a = ANIMS[id]
+      const old = REPLACES[id]
+      const strip = rigStrip(id, now.PAL, 'PAL')
+      const lines = [old ? hcat([strip, hcat(old.map(oldCell), GUTTER)], PAIR_GAP) : strip]
+      const under = ['cardigan', 'blazer'] as const
+      for (const outfit of under) lines.push(rigStrip(id, now.OUTFIT_PALS?.[outfit], `OUTFIT_PALS.${outfit}`))
+      const looks = ASSISTANT_ANIMS.has(id) ? LOOKS : []
+      for (const look of looks) lines.push(rigStrip(id, now.ASSISTANT_PALS?.[look], `ASSISTANT_PALS[${look}]`))
+      blocks.push(vcat(lines, GUTTER))
+      legend.push(`${blocks.length}. ${id} (${a.posture}, ${a.loop ? 'loop' : 'once'}): ${a.steps.map((st) => `${st.pose} ${st.ms}`).join(', ')}`
+        + `${old ? `; beside it the base's ${names(old)}` : '; nothing at the base'}`
+        + `; under it in ${under.map((o) => `OUTFIT_PALS.${o}`).join(', ')}`
+        + `${looks.length ? `, then ASSISTANT_PALS[${looks.join(', ')}]` : ''}`)
     }
 
-    const rowD: Rgba[] = []
-    const rowDNames: string[] = []
-    for (const look of [1, 2, 3]) {
-      for (const ref of [{ name: 'MANGAKA_SIT', index: 0 }, { name: 'ASSISTANT_DOZE' }]) {
-        rowD.push(drawNow(ref, now.ASSISTANT_PALS?.[look], `ASSISTANT_PALS[${look}]`, SCALE))
-        rowDNames.push(`${label(ref)} in ASSISTANT_PALS[${look}]`)
-      }
-    }
-    rows.push(hcat(rowD, PAIR_GAP))
-    legend.push(`D (assistant looks, new only): ${rowDNames.join(', ')}`)
-
-    // the face at (x+4, y+9+headDy) and the mark at (x+20, y-2), where render.ts's drawMood puts them
-    const moodPal = markPalette(now.PAL, now.MARK_PAL)
-    const steady: [Ref, number][] = [
-      [{ name: 'MANGAKA_IDLE', index: 0 }, now.HEAD_DY.idle[0]], [{ name: 'MANGAKA_IDLE', index: 1 }, now.HEAD_DY.idle[1]],
-      [{ name: 'MANGAKA_SIT', index: 0 }, now.HEAD_DY.sit[0]], [{ name: 'MANGAKA_SIP', index: 0 }, now.HEAD_DY.sip[0]],
-    ]
-    rows.push(hcat(steady.map(([ref, dy]) => hcat(MOODS.map((mood) =>
-      rasterize(blitFace(mustNow(ref), now.FACES[mood], now.MARKS[mood], dy), moodPal, SCALE)), GUTTER)), PAIR_GAP))
-    legend.push(`E (the moods, each frame ${MOODS.join(', ')}, new only, 2 rows of headroom): `
-      + steady.map(([r, dy]) => `${label(r)} (headDy ${dy})`).join(', '))
+    // each pose of the mood row its art task has drawn, in the five moods, the mark in its slot beside the hair
+    const moodPoses = MOOD_POSES.filter((p): p is typeof p & PoseId => p in POSES)
+    rows.push(hcat(moodPoses.map((p) => hcat(MOODS.map((mood) =>
+      rasterize(rigFrame(p, mood, false).map, now.PAL, SCALE)), GUTTER)), PAIR_GAP))
+    legend.push(`row moods (each pose in ${MOODS.join(', ')}): ${moodPoses.join(', ')}`)
 
     rows.push(hcat(ROW_F.map((r) => pair(r, (m) => m.PAL, SCALE)), PAIR_GAP))
-    legend.push(`F (the editor, each pair new then HEAD): ${names(ROW_F)}`)
+    legend.push(`row F (the editor, each pair new then base): ${names(ROW_F)}`)
     rows.push(hcat(ROW_G.map((r) => pair(r, (m) => m.PAL, CAT_SCALE)), PAIR_GAP))
-    legend.push(`G (the cat at ${CAT_SCALE}x, each pair new then HEAD): ${names(ROW_G)}`)
+    legend.push(`row G (the cat at ${CAT_SCALE}x, each pair new then base): ${names(ROW_G)}`)
   }
 
-  /** A walk cycle three times over in one strip, the working tree's above HEAD's. */
+  /** A walk cycle three times over in one strip, the working tree's above the base's. */
   const strips = (cycle: Ref[], scale: number): Rgba => {
     const loop = [...cycle, ...cycle, ...cycle]
     return vcat([
       hcat(loop.map((r) => rasterize(mustNow(r), now.PAL, scale)), GUTTER),
-      hcat(loop.map((r) => drawHead(r, (m) => m.PAL, scale)), GUTTER),
+      hcat(loop.map((r) => drawBase(r, (m) => m.PAL, scale)), GUTTER),
     ], GUTTER)
   }
+  const oldWalk = refs('MANGAKA_WALK', 4)
   rows.push(vcat([
-    strips(refs('MANGAKA_WALK', 4), SCALE), strips(refs('EDITOR_WALK', 4), SCALE), strips(refs('CAT_WALK', 2), CAT_SCALE),
+    vcat([rigStrip('walk', now.PAL, 'PAL', 3), hcat([...oldWalk, ...oldWalk, ...oldWalk].map(oldCell), GUTTER)], GUTTER),
+    strips(refs('EDITOR_WALK', 4), SCALE), strips(refs('CAT_WALK', 2), CAT_SCALE),
   ], PAIR_GAP))
-  legend.push(`H (the walk strips, each cycle three times, the new strip above HEAD's): MANGAKA_WALK[0..3], then `
+  legend.push(`row H (the walk strips, each cycle three times, the new strip above the base's): the rig's walk `
+    + `(${ANIMS.walk.steps.map((st) => st.pose).join(', ')}) above the base's MANGAKA_WALK[0..3], then `
     + `EDITOR_WALK[0..3], then CAT_WALK[0..1] at ${CAT_SCALE}x`)
 
-  const body = vcat(rows, PAIR_GAP)
+  if (!walkOnly) {
+    // the rig head with every face, its mark in the slot beside the hair: mark cells a gutter apart, mouths wider
+    const eyeIds = Object.keys(EYES) as EyesId[]
+    const mouthIds = Object.keys(MOUTHS) as MouthId[]
+    rows.push(vcat(eyeIds.map((eyes) => hcat(mouthIds.map((mouth) => hcat(ROW_I_MARKS.map((mark) =>
+      rasterize(headWith({ eyes, mouth, mark }), now.PAL, SCALE)), GUTTER)), PAIR_GAP)), GUTTER))
+    legend.push(`row I (the rig head: one row per eyes in EYES order, each mouth x mark (${ROW_I_MARKS.join(', ')}) across): `
+      + `rows ${eyeIds.join(', ')}; across ${mouthIds.join(', ')}, each with every mark`)
+  }
+
+  // the blocks on shelves no wider than the widest row or block, so the sheet's area stays near its content's
+  const wrap = Math.max(...rows.map((r) => r.width), ...blocks.map((b) => b.width))
+  const body = vcat(blocks.length ? [shelve(blocks, wrap, PAIR_GAP), ...rows] : rows, PAIR_GAP)
   const sheet = blank(body.width + 2 * GUTTER, body.height + 2 * GUTTER, GROUND)
   paintOver(sheet, body, GUTTER, GUTTER)
   const outPath = resolve(process.cwd(), out)
@@ -196,8 +251,8 @@ async function main() {
   }).png({ compressionLevel: 9 }).toFile(outPath)
 
   for (const n of notes) console.log(n)
-  for (const line of legend) console.log(`row ${line}`)
-  console.log(`wrote ${outPath} (${sheet.width}x${sheet.height}${head ? '' : ', no HEAD cells'})`)
+  for (const line of legend) console.log(line)
+  console.log(`wrote ${outPath} (${sheet.width}x${sheet.height}, base ${baseRef}${base ? '' : ', no base cells'})`)
 }
 
 await main()

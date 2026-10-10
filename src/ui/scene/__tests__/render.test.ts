@@ -2,19 +2,25 @@
 // runs in the default node environment against the recording context from src/test/fakeCanvas.ts.
 import { describe, expect, it } from 'vitest'
 import { covers, coversAny, fakeContext, fakeImage, fakeSceneArt, sceneSnapshot } from '../../../test/fakeCanvas'
-import type { FillCall } from '../../../test/fakeCanvas'
+import type { FillCall, ImageCall } from '../../../test/fakeCanvas'
 import type { StudioTierId } from '../../../sim'
-import { H, PROP_BOX, PROP_FOOTPRINT, SKY_LUT, W, render, skyColor } from '../render'
+import { H, PROP_BOX, PROP_FOOTPRINT, SKY_LUT, W, assistantDesk, poseOrigin, render, skyColor } from '../render'
 import type { Snapshot } from '../render'
 import { TIER_FLOOR, drawRoomShell } from '../roomArt'
 import { DOORWAY_BOX, DOOR_BOX, NO_EQUIPMENT } from '../studioArt'
 import { DESK_PROPS, NO_ART, PROP_ALIGN, PROP_MIN_H, PROP_SPRITE, ROOM_NIGHT_DIM, fitDesk, fitSprite, hangSprite, placeSprite, ready } from '../sceneArt'
 import type { SceneArt, ScenePropId } from '../sceneArt'
 import type { Season } from '../season'
-import { newActorTable } from '../actors'
-import { ASSISTANT_DOZE, CAT_SIT, CAT_SLEEP, MANGAKA_LIE, MANGAKA_SIT } from '../sprites'
-import { runCount } from '../../art/pixelOps'
+import { MANGAKA_BED, MANGAKA_BED_FRAME, MANGAKA_SEAT, newActorTable, planActors, settleActors } from '../actors'
+import { ANIMS } from '../rig/anims'
+import { rigFrame } from '../rig/frames'
+import { MARK_ART } from '../rig/head'
 import type { Actor, ActorTable } from '../actors'
+
+/** The image a render drew at (x, y) from the sprite cache, if any. */
+const castAt = (images: readonly ImageCall[], x: number, y: number) => images.find((i) => i.id.startsWith('cast/') && i.x === x && i.y === y)
+/** Every image but the cast's (the generated room and props). */
+const artOnly = (images: readonly ImageCall[]) => images.filter((i) => !i.id.startsWith('cast/'))
 
 /**
  * fillRect calls for one frame of the reference scene (`sceneSnapshot()`: drawing phase, working, running,
@@ -29,9 +35,9 @@ import type { Actor, ActorTable } from '../actors'
  * pixels and two hands), the cat's two 8x6 frames 30 pixels in place of the placeholder's 20 (+10) and the assistant's
  * page 3 (the sheet and round(0.5 * 3) = 2 ink lines). Task A (0.2.1) re-measured it the same way at 281 once
  * drawSprite merged each horizontal run of one key into one fillRect (the art unchanged, the same pixels painted): the
- * sprites' 1x1 pixels became runs (the hero, the assistant, the clock and the cat). Task B (0.2.1) re-measured it the same way at 430: the mangaka a 24x32 sprite and the stock chair's new back. Task C (0.2.1) re-measured it the same way at 596: the assistant a 24x32 seated frame, its stool and the page's wider lines, the cat's 12x8 sleeping frame. Upgrade 0.3.0 re-measured it the same way at 649: the tatami room 61 in place of the striped room's 58 (+3), five floor shadows and the staff desk's (+6), the corkboard 10 (board 2, four cards at 2), the calendar 7, the apartment's front row 12 and the bin 7 (5 and two crumpled pages), and the light 8 (the daylight shaft 4, the vignette 4). Upgrade 0.4.0's chibi cast (Task 6) re-measured it the same way at 659 (+10): redrawing MANGAKA_SIT[0] to the chibi proportions (an 18-wide, 16-row head in place of the old frame's narrower crown) costs 5 more fillRect runs than the old frame, and the reference scene paints two seated figures from that map at frame 100 (the mangaka and its one assistant, both landing on index 0: `floor(100/8)%2` for the mangaka, `floor((100+0*3)/8)%2` for the assistant) — 5 + 5 = 10. The mood overlay adds nothing here: the reference scene's mood is neutral (home, no editor, no cheer, stamina 80), and `drawMood` returns early for `neutral`. Upgrade 0.5.0 Task 6.1 re-measured it the same way at 659 (+0): the daylight shaft keeps its four steps, each now wider and fainter. Upgrade 0.5.0 Task 6.2 re-measured it the same way at 659 (+0): the wood-beam frame is the flat's and the loft's, and this scene is the apartment. Upgrade 0.5.0 Task 6.3 re-measured it the same way at 665 (+6): the reference scene is spring, and the cherry now spills past the pane onto the wall (`drawSeasonWall`: a branch, a twig and four blossom clusters, 6 fills). Upgrade 0.5.0 Task 6.4 re-measured it the same way at 663 (-2): the corkboard pins a card per sixth of the pages (a 2x3 grid), so half the pages drawn shows 3 cards in place of 4, at 2 fills each. Upgrade 0.5.0 Task 6.5 re-measured it the same way at 667 (+4): the cat sleeps on a round cushion (4 fills: its top, body, rim and bottom); its cream chest patch is only in the frames where the chest shows, never the curled `CAT_SLEEP` this scene draws. Upgrade 0.5.0 Task 6.6 re-measured it the same way at 667 (+0): `MANGAKA_PANIC`'s hands-on-head redraw only paints while a chapter is late, and this scene is not. Upgrade 0.5.0 Task 6.7 re-measured it the same way at 667 (+0): the mood marks move to the head's top-right edge (x+20, y-2), and this scene's neutral mood draws none. Upgrade 0.5.0 Task 6.8 re-measured it the same way at 673 (+6): the collar (K) and tie (Y/y) split each `MANGAKA_SIT` frame's neckline into 3 more runs (row 16 +1, the collar points on row 17 +2; the tie keeps the stripe's run count), and this scene draws two seated figures (the mangaka and its assistant): 3 + 3 = 6. drawSprite merges runs by key, so the hoodie's K painted in J's colour still costs its own fills. Upgrade 0.9.0 Task B3 re-measured it the same way at 693 (+20): MANGAKA_SIT[0] goes from 184 to 194 runs (task B3's seat on task B1's standing body: rows 17-19 +7, each sleeve its own j run seamed from the torso by an L with the V narrowing to RYR between them; rows 20-22 -3, the old frame's W/y stripe cells gone from the plain Y drawstring column; row 23 +2, the forearm's transparent gap splitting the outline run (+1) and the new j cell (+1); rows 28-29 +4, the shins L,F,f,L under the knee in place of one L line and the thighs' bottom outline), and this scene draws two seated figures from that map at frame 100 (the mangaka and its assistant, both landing on index 0): 10 + 10 = 20. Upgrade 0.9.0 Task B5 re-measured it the same way at 701 (+8): CAT_SLEEP goes from 31 to 39 runs (two stripes down the curled back, `c` between fur at cols 5 and 8 on rows 4-5: each row's one fur run splits into fur, stripe, fur, stripe, fur, +4 a row), and every reference scene draws the cat asleep on its cushion. Every scene must stay under 1.5 times this.
+ * sprites' 1x1 pixels became runs (the hero, the assistant, the clock and the cat). Task B (0.2.1) re-measured it the same way at 430: the mangaka a 24x32 sprite and the stock chair's new back. Task C (0.2.1) re-measured it the same way at 596: the assistant a 24x32 seated frame, its stool and the page's wider lines, the cat's 12x8 sleeping frame. Upgrade 0.3.0 re-measured it the same way at 649: the tatami room 61 in place of the striped room's 58 (+3), five floor shadows and the staff desk's (+6), the corkboard 10 (board 2, four cards at 2), the calendar 7, the apartment's front row 12 and the bin 7 (5 and two crumpled pages), and the light 8 (the daylight shaft 4, the vignette 4). Upgrade 0.4.0's chibi cast (Task 6) re-measured it the same way at 659 (+10): redrawing MANGAKA_SIT[0] to the chibi proportions (an 18-wide, 16-row head in place of the old frame's narrower crown) costs 5 more fillRect runs than the old frame, and the reference scene paints two seated figures from that map at frame 100 (the mangaka and its one assistant, both landing on index 0: `floor(100/8)%2` for the mangaka, `floor((100+0*3)/8)%2` for the assistant) — 5 + 5 = 10. The mood overlay adds nothing here: the reference scene's mood is neutral (home, no editor, no cheer, stamina 80), and `drawMood` returns early for `neutral`. Upgrade 0.5.0 Task 6.1 re-measured it the same way at 659 (+0): the daylight shaft keeps its four steps, each now wider and fainter. Upgrade 0.5.0 Task 6.2 re-measured it the same way at 659 (+0): the wood-beam frame is the flat's and the loft's, and this scene is the apartment. Upgrade 0.5.0 Task 6.3 re-measured it the same way at 665 (+6): the reference scene is spring, and the cherry now spills past the pane onto the wall (`drawSeasonWall`: a branch, a twig and four blossom clusters, 6 fills). Upgrade 0.5.0 Task 6.4 re-measured it the same way at 663 (-2): the corkboard pins a card per sixth of the pages (a 2x3 grid), so half the pages drawn shows 3 cards in place of 4, at 2 fills each. Upgrade 0.5.0 Task 6.5 re-measured it the same way at 667 (+4): the cat sleeps on a round cushion (4 fills: its top, body, rim and bottom); its cream chest patch is only in the frames where the chest shows, never the curled `CAT_SLEEP` this scene draws. Upgrade 0.5.0 Task 6.6 re-measured it the same way at 667 (+0): `MANGAKA_PANIC`'s hands-on-head redraw only paints while a chapter is late, and this scene is not. Upgrade 0.5.0 Task 6.7 re-measured it the same way at 667 (+0): the mood marks move to the head's top-right edge (x+20, y-2), and this scene's neutral mood draws none. Upgrade 0.5.0 Task 6.8 re-measured it the same way at 673 (+6): the collar (K) and tie (Y/y) split each `MANGAKA_SIT` frame's neckline into 3 more runs (row 16 +1, the collar points on row 17 +2; the tie keeps the stripe's run count), and this scene draws two seated figures (the mangaka and its assistant): 3 + 3 = 6. drawSprite merges runs by key, so the hoodie's K painted in J's colour still costs its own fills. Upgrade 0.9.0 Task B3 re-measured it the same way at 693 (+20): MANGAKA_SIT[0] goes from 184 to 194 runs (task B3's seat on task B1's standing body: rows 17-19 +7, each sleeve its own j run seamed from the torso by an L with the V narrowing to RYR between them; rows 20-22 -3, the old frame's W/y stripe cells gone from the plain Y drawstring column; row 23 +2, the forearm's transparent gap splitting the outline run (+1) and the new j cell (+1); rows 28-29 +4, the shins L,F,f,L under the knee in place of one L line and the thighs' bottom outline), and this scene draws two seated figures from that map at frame 100 (the mangaka and its assistant, both landing on index 0): 10 + 10 = 20. Upgrade 0.9.0 Task B5 re-measured it the same way at 701 (+8): CAT_SLEEP goes from 31 to 39 runs (two stripes down the curled back, `c` between fur at cols 5 and 8 on rows 4-5: each row's one fur run splits into fur, stripe, fur, stripe, fur, +4 a row), and every reference scene draws the cat asleep on its cushion. Upgrade 0.11.0 Task 6 re-measured it the same way at 274 (-427): every character is one drawImage from the sprite cache (spriteCache.ts) now, so its runs leave the fill log: the seated mangaka and the assistant from MANGAKA_SIT[0] (194 runs each) and the cat asleep, CAT_SLEEP (39): 701 - 194 - 194 - 39 = 274, three drawImage calls in their place. Upgrade 0.11.0 Task 17 re-measured it the same way at 274 (+0): the mangaka draws from the rig only, seat-draw's first frame at (124, 58) and its rows 0-39 again over the page stack (two drawImage calls in place of MANGAKA_SIT[0]'s one), and this scene's mood is neutral, so no overlay leaves the log. Upgrade 0.11.0 Task 19 re-measured it the same way at 273 (-1): the assistant draws from the rig only, seat-draw's first frame at the 0.11 seat (21, 80) in its look (one drawImage in place of MANGAKA_SIT[0]'s), and the 0.10 row's stool (one 10x4 fill at the seat + 7, y 118) goes, since a 32x48 seated body covers it; the assistant's mood is neutral, so `drawMood` (gone) took nothing out; its desk (2 fills and the shadow 1) and its page 3 move after the main desk group, the same count: 274 - 1 = 273. Every scene must stay under 1.5 times this.
  */
-const BASELINE_FILLS = 701
+const BASELINE_FILLS = 273
 const BUDGET = BASELINE_FILLS * 1.5
 
 /**
@@ -47,11 +53,38 @@ const BUDGET = BASELINE_FILLS * 1.5
  * 701's +8 (the images replace no sprite): 541 + 8 = 549. Upgrade 0.10.0 Task C0 re-measured it the same way at 584
  * (+35): the room image is the wall alone now, and the apartment's code-drawn floor paints under it (`TIER_FLOOR`: the
  * tatami fill 1, the weave lines every 3 px from y 117, 21, the three heri 3 and the staggered seams 5 + 5): 549 + 35 =
- * 584. Every scene with the art ready must stay under 1.5 times this (876; its own budget: the images leave fewer
- * fills, so 701's budget would hide growth).
+ * 584. Upgrade 0.11.0 Task 6 re-measured it the same way at 157 (-427, 15 drawImage calls: the 12 images and the 3 characters): the
+ * same 427 as the 274's (the images replace no sprite): 584 - 194 - 194 - 39 = 157. Upgrade 0.11.0 Task 17 re-measured it
+ * the same way at 157 (+0, 16 drawImage calls: the seated rig mangaka's rows 0-39 go on a second time), as the 274's.
+ * Upgrade 0.11.0 Task 19 re-measured it the same way at 156 (-1), as the 273's: the assistant's stool goes (the images
+ * replace no stool): 157 - 1 = 156. Every scene with the art ready must stay under 1.5 times this (234; its own budget:
+ * the images leave fewer fills, so 273's budget would hide growth).
  */
-const ART_BASELINE_FILLS = 584
+const ART_BASELINE_FILLS = 156
 const ART_BUDGET = ART_BASELINE_FILLS * 1.5
+
+/**
+ * fillRect calls for the worst scene of the art loop (every tier, season and time of day with every generated image
+ * ready): the flat in spring at night, `sceneSnapshot({ tier: 'flat', season: 'spring' })` at t = 0.9 and frame 100:
+ * 235 (Upgrade 0.11.0 Task 6, measured the same way by rendering it into the recording context and reading
+ * `log.length`). ART_BASELINE_FILLS' 157 is the apartment by day, so once the characters' runs left the fill log the
+ * loop's old budget, 235.5, was cleared by half a fill: this scene has its own pin. By hand, against the 157: the flat's
+ * code-drawn wall and floor 83 (it has no room image since 0.10.1) in place of the apartment's floor 35 under its
+ * image, +48; and the night, +30: the stars 9 and the moon 2 in place of the sun 1 (+10), the sleepy face 12 and its
+ * mark 5 on the working mangaka (+17), the night overlay 1 and the working glow 1 (+2), the lamp pool 3 in place of the
+ * daylight shaft's 4 (-1) and the lit doorway's halo and spill 2 (+2); no room-image dim, since the flat has no image
+ * (the apartment at night is 157 + 29 = 186, with that dim and no doorway light): 157 + 48 + 30 = 235. The same
+ * scene by day is 205, the loft at night 185. Upgrade 0.11.0 Task 17 re-measured it the same way at 218 (-17): the
+ * working mangaka is the rig's seat-draw frame, its sleepy face and mark baked in (`~closed.closed.zee`), so the 0.10
+ * overlay's face 12 and mark 5 leave the fill log: 235 - 17 = 218. The same scene by day is still 205 (neutral, no
+ * overlay), the loft at night 168 and the apartment at night 169 (each -17 too). Upgrade 0.11.0 Task 19 re-measured it
+ * the same way at 217 (-1): the one assistant's stool goes, a 32x48 seated rig body covering it; its mood overlay took
+ * nothing out (the assistant is neutral here: stamina 80, no cheer, and assistants never go sleepy), so `drawMood`'s
+ * removal is 0: 218 - 1 = 217. The same scene by day is 204, the loft at night 167 and the apartment at night 168 (each
+ * -1). Every scene in the loop must stay under 1.5 times this (325.5).
+ */
+const ART_WORST_FILLS = 217
+const ART_WORST_BUDGET = ART_WORST_FILLS * 1.5
 
 /**
  * fillRect calls for the rest scene (`sceneSnapshot({ activity: 'rest' })`: the reference scene on a rest day, the
@@ -68,9 +101,17 @@ const ART_BUDGET = ART_BASELINE_FILLS * 1.5
  * at 506 (+6): the cushion and the redrawn CAT_SLEEP (39) leave together, 43 out, and CAT_SIT goes from 34 to 40 (row 3
  * +1, the eye a column forward with the cream muzzle in front of it, L,Q,E,C,c,L in place of L,CC,E,c,L; row 5 +3, two
  * stripes hang from the back, L,QQ,C,c,C,c,C,LL in place of L,QQ,CCCC,c,LL; row 6 +2, the first stripe reaching the
- * belly): 701 - 194 + 101 - 43 + 40 - 197 + 100 - 2 = 506. Every rest scene must stay under 1.5 times this (759).
+ * belly): 701 - 194 + 101 - 43 + 40 - 197 + 100 - 2 = 506. Upgrade 0.11.0 Task 6 re-measured it the same way at 303 (-203): the mangaka in bed (MANGAKA_LIE 72), the cat sitting
+ * (CAT_SIT 40) and the dozing assistant (ASSISTANT_DOZE 91) are drawImage calls now and their runs leave the fill log;
+ * the blanket and its fold 2, frame 100's three Zs 27 and the doze's Z 9 stay fills: 506 - 72 - 40 - 91 = 303. Upgrade
+ * 0.11.0 Task 17 re-measured it the same way at 303 (+0): the mangaka in bed is the rig's bed.lie-0 (one drawImage at
+ * the bed frame's origin (201, 90) in place of MANGAKA_LIE's), its blanket and fold still 2 fills (now from (196, 112),
+ * 29 wide) and frame 100's three Zs still 27, from the bed frame's (36, 2). Upgrade 0.11.0 Task 19 re-measured it the
+ * same way at 302 (-1): the dozing assistant is the rig's key.doze-0 at the 0.11 seat (21, 80) (one drawImage in place
+ * of ASSISTANT_DOZE's), its Z still 9 fills (now at the seat's (25, 11)), and the 0.10 stool's one fill goes: 303 - 1 =
+ * 302. Every rest scene must stay under 1.5 times this (453).
  */
-const REST_BASELINE_FILLS = 506
+const REST_BASELINE_FILLS = 302
 const REST_BUDGET = REST_BASELINE_FILLS * 1.5
 
 describe('render', () => {
@@ -81,10 +122,10 @@ describe('render', () => {
     expect(log.some((c) => c.style === '#f0f')).toBe(false)
   })
 
-  it('keeps every fillRect inside the 320x180 canvas', () => {
+  it('keeps every fillRect and every drawn image inside the 320x180 canvas', () => {
     expect([W, H]).toEqual([320, 180])
     for (const t of [0.3, 0.9]) {
-      const { ctx, log } = fakeContext()
+      const { ctx, log, images } = fakeContext()
       render(ctx, sceneSnapshot(), t, 100)
       for (const c of log) {
         expect(c.x).toBeGreaterThanOrEqual(0)
@@ -92,7 +133,28 @@ describe('render', () => {
         expect(c.x + c.w).toBeLessThanOrEqual(320)
         expect(c.y + c.h).toBeLessThanOrEqual(180)
       }
+      expect(images.length).toBeGreaterThan(0)
+      for (const i of images) expect(i.x >= 0 && i.y >= 0 && i.x + i.w <= 320 && i.y + i.h <= 180, JSON.stringify(i)).toBe(true)
     }
+  })
+
+  it("draws the reference scene's three characters from the cache where they stand, the seated mangaka's top rows twice", () => {
+    const ref = fakeContext()
+    render(ref.ctx, sceneSnapshot(), 0.3, 100)
+    // the seated rig mangaka is two images: the frame, then its rows 0-39 (32x40) over the page stack
+    // before the main desk, the assistant (from the rig, at the 0.11 seat) after the desk group
+    expect(ref.images.map(({ id, x, y, w, h }) => [id, x, y, w, h])).toEqual([
+      ['cast/seat.draw-a~open.closed.none/pal', 124, 58, 32, 48], ['cast/seat.draw-a~open.closed.none/pal', 124, 58, 32, 40],
+      ['cast/seat.draw-a~open.closed.none/look0', 21, 80, 32, 48], ['cast/cat.sleep/pal', 202, 118, 12, 8],
+    ])
+    // the assistants' block after the desk group, the sleeping mangaka in the front pass after it, then the cat
+    const rest = fakeContext()
+    render(rest.ctx, sceneSnapshot({ activity: 'rest' }), 0.3, 100)
+    expect(rest.images.map((i) => i.id)).toEqual(['cast/key.doze-0/look0', 'cast/bed.lie-0/pal', 'cast/cat.sit/pal'])
+    // the bed frames wear the level's outfit too
+    const blazer = fakeContext()
+    render(blazer.ctx, sceneSnapshot({ activity: 'rest', level: 10 }), 0.3, 100)
+    expect(castAt(blazer.images, 201, 90)?.id).toBe('cast/bed.lie-0/blazer')
   })
 
   it("paints the tier's wall and floor across the whole canvas, first", () => {
@@ -104,23 +166,35 @@ describe('render', () => {
     }
   })
 
-  it('stays under 1.5 times its own measured baseline with every generated image ready, in every tier and season', () => {
-    expect(ART_BUDGET).toBe(876)
+  it('stays under 1.5 times its own measured worst case with every generated image ready, in every tier and season', () => {
+    expect(ART_BUDGET).toBe(234)
     const ref = fakeContext()
     render(ref.ctx, sceneSnapshot(), 0.3, 100, fakeSceneArt())
     expect(ref.log).toHaveLength(ART_BASELINE_FILLS)
     expect(ref.images.map((i) => i.id)).toEqual([
-      'room/apartment', 'kitchenette', 'window', 'bookshelf', 'poster', 'bed', 'door', 'chair', 'desk', 'zabuton', 'boxes', 'bin',
+      'room/apartment', 'kitchenette', 'window', 'bookshelf', 'poster', 'bed', 'door', 'chair',
+      'cast/seat.draw-a~open.closed.none/pal', 'desk', 'cast/seat.draw-a~open.closed.none/pal', 'cast/seat.draw-a~open.closed.none/look0',
+      'cast/cat.sleep/pal', 'zabuton', 'boxes', 'bin',
     ])
+    // the loop's worst scene has its own pin (the flat in spring at night, ART_WORST_FILLS), and the loop is held to 1.5
+    // times that
+    expect(ART_WORST_BUDGET).toBe(325.5)
+    const worst = fakeContext()
+    render(worst.ctx, sceneSnapshot({ tier: 'flat', season: 'spring' }), 0.9, 100, fakeSceneArt())
+    expect(worst.log).toHaveLength(ART_WORST_FILLS)
+    let most = 0
     for (const tier of ['apartment', 'flat', 'loft'] as StudioTierId[]) {
       for (const season of ['spring', 'summer', 'autumn', 'winter'] as Season[]) {
         for (const t of [0.3, 0.9]) {
           const { ctx, log } = fakeContext()
           render(ctx, sceneSnapshot({ tier, season }), t, 100, fakeSceneArt())
-          expect(log.length, `${tier} ${season} t ${t}`).toBeLessThan(ART_BUDGET)
+          expect(log.length, `${tier} ${season} t ${t}`).toBeLessThan(ART_WORST_BUDGET)
+          most = Math.max(most, log.length)
         }
       }
     }
+    // no other scene has overtaken the pinned one
+    expect(most).toBe(ART_WORST_FILLS)
   })
 
   it("spans the bookshelf's contact shadow over its sprite when the image is ready, and keeps the old one without art", () => {
@@ -139,10 +213,11 @@ describe('render', () => {
     render(a.ctx, sceneSnapshot(), 0.3, 0)
     render(b.ctx, sceneSnapshot(), 0.3, 0)
     expect(b.log).toEqual(a.log)
+    expect(b.images).toEqual(a.images)
   })
 
   it('stays under 1.5 times the measured baseline of fillRect calls in every season, by day and by night', () => {
-    expect(BUDGET).toBe(1051.5)
+    expect(BUDGET).toBe(409.5)
     const ref = fakeContext()
     render(ref.ctx, sceneSnapshot(), 0.3, 100)
     expect(ref.log).toHaveLength(BASELINE_FILLS)
@@ -156,9 +231,7 @@ describe('render', () => {
   })
 
   it('stays under 1.5 times the measured rest-scene baseline, the assistant dozing, in every season, by day and by night', () => {
-    expect(REST_BUDGET).toBe(759)
-    // the by-hand terms (see REST_BASELINE_FILLS)
-    expect([MANGAKA_SIT[0], MANGAKA_LIE, CAT_SLEEP, CAT_SIT, ASSISTANT_DOZE].map(runCount)).toEqual([194, 72, 39, 40, 91])
+    expect(REST_BUDGET).toBe(453)
     const ref = fakeContext()
     const rest = sceneSnapshot({ activity: 'rest' })
     expect([rest.actors.mangaka.state, rest.actors.cat.state, rest.actors.assistants[0].state]).toEqual(['sleeping', 'sitting', 'sleeping'])
@@ -282,10 +355,10 @@ describe('covers, the fill-log pixel lookup', () => {
 
 describe('the characters, from the actor table', () => {
   const has = (log: FillCall[], style: string, x: number, y: number) => covers(log, style, x, y) >= 0
-  function paintWith(table: ActorTable, over = {}): FillCall[] {
-    const { ctx, log } = fakeContext()
+  function paintWith(table: ActorTable, over = {}): { log: FillCall[]; images: ImageCall[] } {
+    const { ctx, log, images } = fakeContext()
     render(ctx, sceneSnapshot({ ...over, actors: table }), 0.3, 0)
-    return log
+    return { log, images }
   }
   function walking(over: Partial<Actor>): ActorTable {
     const t = newActorTable()
@@ -294,65 +367,59 @@ describe('the characters, from the actor table', () => {
   }
 
   it('seats the mangaka at the desk in the reference scene, over the chair back and under the desk top', () => {
-    const { ctx, log } = fakeContext()
+    const { ctx, log, images } = fakeContext()
     render(ctx, sceneSnapshot(), 0.3, 0)
-    // seat (132, 67): the anchor's row 2 col 8 is hair, row 13 col 8 skin, row 9 col 6 an eye
-    const hair = covers(log, '#2b2140', 140, 69)
-    expect(hair).toBeGreaterThanOrEqual(0)
+    // seat (124, 58): the seated frame (seat-draw's first step), drawn after the chair back and before the desk top
+    const hero = castAt(images, 124, 58)
+    expect(hero?.id).toBe('cast/seat.draw-a~open.closed.none/pal')
     const chair = covers(log, '#4a4a55', 140, 90)
     expect(chair).toBeGreaterThan(-1)
-    expect(chair).toBeLessThan(hair)
-    expect(covers(log, '#8b5a2b', 116, 98)).toBeGreaterThan(hair)
-    expect(has(log, '#f4cfa5', 140, 80)).toBe(true)
-    expect(has(log, '#1b1b1b', 138, 76)).toBe(true)
+    expect(chair).toBeLessThan(hero!.at)
+    expect(covers(log, '#8b5a2b', 116, 98)).toBeGreaterThanOrEqual(hero!.at)
   })
 
   it('stands the mangaka beside the desk between projects, after the desk top', () => {
-    const { ctx, log } = fakeContext()
+    const { ctx, log, images } = fakeContext()
     render(ctx, sceneSnapshot({ phase: 'idle' }), 0.3, 0)
-    const hair = covers(log, '#2b2140', 178, 83)
-    expect(hair).toBeGreaterThan(covers(log, '#8b5a2b', 116, 98))
-    expect(covers(log, '#8b5a2b', 116, 98)).toBeGreaterThan(-1)
-    // row 30 col 7, a shoe
-    expect(has(log, '#c0392b', 177, 111)).toBe(true)
+    const hero = castAt(images, 170, 81)
+    expect(hero?.id).toBe('cast/stand.idle~open.closed.none/pal')
+    const desk = covers(log, '#8b5a2b', 116, 98)
+    expect(desk).toBeGreaterThan(-1)
+    expect(hero!.at).toBeGreaterThan(desk)
+    // the shadow under its feet (row 47, y 128) goes on first
+    const under = log.findIndex((c) => c.style === 'rgba(40, 24, 16, 0.28)' && c.x === 176 && c.y === 127 && c.w === 20 && c.h === 2)
+    expect(under).toBeGreaterThan(-1)
+    expect(hero!.at).toBeGreaterThan(under)
   })
 
-  it('walks the mangaka with the four-frame cycle, mirrored when facing right', () => {
-    // contact (anim 0): WALK[0] row 30 '..LOOOOoL...LOOoL.......', the forward shoe's O at cols 3-6 (col 5 at x 155);
-    // pass (anim 100): the shoes together at cols 9-14, nothing at col 5
-    expect(has(paintWith(walking({})), '#c0392b', 155, 111)).toBe(true)
-    expect(has(paintWith(walking({ anim: 100 })), '#c0392b', 155, 111)).toBe(false)
-    // facing right, col 5 mirrors to x 150 + 23 - 5 = 168
-    expect(has(paintWith(walking({ facing: 1 })), '#c0392b', 168, 111)).toBe(true)
+  it('walks the mangaka through the walk loop, mirrored when facing right', () => {
+    // the pose the cast driver set; facing right is the mirrored surface; with none (a settled table), the loop's first step
+    expect(castAt(paintWith(walking({ pose: 'walk.pass-l' })).images, 150, 81)?.id).toBe('cast/walk.pass-l~open.closed.none/pal')
+    expect(castAt(paintWith(walking({ pose: 'walk.pass-l', facing: 1 })).images, 150, 81)?.id).toBe('cast/walk.pass-l~open.closed.none/pal/r')
+    expect(castAt(paintWith(walking({})).images, 150, 81)?.id).toBe('cast/walk.contact-l~open.closed.none/pal')
   })
 
-  it('has the seated mangaka throw up their hands for 40 frames in 240 when the chapter is late', () => {
-    const at = (late: boolean, frame: number) => {
-      const { ctx, log } = fakeContext()
-      render(ctx, sceneSnapshot({ late }), 0.3, frame)
-      return log
+  it('opens the late loop on the panic', () => {
+    const at = (late: boolean) => {
+      const { ctx, images } = fakeContext()
+      render(ctx, sceneSnapshot({ late }), 0.3, 0)
+      return images
     }
-    // PANIC[0] row 1 col 3 is the leading hand on top of the head (SIT's row 1 col 3 is clear), at (132+3, 67+1)
-    expect(covers(at(true, 0), '#f4cfa5', 135, 68)).toBeGreaterThanOrEqual(0)
-    expect(covers(at(true, 40), '#f4cfa5', 135, 68)).toBe(-1)
-    expect(covers(at(false, 0), '#f4cfa5', 135, 68)).toBe(-1)
+    // a settled table shows its base loop's first step: seat-draw-late's is the panic (a key frame, its face its own)
+    expect(castAt(at(true), 124, 58)?.id).toBe('cast/key.panic-0/pal')
+    expect(castAt(at(false), 124, 58)?.id).toBe('cast/seat.draw-a~open.closed.none/pal')
   })
 
   it('shows the sleepy face and z mark for the seated, working mangaka late at night, but not during the day', () => {
-    // seated (132, 67): the overlay's origin is (x+4, y+9) = (136, 76); FACES.sleepy row 1 col 1 is the closed-eye
-    // L, at (137, 77), painted after the base sprite's eye E at (138, 76) (the earlier test above)
-    const { ctx, log } = fakeContext()
+    // the sleepy face (closed eyes, the zee mark) is baked into the seated frame: no outline fill in the mangaka's box
+    const { ctx, log, images } = fakeContext()
     render(ctx, sceneSnapshot(), 0.9, 0)
-    const eye = covers(log, '#1b1b1b', 138, 76)
-    expect(eye).toBeGreaterThanOrEqual(0)
-    const sleepyEye = covers(log, '#1c1a26', 137, 77)
-    expect(sleepyEye).toBeGreaterThan(eye)
-    // the z mark (MARKS.sleepy, MARK_PAL.L) at the head's top-right edge, (x+20, y-2) = (152, 65)
-    expect(covers(log, '#1c1a26', 152, 65)).toBeGreaterThan(-1)
+    expect(castAt(images, 124, 58)?.id).toBe('cast/seat.draw-a~closed.closed.zee/pal')
+    expect(log.some((c) => c.style === '#1c1a26' && c.x >= 124 && c.x <= 155 && c.y >= 58 && c.y <= 105)).toBe(false)
 
-    const { ctx: dayCtx, log: dayLog } = fakeContext()
-    render(dayCtx, sceneSnapshot(), 0.3, 0)
-    expect(covers(dayLog, '#1c1a26', 137, 77)).toBe(-1)
+    const day = fakeContext()
+    render(day.ctx, sceneSnapshot(), 0.3, 0)
+    expect(castAt(day.images, 124, 58)?.id).toBe('cast/seat.draw-a~open.closed.none/pal')
   })
 
   function editorAt(facing: -1 | 1, over: Partial<Actor> = {}): ActorTable {
@@ -362,71 +429,50 @@ describe('the characters, from the actor table', () => {
   }
 
   it('paints the editor at the spot, mirrored when facing right', () => {
-    // (198, 85): the suit (task B4's navy G) at row 18 col 5, hair row 2 col 8, the glasses' left lens frame row 10
-    // col 6 (col 5 is skin beside it since task B4), the briefcase row 24 col 20
-    const left = paintWith(editorAt(-1), { visitor: 'editor' })
-    expect(has(left, '#3a3d4c', 203, 103)).toBe(true)
-    expect(has(left, '#2b2140', 206, 87)).toBe(true)
-    expect(has(left, '#6b6b78', 204, 95)).toBe(true)
-    // (the bed frame behind is the same brown, so the case is found by its exact run: row 24's FFF, cols 19-21)
-    expect(left).toContainEqual({ style: '#6d4c33', x: 217, y: 109, w: 3, h: 1 })
-    // facing right, col 5 mirrors to x 198 + 23 - 5 = 216; x 203 is then row 18's col 18, the outline, so no suit there
-    const log = paintWith(editorAt(1), { visitor: 'editor' })
-    expect(has(log, '#3a3d4c', 216, 103)).toBe(true)
-    expect(has(log, '#3a3d4c', 203, 103)).toBe(false)
+    // (198, 85): standing, the first of the two idle frames at frame 0; facing right is the mirrored surface
+    expect(castAt(paintWith(editorAt(-1), { visitor: 'editor' }).images, 198, 85)?.id).toBe('cast/editor.idle.0/pal')
+    expect(castAt(paintWith(editorAt(1), { visitor: 'editor' }).images, 198, 85)?.id).toBe('cast/editor.idle.0/pal/r')
   })
 
-  it('walks the editor with their own four frames, the briefcase bobbing a row on the pass', () => {
-    // the case at cols 18-23: WALK[0] (anim 0) and WALK[2] (anim 200) have row 24's FFF at cols 19-21 (x 217, y 109);
-    // WALK[1] (anim 100, the pass) has it a row lower, row 25 (y 110), and row 24 there is the case's top edge only
-    const brown = (log: FillCall[], y: number) => log.filter((c) => c.style === '#6d4c33' && c.y === y && c.h === 1 && c.w === 3)
+  it('walks the editor with their own four frames', () => {
+    // floor(anim / 100) % 4: the briefcase's bob on the pass frame is in the maps (sprites.test checks it)
     const walk = (anim: number) => paintWith(editorAt(-1, { state: 'walking', targetX: 150, anim }), { visitor: 'editor' })
-    expect(brown(walk(0), 109).map((c) => c.x)).toEqual([217])
-    expect(brown(walk(200), 109).map((c) => c.x)).toEqual([217])
-    expect(brown(walk(100), 110).map((c) => c.x)).toEqual([217])
+    expect(castAt(walk(0).images, 198, 85)?.id).toBe('cast/editor.walk.0/pal')
+    expect(castAt(walk(100).images, 198, 85)?.id).toBe('cast/editor.walk.1/pal')
+    expect(castAt(walk(200).images, 198, 85)?.id).toBe('cast/editor.walk.2/pal')
   })
 
   it('puts the mangaka to bed to rest, the Zz rising over the pillow', () => {
-    const { ctx, log } = fakeContext()
+    const { ctx, log, images } = fakeContext()
     render(ctx, sceneSnapshot({ activity: 'rest' }), 0.3, 0)
-    // bed (216, 106): LIE row 2's first H is col 16 (x 232); the blanket over the body after it; the first Z at (234, 100)
-    const hair = covers(log, '#2b2140', 232, 108)
-    expect(hair).toBeGreaterThanOrEqual(0)
-    expect(covers(log, '#c94b4b', 200, 116)).toBeGreaterThan(hair)
-    expect(has(log, '#2f5ecf', 235, 100)).toBe(true)
+    // the actor lies at (220, 90); the bed's frames go at their own origin (201, 90): the lying frame, 48x32, then the
+    // blanket over the shoulders after it; frame 0's one Z from the bed frame's (36, 2)
+    expect(sceneSnapshot({ activity: 'rest' }).actors.mangaka).toMatchObject({ x: 220, y: 90, state: 'sleeping' })
+    const lie = castAt(images, 201, 90)
+    expect(lie).toMatchObject({ id: 'cast/bed.lie-0/pal', w: 48, h: 32 })
+    const blanket = log.findIndex((c) => c.style === '#c94b4b' && c.x === 196 && c.y === 112 && c.w === 29 && c.h === 10)
+    expect(blanket).toBeGreaterThanOrEqual(lie!.at)
+    expect(has(log, '#2f5ecf', 238, 92)).toBe(true)
   })
 
   it('hands the editor their prop and bobs the ! above them while they stand facing left', () => {
     const at = (over: Parameters<typeof sceneSnapshot>[0], frame: number) => {
-      const { ctx, log } = fakeContext()
+      const { ctx, log, images } = fakeContext()
       render(ctx, sceneSnapshot(over), 0.3, frame)
-      return log
+      return { log, images }
     }
     const env = at({ visitor: 'editor', visitorProp: 'envelope' }, 100)
-    expect(covers(env, '#2b2140', 206, 87)).toBeGreaterThan(-1)
+    expect(castAt(env.images, 198, 85)).toBeDefined()
     // the envelope sprite at (198 - 2, 85 + 20) = (196, 105), the hand row 22's level: its corner, and row 1 col 2 paper
-    expect(covers(env, '#1c1a26', 196, 105)).toBeGreaterThan(-1)
-    expect(covers(env, '#fdfcf7', 198, 106)).toBeGreaterThan(-1)
-    expect(covers(env, '#fdfcf7', 198, 105)).toBe(-1)
+    expect(covers(env.log, '#1c1a26', 196, 105)).toBeGreaterThan(-1)
+    expect(covers(env.log, '#fdfcf7', 198, 106)).toBeGreaterThan(-1)
+    expect(covers(env.log, '#fdfcf7', 198, 105)).toBe(-1)
     // frame 100: floor(100 / 16) % 2 = 0, so the ! tops out at 85 - 8 = 77 from x 209, its stroke in the glyph's middle
     // column (x 210)
-    expect(covers(env, '#e5484d', 210, 77)).toBeGreaterThan(-1)
+    expect(covers(env.log, '#e5484d', 210, 77)).toBeGreaterThan(-1)
     // the trophy at (198 - 2, 85 + 18) = (196, 103): row 1 col 2 is gold
-    expect(covers(at({ visitor: 'editor', visitorProp: 'trophy' }, 100), '#f5b700', 198, 104)).toBeGreaterThan(-1)
-    expect(covers(at({ visitor: 'editor', visitorProp: 'envelope' }, 16), '#e5484d', 210, 76)).toBeGreaterThan(-1)
-  })
-
-  it('merges horizontal runs of one sprite key into a single fill', () => {
-    const { ctx, log } = fakeContext()
-    render(ctx, sceneSnapshot(), 0.3, 0)
-    // the seated mangaka's row 1 '....LLHHHHHHHHHhLL......' at (132, 67): one 9x1 hair fill from x 138 (cols 6-14)
-    expect(log).toContainEqual({ style: '#2b2140', x: 138, y: 68, w: 9, h: 1 })
-    expect(log).not.toContainEqual({ style: '#2b2140', x: 139, y: 68, w: 1, h: 1 })
-    // the editor facing right at (198, 85), row 24 '.......LggggggggL.LFFFfL' mirrored: FFF (cols 19-21) at x 200-202,
-    // the suit's shade hem (cols 8-15, task B4's navy g) at x 206-213
-    const ed = paintWith(editorAt(1), { visitor: 'editor' })
-    expect(ed).toContainEqual({ style: '#6d4c33', x: 200, y: 109, w: 3, h: 1 })
-    expect(ed).toContainEqual({ style: '#2c3656', x: 206, y: 109, w: 8, h: 1 })
+    expect(covers(at({ visitor: 'editor', visitorProp: 'trophy' }, 100).log, '#f5b700', 198, 104)).toBeGreaterThan(-1)
+    expect(covers(at({ visitor: 'editor', visitorProp: 'envelope' }, 16).log, '#e5484d', 210, 76)).toBeGreaterThan(-1)
   })
 
   it('paints no prop while the editor walks', () => {
@@ -439,30 +485,30 @@ describe('the characters, from the actor table', () => {
 })
 
 describe('the assistants, the wall clock and the cat (Task 2.5)', () => {
-  const at = (over: Parameters<typeof sceneSnapshot>[0], t = 0.3, frame = 100) => {
-    const { ctx, log } = fakeContext()
-    render(ctx, sceneSnapshot(over), t, frame)
-    return log
+  const full = (over: Parameters<typeof sceneSnapshot>[0], t = 0.3, frame = 100) => {
+    const f = fakeContext()
+    render(f.ctx, sceneSnapshot(over), t, frame)
+    return f
   }
+  const at = (over: Parameters<typeof sceneSnapshot>[0], t = 0.3, frame = 100) => full(over, t, frame).log
   const px = (style: string, x: number, y: number, w = 1, h = 1) => ({ style, x, y, w, h })
-  const lines = (log: FillCall[]) => log.filter((c) => c.style === '#b8b2a5' && c.x === 70 && c.w === 4 && c.h === 1)
-  const page = (log: FillCall[]) => covers(log, '#fdfcf7', 70, 121)
+  const lines = (log: FillCall[]) => log.filter((c) => c.style === '#b8b2a5' && c.x === 25 && c.w === 4 && c.h === 1)
+  const page = (log: FillCall[]) => log.findIndex((c) => c.style === '#fdfcf7' && c.x === 24 && c.y === 120 && c.w === 6 && c.h === 4)
 
-  it('seats the assistant on a stool at (66, 89), then the desk, then the page on it with round(progress * 3) ink lines', () => {
-    const ref = at({})
-    // SIT row 2 col 8 is hair; the stool (seat + 7, 118) before it
-    const hair = covers(ref, '#2b2140', 74, 91)
-    expect(hair).toBeGreaterThan(-1)
-    const stool = ref.findIndex((c) => c.style === '#4a4a55' && c.x === 73 && c.y === 118 && c.w === 10 && c.h === 4)
-    expect(stool).toBeGreaterThan(-1)
-    expect(stool).toBeLessThan(hair)
-    // the desk top (x 62, width 8 + 20) after the assistant, and the page after the desk, so it shows
-    expect(ref).toContainEqual(px('#8b5a2b', 62, 120, 28, 3))
-    const desk = covers(ref, '#8b5a2b', 66, 120)
-    expect(desk).toBeGreaterThan(hair)
-    expect(page(ref)).toBeGreaterThan(desk)
+  it('seats the assistant at (21, 80) after the main desk, then its desk, then the page on it', () => {
+    const ref = full({})
+    // the seated rig frame in the assistant's look, after the main desk's top (116, 98): the row is in front of it
+    const a0 = castAt(ref.images, 21, 80)
+    expect(a0?.id).toBe('cast/seat.draw-a~open.closed.none/look0')
+    const main = covers(ref.log, '#8b5a2b', 116, 98)
+    expect(main).toBeGreaterThan(-1)
+    expect(a0!.at).toBeGreaterThan(main)
+    // the assistants' desk top (from 2 px left of the seat, 36 wide) after the assistant, and the page after the desk
+    const desk = ref.log.findIndex((c) => c.style === '#8b5a2b' && c.x === 19 && c.y === 120 && c.w === 36 && c.h === 3)
+    expect(desk).toBeGreaterThanOrEqual(a0!.at)
+    expect(page(ref.log)).toBeGreaterThan(desk)
     // progress 0.5: round(1.5) = 2 lines, at y 121 and 122
-    expect(lines(ref).map((c) => c.y)).toEqual([121, 122])
+    expect(lines(ref.log).map((c) => c.y)).toEqual([121, 122])
     expect(lines(at({ progress: 1 })).map((c) => c.y)).toEqual([121, 122, 123])
     expect(lines(at({ progress: 0 }))).toHaveLength(0)
     const paused = at({ running: false })
@@ -470,24 +516,34 @@ describe('the assistants, the wall clock and the cat (Task 2.5)', () => {
     expect(lines(paused)).toHaveLength(0)
   })
 
-  it('widens the desk with the staff: 8 + 20 per assistant, three stools', () => {
+  it('widens the desk with the staff: 36 + 34 per further assistant, no stools', () => {
     const three = at({ assistants: [{ look: 0, stamina: 80 }, { look: 1, stamina: 80 }, { look: 2, stamina: 80 }] })
-    expect(three).toContainEqual(px('#8b5a2b', 62, 120, 68, 3))
-    expect(three).toContainEqual(px('#70461f', 62, 123, 68, 9))
-    for (const x of [73, 93, 113]) expect(three).toContainEqual(px('#4a4a55', x, 118, 10, 4))
+    expect(three).toContainEqual(px('#8b5a2b', 19, 120, 104, 3))
+    expect(three).toContainEqual(px('#70461f', 19, 123, 104, 9))
+    expect(three.some((c) => c.style === '#4a4a55' && c.y === 118 && c.w === 10 && c.h === 4)).toBe(false)
+  })
+
+  it('dresses each assistant in its own look, one seat 34 px along the row each', () => {
+    const crew = [{ look: 0, stamina: 80 }, { look: 1, stamina: 80 }, { look: 8, stamina: 80 }]
+    const { images } = full({ assistants: crew })
+    // a settled table shows seat-draw's first step on each (the cast driver offsets their pens, castPlay's PHASE_MS);
+    // look 8 wraps to look2
+    expect(images.filter((i) => i.id.startsWith('cast/') && i.y === 80).map((i) => [i.id, i.x])).toEqual([
+      ['cast/seat.draw-a~open.closed.none/look0', 21], ['cast/seat.draw-a~open.closed.none/look1', 55],
+      ['cast/seat.draw-a~open.closed.none/look2', 89],
+    ])
   })
 
   it('dozes a sleeping assistant, head on the folded arms, with the Z, and seats a working one upright', () => {
-    const rest = at({ activity: 'rest' }, 0.3, 0)
-    // DOZE (generated, task C2) row 11 col 9 is hair (the head down on the arms); the Z just above the head
-    // at (66 + 18, 89 - 2), its top row 87 (the doze's first painted row is 10, y 99)
-    expect(covers(rest, '#2b2140', 75, 100)).toBeGreaterThan(-1)
-    expect(covers(rest, '#2f5ecf', 85, 87)).toBeGreaterThan(-1)
-    expect(covers(rest, '#2f5ecf', 85, 83)).toBe(-1)
-    expect(page(rest)).toBe(-1)
-    // no hair where the upright head's row 2 col 8 would be
-    expect(covers(rest, '#2b2140', 74, 91)).toBe(-1)
-    expect(covers(at({}, 0.3, 0), '#2b2140', 74, 91)).toBeGreaterThan(-1)
+    const rest = full({ activity: 'rest' }, 0.3, 0)
+    // the rig's doze key frame in the assistant's look, drawn at the seat
+    expect(castAt(rest.images, 21, 80)?.id).toBe('cast/key.doze-0/look0')
+    // the Z beside the bowed head at (21 + 25, 80 + 11), its top row 91
+    expect(covers(rest.log, '#2f5ecf', 47, 91)).toBeGreaterThan(-1)
+    expect(covers(rest.log, '#2f5ecf', 47, 87)).toBe(-1)
+    expect(page(rest.log)).toBe(-1)
+    // working, the upright seated frame instead
+    expect(castAt(full({}, 0.3, 0).images, 21, 80)?.id).toBe('cast/seat.draw-a~open.closed.none/look0')
   })
 
   it('hangs the wall clock at (156, 52), its hands turning with the week', () => {
@@ -507,151 +563,130 @@ describe('the assistants, the wall clock and the cat (Task 2.5)', () => {
   })
 
   it('curls the cat asleep at the foot of the bed, and sits it awake in the kitchen on a rest day', () => {
-    const ref = at({})
-    // CAT_SLEEP at (196, 118): row 3 col 1 is fur, and it has no eye
-    expect(covers(ref, '#e39a4a', 197, 121)).toBeGreaterThan(-1)
-    expect(ref.some((c) => c.style === '#1b1b1b' && c.x < 208 && c.x + c.w > 196 && c.y < 126 && c.y + c.h > 118)).toBe(false)
-    // the round cushion under it: 16 wide from x 194, its body y 122-125 (the rim at 126-127); drawn before the cat,
-    // so the fur at (197, 121) is the cat's own, and below the sprite (y 126) only the cushion shows
-    const cushion = covers(ref, '#c9a24a', 195, 124)
+    const ref = full({})
+    // CAT_SLEEP at (202, 118), 12x8: the curled frame, one image
+    const cat = castAt(ref.images, 202, 118)
+    expect(cat?.id).toBe('cast/cat.sleep/pal')
+    expect([cat!.w, cat!.h]).toEqual([12, 8])
+    // the round cushion under it: 16 wide from x 200, its body y 122-125 (the rim at 126-127); drawn before the cat
+    const cushion = covers(ref.log, '#c9a24a', 201, 124)
     expect(cushion).toBeGreaterThan(-1)
-    expect(cushion).toBeLessThan(covers(ref, '#e39a4a', 197, 121))
-    expect(covers(ref, '#a8832f', 200, 127)).toBeGreaterThan(-1)
-    const rest = at({ activity: 'rest' })
-    expect(rest.some((c) => c.style === '#c9a24a')).toBe(false)
-    // CAT_SIT at (44, 150): the eye row 3 col 2 (task B5, a column forward, the cream muzzle in front of it), fur row 1
-    // col 1
-    expect(covers(rest, '#1b1b1b', 46, 153)).toBeGreaterThan(-1)
-    expect(covers(rest, '#e39a4a', 45, 151)).toBeGreaterThan(-1)
+    expect(cushion).toBeLessThan(cat!.at)
+    expect(covers(ref.log, '#a8832f', 206, 127)).toBeGreaterThan(-1)
+    // on a rest day the cat sits in the kitchen at (44, 150), no cushion (frame 100 is catFrame's sit)
+    const rest = full({ activity: 'rest' })
+    expect(rest.log.some((c) => c.style === '#c9a24a')).toBe(false)
+    expect(castAt(rest.images, 44, 150)?.id).toBe('cast/cat.sit/pal')
   })
 
   it('draws the cat after the mangaka in bed and before the editor', () => {
     const table = newActorTable()
-    Object.assign(table.cat, { x: 196, y: 118, targetX: 196, targetY: 118, state: 'sleeping', goal: 'sleeping' })
-    Object.assign(table.mangaka, { x: 216, y: 106, targetX: 216, targetY: 106, state: 'sleeping', goal: 'sleeping' })
+    Object.assign(table.cat, { x: 202, y: 118, targetX: 202, targetY: 118, state: 'sleeping', goal: 'sleeping' })
+    Object.assign(table.mangaka, { x: 220, y: 90, targetX: 220, targetY: 90, state: 'sleeping', goal: 'sleeping' })
     Object.assign(table.editor, { x: 198, y: 85, targetX: 198, targetY: 85, state: 'standing', goal: 'standing', facing: -1 })
-    const log = at({ activity: 'rest', visitor: 'editor', actors: table })
-    const cat = covers(log, '#e39a4a', 197, 121)
-    expect(cat).toBeGreaterThan(covers(log, '#c94b4b', 200, 116))
-    expect(cat).toBeLessThan(covers(log, '#2b2140', 206, 87))
+    const { images } = full({ activity: 'rest', visitor: 'editor', actors: table })
+    const lie = images.findIndex((i) => i.id.startsWith('cast/bed.lie-0/'))
+    const cat = images.findIndex((i) => i.id.startsWith('cast/cat.'))
+    const editor = images.findIndex((i) => i.id.startsWith('cast/editor.'))
+    expect(lie).toBeGreaterThan(-1)
+    expect(cat).toBeGreaterThan(lie)
+    expect(editor).toBeGreaterThan(cat)
   })
 
   it('walks the cat with the two-frame cycle', () => {
     const walk = (anim: number) => {
       const table = newActorTable()
       Object.assign(table.cat, { x: 120, y: 104, targetX: 100, targetY: 104, state: 'walking', goal: 'sleeping', facing: -1, anim })
-      const { ctx, log } = fakeContext()
+      const { ctx, images } = fakeContext()
       render(ctx, sceneSnapshot({ actors: table }), 0.3, 100)
-      return log
+      return images
     }
-    // WALK[1] row 6 col 1 is a paw; WALK[0] has the outline there
-    expect(covers(walk(125), '#e39a4a', 121, 110)).toBeGreaterThan(-1)
-    expect(covers(walk(0), '#e39a4a', 121, 110)).toBe(-1)
+    // floor(anim / 125) % 2
+    expect(castAt(walk(125), 120, 104)?.id).toBe('cast/cat.walk.1/pal')
+    expect(castAt(walk(0), 120, 104)?.id).toBe('cast/cat.walk.0/pal')
   })
 
-  it('overlays the mood face and mark on the seated mangaka when cheer is on, over the base eye fill', () => {
-    // seated (132, 67), overlay at (136, 76): happy row 10 col 1 is L; the base sprite's eye fill at (138, 76) is
-    // painted first, so the overlay's L at (137, 77) must come after it
-    const { ctx, log } = fakeContext()
+  /** Fills inside the seated mangaka's head box (x 124-155, y 58-85) from the fill log's index `from` on. */
+  const inHead = (log: readonly FillCall[], from: number) => log.slice(from).filter((c) => c.x >= 124 && c.x + c.w <= 156 && c.y >= 58 && c.y + c.h <= 86)
+
+  it('bakes the mood face and mark into the seated frame when cheer is on: no overlay fills', () => {
+    const { ctx, log, images } = fakeContext()
     render(ctx, sceneSnapshot({ cheer: true }), 0.3, 0)
-    const eye = covers(log, '#1b1b1b', 138, 76)
-    expect(eye).toBeGreaterThanOrEqual(0)
-    const overlay = covers(log, '#1c1a26', 137, 77)
-    expect(overlay).toBeGreaterThan(eye)
-    // sparkle (happy's mark) at (x + 20, y - 2) = (152, 65), row 0 col 1
-    expect(covers(log, '#f5b700', 153, 65)).toBeGreaterThan(-1)
+    const hero = castAt(images, 124, 58)
+    expect(hero?.id).toBe('cast/seat.draw-a~happy.smile.sparkle/pal')
+    expect(inHead(log, hero!.at)).toEqual([])
   })
 
   it('shows a sweat mark for a tired seated mangaka, and no more low-stamina !', () => {
-    const { ctx, log } = fakeContext()
+    const { ctx, log, images } = fakeContext()
     render(ctx, sceneSnapshot({ stamina: 10 }), 0.3, 0)
-    expect(covers(log, '#8fd3ff', 153, 66)).toBeGreaterThan(-1)
-    expect(covers(log, '#e5484d', 153, 65)).toBe(-1)
+    expect(castAt(images, 124, 58)?.id).toBe('cast/seat.draw-a~squint.frown.sweat/pal')
+    // nothing red above the head (the head's top row 6 is y 64; the mark slot cols 28-30 at x 152-154)
+    expect(log.some((c) => c.style === '#e5484d' && c.x + c.w > 140 && c.x < 159 && c.y < 64 && c.y + c.h > 50)).toBe(false)
   })
 
-  it('paints no overlay for a neutral mood', () => {
-    const { ctx, log } = fakeContext()
+  it('draws the neutral face in the image, no fill after it in the head', () => {
+    const { ctx, log, images } = fakeContext()
     render(ctx, sceneSnapshot(), 0.3, 0)
-    const before = covers(log, '#f4cfa5', 137, 77)
-    // nothing else paints at (137, 77) after the base sprite's own fill there
-    const after = coversAny(log, 137, 77)
-    expect(after).toBe(before)
+    const hero = castAt(images, 124, 58)
+    expect(hero?.id).toBe('cast/seat.draw-a~open.closed.none/pal')
+    expect(inHead(log, hero!.at)).toEqual([])
   })
 
-  it('skips the mood overlay while the mangaka walks, even with cheer on', () => {
+  it('shows the mood walking too', () => {
     const table = newActorTable()
     Object.assign(table.mangaka, { x: 150, y: 81, targetX: 100, targetY: 81, state: 'walking', goal: 'standing', facing: -1, anim: 0 })
-    const { ctx, log } = fakeContext()
+    const { ctx, images } = fakeContext()
     render(ctx, sceneSnapshot({ cheer: true, actors: table }), 0.3, 0)
-    expect(log.some((c) => c.style === '#1c1a26' && c.x === 154 && c.y === 90)).toBe(false)
+    expect(castAt(images, 150, 81)?.id).toBe('cast/walk.contact-l~happy.smile.sparkle/pal')
   })
 
   it('lets the ready manuscript exclamation beat a tired mood mark above the standing mangaka (fix round 1)', () => {
-    // standing at MANGAKA_STAND (170, 81): mark slot (170+20, 81-2) = (190, 79); glyph '!' row 1 col 1 -> (191, 80)
-    const { ctx, log } = fakeContext()
+    // standing at MANGAKA_STAND (170, 81): the '!' in the rig's mark slot (170 + 28, 81), its stroke in col 1; the
+    // ready frame wears the tired face without its mark
+    const { ctx, log, images } = fakeContext()
     render(ctx, sceneSnapshot({ phase: 'ready', stamina: 10 }), 0.3, 100)
-    expect(covers(log, '#e5484d', 191, 80)).toBeGreaterThan(-1)
-    expect(covers(log, '#8fd3ff', 191, 80)).toBe(-1)
+    expect(castAt(images, 170, 81)?.id).toBe('cast/ready.idle~squint.frown.none/pal')
+    expect(covers(log, '#e5484d', 199, 82)).toBeGreaterThan(-1)
   })
 
   it('lets a happy mood mark beat the idle question mark above the standing mangaka (fix round 1)', () => {
-    // idle phase, cheer on, frame 0 (frame % 120 < 40, when the '?' would show): sparkle row 0 col 1 -> (191, 79)
-    const { ctx, log } = fakeContext()
+    // idle phase, cheer on, frame 0 (frame % 120 < 40, when the '?' would show): the sparkle is in the frame
+    const { ctx, log, images } = fakeContext()
     render(ctx, sceneSnapshot({ phase: 'idle', cheer: true }), 0.3, 0)
-    expect(covers(log, '#f5b700', 191, 79)).toBeGreaterThan(-1)
+    expect(castAt(images, 170, 81)?.id).toBe('cast/stand.idle~happy.smile.sparkle/pal')
     expect(log.some((c) => c.style === '#2f5ecf')).toBe(false)
   })
 
   it('shows a sweat mark on a tired assistant', () => {
-    const { ctx, log } = fakeContext()
+    // baked into the assistant's rig frame (the tired face and its sweat mark), in its look
+    const { ctx, images } = fakeContext()
     render(ctx, sceneSnapshot({ assistants: [{ look: 0, stamina: 10 }] }), 0.3, 0)
-    // assistant at (66, 89): mark at (66 + 20, 89 - 2) = (86, 87), row 1 col 1
-    expect(covers(log, '#8fd3ff', 87, 88)).toBeGreaterThan(-1)
+    expect(castAt(images, 21, 80)?.id).toBe('cast/seat.draw-a~squint.frown.sweat/look0')
   })
 
-  it('puts the mark at the top-right edge, right of the hair and clear of its outline', () => {
-    // seated (132, 67), sleepy at night: every MARK fill sits in cols 20-22, rows -2 to 2 of the frame, and the frame's
-    // own cells there (MANGAKA_SIT rows 0-2, cols 20-22) are empty, so the mark never touches the hair
-    const { ctx, log } = fakeContext()
-    render(ctx, sceneSnapshot(), 0.9, 0)
-    const z = log.filter((c) => c.style === '#1c1a26' && c.y < 70 && c.x >= 152)
-    expect(z.length).toBeGreaterThan(0)
-    for (const c of z) expect(c.x >= 152 && c.x + c.w <= 155 && c.y >= 65 && c.y + c.h <= 70, JSON.stringify(c)).toBe(true)
-    expect(MANGAKA_SIT[0].slice(0, 3).map((row) => row.slice(19))).toEqual(['.....', '.....', '.....'])
+  it('stamps the mark in the seated frame\'s slot, cols 28-30, rows 6-10', () => {
+    expect(rigFrame('seat.draw-a', 'sleepy', false).map.slice(6, 11).map((r) => r.slice(28, 31))).toEqual(MARK_ART.zee)
   })
 
-  it('shows the sip mug at frame 300 (idle cycle), standing and not ready', () => {
-    // standing at MANGAKA_STAND (170, 81): SIP row 12 col 9 (the mug rim) -> (170+9, 81+12) = (179, 93)
-    const { ctx, log } = fakeContext()
-    render(ctx, sceneSnapshot({ phase: 'idle' }), 0.3, 300)
-    expect(covers(log, '#f6f6f6', 179, 93)).toBeGreaterThan(-1)
-  })
-
-  it('holds the manuscript instead of the mug at frame 300 when the phase is ready', () => {
-    const { ctx, log } = fakeContext()
+  it('holds the manuscript in the ready stance', () => {
+    const { ctx, images } = fakeContext()
     render(ctx, sceneSnapshot({ phase: 'ready' }), 0.3, 300)
-    expect(covers(log, '#f6f6f6', 179, 93)).toBe(-1)
-  })
-
-  it('shows the plain idle at frame 0', () => {
-    const { ctx, log } = fakeContext()
-    render(ctx, sceneSnapshot({ phase: 'idle' }), 0.3, 0)
-    const hair = covers(log, '#2b2140', 178, 83)
-    expect(hair).toBeGreaterThan(-1)
-    expect(covers(log, '#f6f6f6', 179, 93)).toBe(-1)
+    expect(castAt(images, 170, 81)?.id).toBe('cast/ready.idle~open.closed.none/pal')
   })
 
   it('paints the groom paw in fur at CAT_KITCHEN on frame 360 (fix round 1)', () => {
     // resting sends the cat to CAT_KITCHEN (44, 150), unflipped (facing -1 by default); frame 360 is catFrame's
-    // groom, index 0: the paw's fur cell at local (row 1, col 2) -> canvas (44+2, 150+1) = (46, 151)
-    const { ctx, log } = fakeContext()
+    // groom, index 0
+    const { ctx, images } = fakeContext()
     render(ctx, sceneSnapshot({ phase: 'drawing', activity: 'rest' }), 0.3, 360)
-    expect(covers(log, '#e39a4a', 46, 151)).toBeGreaterThan(-1)
+    expect(castAt(images, 44, 150)?.id).toBe('cast/cat.groom.0/pal')
   })
 
   it('keeps the cat clear of the mangaka\'s, the editor\'s and the bed\'s spots', () => {
     type Box = readonly [number, number, number, number]
-    const boxes: Box[] = [[132, 155, 67, 98], [170, 193, 81, 112], [198, 221, 85, 116], [216, 245, 106, 119]]
+    // the seat frame, the standing frame, the editor's and the lying head (the bed frame's cols 23-46, rows 8-29)
+    const boxes: Box[] = [[124, 155, 58, 105], [170, 201, 81, 128], [198, 221, 85, 116], [224, 247, 98, 119]]
     for (const over of [{}, { activity: 'rest' as const }]) {
       const s = sceneSnapshot(over)
       const c = s.actors.cat
@@ -664,27 +699,27 @@ describe('the assistants, the wall clock and the cat (Task 2.5)', () => {
 })
 
 describe('outfits by level (Task 5, Decision 7)', () => {
-  // standing at MANGAKA_STAND (170, 81): the anchor's row 19 col 10 'J' (a torso cell on either facing; task B1 made
-  // row 18 col 6 a sleeve, j) -> (170+10, 81+19) = (180, 100)
+  // standing at MANGAKA_STAND (170, 81): the standing loop's first frame in the palette the level picks (the palettes'
+  // colours are spriteCache.test's)
   it('dresses the standing mangaka in the outfit for their level', () => {
     const table = newActorTable()
     Object.assign(table.mangaka, { x: 170, y: 81, targetX: 170, targetY: 81, state: 'standing', goal: 'standing' })
     const at = (level: number) => {
-      const { ctx, log } = fakeContext()
+      const { ctx, images } = fakeContext()
       render(ctx, sceneSnapshot({ level, actors: table }), 0.3, 0)
-      return log
+      return castAt(images, 170, 81)?.id
     }
-    expect(covers(at(1), '#6f7a8c', 180, 100)).toBeGreaterThan(-1)
-    expect(covers(at(5), '#c9a24a', 180, 100)).toBeGreaterThan(-1)
-    expect(covers(at(10), '#2e3a78', 180, 100)).toBeGreaterThan(-1)
+    expect(at(1)).toBe('cast/stand.idle~open.closed.none/pal')
+    expect(at(5)).toBe('cast/stand.idle~open.closed.none/cardigan')
+    expect(at(10)).toBe('cast/stand.idle~open.closed.none/blazer')
   })
 
   it('leaves an assistant\'s look palette unaffected by the player\'s level', () => {
-    // the assistant seated at (66, 89): the same torso cell, row 19 col 10 (task B3 made the seated frame's row 18 col 6
-    // a sleeve, j, as the standing frame's) -> (66+10, 89+19) = (76, 108)
-    const { ctx, log } = fakeContext()
+    // the assistant seated at (21, 80) stays in its look at level 10, while the mangaka wears the blazer
+    const { ctx, images } = fakeContext()
     render(ctx, sceneSnapshot({ level: 10 }), 0.3, 0)
-    expect(covers(log, '#6f7a8c', 76, 108)).toBeGreaterThan(-1)
+    expect(castAt(images, 21, 80)?.id).toBe('cast/seat.draw-a~open.closed.none/look0')
+    expect(castAt(images, 124, 58)?.id).toBe('cast/seat.draw-a~open.closed.none/blazer')
   })
 })
 
@@ -718,7 +753,8 @@ describe('scene art (0.9.0 R1): generated images with the code-drawn look as the
     const none = paint({}, 0.3, NO_ART)
     expect(none.log).toHaveLength(BASELINE_FILLS)
     expect(none.log).toEqual(plain.log)
-    expect(none.images).toEqual([])
+    expect(artOnly(none.images)).toEqual([])
+    expect(none.images).toEqual(plain.images)
   })
 
   it("draws a ready room image as the wall, at 0,0,320,114, then the tier's code-drawn floor, in place of the shell", () => {
@@ -781,10 +817,10 @@ describe('scene art (0.9.0 R1): generated images with the code-drawn look as the
   it("falls back to the shell's fills while the room image is still loading, or when only another tier has one", () => {
     const plain = paint({}, 0.3)
     const art = paint({}, 0.3, withRoom('apartment', loadingImage('room')))
-    expect(art.images).toEqual([])
+    expect(artOnly(art.images)).toEqual([])
     expect(art.log).toEqual(plain.log)
     const other = paint({}, 0.3, withRoom('loft', fakeImage('room', 320, 114)))
-    expect(other.images).toEqual([])
+    expect(artOnly(other.images)).toEqual([])
     expect(other.log).toEqual(plain.log)
   })
 
@@ -953,9 +989,10 @@ describe('scene art (0.9.0 R1): generated images with the code-drawn look as the
         const plain = paint(over, t)
         const art = paint(over, t, withProp(id, fakeImage(id, 1, 1)))
         const box = PROP_FOOTPRINT[id]
-        expect(art.images, label).toHaveLength(1)
-        const { at } = art.images[0]
-        expect(art.images[0], label).toEqual({ id, ...PROP_BOX[id], at })
+        const props = artOnly(art.images)
+        expect(props, label).toHaveLength(1)
+        const { at } = props[0]
+        expect(props[0], label).toEqual({ id, ...PROP_BOX[id], at })
         const skipped = plain.log.length - art.log.length
         expect(skipped, label).toBeGreaterThan(0)
         // the same fills in the same order before and after; the skipped block lies inside the footprint
@@ -981,26 +1018,26 @@ describe('scene art (0.9.0 R1): generated images with the code-drawn look as the
 
   it('keeps the bed image under the sleeping mangaka and the window image under the sky', () => {
     const table = newActorTable()
-    Object.assign(table.mangaka, { x: 216, y: 106, targetX: 216, targetY: 106, state: 'sleeping', goal: 'sleeping' })
+    Object.assign(table.mangaka, { x: 220, y: 90, targetX: 220, targetY: 90, state: 'sleeping', goal: 'sleeping' })
     const bed = paint({ activity: 'rest', phase: 'idle', actors: table }, 0.3, withProp('bed', fakeImage('bed', 1, 1)))
     const blanket = covers(bed.log, '#c94b4b', 200, 116)
     expect(blanket).toBeGreaterThan(-1)
-    expect(bed.images[0].at).toBeLessThanOrEqual(blanket)
+    expect(artOnly(bed.images)[0].at).toBeLessThanOrEqual(blanket)
     const win = paint({}, 0.3, withProp('window', fakeImage('window', 1, 1)))
-    expect(win.images[0].at).toBeLessThanOrEqual(covers(win.log, skyColor(0.3), 200, 60))
+    expect(artOnly(win.images)[0].at).toBeLessThanOrEqual(covers(win.log, skyColor(0.3), 200, 60))
   })
 
   it('draws a prop image only where its piece shows: no door in the flat, no stock poster under a serial or an anime', () => {
-    expect(paint({ tier: 'flat' }, 0.3, withProp('door', fakeImage('door', 1, 1))).images).toEqual([])
-    expect(paint({ tier: 'apartment' }, 0.3, withProp('doorway', fakeImage('doorway', 1, 1))).images).toEqual([])
-    expect(paint({ serialOn: true }, 0.3, withProp('poster', fakeImage('poster', 1, 1))).images).toEqual([])
-    expect(paint({ animePoster: true }, 0.3, withProp('poster', fakeImage('poster', 1, 1))).images).toEqual([])
+    expect(artOnly(paint({ tier: 'flat' }, 0.3, withProp('door', fakeImage('door', 1, 1))).images)).toEqual([])
+    expect(artOnly(paint({ tier: 'apartment' }, 0.3, withProp('doorway', fakeImage('doorway', 1, 1))).images)).toEqual([])
+    expect(artOnly(paint({ serialOn: true }, 0.3, withProp('poster', fakeImage('poster', 1, 1))).images)).toEqual([])
+    expect(artOnly(paint({ animePoster: true }, 0.3, withProp('poster', fakeImage('poster', 1, 1))).images)).toEqual([])
   })
 
   it("falls back to a prop's own fills while its image is still loading", () => {
     const plain = paint({}, 0.3)
     const art = paint({}, 0.3, withProp('bed', loadingImage('bed')))
-    expect(art.images).toEqual([])
+    expect(artOnly(art.images)).toEqual([])
     expect(art.log).toEqual(plain.log)
   })
 })
@@ -1009,8 +1046,8 @@ describe('furniture, equipment and the front row as sprites (0.10.0 P1)', () => 
   const NONE = NO_EQUIPMENT
   const ALL = { coffee: true, lamp: true, shelf: true, chair: true, 'drafting-table': true, tablet: true }
   const SHADOW = 'rgba(40, 24, 16, 0.28)'
-  /** The seated mangaka at MANGAKA_SEAT (24x32 at 132, 67), mood overlay included. */
-  const SEATED = { x0: 132, x1: 155, y0: 67, y1: 98 }
+  /** The seated mangaka at MANGAKA_SEAT (32x48 at 124, 58), its face in the frame. */
+  const SEATED = { x0: 124, x1: 155, y0: 58, y1: 105 }
   function paint(over: Partial<Snapshot>, t = 0.3, art: SceneArt = fakeSceneArt()) {
     const f = fakeContext()
     render(f.ctx, sceneSnapshot(over), t, 100, art)
@@ -1022,24 +1059,31 @@ describe('furniture, equipment and the front row as sprites (0.10.0 P1)', () => 
     return i!.at
   }
 
-  it('draws seat 3 page and its ink lines after the drafting table sprite that overlaps them, and keeps the old order otherwise', () => {
+  it('draws the assistants, their desk and their pages after the main desk, in front of it', () => {
     const crew = [{ look: 0, stamina: 80 }, { look: 1, stamina: 80 }, { look: 2, stamina: 80 }]
     const owned = { ...NONE, 'drafting-table': true }
-    const isPage = (f: FillCall) => f.style === '#fdfcf7' && f.x === 109 && f.y === 120 && f.w === 6 && f.h === 4
-    const isLine = (f: FillCall) => f.style === '#b8b2a5' && f.x === 110 && f.w === 4 && f.h === 1 && f.y >= 121
+    const isPage = (f: FillCall) => f.style === '#fdfcf7' && f.y === 120 && f.w === 6 && f.h === 4
     const { log, images } = paint({ owned, assistants: crew, progress: 1 })
     const d = imageAt(images, 'drafting-table')
-    const page = log.findIndex(isPage)
-    expect(page).toBeGreaterThanOrEqual(d)
-    log.forEach((f, i) => { if (isLine(f)) expect(i).toBeGreaterThanOrEqual(d) })
-    expect(log.filter(isLine)).toHaveLength(3)
-    // the desk image is drawn once, so nothing of it lands after the page
+    // three seated assistants, every one drawn after the drafting table's image (the third head over its overhang)
+    const row = images.filter((i) => i.id.startsWith('cast/') && i.y === 80)
+    expect(row.map((i) => i.x)).toEqual([21, 55, 89])
+    for (const i of row) expect(i.at, i.id).toBeGreaterThanOrEqual(d)
+    expect(images.indexOf(row[0])).toBeGreaterThan(images.findIndex((i) => i.id === 'drafting-table'))
+    // their desk and every page after it too, each page on their own desk: none under either main desk's box
+    expect(log.findIndex((c) => c.style === '#8b5a2b' && c.x === 19 && c.y === 120 && c.w === 104)).toBeGreaterThanOrEqual(d)
+    const pages = log.flatMap((f, i) => (isPage(f) ? [i] : []))
+    expect(pages.map((i) => log[i].x)).toEqual([24, 58, 92])
+    for (const i of pages) {
+      expect(i).toBeGreaterThanOrEqual(d)
+      const f = log[i]
+      for (const id of ['desk', 'drafting-table'] as const) {
+        const b = PROP_BOX[id]
+        expect(f.x + f.w <= b.x || f.x >= b.x + b.w || f.y + f.h <= b.y || f.y >= b.y + b.h, `${id} ${JSON.stringify(f)}`).toBe(true)
+      }
+    }
+    // the desk image is drawn once, so nothing of it lands after the pages
     expect(images.filter((im) => im.id === 'drafting-table')).toHaveLength(1)
-    // the drafting table still loading: pages before the (code-drawn) desk, as before
-    const loading = { ...fakeSceneArt(), prop: { ...fakeSceneArt().prop, 'drafting-table': null } }
-    const old = paint({ owned, assistants: crew, progress: 1 }, 0.3, loading)
-    expect(old.log.findIndex(isPage)).toBeGreaterThan(-1)
-    expect(old.log.findIndex(isPage)).toBeLessThan(old.log.findIndex((f) => f.style === '#fdfcf7' && f.x === 121))
   })
 
   it('draws the chair before the seated mangaka and the desk after him, before the pages, the stock pieces and the owned ones alike', () => {
@@ -1047,9 +1091,15 @@ describe('furniture, equipment and the front row as sprites (0.10.0 P1)', () => 
       const { log, images } = paint({ owned })
       const c = imageAt(images, chair)
       const d = imageAt(images, desk)
-      // everything painted between the chair and the desk is the seated mangaka
+      // the seated mangaka is one cache image between the chair and the desk, by the fill log and by the draw order
+      const hero = castAt(images, 124, 58)
+      expect(hero?.id, chair).toBe('cast/seat.draw-a~open.closed.none/pal')
+      expect(hero!.at, chair).toBeGreaterThanOrEqual(c)
+      expect(hero!.at, chair).toBeLessThanOrEqual(d)
+      expect(images.findIndex((i) => i.id === chair), chair).toBeLessThan(images.indexOf(hero!))
+      expect(images.indexOf(hero!), chair).toBeLessThan(images.findIndex((i) => i.id === desk))
+      // everything painted between the chair and the desk is the seated mangaka's overlay, when there is one
       const between = log.slice(c, d)
-      expect(between.length, chair).toBeGreaterThan(40)
       for (const f of between) {
         const inside = f.x >= SEATED.x0 && f.x + f.w <= SEATED.x1 + 1 && f.y >= SEATED.y0 && f.y + f.h <= SEATED.y1 + 1
         expect(inside, `${chair}: ${JSON.stringify(f)}`).toBe(true)
@@ -1085,6 +1135,10 @@ describe('furniture, equipment and the front row as sprites (0.10.0 P1)', () => 
     for (const tier of ['apartment', 'flat', 'loft'] as StudioTierId[]) {
       const { log, images } = paint({ tier })
       expect(images.slice(-3).map((i) => i.id), tier).toEqual(FRONT[tier])
+      // every character is drawn before the front row
+      const lastCast = images.map((i) => i.id.startsWith('cast/')).lastIndexOf(true)
+      expect(lastCast, tier).toBeGreaterThan(-1)
+      expect(lastCast, tier).toBeLessThan(images.length - 3)
       // the cat sleeps on its cushion before the front row
       expect(covers(log, '#c9a24a', 200, 122), tier).toBeLessThan(images[images.length - 3].at)
     }
@@ -1139,5 +1193,108 @@ describe('furniture, equipment and the front row as sprites (0.10.0 P1)', () => 
     const bin = imageAt(images, 'bin')
     const pages = log.filter((f, i) => f.style === '#fdfcf7' && f.y >= 151 && f.y <= 152 && f.x >= 234 && i <= bin)
     expect(pages).toHaveLength(3)
+  })
+})
+
+describe('the rig path (0.11.0 task 10)', () => {
+  const standing = (over: Partial<Actor> = {}) => {
+    const t = newActorTable()
+    Object.assign(t.mangaka, { x: 170, y: 81, targetX: 170, targetY: 81, state: 'standing', goal: 'standing', pose: 'stand.idle' }, over)
+    return t
+  }
+  const draw = (over: Partial<Snapshot>, frame = 0) => {
+    const f = fakeContext()
+    render(f.ctx, sceneSnapshot({ phase: 'idle', ...over }), 0.3, frame)
+    return f
+  }
+
+  it('draws a posed mangaka from the rig: one image of the pose with the mood\'s face, in the outfit\'s palette, at the actor', () => {
+    expect(castAt(draw({ actors: standing() }).images, 170, 81)).toMatchObject({ id: 'cast/stand.idle~open.closed.none/pal', w: 32, h: 48 })
+    expect(castAt(draw({ actors: standing(), cheer: true }).images, 170, 81)?.id).toBe('cast/stand.idle~happy.smile.sparkle/pal')
+    expect(castAt(draw({ actors: standing(), level: 10 }).images, 170, 81)?.id).toBe('cast/stand.idle~open.closed.none/blazer')
+  })
+
+  it('grounds a standing or walking rig figure with a shadow under its feet, and mirrors the walk facing right', () => {
+    const { log, images } = draw({ actors: standing() })
+    const under = log.findIndex((c) => c.style === 'rgba(40, 24, 16, 0.28)' && c.x === 176 && c.y === 127 && c.w === 20 && c.h === 2)
+    expect(under).toBeGreaterThan(-1)
+    expect(castAt(images, 170, 81)!.at).toBeGreaterThan(under)
+    const walk = draw({ actors: standing({ state: 'walking', targetX: 100, facing: 1 }) })
+    expect(castAt(walk.images, 170, 81)?.id).toBe('cast/stand.idle~open.closed.none/pal/r')
+  })
+
+  it('shows the ready ! in the rig\'s mark slot, the face\'s own mark left out', () => {
+    const { log, images } = draw({ actors: standing(), phase: 'ready', stamina: 10 })
+    expect(castAt(images, 170, 81)?.id).toBe('cast/stand.idle~squint.frown.none/pal')
+    expect(covers(log, '#e5484d', 199, 81)).toBeGreaterThan(-1) // the '!' at (170 + 28, 81), its stroke in col 1
+  })
+
+  it('draws a posed assistant from the rig in its look', () => {
+    const t = newActorTable()
+    planActors(t, sceneSnapshot({ actors: t }))
+    settleActors(t)
+    t.assistants[0].pose = 'stand.idle'
+    expect(castAt(draw({ phase: 'drawing', actors: t }).images, 21, 80)?.id).toBe('cast/stand.idle~open.closed.none/look0')
+  })
+
+  it('draws the seated rig mangaka\'s rows 0-39 again over the page stack, so the pen and its hand lie on the pages', () => {
+    const s = sceneSnapshot({ phase: 'drawing', progress: 0.5 })
+    expect([s.actors.mangaka.x, s.actors.mangaka.y]).toEqual([124, 58])
+    const f = fakeContext()
+    render(f.ctx, s, 0.3, 0)
+    const id = `cast/${rigFrame(ANIMS['seat-draw'].steps[0].pose, 'neutral', false).id}/pal`
+    const seated = f.images.filter((i) => i.id === id)
+    expect(seated.map(({ x, y, w, h }) => ({ x, y, w, h }))).toEqual([{ x: 124, y: 58, w: 32, h: 48 }, { x: 124, y: 58, w: 32, h: 40 }])
+    // the whole frame goes on before the stock desk's top (room (52, 62), canvas (116, 98)); its rows 0-39 after the
+    // page stack's last fill, the line at its top (stack round(1 + 0.5 * 8) = 5: room (59, 58 - 5), canvas (123, 89)),
+    // and before the ink pot (room (90, 58), canvas (154, 94)), the mug, the tablet and the cups
+    const desk = f.log.findIndex((c) => c.style === '#8b5a2b' && c.x === 116 && c.y === 98)
+    const stackTop = f.log.findIndex((c) => c.style === '#b8b2a5' && c.x === 123 && c.y === 89 && c.w === 7 && c.h === 1)
+    const ink = f.log.findIndex((c) => c.style === '#1b1b1b' && c.x === 154 && c.y === 94 && c.w === 4 && c.h === 4)
+    expect([desk, stackTop, ink].map((i) => i > -1)).toEqual([true, true, true])
+    expect(seated[0].at).toBeLessThanOrEqual(desk)
+    expect(seated[1].at).toBeGreaterThan(stackTop)
+    expect(seated[1].at).toBeLessThanOrEqual(ink)
+  })
+
+  it('draws the mangaka once standing or in bed: only the seated frame goes on twice', () => {
+    // counted where the frame goes: at the actor, or in bed at the bed frame's origin
+    const once = (s: Snapshot, at: { x: number; y: number } = s.actors.mangaka) => {
+      const f = fakeContext()
+      render(f.ctx, s, 0.3, 0)
+      return [f.images.filter((i) => i.id.startsWith('cast/') && i.x === at.x && i.y === at.y).length, f.images.filter((i) => i.h === 40).length]
+    }
+    expect(once(sceneSnapshot({ phase: 'drawing', progress: 0.5 }))).toEqual([2, 1])
+    expect(once(sceneSnapshot({ phase: 'idle', actors: standing() }))).toEqual([1, 0])
+    const bed = sceneSnapshot({ activity: 'rest' })
+    expect(bed.actors.mangaka.state).toBe('sleeping')
+    expect(once(bed, { x: 201, y: 90 })).toEqual([1, 0])
+  })
+
+  it('places the seat\'s poses at the seat spot and the bed\'s at the bed frame\'s origin, everything else at the actor', () => {
+    const a = { x: 5, y: 6 }
+    expect([poseOrigin('actor', a), poseOrigin('seat', a), poseOrigin('bed', a)]).toEqual([a, MANGAKA_SEAT, MANGAKA_BED_FRAME])
+    expect(MANGAKA_BED_FRAME).not.toEqual(MANGAKA_BED) // the actor stands 19 px right of it, on the lying head
+  })
+
+  it('rises the Zs over the sleep loop\'s lying poses only, never over the sitting-up frame (lying down)', () => {
+    // frame 0: one Z at the bed frame's (36, 2), canvas (201 + 36, 90 + 2): rows ###, ..#, .#., #.., ### (9 fills)
+    const zs = (pose: 'bed.lie-0' | 'bed.lie-1' | 'bed.sit') => {
+      const s = sceneSnapshot({ activity: 'rest' })
+      expect(s.actors.mangaka.state).toBe('sleeping')
+      s.actors.mangaka.pose = pose
+      const f = fakeContext()
+      render(f.ctx, s, 0.3, 0)
+      return f.log.filter((c) => c.style === '#2f5ecf' && c.x >= 196).map((c) => [c.x, c.y])
+    }
+    const z = [[237, 92], [238, 92], [239, 92], [239, 93], [238, 94], [237, 95], [237, 96], [238, 96], [239, 96]]
+    expect(zs('bed.lie-0')).toEqual(z)
+    expect(zs('bed.lie-1')).toEqual(z)
+    expect(zs('bed.sit')).toEqual([])
+  })
+
+  it('lays the assistants\' desk under their row: from 2 px left of the first seat, 36 + 34 per further one', () => {
+    expect([1, 2, 3].map((n) => assistantDesk(n))).toEqual([{ x: 19, w: 36 }, { x: 19, w: 70 }, { x: 19, w: 104 }])
+    expect(assistantDesk(1)).toBe(assistantDesk(1)) // a constant: nothing allocated per frame
   })
 })

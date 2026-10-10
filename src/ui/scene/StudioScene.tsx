@@ -7,7 +7,13 @@ import { useClock } from '../../state/clock'
 import { useStore } from '../../state/store'
 import { prefersReducedMotion } from '../motion'
 import { anyWalking, editorWalksIn, newActorTable, planActors, settleActors, stepActors } from './actors'
-import { H, W, render } from './render'
+import { headCentre, headTop, newCastPlay, resumeCast, settleCast, stepCast } from './castPlay'
+import type { CastInput } from './castPlay'
+import { reactionFor } from './reactions'
+import type { ReactionCue } from './reactions'
+import { ANIMS } from './rig/anims'
+import type { AnimId } from './rig/anims'
+import { H, W, render, workingOf } from './render'
 import { onSceneImageLoad, sceneImages } from './sceneImages'
 import type { Snapshot } from './render'
 import { seasonOf } from './season'
@@ -19,7 +25,6 @@ import { Pops, popsFor } from './Pops'
 import type { PopKind } from './Pops'
 import { CHEER_MS, cheersFor } from './mood'
 import '../../styles/scene.css'
-import type { Actor } from './actors'
 import { NO_EQUIPMENT, SHOWN_TROPHIES, ownedFlags } from './studioArt'
 
 /** Frame budget in ms: 24 fps for the 320x180 sprite scene. */
@@ -35,10 +40,20 @@ const NO_LOOK: StudioLook = {
   tier: 'apartment', desks: 1, equipment: EMPTY, volumes: 0, animePoster: false, trophies: EMPTY,
 }
 
-/** A bubble sits just above an actor's head: `half` is half the sprite's width (both 24 wide). */
-function placeBubble(el: HTMLDivElement | null, rect: { width: number; height: number }, a: Actor, half: number) {
+/**
+ * A dev build's `?rig=<animation>` plays that animation over every base of its posture whenever nothing else plays, so
+ * an art task sees its moments and reactions in the running scene. A production build never reads it.
+ */
+const DEV_RIG = import.meta.env.DEV && typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('rig') : null
+const PREVIEW: AnimId | null = DEV_RIG !== null && DEV_RIG in ANIMS ? (DEV_RIG as AnimId) : null
+
+/** Reaction cues count up for the session, so the driver takes each once. */
+let cueSeq = 0
+
+/** A bubble sits just above a head: (x, y) is the scene point its tail points at. */
+function placeBubble(el: HTMLDivElement | null, rect: { width: number; height: number }, x: number, y: number) {
   if (!el) return
-  const p = sceneToCss(rect, a.x + half, a.y - 2)
+  const p = sceneToCss(rect, x, y)
   el.style.left = `${p.left}px`
   el.style.top = `${p.top}px`
 }
@@ -74,6 +89,12 @@ export function StudioScene({ running }: { running: boolean }) {
   // the characters: planned from the game below, walked every loop step, read by render
   // (one table for the component's life, mutated in place: useState's lazy initialiser, so render may read it)
   const [actors] = useState(newActorTable)
+  // the cast driver's tracks (castPlay.ts), mutated in place like the table, on the scene clock: the loop's steps
+  // summed, so it never jumps across a stretch the window was hidden
+  const [play] = useState(newCastPlay)
+  const sceneMs = useRef(0)
+  // the newest reaction cue (reactions.ts): set by the subscription below, handed to the driver through the snapshot
+  const [reaction, setReaction] = useState<ReactionCue | null>(null)
   // the generated room and prop images (built once for the app, each drawn once it has loaded)
   const [art] = useState(sceneImages)
   const saveLoads = useStore((s) => s.saveLoads)
@@ -93,10 +114,26 @@ export function StudioScene({ running }: { running: boolean }) {
       if (!st.readOnly && !st.windowHidden) getSound().play('knock')
     }
   }, [actors])
+  // the mangaka's over the rig head's centre (its head top and centre per state), the editor's over his 24-wide frame
   const placeBubbles = useCallback(() => {
-    placeBubble(mangakaBubble.current, rectRef.current, actors.mangaka, 12)
-    placeBubble(editorBubble.current, rectRef.current, actors.editor, 12)
+    const m = actors.mangaka
+    const e = actors.editor
+    placeBubble(mangakaBubble.current, rectRef.current, m.x + headCentre(m.state), m.y + headTop(m.state) - 2)
+    placeBubble(editorBubble.current, rectRef.current, e.x + 12, e.y - 2)
   }, [actors])
+  // the driver's input, one object filled in place each step: nothing allocated per frame
+  const castIn = useRef<CastInput>({ day: 0, working: false, late: false, ready: false, stamina: 100, assistants: EMPTY, reaction: null, preview: PREVIEW })
+  const fillCast = useCallback((s: Snapshot): CastInput => {
+    const c = castIn.current
+    c.day = useStore.getState().game?.day ?? 0
+    c.working = workingOf(s)
+    c.late = s.late
+    c.ready = s.phase === 'ready'
+    c.stamina = s.stamina
+    c.assistants = s.assistants
+    c.reaction = s.reaction
+    return c
+  }, [])
 
   const phase = useStore((s) => (s.game ? getPhase(s.game) : 'idle'))
   const activity = useStore((s) => s.game?.activity ?? 'rest')
@@ -118,7 +155,7 @@ export function StudioScene({ running }: { running: boolean }) {
   const snap = useRef<Snapshot>({
     phase, activity, progress, stamina, level, running, away: !!trip, assistants: [], season,
     tier: 'apartment', owned: NO_EQUIPMENT, volumes: 0, animePoster: false, trophies: 0,
-    visitor: 'none', visitorProp: 'none', late, cheer, ...NO_STORY, actors: actors,
+    visitor: 'none', visitorProp: 'none', late, cheer, reaction, ...NO_STORY, actors: actors,
   })
   useEffect(() => {
     snap.current = {
@@ -128,13 +165,15 @@ export function StudioScene({ running }: { running: boolean }) {
       // the studio as flags and counts, so render never walks a list per frame
       tier: look.tier, owned: ownedFlags(look.equipment), volumes: look.volumes, animePoster: look.animePoster,
       trophies: Math.min(SHOWN_TROPHIES, look.trophies.length),
-      visitor: reason === 'none' ? 'none' : 'editor', visitorProp: PROP_FOR[reason], late, cheer, ...story, actors: actors,
+      visitor: reason === 'none' ? 'none' : 'editor', visitorProp: PROP_FOR[reason], late, cheer, reaction, ...story,
+      actors: actors,
     }
     planActors(actors, snap.current)
     // Under reduced motion the loop only repaints once a second, so state changes repaint at once.
     // ctxRef is still null on first mount (this effect runs before the loop effect); the loop's first frame covers it.
     if (reduceMotion.current && ctxRef.current) {
       advance(0, true)
+      stepCast(play, actors, fillCast(snap.current), sceneMs.current, true)
       const t = useClock.getState().t
       render(ctxRef.current, snap.current, t, 0, art)
       placeBubbles()
@@ -142,7 +181,7 @@ export function StudioScene({ running }: { running: boolean }) {
       lastFrame.current = 0
       lastSnap.current = snap.current
     }
-  }, [actors, advance, art, placeBubbles, phase, activity, progress, stamina, level, running, trip, assistants, season, look, reason, late, cheer, story])
+  }, [actors, advance, art, fillCast, placeBubbles, play, phase, activity, progress, stamina, level, running, trip, assistants, season, look, reason, late, cheer, reaction, story])
 
   // A new daily line (info, not a toast, today, not from a loaded save) is said by the mangaka, when they are home.
   useEffect(() => {
@@ -182,7 +221,8 @@ export function StudioScene({ running }: { running: boolean }) {
   // read-only tab or while the window is hidden.
   const popAnchor = useCallback(() => {
     const m = actors.mangaka
-    return m.state === 'away' || m.state === 'hidden' ? DESK : { x: m.x + 12, y: m.y - 4 }
+    if (m.state === 'away' || m.state === 'hidden') return DESK
+    return { x: m.x + headCentre(m.state), y: m.y + headTop(m.state) - 4 }
   }, [actors])
   useEffect(() => useStore.subscribe((next, prev) => {
     if (next.windowHidden) return
@@ -193,6 +233,13 @@ export function StudioScene({ running }: { running: boolean }) {
       clearTimeout(cheerTimer.current)
       cheerTimer.current = setTimeout(() => setCheer(false), CHEER_MS)
     }
+  }), [])
+  // The cast reacts to a poll, a level-up, a late chapter or a missed issue (reactions.ts), never while the window is
+  // hidden: each cue a new id, so every character takes it once.
+  useEffect(() => useStore.subscribe((next, prev) => {
+    if (next.windowHidden) return
+    const kind = reactionFor(prev, next)
+    if (kind) setReaction({ id: ++cueSeq, kind })
   }), [])
 
   // placed at once when a bubble appears or the wrap resizes, then after every painted frame
@@ -209,8 +256,10 @@ export function StudioScene({ running }: { running: boolean }) {
     settleActors(actors)
     const st = useStore.getState()
     if (st.tutorialStep === 0 && sceneReasonOf(st.game, 0) === 'tutorial') editorWalksIn(actors)
+    // the cast on its base loops from now: no transition, the waiting cue taken as seen
+    settleCast(play, actors, fillCast(snap.current), sceneMs.current)
     lastSnap.current = null
-  }, [actors, saveLoads])
+  }, [actors, fillCast, play, saveLoads])
 
   useEffect(() => {
     const canvas = ref.current
@@ -235,6 +284,8 @@ export function StudioScene({ running }: { running: boolean }) {
       // the actors walk whether or not the clock runs: the editor must arrive while the game waits on them
       const moving = anyWalking(actors)
       advance(Math.min(dt, MAX_ACTOR_STEP_MS), reduce)
+      sceneMs.current += dt
+      stepCast(play, actors, fillCast(s), sceneMs.current, reduce)
       if (!reduce) frame.current += s.running ? 2.5 : 1.25
       const t = useClock.getState().t
       const f = reduce ? 0 : Math.floor(frame.current)
@@ -249,6 +300,8 @@ export function StudioScene({ running }: { running: boolean }) {
     }
     const start = () => {
       if (!raf && !hidden()) {
+        // a stretch the loop sat stopped: every transition and moment jumps to its end, each base going on from now
+        resumeCast(play, sceneMs.current)
         last = performance.now()
         raf = requestAnimationFrame(loop)
       }
@@ -266,7 +319,7 @@ export function StudioScene({ running }: { running: boolean }) {
       document.removeEventListener('visibilitychange', start)
       ctxRef.current = null
     }
-  }, [actors, advance, art, placeBubbles])
+  }, [actors, advance, art, fillCast, placeBubbles, play])
 
   const status =
     trip ? `Away at the ${placeById(trip.placeId).name}` :
