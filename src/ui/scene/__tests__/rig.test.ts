@@ -48,6 +48,22 @@ describe('the rig tables', () => {
     }
   })
 
+  it('closes every key frame\'s outline: no painted cell but L beside a clear one or the frame\'s edge', () => {
+    // the parts close only where they meet; a key frame is drawn whole, so nothing of it may be open
+    for (const [id, def] of ENTRIES) {
+      if (def.pose.kind !== 'key') continue
+      const map = def.pose.map
+      const clear = (x: number, y: number) => y < 0 || y >= map.length || x < 0 || x >= map[y].length || map[y][x] === '.'
+      const open: string[] = []
+      map.forEach((row, y) => {
+        for (let x = 0; x < row.length; x++) {
+          if (row[x] !== '.' && row[x] !== 'L' && (clear(x - 1, y) || clear(x + 1, y) || clear(x, y - 1) || clear(x, y + 1))) open.push(`${x},${y}`)
+        }
+      })
+      expect(open, id).toEqual([])
+    }
+  })
+
   it('places only the bed\'s frames at the bed and only the half-sitting pose at the seat', () => {
     // by name: every bed.* pose at the bed, seat.half at the seat, the rest at the actor
     const place = (id: string) => (id.startsWith('bed.') ? 'bed' : id === 'seat.half' ? 'seat' : 'actor')
