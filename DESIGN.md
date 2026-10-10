@@ -318,6 +318,12 @@ restarting after the window was hidden) jumps every transition and moment to its
 scene clock of its own, `sceneMs`, the sum of the loop's steps, so it never jumps across a stretch the window was
 hidden, and fills one input object in place each step (`fillCast`). Every animation is drawn; until its art task drew
 it, each played one 500 ms step of `stand.idle` (`STAND_IN`, gone with the doze, task 18; see "The rig" below).
+Since 0.12.0 the driver has a fifth track, the editor's, posed only while his switch is on (`actors.ts`
+`RIG_LIVE.editor`; off, his pose stays empty and he draws from his 0.10 maps). He is seat 4 of the idle schedule and
+the phase (`EDITOR_SEAT`: the mangaka is 0, the assistants 1-3). He only stands and walks (`editor-stand`,
+`editor-walk`); his transitions are his own (`transitionFor(who, from, to)`: `editor-arrive`, the turn at the spot on
+arriving, and `editor-leave`, the turn back toward the door), and so is his pool of waiting moments (`EDITOR_POOL`:
+pushing up his glasses, checking his watch, a glance at the manuscript pile), never tired.
 
 **Drawing the rig** (`render.ts`, 0.11.0 task 10). The mangaka (since task 17) and the assistants (since task 19) are
 drawn from the rig: the actor's pose, or with none (a settled table) its base loop's first step (`poseOf`). The
@@ -340,14 +346,14 @@ never across a save load, a new career's world seed, a jump of more than a day, 
 guards); `StudioScene` also skips them while the window is hidden. Each becomes a cue on the snapshot
 (`Snapshot.reaction`, `{ id, kind }`, the id counting up for the session from 1), which every character takes once:
 
-| Kind | Transition (before to after) | The mangaka | The assistants |
-|---|---|---|---|
-| `missed` | the issues missed by every serial, running or archived (`missedIssuesOf`), grew | `seat-tear` if seated | none |
-| `bad-poll` | the newest poll placed in the bottom third (`rankToneOf` 'low': rank x 3 > entrants x 2) | `stand-slump` standing, `seat-slump` seated | none |
-| `good-poll` | the newest poll placed in the top three (`rankToneOf` 'top': rank <= 3) | `stand-cheer` standing, `seat-cheer` seated | `seat-cheer` if seated |
-| `offer` | the serialisation offer came into view: pending with no result in front (`offerShown`), where before there was none or the envelope stood in front | none | none (the editor's column comes at Task 6) |
-| `level-up` | the player's level grew | `stand-cheer` standing, `seat-cheer` seated | none |
-| `late` | the chapter's deadline turned late | `seat-panic` if seated | none |
+| Kind | Transition (before to after) | The mangaka | The assistants | The editor |
+|---|---|---|---|---|
+| `missed` | the issues missed by every serial, running or archived (`missedIssuesOf`), grew | `seat-tear` if seated | none | none |
+| `bad-poll` | the newest poll placed in the bottom third (`rankToneOf` 'low': rank x 3 > entrants x 2) | `stand-slump` standing, `seat-slump` seated | none | `editor-sigh` if standing at the spot |
+| `good-poll` | the newest poll placed in the top three (`rankToneOf` 'top': rank <= 3) | `stand-cheer` standing, `seat-cheer` seated | `seat-cheer` if seated | `editor-nod` if standing at the spot |
+| `offer` | the serialisation offer came into view: pending with no result in front (`offerShown`), where before there was none or the envelope stood in front | none | none | `editor-nod` if standing at the spot |
+| `level-up` | the player's level grew | `stand-cheer` standing, `seat-cheer` seated | none | none |
+| `late` | the chapter's deadline turned late | `seat-panic` if seated | none | none |
 
 "The newest poll" is a one-shot result dismissed (pending before, gone after: the player has seen it, so the reveal
 is never spoiled) or a new chapter result of the serial running before (looked up among the archived serials too when
@@ -356,8 +362,9 @@ the same tick archived it), the rule that pins the corkboard's star and red mark
 the panic recurs as before and reduced motion still shows it.
 
 **The `?rig` dev preview.** A dev build's `?rig=<animation>` (`npm run dev`, an `AnimId`, such as `?rig=stand-look`)
-plays that animation over every base of its posture whenever nothing else plays, so an art task sees its moments and
-reactions in the running scene (since task 19 there is no switch for `?rig` alone to turn on). A production build never
+plays that animation over every base of its posture whenever nothing else plays, on its own character only
+(`previewFits`: an `editor-*` animation on the editor, any other on everyone else), so an art task sees its moments
+and reactions in the running scene (since task 19 there is no switch for `?rig` alone to turn on). A production build never
 reads the URL (the read sits behind `import.meta.env.DEV`).
 
 **The editor's visit** (`visitor.ts`, `useArrival`) picks the one reason they are at the desk, in priority order:

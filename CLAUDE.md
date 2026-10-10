@@ -177,12 +177,15 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   `nextIdle(day, who, n)`: the n-th idle moment's wait (6-14 s) and pick for a character, hashed (`mix`) from the day,
   the character and the count; no RNG state. `reactions.ts` (0.11.0) `reactionFor(prev, next)`: the cast's reaction to a
   store change (a missed issue, a bad or good poll by the corkboard's `rankToneOf` (`story.ts`), the offer coming into view, a level-up, the chapter
-  turning late), with `popsFor`'s guards; a one-shot result reacts when dismissed, never as it arrives. `castPlay.ts` (0.11.0) the cast driver: per actor a `Track` (the player, the
-  state last seen, the last cue taken, the idle schedule); `stepCast` picks the base loop (`baseAnimFor`, each seat's
-  phase kept through every change), plays the transition between two states (`transitionFor`), the seeded idle moments
-  (`idlePool`, `nextIdle`: a new game day restarts the count, never the wait) and the snapshot's reaction cue
-  (`reactionAnim`: it cuts an idle moment short, waits behind a transition), and writes `Actor.pose`; `settleCast`,
-  `resumeCast`; `headTop`/`headCentre` for the bubbles and pops. `season.ts` has `seasonOf(day)` and the window's season layer; `roomArt.ts` each tier's walls and floor (`TIER_ROOM` is `TIER_WALL` then `TIER_FLOOR`:
+  turning late), with `popsFor`'s guards; a one-shot result reacts when dismissed, never as it arrives. `castPlay.ts` (0.11.0) the cast driver: per actor a `Track` (the mangaka, the
+  assistants and, since 0.12.0, the editor at the fifth seat, `EDITOR_SEAT` 4, while `actors.ts` `RIG_LIVE.editor`;
+  each the player, the state last seen, the last cue taken, the idle schedule); `stepCast` picks the base loop
+  (`baseAnimFor`, each seat's phase kept through every change), plays the transition between two states
+  (`transitionFor(who, from, to)`; the editor's turns, `editor-arrive`/`editor-leave`), the seeded idle moments
+  (`idlePool`, `nextIdle`: a new game day restarts the count, never the wait; his waiting moments, `EDITOR_POOL`) and
+  the snapshot's reaction cue (`reactionAnim`: it cuts an idle moment short, waits behind a transition; his verdicts, a
+  nod on `offer` or `good-poll`, a sigh on `bad-poll`, standing only), and writes `Actor.pose`; `previewFits` (a dev
+  preview on its own character only); `settleCast`, `resumeCast`; `headTop`/`headCentre` for the bubbles and pops. `season.ts` has `seasonOf(day)` and the window's season layer; `roomArt.ts` each tier's walls and floor (`TIER_ROOM` is `TIER_WALL` then `TIER_FLOOR`:
 tatami, planks, concrete), the front row of floor props (`TIER_FRONT`, drawn after the actors), the story props (corkboard,
 calendar, cups, the serial's cover, fan letters, bin) and `drawAmbient` (daylight shaft, lamp pool, vignette), all in
 canvas space; `story.ts` `storyLook`, the story props' five snapshot inputs read from the game; `studioArt.ts` the

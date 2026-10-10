@@ -69,6 +69,16 @@ export const ASSISTANT_SEAT_X: readonly number[] = [21, 55, 89]
 /** The editor's walk from the door to their spot: 56 + 0 px at 40 px/s, 1400 ms. */
 export const EDITOR_WALK_MS = ((DOOR_SPOT.x - EDITOR_SPOT.x) + (DOOR_SPOT.y - EDITOR_SPOT.y)) / WALK_PX_PER_S * 1000
 
+/**
+ * The editor's switch (0.12.0): the cast driver poses him from his rig set only while it is on, off until the set is
+ * complete. Tests turn it on and back off.
+ */
+export const RIG_LIVE: { editor: boolean } = { editor: false }
+
+export function setRigLive(live: { editor: boolean }): void {
+  RIG_LIVE.editor = live.editor
+}
+
 /** What the plan reads from the scene's snapshot. */
 export interface ActorPlanInput {
   phase: Phase
