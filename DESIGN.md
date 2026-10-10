@@ -664,6 +664,40 @@ at `CAT_BED` (4 fills, drawn just before it).
   are the mangaka's alone) the half pose read at 8x and at 1x as an in-between of the standing and seated frames,
   after one redraw: the first knees, a column out over a lit shin with a shaded band under the knee, read as baggy
   trousers (the shin is now in the knee's shade, as the seated shin is).
+- **The idle moments** (0.11.0, task 15). Six one-shots over the base loops, picked by the driver's seeded schedule
+  (`idlePool`): standing, `stand-look` and `stand-sip`; at the desk, `seat-stretch`, `seat-sip` and `seat-flip`, or,
+  tired, `seat-rub` and `seat-sip`; the seated ones are the assistants' too. Thirteen part poses on `stand()` and
+  `seat()`. The glance (`stand.look-l`, `stand.look-r`) moves the head a column either way (`dx`), the body unchanged;
+  `stand-look` is left 500 ms, the stance 150, right 500, the stance 150 (render's idle `?`, which shows only on the
+  standing loop's poses, can show on those two 150 ms stance steps). The sip (`stand.sip-raise`, `stand.sip`,
+  `seat.sip-raise`, `seat.sip`): the near arm half raised (`arm-l-mug-half`, 6x6: the fist by the jaw, the cuff, the
+  sleeve's underside on the shoulder line) holds the mug under the chin, then raised (`arm-l-mug`, 7x9: the sleeve a
+  column in every two rows up from the shoulder to a fist three rows tall) holds it over the mouth with the eyes
+  closed; the mug (`mug`, 5x4) is a white body three wide and two tall, its shade `w` at the bottom right, in an `L`
+  outline, the hand at its left wall. `stand-sip` and `seat-sip` are under the chin 200 ms, at the mouth 700, under
+  the chin 200. Every raised arm ends at the shoulder line (the catalogue's anchors), the upper arm foreshortened toward
+  the viewer, so below the shoulder the torso stands alone, closed under the raised sleeve by its underside, as 0.10's
+  raised sleeves were. The stretch: both arms out level at shoulder height (`arm-l-out`, `arm-r-out`, 8x5: a sleeve
+  three rows tall to a fist at its end), then flung up and out along the jaw to fists beside it, outside the head's
+  width (`arm-l-up`, `arm-r-up`, 8x10, after 0.10's `MANGAKA_STRETCH` at 1.5x), the eyes closed; `seat-stretch` is out
+  250 ms, up 700, out 250. The page flip: the near arm takes a page (`page`, 5x4: a sheet `W` with a short ruled `w`
+  line in an `L` outline, the hand at its foot) by the body (`arm-l-flip-a`, 6x11: the page at frame (9, 36), the
+  fist's left column showing at its edge), lifts it (`-b`, 7x9: the page at (4, 32), above the fist) and lays it down
+  on the left (`-c`, 9x10: the page at (0, 35), the knuckles at its right edge), over the page stack in the scene;
+  `seat-flip` is 200 ms a step. The rub: the near arm up in front of the cheek, the fist over the left eye
+  (`arm-l-rub-a`, 6x14), then a row lower (`-b`, 6x13), the eyes squinting, the mouth and the other eye clear;
+  `seat-rub` is a, b, a, b, 250 ms each. An arm drawn over the face closes its own outline (the assembler outlines
+  only against clear cells, so a fist on the cheek would merge with it): each moment arm is outlined all round but
+  where it joins the shoulder, and every pose with a near arm moved joins closed by itself (the glances bare a collar
+  tip beside the shifted chin, and the raised far arm leaves the far shoulder cap's underside open under the torso;
+  the assembler closes both). Every seated moment's arms, mug and page stay above the desk top (frame row 40), where
+  the scene draws the figure again over the page stack, and the mark slot stays clear in every mood. At the gate
+  (task 15, `--only stand-look`, `--only stand-sip`, `--only seat-`, in the hoodie, the cardigan and the blazer and,
+  at the desk, the six looks; and a scratch scene mock with the desk and the stack at 1x, 3x and 8x) the sip read as
+  drinking from a white cup, the stretch as arms out and then up beside the head, the flip as a page carried in an
+  arc from the body to the stack, the rub as a fist at the eye and the glance as a turn of the head; one redraw: the
+  first mug, two whites wide beside a handle, read at 8x as a lens, so its body is three wide and the handle is turned
+  into the hand.
 
 The frame sets: idle 2 frames (`frame/16 % 2`), walk 4 (`anim/100 % 4`), sit 2 (`frame/8 % 2` while working, frame 0
 otherwise), panic 2 (for 40 of every 240 frames while working on a late chapter, `Snapshot.late`), a 30x14 lying

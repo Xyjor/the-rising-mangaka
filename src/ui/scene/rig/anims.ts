@@ -49,6 +49,30 @@ const STAND_UP: readonly Step<PoseId>[] = [{ pose: 'seat.half', ms: 80 }]
  */
 const SIT_UP: readonly Step<PoseId>[] = [{ pose: 'bed.sit', ms: 220 }]
 
+/**
+ * The idle moments, each a one-shot over its base loop. A glance left and right, 500 ms each, the plain stance
+ * 150 ms after each. The sip: the mug raised under the chin 200 ms, at the mouth with the eyes closed 700 ms, lowered
+ * under the chin 200 ms. The stretch: the arms out 250 ms, up beside the head with the eyes closed 700 ms, out again
+ * 250 ms. The page flipped right to left, 200 ms a step. The left eye rubbed when tired, the fist at the eye and a row
+ * lower, twice over, 250 ms a step.
+ */
+const LOOK: readonly Step<PoseId>[] = [
+  { pose: 'stand.look-l', ms: 500 }, { pose: 'stand.idle', ms: 150 }, { pose: 'stand.look-r', ms: 500 }, { pose: 'stand.idle', ms: 150 },
+]
+const STAND_SIP: readonly Step<PoseId>[] = [
+  { pose: 'stand.sip-raise', ms: 200 }, { pose: 'stand.sip', ms: 700 }, { pose: 'stand.sip-raise', ms: 200 },
+]
+const SEAT_SIP: readonly Step<PoseId>[] = [
+  { pose: 'seat.sip-raise', ms: 200 }, { pose: 'seat.sip', ms: 700 }, { pose: 'seat.sip-raise', ms: 200 },
+]
+const STRETCH: readonly Step<PoseId>[] = [
+  { pose: 'seat.stretch-a', ms: 250 }, { pose: 'seat.stretch-b', ms: 700 }, { pose: 'seat.stretch-a', ms: 250 },
+]
+const FLIP: readonly Step<PoseId>[] = [{ pose: 'seat.flip-a', ms: 200 }, { pose: 'seat.flip-b', ms: 200 }, { pose: 'seat.flip-c', ms: 200 }]
+const RUB: readonly Step<PoseId>[] = [
+  { pose: 'seat.rub-a', ms: 250 }, { pose: 'seat.rub-b', ms: 250 }, { pose: 'seat.rub-a', ms: 250 }, { pose: 'seat.rub-b', ms: 250 },
+]
+
 /** One step of the standing pose, while an animation's art has not landed. */
 const STAND_IN: readonly Step<PoseId>[] = [{ pose: 'stand.idle', ms: 500 }]
 
@@ -75,12 +99,12 @@ export const ANIMS: Readonly<Record<AnimId, Anim<PoseId>>> = {
   'stand-up': anim('stand-up', 'walk', false, STAND_UP),
   'lie-down': anim('lie-down', 'bed', false, SIT_UP),
   'get-up': anim('get-up', 'walk', false, SIT_UP),
-  'stand-look': anim('stand-look', 'stand', false, STAND_IN),
-  'stand-sip': anim('stand-sip', 'stand', false, STAND_IN),
-  'seat-stretch': anim('seat-stretch', 'seat', false, STAND_IN),
-  'seat-sip': anim('seat-sip', 'seat', false, STAND_IN),
-  'seat-flip': anim('seat-flip', 'seat', false, STAND_IN),
-  'seat-rub': anim('seat-rub', 'seat', false, STAND_IN),
+  'stand-look': anim('stand-look', 'stand', false, LOOK),
+  'stand-sip': anim('stand-sip', 'stand', false, STAND_SIP),
+  'seat-stretch': anim('seat-stretch', 'seat', false, STRETCH),
+  'seat-sip': anim('seat-sip', 'seat', false, SEAT_SIP),
+  'seat-flip': anim('seat-flip', 'seat', false, FLIP),
+  'seat-rub': anim('seat-rub', 'seat', false, RUB),
   'stand-cheer': anim('stand-cheer', 'stand', false, STAND_IN),
   'seat-cheer': anim('seat-cheer', 'seat', false, STAND_IN),
   'stand-slump': anim('stand-slump', 'stand', false, STAND_IN),

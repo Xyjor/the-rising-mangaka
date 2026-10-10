@@ -682,6 +682,280 @@ const MANUSCRIPT: Part = {
   anchors: { hand: { x: 6, y: 6 } },
 }
 
+/**
+ * The near (left) arm raising the mug to the mouth, 7 x 9 (shoulderL (2, 8), so standing the part's top-left is frame
+ * (7, 15), seated (7, 21)): the sleeve j rises from the shoulder (its underside an L row on the shoulder line, row 8,
+ * over the torso's cap, as 0.10's raised sleeve was closed) a column in every two rows to the cuff (rows 4-7), the
+ * upper arm foreshortened toward the viewer, and the fist S/s three rows tall on rows 1-3 (frame cols 10-12 standing,
+ * rows 16-18), its shade on the right and underneath, by the mug's left wall. The hand (5, 1) is the fist's right
+ * column, where the mug's left wall lands. Drawn after the head (the front arm), the fist and the sleeve close their
+ * own outline against the face, which the assembler cannot (skin beside skin).
+ */
+const ARM_L_MUG: Part = {
+  map: [
+    '..LLLL.', // 0  the fist's top (the mug's wall covers col 6)
+    '..LSSSL', // 1  the fist round the mug
+    '..LSSsL', // 2
+    '..LSssL', // 3
+    '.LjjjL.', // 4  the cuff
+    '.LjjjL.', // 5
+    'LjjjL..', // 6  the sleeve, a column out toward the shoulder
+    'LjjjL..', // 7
+    'LLLLL..', // 8  the raised sleeve's underside on the shoulder line
+  ],
+  anchors: { shoulderL: { x: 2, y: 8 }, hand: { x: 5, y: 1 } },
+}
+
+/**
+ * The near (left) arm half raised, the mug under the chin, 6 x 6 (shoulderL (2, 5), standing top-left (7, 18)): the
+ * fist S/s on rows 1-2 (frame rows 19-20 standing, by the jaw), the cuff on row 3, the sleeve on row 4 a column out
+ * toward the shoulder, its underside an L row on the shoulder line (row 5). The hand (4, 1) is the fist's right column,
+ * under the mug's left wall. Its own outline all round, over the jaw.
+ */
+const ARM_L_MUG_HALF: Part = {
+  map: [
+    '.LLLL.', // 0  the fist's top
+    '.LSSSL', // 1  the fist; the mug's wall covers col 5
+    '.LSssL', // 2
+    '.LjjjL', // 3  the cuff
+    'LjjjL.', // 4  the sleeve
+    'LLLLL.', // 5  the underside on the shoulder line
+  ],
+  anchors: { shoulderL: { x: 2, y: 5 }, hand: { x: 4, y: 1 } },
+}
+
+/**
+ * The mug, 5 x 4: a white body W three wide and two tall, its shade w at the bottom right, in an L outline (the rim on
+ * row 0, the base on row 3). The hand (0, 2) is its left wall, where the fist holds it, so the handle is turned into
+ * the hand: at this width a drawn handle left the body two whites wide, which read at 8x as a lens, not a cup. At the
+ * mouth (frame (12, 14) standing, (12, 20) seated) the body covers the mouth slot; under the chin it sits a column left
+ * and three rows lower, clear of it.
+ */
+const MUG: Part = {
+  map: [
+    'LLLLL', // 0  the rim
+    'LWWWL', // 1
+    'LWWwL', // 2  the hand at the left wall
+    'LLLLL', // 3  the base
+  ],
+  anchors: { hand: { x: 0, y: 2 } },
+}
+
+/**
+ * The near (left) arm out to the side at shoulder height, 8 x 5 (shoulderL (7, 1), seated top-left (2, 28)): the
+ * sleeve j three rows tall (rows 1-3, frame rows 29-31) runs out level from the shoulder cap to the fist S/s at its end
+ * (cols 1-2, frame cols 3-4), lit from the top left; the top outline (row 0) ends at col 5, on the torso's own
+ * shoulder outline (frame (7, 28)), which the shoulder rises from, and the underside closes it on row 4. The hand
+ * (1, 2) is the fist.
+ */
+const ARM_L_OUT: Part = {
+  map: [
+    '.LLLLL..', // 0  the arm's top, up to the torso's shoulder
+    'LSSjjjjj', // 1  the fist; the sleeve level to the shoulder cap
+    'LSsjjjjj', // 2
+    'Lssjjjjj', // 3
+    '.LLLLLLL', // 4  the underside
+  ],
+  anchors: { shoulderL: { x: 7, y: 1 }, hand: { x: 1, y: 2 } },
+}
+
+/**
+ * The far (right) arm out to the side, ARM_L_OUT's mirror, 8 x 5 (shoulderR (0, 1), seated top-left (22, 28)), its
+ * fist lit from the left too (the shade on the right and underneath). Drawn behind the torso, which covers its first
+ * three columns on the shoulder rows (frame rows 28-29); its top outline starts where the torso's shoulder outline ends
+ * (frame (24, 28)).
+ */
+const ARM_R_OUT: Part = {
+  map: [
+    '..LLLLL.', // 0  the arm's top, from the torso's shoulder
+    'jjjjjSSL', // 1  the sleeve level from the shoulder cap; the fist
+    'jjjjjSsL', // 2
+    'jjjjjssL', // 3
+    'LLLLLLL.', // 4  the underside
+  ],
+  anchors: { shoulderR: { x: 0, y: 1 }, hand: { x: 6, y: 2 } },
+}
+
+/**
+ * The near (left) arm flung up and out beside the head, 8 x 10 (shoulderL (7, 9), seated top-left (2, 20)), after
+ * 0.10's MANGAKA_STRETCH at 1.5x: the sleeve j rises from the shoulder (its underside an L row over the cap, row 9) a
+ * column out every row up to row 3 along the jaw's outline, and the fist S/s beside the jaw on rows 1-2 (frame cols
+ * 3-5, rows 21-22), its top on row 0, its right edge over the head's outline. The hand (1, 0) is the fist's
+ * top, frame (3, 20), left of the head's col 0 (frame col 4). Drawn after the head, it closes its own outline against
+ * the ear and the jaw.
+ */
+const ARM_L_UP: Part = {
+  map: [
+    '.LLL....', // 0  the fist's top
+    'LSSsL...', // 1  the fist beside the jaw
+    'LSssL...', // 2
+    'LjjjL...', // 3  the cuff
+    '.LjjjL..', // 4  the sleeve, down along the jaw to the shoulder
+    '..LjjjL.', // 5
+    '...LjjjL', // 6
+    '....Ljjj', // 7  into the shoulder
+    '....Ljjj', // 8
+    '....LLLL', // 9  the raised sleeve's underside over the shoulder cap
+  ],
+  anchors: { shoulderL: { x: 7, y: 9 }, hand: { x: 1, y: 0 } },
+}
+
+/**
+ * The far (right) arm flung up and out beside the head, ARM_L_UP's mirror, 8 x 10 (shoulderR (0, 9), seated top-left
+ * (22, 20)), its fist lit from the left too. Drawn behind the head and the torso: the fist shows beside the jaw (frame
+ * cols 26-29, the hand (6, 0) at frame col 28, right of the head's col 23 at frame col 27) and the sleeve outside the
+ * jaw and the shoulder; the assembler closes the far shoulder cap's underside (frame row 29), which the torso draws
+ * over the arm's own.
+ */
+const ARM_R_UP: Part = {
+  map: [
+    '....LLL.', // 0  the fist's top
+    '...LSSsL', // 1  the fist beside the jaw
+    '...LSssL', // 2
+    '...LjjjL', // 3  the cuff
+    '..LjjjL.', // 4  the sleeve, down along the jaw to the shoulder
+    '.LjjjL..', // 5
+    'LjjjL...', // 6
+    'jjjL....', // 7  into the shoulder
+    'jjjL....', // 8
+    'LLLL....', // 9  the underside
+  ],
+  anchors: { shoulderR: { x: 0, y: 9 }, hand: { x: 6, y: 0 } },
+}
+
+/**
+ * The near (left) arm reaching for the page by the body, 6 x 11 (shoulderL (2, 0), seated top-left (7, 29)): the
+ * sleeve j hangs from the shoulder cap (rows 0-5, a column in from the resting arm's, the arm turning in), the forearm
+ * comes forward a column wider (row 6), and the fist S/s on rows 7-9 (frame cols 8-10, rows 36-38) grips the page at
+ * its foot; the page, drawn over it at frame (9, 36), leaves the fist's left column showing at its left edge. The hand
+ * (4, 10) is the outline under the fist, frame (11, 39), the page's foot.
+ */
+const ARM_L_FLIP_A: Part = {
+  map: [
+    'LjjjL.', // 0  under the shoulder cap
+    'LjjjL.', // 1
+    'LjjjL.', // 2
+    'LjjjL.', // 3
+    'LjjjL.', // 4
+    'LjjjL.', // 5
+    'LjjjjL', // 6  the forearm, coming forward
+    'LSSSjL', // 7  the fist at the page's foot (the page covers cols 2-5)
+    'LSSssL', // 8
+    'LSsssL', // 9
+    '.LLLLL', // 10 the desk top's line under it
+  ],
+  anchors: { shoulderL: { x: 2, y: 0 }, hand: { x: 4, y: 10 } },
+}
+
+/**
+ * The near (left) arm lifting the page, 7 x 9 (shoulderL (5, 0), seated top-left (4, 29)): the sleeve hangs from the
+ * shoulder cap (rows 0-2), then the arm comes down and out to the left a column every two rows (rows 3-5) to the fist
+ * S/s on rows 6-7 (frame cols 5-7, rows 35-36), which holds the page up by its foot: the page, drawn over it at frame
+ * (4, 32), rises above the fist in front of the sleeve. The hand (2, 6) is the fist, frame (6, 35).
+ */
+const ARM_L_FLIP_B: Part = {
+  map: [
+    '..LjjjL', // 0  under the shoulder cap
+    '..LjjjL', // 1
+    '..LjjjL', // 2
+    '.LjjjL.', // 3  down and out to the left
+    '.LjjjL.', // 4
+    'LjjjL..', // 5
+    'LSSsL..', // 6  the fist under the page
+    'LSssL..', // 7
+    '.LLL...', // 8
+  ],
+  anchors: { shoulderL: { x: 5, y: 0 }, hand: { x: 2, y: 6 } },
+}
+
+/**
+ * The near (left) arm laying the page down on the left, 9 x 10 (shoulderL (8, 0), seated top-left (1, 29)): the
+ * sleeve leaves the shoulder cap (rows 0-1) and reaches down and out to the left a column a row (rows 2-4), the
+ * forearm down to the fist S/s on rows 7-8 (frame cols 3-6, rows 36-37), its knuckles showing at the right edge of the
+ * page, which lies over it at frame (0, 35). The hand (1, 9) is the outline under the fist, frame (2, 38), the page's
+ * foot.
+ */
+const ARM_L_FLIP_C: Part = {
+  map: [
+    '.....Ljjj', // 0  under the shoulder cap
+    '.....Ljjj', // 1
+    '....LjjjL', // 2  down and out to the left
+    '...LjjjL.', // 3
+    '..LjjjL..', // 4
+    '..LjjjL..', // 5
+    '..LjjjL..', // 6
+    '.LSSSsL..', // 7  the fist; the page covers cols 0-3
+    '.LSSssL..', // 8
+    '.LLLLLL..', // 9
+  ],
+  anchors: { shoulderL: { x: 8, y: 0 }, hand: { x: 1, y: 9 } },
+}
+
+/**
+ * The page the hand flips, 5 x 4: a sheet W three wide, a short ruled line w on its lower row (the paper's lines, as
+ * the manuscript's), in an L outline. The hand (2, 3) is the middle of its foot, so it rises above the hand: by the
+ * body at frame (9, 36), lifted at (4, 32), laid down on the left at (0, 35), over the page stack in the scene.
+ */
+const PAGE: Part = {
+  map: [
+    'LLLLL', // 0
+    'LWWWL', // 1
+    'LwwWL', // 2  the line
+    'LLLLL', // 3  the hand at col 2
+  ],
+  anchors: { hand: { x: 2, y: 3 } },
+}
+
+/**
+ * The near (left) arm rubbing the left eye, 6 x 14 (shoulderL (2, 13), seated top-left (7, 16)): the fist S/s four
+ * wide on rows 1-2 over the left eye (frame cols 8-11, rows 17-18), its top on row 0; the forearm j straight up from
+ * the elbow in front of the cheek (rows 3-7, a column in from the upper arm's rows 8-12), the underside an L row over
+ * the shoulder cap (row 13). The hand (3, 1) is the fist, frame (10, 17), in the eye slot's left half; the squinting
+ * right eye and the mouth stay clear. Drawn after the head, it closes its own outline against the face.
+ */
+const ARM_L_RUB_A: Part = {
+  map: [
+    '.LLLL.', // 0  the fist's top
+    'LSSSsL', // 1  the fist over the left eye
+    'LSSssL', // 2
+    '.LjjjL', // 3  the forearm, up in front of the cheek
+    '.LjjjL', // 4
+    '.LjjjL', // 5
+    '.LjjjL', // 6
+    '.LjjjL', // 7
+    'LjjjL.', // 8  the upper arm, from the elbow down to the shoulder
+    'LjjjL.', // 9
+    'LjjjL.', // 10
+    'LjjjL.', // 11
+    'LjjjL.', // 12
+    'LLLLL.', // 13 the raised sleeve's underside over the shoulder cap
+  ],
+  anchors: { shoulderL: { x: 2, y: 13 }, hand: { x: 3, y: 1 } },
+}
+
+/**
+ * The rub's other step, ARM_L_RUB_A with the fist a row lower, 6 x 13 (shoulderL (2, 12), hand (3, 1), frame
+ * (10, 18)): the forearm a row shorter.
+ */
+const ARM_L_RUB_B: Part = {
+  map: [
+    '.LLLL.', // 0  the fist's top
+    'LSSSsL', // 1  the fist, a row lower
+    'LSSssL', // 2
+    '.LjjjL', // 3  the forearm
+    '.LjjjL', // 4
+    '.LjjjL', // 5
+    '.LjjjL', // 6
+    'LjjjL.', // 7  the upper arm
+    'LjjjL.', // 8
+    'LjjjL.', // 9
+    'LjjjL.', // 10
+    'LjjjL.', // 11
+    'LLLLL.', // 12 the underside
+  ],
+  anchors: { shoulderL: { x: 2, y: 12 }, hand: { x: 3, y: 1 } },
+}
+
 /** Every part a pose may name, by name. */
 export const PARTS: PartLib = {
   head: HEAD, torso: TORSO, 'arm-l-hang': ARM_L_HANG, 'arm-r-hang': ARM_R_HANG,
@@ -696,4 +970,8 @@ export const PARTS: PartLib = {
   'arm-l-desk-a': ARM_L_DESK_A, 'arm-l-desk-b': ARM_L_DESK_B, 'arm-l-desk-c': ARM_L_DESK_C, 'arm-l-rest': ARM_L_REST,
   'arm-r-desk': ARM_R_DESK, pen: PEN,
   'arm-l-hold': ARM_L_HOLD, manuscript: MANUSCRIPT,
+  'arm-l-mug': ARM_L_MUG, 'arm-l-mug-half': ARM_L_MUG_HALF, mug: MUG,
+  'arm-l-out': ARM_L_OUT, 'arm-r-out': ARM_R_OUT, 'arm-l-up': ARM_L_UP, 'arm-r-up': ARM_R_UP,
+  'arm-l-flip-a': ARM_L_FLIP_A, 'arm-l-flip-b': ARM_L_FLIP_B, 'arm-l-flip-c': ARM_L_FLIP_C, page: PAGE,
+  'arm-l-rub-a': ARM_L_RUB_A, 'arm-l-rub-b': ARM_L_RUB_B,
 }

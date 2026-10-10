@@ -145,7 +145,7 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   `HEAD`: cols 0-23 the head, cols 24-26 the mark slot; its eye slot rows 10-13 cols 4-19, mouth slot rows 15-16 cols
   10-13, the neck anchor (12, 21); `EYES` (open, blink, closed, ring, squint, happy), `MOUTHS` (closed, open, smile,
   frown, o), `MARK_ART` (sweat, sparkle, bang, zee in `PAL.A`/`PAL.X`), `FACE_ART`, `NEUTRAL_FACE`, `FACE_BY_MOOD`,
-  `headWith(face)`), `parts.ts` (`PARTS`: every torso, arm, leg and prop (the pen, the manuscript) by name with its anchors, each outlined but where it
+  `headWith(face)`), `parts.ts` (`PARTS`: every torso, arm, leg and prop (the pen, the manuscript, the mug, the page) by name with its anchors, each outlined but where it
   joins another; the 32x48 frame standing has the head at (4, 0), the torso at (7, 21), the feet on row 47),
   `keyFrames.ts` (the poses the parts cannot make, hand-drawn whole with their face baked in: the bed's 48x32
   `BED_LIE_0`, `BED_LIE_1` and `BED_SIT`, drawn at the bed), `poses.ts`

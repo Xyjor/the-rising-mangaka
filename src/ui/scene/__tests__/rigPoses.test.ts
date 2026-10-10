@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { RIG_SPOTS } from '../actors'
 import { placeLayers } from '../rig/assemble'
 import { ANIMS } from '../rig/anims'
+import type { AnimId } from '../rig/anims'
 import { rigFrame } from '../rig/frames'
 import { PARTS } from '../rig/parts'
 import { POSES } from '../rig/poses'
@@ -326,5 +327,100 @@ describe('the transitions (task 14)', () => {
   it('outlines each half-sitting leg all round but its top, and joins the half pose closed by itself', () => {
     for (const name of ['leg-l-half', 'leg-r-half']) expect(openCells(PARTS[name].map).filter(({ y }) => y !== 0), name).toEqual([])
     expect(openCells(rawFrame('seat.half'))).toEqual([])
+  })
+})
+
+describe('the idle moments (task 15)', () => {
+  it('catalogues the moments\' arms and props', () => {
+    expectCatalogue({
+      'arm-l-mug': [7, 9, { shoulderL: [2, 8], hand: [5, 1] }], 'arm-l-mug-half': [6, 6, { shoulderL: [2, 5], hand: [4, 1] }],
+      mug: [5, 4, { hand: [0, 2] }],
+      'arm-l-out': [8, 5, { shoulderL: [7, 1], hand: [1, 2] }], 'arm-r-out': [8, 5, { shoulderR: [0, 1], hand: [6, 2] }],
+      'arm-l-up': [8, 10, { shoulderL: [7, 9], hand: [1, 0] }], 'arm-r-up': [8, 10, { shoulderR: [0, 9], hand: [6, 0] }],
+      'arm-l-flip-a': [6, 11, { shoulderL: [2, 0], hand: [4, 10] }], 'arm-l-flip-b': [7, 9, { shoulderL: [5, 0], hand: [2, 6] }],
+      'arm-l-flip-c': [9, 10, { shoulderL: [8, 0], hand: [1, 9] }], page: [5, 4, { hand: [2, 3] }],
+      'arm-l-rub-a': [6, 14, { shoulderL: [2, 13], hand: [3, 1] }], 'arm-l-rub-b': [6, 13, { shoulderL: [2, 12], hand: [3, 1] }],
+    })
+  })
+
+  it('times each moment', () => {
+    const steps = (id: AnimId) => ANIMS[id].steps.map((s) => `${s.pose} ${s.ms}`)
+    expect(steps('stand-look')).toEqual(['stand.look-l 500', 'stand.idle 150', 'stand.look-r 500', 'stand.idle 150'])
+    expect(steps('stand-sip')).toEqual(['stand.sip-raise 200', 'stand.sip 700', 'stand.sip-raise 200'])
+    expect(steps('seat-sip')).toEqual(['seat.sip-raise 200', 'seat.sip 700', 'seat.sip-raise 200'])
+    expect(steps('seat-stretch')).toEqual(['seat.stretch-a 250', 'seat.stretch-b 700', 'seat.stretch-a 250'])
+    expect(steps('seat-flip')).toEqual(['seat.flip-a 200', 'seat.flip-b 200', 'seat.flip-c 200'])
+    expect(steps('seat-rub')).toEqual(['seat.rub-a 250', 'seat.rub-b 250', 'seat.rub-a 250', 'seat.rub-b 250'])
+  })
+
+  it('sips with the mug over the mouth and the eyes closed, raising it from under the chin', () => {
+    // the mouth slot: the head's cols 10-13, rows 15-16, at the head's place in the frame
+    const overlaps = (id: PoseId) => {
+      const head = at(id, 'head')!
+      const mug = at(id, 'prop')!
+      return mug.x <= head.x + 13 && mug.x + 4 >= head.x + 10 && mug.y <= head.y + 16 && mug.y + 3 >= head.y + 15
+    }
+    expect([overlaps('stand.sip'), overlaps('seat.sip')]).toEqual([true, true])
+    expect([overlaps('stand.sip-raise'), overlaps('seat.sip-raise')]).toEqual([false, false])
+    expect([part('stand.sip').face, part('seat.sip').face]).toEqual([{ eyes: 'closed' }, { eyes: 'closed' }])
+  })
+
+  it('stretches with the arms out, then up beside the head with the eyes closed, the fists outside the head', () => {
+    expect([part('seat.stretch-a').armFront?.part, part('seat.stretch-a').armBack?.part]).toEqual(['arm-l-out', 'arm-r-out'])
+    expect(part('seat.stretch-b').face).toEqual({ eyes: 'closed' })
+    const hands = (id: PoseId) => [at(id, 'armFront')!.x + PARTS['arm-l-up'].anchors.hand!.x, at(id, 'armBack')!.x + PARTS['arm-r-up'].anchors.hand!.x]
+    const [left, right] = hands('seat.stretch-b')
+    expect(left).toBeLessThan(at('seat.stretch-b', 'head')!.x)
+    expect(right).toBeGreaterThan(at('seat.stretch-b', 'head')!.x + 23)
+  })
+
+  it('flips a page from right to left', () => {
+    expect((['seat.flip-a', 'seat.flip-b', 'seat.flip-c'] as const).map((id) => at(id, 'prop')?.x)).toEqual([9, 4, 0])
+  })
+
+  it('rubs the left eye when tired, squinting', () => {
+    for (const id of ['seat.rub-a', 'seat.rub-b'] as const) {
+      const head = at(id, 'head')!
+      const arm = at(id, 'armFront')!
+      const hand = { x: arm.x + PARTS[part(id).armFront!.part].anchors.hand!.x, y: arm.y + PARTS[part(id).armFront!.part].anchors.hand!.y }
+      // inside the eye slot's left half: head cols 4-11, rows 10-13
+      expect(hand.x >= head.x + 4 && hand.x <= head.x + 11 && hand.y >= head.y + 10 && hand.y <= head.y + 13, id).toBe(true)
+      expect(part(id).face).toEqual({ eyes: 'squint' })
+    }
+  })
+
+  it('looks around: the head a column left, then right', () => {
+    expect([at('stand.look-l', 'head'), at('stand.look-r', 'head')]).toEqual([{ x: 3, y: 0 }, { x: 5, y: 0 }])
+  })
+
+  it('outlines each moment arm all round but where it joins the shoulder, the mug and the page all round', () => {
+    // the assembler outlines only against clear cells, so a fist or a sleeve drawn over the face (skin beside skin)
+    // must carry its own outline; only the join, within two cells of the shoulder anchor, meets the torso open
+    const arms = ['arm-l-mug', 'arm-l-mug-half', 'arm-l-out', 'arm-r-out', 'arm-l-up', 'arm-r-up',
+      'arm-l-flip-a', 'arm-l-flip-b', 'arm-l-flip-c', 'arm-l-rub-a', 'arm-l-rub-b']
+    for (const name of arms) {
+      const s = (PARTS[name].anchors.shoulderL ?? PARTS[name].anchors.shoulderR)!
+      expect(openCells(PARTS[name].map).filter(({ x, y }) => Math.max(Math.abs(x - s.x), Math.abs(y - s.y)) > 2), name).toEqual([])
+    }
+    for (const name of ['mug', 'page']) expect(openCells(PARTS[name].map), name).toEqual([])
+  })
+
+  it('joins every moment with a near arm moved closed by itself', () => {
+    // not the glances (the shifted chin bares a collar tip) nor the raised stretch, whose far arm leaves the far
+    // shoulder cap's underside open under the torso: the assembler closes those
+    for (const id of ['stand.sip-raise', 'stand.sip', 'seat.sip-raise', 'seat.sip', 'seat.stretch-a',
+      'seat.flip-a', 'seat.flip-b', 'seat.flip-c', 'seat.rub-a', 'seat.rub-b'] as const) {
+      expect(openCells(rawFrame(id)), id).toEqual([])
+    }
+  })
+
+  it('keeps every seated moment\'s arms, mug and page above the desk top (frame row 40), where the scene draws them over the stack', () => {
+    const seated: PoseId[] = ['seat.sip-raise', 'seat.sip', 'seat.stretch-a', 'seat.stretch-b', 'seat.flip-a', 'seat.flip-b', 'seat.flip-c', 'seat.rub-a', 'seat.rub-b']
+    for (const id of seated) {
+      for (const layer of ['armFront', 'armBack', 'prop'] as const) {
+        const place = part(id)[layer]
+        if (place) expect(at(id, layer)!.y + PARTS[place.part].map.length - 1, `${id} ${layer}`).toBeLessThanOrEqual(39)
+      }
+    }
   })
 })

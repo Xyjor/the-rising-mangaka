@@ -10,6 +10,9 @@ export type PoseId =
   | 'walk.contact-l' | 'walk.down-l' | 'walk.pass-l' | 'walk.up-l' | 'walk.contact-r' | 'walk.down-r' | 'walk.pass-r' | 'walk.up-r'
   | 'seat.rest' | 'seat.breath' | 'seat.blink' | 'seat.draw-a' | 'seat.draw-b' | 'seat.draw-c' | 'seat.half'
   | 'bed.lie-0' | 'bed.lie-1' | 'bed.sit'
+  | 'stand.look-l' | 'stand.look-r' | 'stand.sip-raise' | 'stand.sip'
+  | 'seat.sip-raise' | 'seat.sip' | 'seat.stretch-a' | 'seat.stretch-b' | 'seat.flip-a' | 'seat.flip-b' | 'seat.flip-c'
+  | 'seat.rub-a' | 'seat.rub-b'
 
 export interface PoseDef { readonly pose: Pose; readonly at: 'actor' | 'seat' | 'bed' }
 
@@ -80,4 +83,19 @@ export const POSES: Readonly<Record<PoseId, PoseDef>> = {
   'bed.lie-0': { pose: { kind: 'key', map: BED_LIE_0 }, at: 'bed' },
   'bed.lie-1': { pose: { kind: 'key', map: BED_LIE_1 }, at: 'bed' },
   'bed.sit': { pose: { kind: 'key', map: BED_SIT }, at: 'bed' },
+  // the idle moments: a glance either way, the sip standing and at the desk, the stretch, the page flipped right to
+  // left, the left eye rubbed when tired
+  'stand.look-l': { pose: stand({ head: { part: 'head', dx: -1 } }), at: 'actor' },
+  'stand.look-r': { pose: stand({ head: { part: 'head', dx: 1 } }), at: 'actor' },
+  'stand.sip-raise': { pose: stand({ armFront: { part: 'arm-l-mug-half' }, prop: { part: 'mug' } }), at: 'actor' },
+  'stand.sip': { pose: stand({ armFront: { part: 'arm-l-mug' }, prop: { part: 'mug' }, face: { eyes: 'closed' } }), at: 'actor' },
+  'seat.sip-raise': { pose: seat({ armFront: { part: 'arm-l-mug-half' }, prop: { part: 'mug' } }), at: 'actor' },
+  'seat.sip': { pose: seat({ armFront: { part: 'arm-l-mug' }, prop: { part: 'mug' }, face: { eyes: 'closed' } }), at: 'actor' },
+  'seat.stretch-a': { pose: seat({ armFront: { part: 'arm-l-out' }, armBack: { part: 'arm-r-out' } }), at: 'actor' },
+  'seat.stretch-b': { pose: seat({ armFront: { part: 'arm-l-up' }, armBack: { part: 'arm-r-up' }, face: { eyes: 'closed' } }), at: 'actor' },
+  'seat.flip-a': { pose: seat({ armFront: { part: 'arm-l-flip-a' }, prop: { part: 'page' } }), at: 'actor' },
+  'seat.flip-b': { pose: seat({ armFront: { part: 'arm-l-flip-b' }, prop: { part: 'page' } }), at: 'actor' },
+  'seat.flip-c': { pose: seat({ armFront: { part: 'arm-l-flip-c' }, prop: { part: 'page' } }), at: 'actor' },
+  'seat.rub-a': { pose: seat({ armFront: { part: 'arm-l-rub-a' }, face: { eyes: 'squint' } }), at: 'actor' },
+  'seat.rub-b': { pose: seat({ armFront: { part: 'arm-l-rub-b' }, face: { eyes: 'squint' } }), at: 'actor' },
 }
