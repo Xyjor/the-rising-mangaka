@@ -73,9 +73,12 @@ export function headTop(state: ActorState): number {
   return state === 'seated' ? 6 : state === 'sleeping' ? 8 : 0
 }
 
-/** The rig head's centre column in a state's frame: 16 (cols 4-27), 35 in the bed frame (cols 23-46), drawn at the bed. */
-export function headCentre(state: ActorState): number {
-  return state === 'sleeping' ? 35 : 16
+/**
+ * The rig head's centre column from the actor: 16 (cols 4-27) in every state. In bed too: the actor's bed spot stands
+ * on the lying head's column (the bed frame's cols 23-46, its centre 201 + 35 = 220 + 16).
+ */
+export function headCentre(_state: ActorState): number {
+  return 16
 }
 
 /** One character's animation: its player, the state it last saw, the last cue it took, its idle schedule. */

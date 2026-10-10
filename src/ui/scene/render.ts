@@ -4,7 +4,7 @@
 // prop image replaces its piece at the same footprint and the same place in the draw order. This module never imports
 // the art registry.
 import type { EquipmentId, StudioTierId } from '../../sim'
-import { ASSISTANT_SEAT_X, RIG_LIVE, RIG_MANGAKA, RIG_SEATS } from './actors'
+import { ASSISTANT_SEAT_X, RIG_BED_FRAME, RIG_LIVE, RIG_MANGAKA, RIG_SEATS } from './actors'
 import type { Actor, ActorTable, Spot } from './actors'
 import { baseAnimFor } from './castPlay'
 import type { CastContext, CastWho } from './castPlay'
@@ -160,9 +160,12 @@ export function workingOf(s: Snapshot): boolean {
   return !absent && s.phase === 'drawing' && s.activity === 'work' && s.stamina > 0 && s.running
 }
 
-/** Where a rig pose is drawn: at the actor, or, for the seat's half pose and the bed's frames, at that spot. */
+/**
+ * Where a rig pose is drawn: at the actor, the seat's half pose at the seat, the bed's frames at their own origin
+ * (`RIG_BED_FRAME`, 19 px left of the actor's bed spot, which stands on the lying head).
+ */
 export function poseOrigin(at: PoseDef['at'], a: Spot): Spot {
-  return at === 'actor' ? a : RIG_MANGAKA[at]
+  return at === 'actor' ? a : at === 'seat' ? RIG_MANGAKA.seat : RIG_BED_FRAME
 }
 
 const LEGACY_DESKS = [{ x: 62, w: 28 }, { x: 62, w: 48 }, { x: 62, w: 68 }] as const
@@ -177,6 +180,8 @@ export function assistantDesk(rig: boolean, shown: number): { x: number; w: numb
 const RIG_MARK_X = 28
 /** The standing loop's own poses: the idle '?' shows only on them, never mid-moment. */
 const STAND_POSES: ReadonlySet<PoseId> = new Set(ANIMS.stand.steps.map((st) => st.pose))
+/** The sleep loop's lying poses: the Zs rise only over them, never over the sitting-up frame of lying down. */
+const SLEEP_POSES: ReadonlySet<PoseId> = new Set(ANIMS.sleep.steps.map((st) => st.pose))
 const castCtx: CastContext = { working: false, late: false, ready: false }
 
 /** The seated frame's rows above the desk top's line (row 40, y 98 at the seat): drawn a second time over the pages. */
@@ -223,7 +228,8 @@ function drawRigMangaka(
     rawRect(ctx, 196, 112, 29, 10, '#c94b4b')
     rawRect(ctx, 196, 112, 29, 2, '#a83c3c')
   }
-  if (a.state === 'sleeping') {
+  if (a.state === 'sleeping' && SLEEP_POSES.has(pose)) {
+    // beside the lying head, from the bed frame's (36, 2), clear of it (the lying head starts on row 8)
     const zz = Math.floor(frame / 20) % 3
     for (let i = 0; i <= zz; i++) glyph(ctx, 'Z', o.x + 36 + i * 3, o.y + 2 - i * 4, '#2f5ecf')
   }

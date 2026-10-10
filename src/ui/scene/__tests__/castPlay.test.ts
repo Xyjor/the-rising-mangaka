@@ -57,9 +57,9 @@ describe('the driver\'s rules', () => {
     expect(reactionAnim('good-poll', 'assistant', 'sleeping')).toBeNull()
   })
 
-  it('puts the head\'s top 6 rows down seated and 8 in bed, its centre 16 columns in, 35 in the bed frame', () => {
+  it('puts the head\'s top 6 rows down seated and 8 in bed, its centre 16 columns in, in bed too (the actor stands on the lying head)', () => {
     expect([headTop('standing'), headTop('walking'), headTop('seated'), headTop('sleeping')]).toEqual([0, 0, 6, 8])
-    expect([headCentre('standing'), headCentre('walking'), headCentre('seated'), headCentre('sleeping')]).toEqual([16, 16, 16, 35])
+    expect([headCentre('standing'), headCentre('walking'), headCentre('seated'), headCentre('sleeping')]).toEqual([16, 16, 16, 16])
   })
 
   it('counts the idle pools\' animations as moments a reaction may cut short', () => {

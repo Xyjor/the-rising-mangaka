@@ -57,8 +57,18 @@ export const LEGACY_SPOTS: SpotSet = {
   mangaka: { seat: MANGAKA_SEAT, stand: MANGAKA_STAND, bed: MANGAKA_BED, door: DOOR_SPOT },
   seats: { xs: ASSISTANT_SEAT_X, y: ASSISTANT_SEAT_Y }, catBed: CAT_BED,
 }
-/** The 0.11 spots for the 32x48 rig (the plan's decision 2: each checked against the furniture in actors.test). */
-export const RIG_MANGAKA: MangakaSpots = { seat: { x: 124, y: 58 }, stand: { x: 170, y: 81 }, bed: { x: 201, y: 90 }, door: { x: 250, y: 69 } }
+/**
+ * The 0.11 spots for the 32x48 rig (the plan's decision 2: each checked against the furniture in actors.test). The bed
+ * spot is where the actor walks to and lies: its standing head (cols 4-27, rows 0-21) sits on the bed frames' lying and
+ * sitting-up head, so walking into or out of bed the head never jumps (the bed's frames are drawn at `RIG_BED_FRAME`).
+ */
+export const RIG_MANGAKA: MangakaSpots = { seat: { x: 124, y: 58 }, stand: { x: 170, y: 81 }, bed: { x: 220, y: 90 }, door: { x: 250, y: 69 } }
+/**
+ * The bed key frames' origin (48x32, drawn here whatever the actor's position): the lying head at cols 23-46 (x
+ * 224-247) over the pillow (x 232-245). The actor's bed spot is 19 px right of it, so its standing head sits on the
+ * lying head.
+ */
+export const RIG_BED_FRAME: Spot = { x: 201, y: 90 }
 export const RIG_SEATS: SeatRow = { xs: [21, 55, 89], y: 80 }
 export const RIG_CAT_BED: Spot = { x: 202, y: 118 }
 export const RIG_SPOTS: SpotSet = { mangaka: RIG_MANGAKA, seats: RIG_SEATS, catBed: RIG_CAT_BED }

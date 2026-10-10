@@ -11,7 +11,7 @@ import { DOORWAY_BOX, DOOR_BOX, NO_EQUIPMENT } from '../studioArt'
 import { DESK_PROPS, NO_ART, PROP_ALIGN, PROP_MIN_H, PROP_SPRITE, ROOM_NIGHT_DIM, fitDesk, fitSprite, hangSprite, placeSprite, ready } from '../sceneArt'
 import type { SceneArt, ScenePropId } from '../sceneArt'
 import type { Season } from '../season'
-import { RIG_SPOTS, newActorTable, planActors, setRigLive, settleActors } from '../actors'
+import { RIG_BED_FRAME, RIG_SPOTS, newActorTable, planActors, setRigLive, settleActors } from '../actors'
 import { ANIMS } from '../rig/anims'
 import { rigFrame } from '../rig/frames'
 import { ASSISTANT_DOZE, CAT_SIT, CAT_SLEEP, MANGAKA_LIE, MANGAKA_SIT } from '../sprites'
@@ -1267,11 +1267,11 @@ describe('the rig path (0.11.0 task 10)', () => {
   })
 
   it('draws the mangaka once with the rig off, and once standing or in bed with it on: only the seated rig frame goes on twice', () => {
-    const once = (s: Snapshot) => {
+    // counted where the frame goes: at the actor, or in bed at the bed frame's origin
+    const once = (s: Snapshot, at: { x: number; y: number } = s.actors.mangaka) => {
       const f = fakeContext()
       render(f.ctx, s, 0.3, 0)
-      const a = s.actors.mangaka
-      return [f.images.filter((i) => i.id.startsWith('cast/') && i.x === a.x && i.y === a.y).length, f.images.filter((i) => i.h === 40).length]
+      return [f.images.filter((i) => i.id.startsWith('cast/') && i.x === at.x && i.y === at.y).length, f.images.filter((i) => i.h === 40).length]
     }
     expect(once(sceneSnapshot({ phase: 'drawing', progress: 0.5 }))).toEqual([1, 0])
     setRigLive({ mangaka: true, assistants: true })
@@ -1279,15 +1279,37 @@ describe('the rig path (0.11.0 task 10)', () => {
       expect(once(sceneSnapshot({ phase: 'idle', actors: standing() }))).toEqual([1, 0])
       const bed = sceneSnapshot({ activity: 'rest' })
       expect(bed.actors.mangaka.state).toBe('sleeping')
-      expect(once(bed)).toEqual([1, 0])
+      expect(once(bed, { x: 201, y: 90 })).toEqual([1, 0])
     } finally {
       setRigLive({ mangaka: false, assistants: false })
     }
   })
 
-  it('places the seat\'s and the bed\'s poses at their spots, everything else at the actor', () => {
+  it('places the seat\'s poses at the seat spot and the bed\'s at the bed frame\'s origin, everything else at the actor', () => {
     const a = { x: 5, y: 6 }
-    expect([poseOrigin('actor', a), poseOrigin('seat', a), poseOrigin('bed', a)]).toEqual([a, RIG_SPOTS.mangaka.seat, RIG_SPOTS.mangaka.bed])
+    expect([poseOrigin('actor', a), poseOrigin('seat', a), poseOrigin('bed', a)]).toEqual([a, RIG_SPOTS.mangaka.seat, RIG_BED_FRAME])
+    expect(RIG_BED_FRAME).not.toEqual(RIG_SPOTS.mangaka.bed) // the actor stands 19 px right of it, on the lying head
+  })
+
+  it('rises the Zs over the sleep loop\'s lying poses only, never over the sitting-up frame (lying down)', () => {
+    setRigLive({ mangaka: true, assistants: true })
+    try {
+      // frame 0: one Z at the bed frame's (36, 2), canvas (201 + 36, 90 + 2): rows ###, ..#, .#., #.., ### (9 fills)
+      const zs = (pose: 'bed.lie-0' | 'bed.lie-1' | 'bed.sit') => {
+        const s = sceneSnapshot({ activity: 'rest' })
+        expect(s.actors.mangaka.state).toBe('sleeping')
+        s.actors.mangaka.pose = pose
+        const f = fakeContext()
+        render(f.ctx, s, 0.3, 0)
+        return f.log.filter((c) => c.style === '#2f5ecf' && c.x >= 196).map((c) => [c.x, c.y])
+      }
+      const z = [[237, 92], [238, 92], [239, 92], [239, 93], [238, 94], [237, 95], [237, 96], [238, 96], [239, 96]]
+      expect(zs('bed.lie-0')).toEqual(z)
+      expect(zs('bed.lie-1')).toEqual(z)
+      expect(zs('bed.sit')).toEqual([])
+    } finally {
+      setRigLive({ mangaka: false, assistants: false })
+    }
   })
 
   it('lays the assistants\' desk under their row: 0.10 from x 62, 8 + 20 per assistant; 0.11 from 2 px left of the first seat, 36 + 34 per further one', () => {

@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest'
 import { sceneSnapshot } from '../../../test/fakeCanvas'
 import type { Snapshot } from '../render'
-import { EDITOR_SPOT, EDITOR_WALK_MS, RIG_SPOTS, editorWalksIn, newActorTable, planActors, settleActors, stepActors } from '../actors'
+import { EDITOR_SPOT, EDITOR_WALK_MS, RIG_BED_FRAME, RIG_SPOTS, editorWalksIn, newActorTable, planActors, settleActors, stepActors } from '../actors'
 import type { Actor, ActorTable } from '../actors'
 
 function walker(over: Partial<Actor> = {}): ActorTable {
@@ -134,7 +134,7 @@ describe('the 0.11 spots (task 9)', () => {
       planActors(u, sceneSnapshot({ ...over, actors: u }), RIG_SPOTS)
       return [u.mangaka.targetX, u.mangaka.targetY, u.mangaka.goal]
     }
-    expect(plan({ activity: 'rest' })).toEqual([201, 90, 'sleeping'])
+    expect(plan({ activity: 'rest' })).toEqual([220, 90, 'sleeping'])
     expect(plan({ phase: 'idle' })).toEqual([170, 81, 'standing'])
     expect(plan({ away: true })).toEqual([250, 69, 'away'])
     const three = newActorTable()
@@ -155,10 +155,15 @@ describe('the 0.11 spots (task 9)', () => {
     expect(y + 40).toBe(120) // the assistants' waist on their desk top
     expect(xs[0] + 3).toBeGreaterThanOrEqual(24) // the first page and head inside the phone crop (x 24)
     expect(xs[2] + 27).toBeLessThanOrEqual(116) // the third head ends at the stock desk's left edge
-    expect([bed.x + 23, bed.x + 46]).toEqual([224, 247]) // the lying head over the pillow (x 232-245)
+    // the bed's key frames at their own origin: the lying head (cols 23-46) over the pillow (x 232-245)
+    expect([RIG_BED_FRAME.x + 23, RIG_BED_FRAME.x + 46]).toEqual([224, 247])
+    // the actor's bed spot puts its standing head (cols 4-27, rows 0-21) on the lying and sitting-up head, so walking
+    // in or out of bed the head never jumps
+    expect([bed.x + 4, bed.y]).toEqual([RIG_BED_FRAME.x + 23, RIG_BED_FRAME.y])
     const cat = RIG_SPOTS.catBed
     expect(cat.x).toBeGreaterThan(stand.x + 31)
-    expect(cat.x + 11).toBeLessThan(bed.x + 23)
+    expect(cat.x + 11).toBeLessThan(RIG_BED_FRAME.x + 23) // clear of the lying head
+    expect(cat.x + 11).toBeLessThan(bed.x) // and of the standing frame at the bed
     expect(cat.y).toBeGreaterThan(EDITOR_SPOT.y + 31)
   })
 })
