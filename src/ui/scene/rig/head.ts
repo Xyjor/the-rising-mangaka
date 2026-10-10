@@ -140,25 +140,31 @@ export const FACE_BY_MOOD: Readonly<Record<Mood, Face>> = {
  * round the mangaka's eyes. The lens rims L at slot cols 0, 6, 9 and 15 on every row (head cols 4, 10, 13 and 19; the
  * rims are the outline key, so the slot holds face keys only, decision 4 of the 0.12.0 plan), the bridge LL at slot
  * cols 7-8 on row 1 with skin above and below it; inside each 5-wide lens (slot cols 1-5 and 10-14) the mangaka's
- * drawing of the same id, cell for cell from EYES (the ring's whites and the closed eyes' curve touch the rims).
+ * drawing of the same id, cell for cell from EYES (the ring's whites and the closed eyes' curve touch the rims), but
+ * for open and squint, drawn for the lens (EYES' tall pupils filled it top to bottom and read as sunglasses): open a
+ * 2x2 pupil E per lens on rows 1-2 (head cols 6-7 and 16-17), the W highlight on its top-left cell, skin all round it
+ * and clear of the rims; squint a 3-wide lid L on row 1 over a 2-wide pupil on row 2, the lid drooping one cell on the
+ * outer side, skin beside every rim.
  */
 export const EDITOR_EYES: FaceArt['eyes'] = {
-  open: ['LSSEESLSSLSEESSL', 'LSWEESLLLLSWEESL', 'LSEEESLSSLSEEESL', 'LSEEESLSSLSEEESL'],
+  open: ['LSSSSSLSSLSSSSSL', 'LSWESSLLLLSSWESL', 'LSEESSLSSLSSEESL', 'LSSSSSLSSLSSSSSL'],
   blink: ['LSSSSSLSSLSSSSSL', 'LSSSSSLLLLSSSSSL', 'LSLLLSLSSLSLLLSL', 'LSSSSSLSSLSSSSSL'],
   closed: ['LSSSSSLSSLSSSSSL', 'LSSSSSLLLLSSSSSL', 'LLSSLSLSSLSLSSLL', 'LSLLSSLSSLSSLLSL'],
   ring: ['LSWWSSLSSLSSWWSL', 'LWEEWSLLLLSWEEWL', 'LWEEWSLSSLSWEEWL', 'LSWWSSLSSLSSWWSL'],
-  squint: ['LSSSSSLSSLSSSSSL', 'LSSLLSLLLLSLLSSL', 'LLLEESLSSLSEELLL', 'LSEEESLSSLSEEESL'],
+  squint: ['LSSSSSLSSLSSSSSL', 'LSLLLSLLLLSLLLSL', 'LSLEESLSSLSEELSL', 'LSSSSSLSSLSSSSSL'],
   happy: ['LSSSSSLSSLSSSSSL', 'LSLLSSLLLLSSLLSL', 'LLSSLSLSSLSLSSLL', 'LSSSSSLSSLSSSSSL'],
 }
 
 /**
  * The editor's head (0.12.0), 27 wide x 22 tall on HEAD's construction, slots and neck anchor (12, 21), after
  * art/raw/sprites/editor.png: cols 0-23 the head, cols 24-26 the mark slot (clear on every row). Row 0 the crown's
- * outline; rows 1-8 the hair H (its shade h two columns down the right), neat and parted: a parting of h at col 10
+ * outline; rows 1-7 the hair H (its shade h two columns down the right), neat and parted: a parting of h at col 10
  * from row 2 to row 7, the hair swept either side of it (a strand of h off the parting each side, rows 3-6), its
- * edge straight across on row 8 (no bangs on the forehead); row 9 the forehead under the glasses' top edges (L at cols 4-10 and 13-19, skin between); the side locks
- * cols 2-3 on rows 10-12 (H; the right ones cols 20-21 in h); the ears as HEAD's on rows 11-14; the eye slot rows
- * 10-13, cols 4-19 (EDITOR_EYES.open: the lenses' sides and the bridge); row 14 the lenses' bottom edges (no blush);
+ * edge straight across on row 7 (no bangs); row 8 the forehead S (cols 4-19, the hair beside it at cols 1-3 and
+ * 20-22), so the frames stand clear of the hair; row 9 the glasses' top edges (L at cols 4-10 and 13-19, skin
+ * between); the side locks cols 2-3 on rows 10-12 (H; the right ones cols 20-21 in h); the ears as HEAD's on rows
+ * 11-14; the eye slot rows 10-13, cols 4-19 (EDITOR_EYES.open: the small pupils, the lenses' sides and the bridge);
+ * row 14 the lenses' bottom edges (no blush);
  * the mouth slot rows 15-16, cols 10-13 (the closed mouth); rows 15-21 HEAD's cheeks and chin.
  */
 export const EDITOR_HEAD: HeadPart = {
@@ -170,13 +176,13 @@ export const EDITOR_HEAD: HeadPart = {
     '.LHHHHHHHhhHHhHHHHHHhhL....', // 4
     '.LHHHHHHhHhHHHhHHHHHhhL....', // 5
     'LHHHHHHhHHhHHHHhHHHHHhhL...', // 6
-    'LHHHHHHHHHhHHHHHHHHHHhhL...', // 7  the parting's last row
-    'LHHHHHHHHHHHHHHHHHHHHhhL...', // 8  the hair's edge, straight across
+    'LHHHHHHHHHhHHHHHHHHHHhhL...', // 7  the parting's last row, the hair's edge straight across
+    'LHHHSSSSSSSSSSSSSSSSHhhL...', // 8  the forehead between the side hair
     'LHHHLLLLLLLSSLLLLLLLHhhL...', // 9  the glasses' top edges on the forehead
-    '.LHHLSSEESLSSLSEESSLhhL....', // 10 the eye slot (cols 4-19): the lenses, the side locks either side
-    'LSHHLSWEESLLLLSWEESLhhsL...', // 11 the bridge; the ears from under the hair
-    'LSHHLSEEESLSSLSEEESLhhsL...', // 12
-    'LSLSLSEEESLSSLSEEESLSLsL...', // 13 each ear parted from the cheek
+    '.LHHLSSSSSLSSLSSSSSLhhL....', // 10 the eye slot (cols 4-19): the lenses, the side locks either side
+    'LSHHLSWESSLLLLSSWESLhhsL...', // 11 the bridge; the ears from under the hair
+    'LSHHLSEESSLSSLSSEESLhhsL...', // 12
+    'LSLSLSSSSSLSSLSSSSSLSLsL...', // 13 each ear parted from the cheek
     'LSLSLLLLLLLSSLLLLLLLSLsL...', // 14 the lenses' bottom edges; the ears' last row
     '.LSSSSSSSSSSSSSSSSSSSsL....', // 15 the mouth slot (cols 10-13)
     '..LSSSSSSSSLLSSSSSSSsL.....', // 16 the closed mouth

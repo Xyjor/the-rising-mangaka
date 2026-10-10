@@ -121,13 +121,23 @@ describe('the editor\'s head (0.12.0, task 3)', () => {
         expect(row).toHaveLength(16)
         for (const c of RIMS) expect(row[c], `${id} row ${r} col ${c}`).toBe('L')
         expect(row.slice(7, 9), `${id} row ${r} bridge`).toBe(r === 1 ? 'LL' : 'SS')
-        // inside each lens the mangaka's drawing of the same id
+        // inside each lens the mangaka's drawing of the same id, but for open and squint, drawn for the lens
+        if (id === 'open' || id === 'squint') return
         expect(row.slice(1, 6), `${id} row ${r} left lens`).toBe(EYES[id][r].slice(1, 6))
         expect(row.slice(10, 15), `${id} row ${r} right lens`).toBe(EYES[id][r].slice(10, 15))
       })
     }
-    expect(EDITOR_EYES.open).toEqual(['LSSEESLSSLSEESSL', 'LSWEESLLLLSWEESL', 'LSEEESLSSLSEEESL', 'LSEEESLSSLSEEESL'])
+    expect(EDITOR_EYES.open).toEqual(['LSSSSSLSSLSSSSSL', 'LSWESSLLLLSSWESL', 'LSEESSLSSLSSEESL', 'LSSSSSLSSLSSSSSL'])
     expect(new Set(EYE_IDS.map((id) => EDITOR_EYES[id].join('/'))).size).toBe(6)
+  })
+
+  it('keeps the open and squint eyes clear of the glasses: skin beside every rim and on the top and bottom rows of each lens', () => {
+    for (const id of ['open', 'squint'] as const) {
+      EDITOR_EYES[id].forEach((row, r) => {
+        for (const c of [1, 5, 10, 14]) expect(row[c], `${id} row ${r} col ${c}`).toBe('S')
+        if (r === 0 || r === 3) expect(row, `${id} row ${r}`).toBe('LSSSSSLSSLSSSSSL')
+      })
+    }
   })
 
   it('parts the hair and keeps the forehead clear of it: hair on rows 1-8 only, a parting of shade down the crown', () => {

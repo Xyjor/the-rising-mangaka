@@ -416,14 +416,18 @@ the rig in the order its tasks drew it, then what every character shares. The ed
   mark sat beside the hair, not on it, after two redraws: the first head was a round helmet over a moon face (the
   hair now puffs out wider than the face and the jaw rounds in sooner), and the first tired eyes, a flat lid, read as
   grumpy (the lid now droops to the outer corner).
-- **The editor's head** (0.12.0, task 3): `EDITOR_HEAD`, 27x22 on `HEAD`'s slots and neck anchor; the hair rows 1-8
-  parted at col 10 (a strand of shade swept off the parting either side, rows 3-6), the forehead row 9 with the
-  glasses' top edges, row 14 their bottom edges (no blush); `EDITOR_EYES`, the mangaka's six eyes inside 5-wide lenses
-  whose rims (`L`, face keys, decision 4 of the 0.12.0 plan) sit at head cols 4, 10, 13 and 19 with the bridge on row
-  11; `EDITOR_FACE_ART`; `headWith(face, head, art)`; the sheet's row J. The gate (row J at 8x and 1x): the glasses read
-  as two lenses at both sizes, the blink and the closed eyes read behind them; the open and squint pupils fill the
-  lens top to bottom, so they meet the rims (a dark eye with its highlight, still legible); the first drawing's bare
-  parting read as a seam, so the swept strands went in.
+- **The editor's head** (0.12.0, task 3): `EDITOR_HEAD`, 27x22 on `HEAD`'s slots and neck anchor; the hair rows 1-7
+  parted at col 10 (a strand of shade swept off the parting either side, rows 3-6), its edge straight across on row 7;
+  row 8 the forehead (cols 4-19, the hair beside it), row 9 the glasses' top edges, row 14 their bottom edges (no
+  blush); `EDITOR_EYES`, six eyes inside 5-wide lenses whose rims (`L`, face keys, decision 4 of the 0.12.0 plan) sit
+  at head cols 4, 10, 13 and 19 with the bridge on row 11: blink, closed, ring and happy the mangaka's drawings cell for
+  cell, open and squint drawn for the lens (open a 2x2 pupil with its `W` highlight at head cols 6-7 and 16-17 on rows
+  11-12, skin all round; squint a 3-wide lid over a 2-wide pupil, drooping one cell on the outer side, clear of the
+  rims); `EDITOR_FACE_ART`; `headWith(face, head, art)`; the sheet's row J. The gate (row J at 8x and 1x) took three
+  drawings: the bare parting read as a seam (the swept strands went in); the mangaka's tall pupils copied into the
+  lenses filled them top to bottom and read as sunglasses, and the squint fused lid, eye and rim into one band (both
+  redrawn for the lens); the top rim under solid hair read as a brow line (row 8 became forehead, the hair's edge
+  moved to row 7). Now the glasses read as two clear square frames at both sizes, every eyes legible behind them.
 - **The rig** (0.11.0, task 8). A person is a 32x48 frame (Decision 4): standing, the head part (27x22: the head in
   cols 0-23, the mark slot in cols 24-26) at (4, 0), so the mark slot is frame cols 28-30, rows 0-4, where render's
   '!' and '?' go too; the torso (18x14) at (7, 21), its neck (9, 0) under the head's neck (12, 21); the hips on row 34
