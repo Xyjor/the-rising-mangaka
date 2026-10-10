@@ -96,8 +96,8 @@ export function poseAt<P extends string>(p: PlayerState<P>, now: number): P {
   return stepAt(p.base, now - p.baseAt).pose
 }
 
-/** Everything played out at once (the window shown again, a settle): the base alone, from `now`. */
-export function settle<P extends string>(p: PlayerState<P>, now: number): PlayerState<P> {
+/** Everything played out at once (the window shown again, a settle): the base alone, from `baseAt` (default `now`). */
+export function settle<P extends string>(p: PlayerState<P>, now: number, baseAt: number = now): PlayerState<P> {
   if (!p.over && !p.queue.length) return p
-  return { base: p.base, baseAt: now, over: null, queue: [] }
+  return { base: p.base, baseAt, over: null, queue: [] }
 }

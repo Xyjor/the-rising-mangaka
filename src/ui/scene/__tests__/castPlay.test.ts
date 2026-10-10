@@ -227,4 +227,20 @@ describe('stepCast', () => {
     resumeCast(play, 900)
     expect([play.mangaka.player?.over, play.mangaka.player?.baseAt]).toEqual([null, 900])
   })
+
+  it('resumes the assistants one seat phase apart, and re-arms every idle wait', () => {
+    const t = newActorTable()
+    const play = newCastPlay()
+    t.assistants[0].state = 'seated'
+    t.assistants[1].state = 'seated'
+    const two = input({ assistants: [{ stamina: 80 }, { stamina: 80 }], preview: 'seat-stretch' })
+    settleCast(play, t, two, 0)
+    stepCast(play, t, two, 100, false)
+    expect([play.assistants[0].player?.over, play.assistants[1].player?.over].map((o) => o !== null && o !== undefined)).toEqual([true, true])
+    play.assistants[0].nextIdleAt = 5
+    resumeCast(play, 900)
+    const [a, b] = [play.assistants[0].player, play.assistants[1].player]
+    expect([a?.over, b?.over, a?.baseAt, b?.baseAt]).toEqual([null, null, 900 - PHASE_MS, 900 - 2 * PHASE_MS])
+    expect([play.mangaka.nextIdleAt, play.assistants[0].nextIdleAt, play.assistants[1].nextIdleAt]).toEqual([-1, -1, -1])
+  })
 })

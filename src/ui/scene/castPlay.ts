@@ -204,7 +204,15 @@ export function settleCast(play: CastPlay, table: ActorTable, input: CastInput, 
   for (let i = 0; i < 3; i++) settleTrack(play.assistants[i], table.assistants[i], 'assistant', i + 1, input, now)
 }
 
-/** The window shown again: every transition and moment jumps to its end, each base going on from now. */
+/**
+ * The window shown again: every transition and moment jumps to its end, each base going on from now at its seat's
+ * phase (so the assistants stay `PHASE_MS` apart), and every idle wait is re-armed from the next step.
+ */
 export function resumeCast(play: CastPlay, now: number): void {
-  for (const t of [play.mangaka, ...play.assistants]) if (t.player) t.player = settle(t.player, now)
+  const tracks = [play.mangaka, ...play.assistants]
+  for (let seat = 0; seat < tracks.length; seat++) {
+    const t = tracks[seat]
+    if (t.player) t.player = settle(t.player, now, now - seat * PHASE_MS)
+    t.nextIdleAt = -1
+  }
 }
