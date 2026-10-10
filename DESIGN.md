@@ -698,6 +698,28 @@ at `CAT_BED` (4 fills, drawn just before it).
   arc from the body to the stack, the rub as a fist at the eye and the glance as a turn of the head; one redraw: the
   first mug, two whites wide beside a handle, read at 8x as a lens, so its body is three wide and the handle is turned
   into the hand.
+- **The reactions** (0.11.0, task 16). Six one-shots over thirteen key frames, the moments the parts cannot
+  make (`rig/keyFrames.ts`, 32x48, drawn at the actor, each started from the nearest assembled pose with the rig head
+  and its face baked in). The cheer (`key.cheer-*`, the good poll and the level-up; the seated one is the assistants'
+  too): both arms straight up beside the head, banzai, the fists closed above it (rows 1-4), then the hands open (two
+  fingers parted, the thumb in) a row higher, the face happy (the smile, then the mouth open); standing, it springs from
+  a crouch (the head a crown lower at (4, 5), the knees bent in the seated legs' shape) up a row on the open hands.
+  `stand-cheer` and `seat-cheer` are fists 200 ms, open 200, fists 200, open 200, fists 400. The slump (`key.slump-*`,
+  the bad poll): the head bowed into the shoulders (standing at (4, 4); seated down towards the desk at (4, 9), the arms
+  limp at the sides), the eyes closed and the frown, then a sigh a row lower; 800 ms each. The panic (`key.panic-*`,
+  the chapter turning late, after 0.10's `MANGAKA_PANIC`): both hands spread over the hair's top corners, the forearms
+  out to elbows beside the head and the sleeves down its sides to the shoulders, the ringed eyes and the mouth open,
+  then the hands pressed a row lower; `seat-panic` is 160 ms a step, twice, and the same four steps (`PANIC_STEPS`)
+  open the late loop `seat-draw-late` (640 ms in every 3640), so the panic recurs while late and reduced motion, which
+  holds the loop's first step, still shows it. The torn page (`key.tear-*`, a missed issue): a page held up at the
+  chest in both hands (cols 9-22, rows 29-37, three ruled lines), creased (its top notched at the middle, a fold
+  down), then in two halves pulled apart, their torn edges zigzagged, the shirt in the gap, the arms out; the frown;
+  `seat-tear` is held 250 ms, creased 200, apart 300, creased 200, apart 300. Every seated reaction's hands, page and
+  tear read above the desk top (row 40). Every key frame is closed by rule (rig.test: no painted cell but `L` beside a
+  clear one or the frame's edge). At the gate (task 16, `--only` each reaction and `seat-draw-late` beside 0.10's
+  panic, the three outfits, the seated cheer in the six looks; a scratch scene mock at 1x, 2x and 6x) the cheer read as
+  banzai, the slump as a hung head, the tear as a page ripped in two; one redraw: the first panic's hands, three cells
+  at the hair's corners, read as ears, so each hand now spreads six wide over the crown.
 
 The frame sets: idle 2 frames (`frame/16 % 2`), walk 4 (`anim/100 % 4`), sit 2 (`frame/8 % 2` while working, frame 0
 otherwise), panic 2 (for 40 of every 240 frames while working on a late chapter, `Snapshot.late`), a 30x14 lying

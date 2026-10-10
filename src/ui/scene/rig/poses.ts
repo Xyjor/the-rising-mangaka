@@ -1,7 +1,10 @@
 // The cast's poses (0.11.0): each a part pose (parts joined by their anchors) or a key frame (drawn whole), and where
 // it is drawn: at the actor, or at the seat or the bed whatever the actor's position (a transition there plays while
 // the actor already walks). Every PoseId is in the union and the table, so a pose named anywhere and not drawn fails tsc.
-import { BED_LIE_0, BED_LIE_1, BED_SIT } from './keyFrames'
+import {
+  BED_LIE_0, BED_LIE_1, BED_SIT, CHEER_SEAT_0, CHEER_SEAT_1, CHEER_STAND_0, CHEER_STAND_1, PANIC_0, PANIC_1, SLUMP_SEAT_0,
+  SLUMP_SEAT_1, SLUMP_STAND_0, SLUMP_STAND_1, TEAR_0, TEAR_1, TEAR_2,
+} from './keyFrames'
 import type { PartPose, Place, Pose } from './types'
 
 export type PoseId =
@@ -13,6 +16,8 @@ export type PoseId =
   | 'stand.look-l' | 'stand.look-r' | 'stand.sip-raise' | 'stand.sip'
   | 'seat.sip-raise' | 'seat.sip' | 'seat.stretch-a' | 'seat.stretch-b' | 'seat.flip-a' | 'seat.flip-b' | 'seat.flip-c'
   | 'seat.rub-a' | 'seat.rub-b'
+  | 'key.panic-0' | 'key.panic-1' | 'key.cheer-stand-0' | 'key.cheer-stand-1' | 'key.cheer-seat-0' | 'key.cheer-seat-1'
+  | 'key.slump-stand-0' | 'key.slump-stand-1' | 'key.slump-seat-0' | 'key.slump-seat-1' | 'key.tear-0' | 'key.tear-1' | 'key.tear-2'
 
 export interface PoseDef { readonly pose: Pose; readonly at: 'actor' | 'seat' | 'bed' }
 
@@ -98,4 +103,18 @@ export const POSES: Readonly<Record<PoseId, PoseDef>> = {
   'seat.flip-c': { pose: seat({ armFront: { part: 'arm-l-flip-c' }, prop: { part: 'page' } }), at: 'actor' },
   'seat.rub-a': { pose: seat({ armFront: { part: 'arm-l-rub-a' }, face: { eyes: 'squint' } }), at: 'actor' },
   'seat.rub-b': { pose: seat({ armFront: { part: 'arm-l-rub-b' }, face: { eyes: 'squint' } }), at: 'actor' },
+  // the reactions' key frames, drawn whole with their faces, at the actor (the seated ones as the seated poses)
+  'key.panic-0': { pose: { kind: 'key', map: PANIC_0 }, at: 'actor' },
+  'key.panic-1': { pose: { kind: 'key', map: PANIC_1 }, at: 'actor' },
+  'key.cheer-stand-0': { pose: { kind: 'key', map: CHEER_STAND_0 }, at: 'actor' },
+  'key.cheer-stand-1': { pose: { kind: 'key', map: CHEER_STAND_1 }, at: 'actor' },
+  'key.cheer-seat-0': { pose: { kind: 'key', map: CHEER_SEAT_0 }, at: 'actor' },
+  'key.cheer-seat-1': { pose: { kind: 'key', map: CHEER_SEAT_1 }, at: 'actor' },
+  'key.slump-stand-0': { pose: { kind: 'key', map: SLUMP_STAND_0 }, at: 'actor' },
+  'key.slump-stand-1': { pose: { kind: 'key', map: SLUMP_STAND_1 }, at: 'actor' },
+  'key.slump-seat-0': { pose: { kind: 'key', map: SLUMP_SEAT_0 }, at: 'actor' },
+  'key.slump-seat-1': { pose: { kind: 'key', map: SLUMP_SEAT_1 }, at: 'actor' },
+  'key.tear-0': { pose: { kind: 'key', map: TEAR_0 }, at: 'actor' },
+  'key.tear-1': { pose: { kind: 'key', map: TEAR_1 }, at: 'actor' },
+  'key.tear-2': { pose: { kind: 'key', map: TEAR_2 }, at: 'actor' },
 }

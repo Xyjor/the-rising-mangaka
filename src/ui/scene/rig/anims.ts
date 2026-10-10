@@ -30,9 +30,13 @@ const WALK_STEPS = ([
 const DRAW_STEPS: readonly Step<PoseId>[] = [
   { pose: 'seat.draw-a', ms: 150 }, { pose: 'seat.draw-b', ms: 150 }, { pose: 'seat.draw-c', ms: 150 }, { pose: 'seat.draw-b', ms: 150 },
 ]
-/** The panic opening the late loop: a stand-in (the pen hand) until task 16 draws the panic. */
-const LATE_PANIC: readonly Step<PoseId>[] = [
-  { pose: 'seat.draw-a', ms: 160 }, { pose: 'seat.draw-a', ms: 160 }, { pose: 'seat.draw-a', ms: 160 }, { pose: 'seat.draw-a', ms: 160 },
+/**
+ * The panic, both hands on the head and back a row lower, twice, 160 ms a step (0.10's 4 frames of 10 at 24 fps): the
+ * seated panic reaction, and the head of the late loop, so the panic recurs while late and reduced motion (the loop's
+ * first step held) still shows it.
+ */
+const PANIC_STEPS: readonly Step<PoseId>[] = [
+  { pose: 'key.panic-0', ms: 160 }, { pose: 'key.panic-1', ms: 160 }, { pose: 'key.panic-0', ms: 160 }, { pose: 'key.panic-1', ms: 160 },
 ]
 
 /** Down into the chair: the half-sitting pose at the seat, 140 ms, where the walk stopped (no pop on arriving). */
@@ -73,6 +77,19 @@ const RUB: readonly Step<PoseId>[] = [
   { pose: 'seat.rub-a', ms: 250 }, { pose: 'seat.rub-b', ms: 250 }, { pose: 'seat.rub-a', ms: 250 }, { pose: 'seat.rub-b', ms: 250 },
 ]
 
+/**
+ * The reactions, each a one-shot over its base loop. The cheer: the fists up 200 ms, the hands open a row higher 200 ms,
+ * twice, then the fists held 400 ms (standing, it springs out of a crouch). The slump: the head bowed 800 ms, a sigh a
+ * row lower 800 ms. The torn page: held up 250 ms, creased 200 ms, in halves 300 ms, and again.
+ */
+const cheer = (a: PoseId, b: PoseId): readonly Step<PoseId>[] => [
+  { pose: a, ms: 200 }, { pose: b, ms: 200 }, { pose: a, ms: 200 }, { pose: b, ms: 200 }, { pose: a, ms: 400 },
+]
+const TEAR: readonly Step<PoseId>[] = [
+  { pose: 'key.tear-0', ms: 250 }, { pose: 'key.tear-1', ms: 200 }, { pose: 'key.tear-2', ms: 300 },
+  { pose: 'key.tear-1', ms: 200 }, { pose: 'key.tear-2', ms: 300 },
+]
+
 /** One step of the standing pose, while an animation's art has not landed. */
 const STAND_IN: readonly Step<PoseId>[] = [{ pose: 'stand.idle', ms: 500 }]
 
@@ -88,7 +105,7 @@ export const ANIMS: Readonly<Record<AnimId, Anim<PoseId>>> = {
   ]),
   walk: anim('walk', 'walk', true, WALK_STEPS),
   'seat-draw': anim('seat-draw', 'seat', true, DRAW_STEPS),
-  'seat-draw-late': anim('seat-draw-late', 'seat', true, [...LATE_PANIC, ...DRAW_STEPS, ...DRAW_STEPS, ...DRAW_STEPS, ...DRAW_STEPS, ...DRAW_STEPS]),
+  'seat-draw-late': anim('seat-draw-late', 'seat', true, [...PANIC_STEPS, ...DRAW_STEPS, ...DRAW_STEPS, ...DRAW_STEPS, ...DRAW_STEPS, ...DRAW_STEPS]),
   'seat-idle': anim('seat-idle', 'seat', true, [
     { pose: 'seat.rest', ms: 500 }, { pose: 'seat.breath', ms: 500 }, { pose: 'seat.rest', ms: 500 },
     { pose: 'seat.breath', ms: 380 }, { pose: 'seat.blink', ms: 120 },
@@ -105,10 +122,10 @@ export const ANIMS: Readonly<Record<AnimId, Anim<PoseId>>> = {
   'seat-sip': anim('seat-sip', 'seat', false, SEAT_SIP),
   'seat-flip': anim('seat-flip', 'seat', false, FLIP),
   'seat-rub': anim('seat-rub', 'seat', false, RUB),
-  'stand-cheer': anim('stand-cheer', 'stand', false, STAND_IN),
-  'seat-cheer': anim('seat-cheer', 'seat', false, STAND_IN),
-  'stand-slump': anim('stand-slump', 'stand', false, STAND_IN),
-  'seat-slump': anim('seat-slump', 'seat', false, STAND_IN),
-  'seat-panic': anim('seat-panic', 'seat', false, STAND_IN),
-  'seat-tear': anim('seat-tear', 'seat', false, STAND_IN),
+  'stand-cheer': anim('stand-cheer', 'stand', false, cheer('key.cheer-stand-0', 'key.cheer-stand-1')),
+  'seat-cheer': anim('seat-cheer', 'seat', false, cheer('key.cheer-seat-0', 'key.cheer-seat-1')),
+  'stand-slump': anim('stand-slump', 'stand', false, [{ pose: 'key.slump-stand-0', ms: 800 }, { pose: 'key.slump-stand-1', ms: 800 }]),
+  'seat-slump': anim('seat-slump', 'seat', false, [{ pose: 'key.slump-seat-0', ms: 800 }, { pose: 'key.slump-seat-1', ms: 800 }]),
+  'seat-panic': anim('seat-panic', 'seat', false, PANIC_STEPS),
+  'seat-tear': anim('seat-tear', 'seat', false, TEAR),
 }

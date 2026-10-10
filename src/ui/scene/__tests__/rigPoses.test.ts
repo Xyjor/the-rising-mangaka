@@ -24,6 +24,8 @@ const key = (id: PoseId): SpriteMap => {
 }
 const at = (id: PoseId, layer: Layer) => placeLayers(part(id), PARTS).get(layer)?.at
 const frame = (id: PoseId, mood: Mood = 'neutral', ready = false): SpriteMap => rigFrame(id, mood, ready).map
+/** The first row holding hair (H): where the head's crown sits. */
+const crown = (map: SpriteMap) => map.findIndex((row) => row.includes('H'))
 /** A map's painted cells but L with a clear cell (or the map's edge) beside, above or below them: where it is open. */
 function openCells(map: SpriteMap): { x: number; y: number }[] {
   const clear = (x: number, y: number) => y < 0 || y >= map.length || x < 0 || x >= map[y].length || map[y][x] === '.'
@@ -422,5 +424,53 @@ describe('the idle moments (task 15)', () => {
         if (place) expect(at(id, layer)!.y + PARTS[place.part].map.length - 1, `${id} ${layer}`).toBeLessThanOrEqual(39)
       }
     }
+  })
+})
+
+describe('the reactions (task 16)', () => {
+  const s = (id: AnimId) => ANIMS[id].steps.map((x) => `${x.pose} ${x.ms}`)
+
+  it('times each reaction, and opens the late loop on the panic so reduced motion still shows it', () => {
+    expect(s('stand-cheer')).toEqual(['key.cheer-stand-0 200', 'key.cheer-stand-1 200', 'key.cheer-stand-0 200', 'key.cheer-stand-1 200', 'key.cheer-stand-0 400'])
+    expect(s('seat-cheer')).toEqual(['key.cheer-seat-0 200', 'key.cheer-seat-1 200', 'key.cheer-seat-0 200', 'key.cheer-seat-1 200', 'key.cheer-seat-0 400'])
+    expect(s('stand-slump')).toEqual(['key.slump-stand-0 800', 'key.slump-stand-1 800'])
+    expect(s('seat-slump')).toEqual(['key.slump-seat-0 800', 'key.slump-seat-1 800'])
+    expect(s('seat-panic')).toEqual(['key.panic-0 160', 'key.panic-1 160', 'key.panic-0 160', 'key.panic-1 160'])
+    expect(s('seat-tear')).toEqual(['key.tear-0 250', 'key.tear-1 200', 'key.tear-2 300', 'key.tear-1 200', 'key.tear-2 300'])
+    expect(ANIMS['seat-draw-late'].steps.slice(0, 4)).toEqual(ANIMS['seat-panic'].steps)
+  })
+
+  it('cheers with both hands above the head, standing and seated', () => {
+    for (const id of ['key.cheer-stand-0', 'key.cheer-stand-1', 'key.cheer-seat-0', 'key.cheer-seat-1'] as const) {
+      const m = key(id)
+      expect(m.slice(0, 6).join(''), id).toContain('S')
+      const hands = m.slice(0, 6).map((row) => [row.slice(0, 16).includes('S'), row.slice(16).includes('S')])
+      expect(hands.some(([l]) => l) && hands.some(([, r]) => r), id).toBe(true)
+    }
+    expect(crown(key('key.cheer-stand-0'))).toBeGreaterThan(crown(frame('stand.idle')) + 2)
+    expect(crown(key('key.cheer-seat-0'))).toBeGreaterThanOrEqual(crown(frame('seat.rest')))
+  })
+
+  it('slumps lower than its posture, the eyes shut', () => {
+    for (const id of ['key.slump-stand-0', 'key.slump-stand-1'] as const) expect(crown(key(id)), id).toBeGreaterThan(crown(frame('stand.idle')) + 2)
+    for (const id of ['key.slump-seat-0', 'key.slump-seat-1'] as const) expect(crown(key(id)), id).toBeGreaterThanOrEqual(crown(frame('seat.rest')) + 3)
+    for (const id of ['key.slump-stand-0', 'key.slump-stand-1', 'key.slump-seat-0', 'key.slump-seat-1'] as const) expect(key(id).join(''), id).not.toContain('E')
+  })
+
+  it('panics with a hand on each side of the head\'s top, the eyes wide', () => {
+    for (const id of ['key.panic-0', 'key.panic-1'] as const) {
+      const m = key(id)
+      const top = crown(m)
+      const band = m.slice(Math.max(0, top - 2), top + 4)
+      expect(band.some((row) => row.slice(0, 16).includes('S')) && band.some((row) => row.slice(16).includes('S')), id).toBe(true)
+      expect(m.join(''), id).toContain('E')
+    }
+  })
+
+  it('tears a page at the chest: whole, then in two halves apart', () => {
+    const runs = (row: string) => row.match(/[Ww]{2,}/g) ?? []
+    const chest = (id: PoseId) => key(id).slice(24, 41)
+    expect(chest('key.tear-0').some((row) => runs(row).some((r) => r.length >= 6))).toBe(true)
+    expect(chest('key.tear-2').some((row) => runs(row).length >= 2)).toBe(true)
   })
 })
