@@ -68,8 +68,8 @@ describe('the driver\'s rules', () => {
 })
 
 describe('stepCast', () => {
-  beforeEach(() => setRigLive({ mangaka: true, assistants: true }))
-  afterEach(() => setRigLive({ mangaka: false, assistants: false }))
+  beforeEach(() => setRigLive({ assistants: true }))
+  afterEach(() => setRigLive({ assistants: false }))
 
   it('sits down on arriving at the desk, then draws; stands up on leaving it', () => {
     const t = newActorTable()
@@ -220,11 +220,12 @@ describe('stepCast', () => {
   })
 
   it('sets no pose while the rig is off for a character', () => {
-    setRigLive({ mangaka: false, assistants: true })
+    setRigLive({ assistants: false })
     const t = newActorTable()
     t.mangaka.state = 'seated'
+    t.assistants[0].state = 'seated'
     stepCast(newCastPlay(), t, input(), 0, false)
-    expect(t.mangaka.pose).toBe('')
+    expect([t.mangaka.pose, t.assistants[0].pose]).toEqual([ANIMS['seat-draw'].steps[0].pose, ''])
   })
 
   it('settles every track to its base from now, and resumes with everything played out', () => {

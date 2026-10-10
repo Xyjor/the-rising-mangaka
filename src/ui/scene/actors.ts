@@ -25,7 +25,10 @@ export interface Actor {
   legs: Legs
   /** Milliseconds walked on this walk (drives the walk cycle); 0 when still. */
   anim: number
-  /** The rig pose showing now (castPlay.ts sets it each step), '' while the actor draws its 0.10 frames. */
+  /**
+   * The rig pose showing now (castPlay.ts sets it each step); '' for an actor the driver has not posed (render then
+   * draws its base loop's first step) or that draws its 0.10 frames (the assistants until their rig, the editor, the cat).
+   */
   pose: PoseId | ''
 }
 
@@ -33,64 +36,59 @@ export interface ActorTable { mangaka: Actor; assistants: readonly [Actor, Actor
 
 export interface Spot { readonly x: number; readonly y: number }
 
-export const MANGAKA_SEAT: Spot = { x: 132, y: 67 }
+/**
+ * The mangaka's spots for the 32x48 rig (0.11.0, the plan's decision 2; each checked against the furniture in
+ * actors.test): the seat (the waist, row 40, on the desk top y 98; the head under the corkboard; clear of the arm
+ * lamp), the standing spot (the feet on row 47 at y 128), the bed (where the actor walks to and lies: its standing head,
+ * cols 4-27 and rows 0-21, sits on the bed frames' lying and sitting-up head, so walking into or out of bed the head never
+ * jumps; the frames themselves are drawn at `MANGAKA_BED_FRAME`) and its own door (the feet on the editor's door floor
+ * line, y 116).
+ */
+export const MANGAKA_SEAT: Spot = { x: 124, y: 58 }
 export const MANGAKA_STAND: Spot = { x: 170, y: 81 }
-export const MANGAKA_BED: Spot = { x: 216, y: 106 }
+export const MANGAKA_BED: Spot = { x: 220, y: 90 }
+export const MANGAKA_DOOR: Spot = { x: 250, y: 69 }
+/**
+ * The bed key frames' origin (48x32, drawn here whatever the actor's position): the lying head at cols 23-46 (x
+ * 224-247) over the pillow (x 232-245). The actor's bed spot is 19 px right of it, so its standing head sits on the
+ * lying head.
+ */
+export const MANGAKA_BED_FRAME: Spot = { x: 201, y: 90 }
 export const DOOR_SPOT: Spot = { x: 254, y: 85 }
 export const EDITOR_SPOT: Spot = { x: 198, y: 85 }
-export const CAT_BED: Spot = { x: 196, y: 118 }
+/** The cat's bed on the blanket: clear of the standing frame at the stand (to x 201) and of the lying head (from x 224). */
+export const CAT_BED: Spot = { x: 202, y: 118 }
 export const CAT_KITCHEN: Spot = { x: 44, y: 150 }
 export const ASSISTANT_SEAT_Y = 89
 export const ASSISTANT_SEAT_X: readonly number[] = [66, 86, 106]
 /** The editor's walk from the door to their spot: 56 + 0 px at 40 px/s, 1400 ms. */
 export const EDITOR_WALK_MS = ((DOOR_SPOT.x - EDITOR_SPOT.x) + (DOOR_SPOT.y - EDITOR_SPOT.y)) / WALK_PX_PER_S * 1000
 
-/** Where the mangaka goes: the desk's seat, the standing spot, the bed and its own door. */
-export interface MangakaSpots { readonly seat: Spot; readonly stand: Spot; readonly bed: Spot; readonly door: Spot }
 /** The assistants' seats: one row, the seats' left edges and their shared top. */
 export interface SeatRow { readonly xs: readonly number[]; readonly y: number }
-/** Every spot a frame size decides. */
-export interface SpotSet { readonly mangaka: MangakaSpots; readonly seats: SeatRow; readonly catBed: Spot }
+/** The spots that still depend on which frames draw: the assistants' row (the mangaka's are the rig's for good). */
+export interface SpotSet { readonly seats: SeatRow }
 
-/** The 0.10 spots, for the 24x32 frames. */
-export const LEGACY_SPOTS: SpotSet = {
-  mangaka: { seat: MANGAKA_SEAT, stand: MANGAKA_STAND, bed: MANGAKA_BED, door: DOOR_SPOT },
-  seats: { xs: ASSISTANT_SEAT_X, y: ASSISTANT_SEAT_Y }, catBed: CAT_BED,
-}
-/**
- * The 0.11 spots for the 32x48 rig (the plan's decision 2: each checked against the furniture in actors.test). The bed
- * spot is where the actor walks to and lies: its standing head (cols 4-27, rows 0-21) sits on the bed frames' lying and
- * sitting-up head, so walking into or out of bed the head never jumps (the bed's frames are drawn at `RIG_BED_FRAME`).
- */
-export const RIG_MANGAKA: MangakaSpots = { seat: { x: 124, y: 58 }, stand: { x: 170, y: 81 }, bed: { x: 220, y: 90 }, door: { x: 250, y: 69 } }
-/**
- * The bed key frames' origin (48x32, drawn here whatever the actor's position): the lying head at cols 23-46 (x
- * 224-247) over the pillow (x 232-245). The actor's bed spot is 19 px right of it, so its standing head sits on the
- * lying head.
- */
-export const RIG_BED_FRAME: Spot = { x: 201, y: 90 }
+/** The 0.10 seats, for the 24x32 frames. */
+export const LEGACY_SPOTS: SpotSet = { seats: { xs: ASSISTANT_SEAT_X, y: ASSISTANT_SEAT_Y } }
+/** The 0.11 seats for the 32x48 rig (the plan's decision 3: one row, 34 px apart, each checked in actors.test). */
 export const RIG_SEATS: SeatRow = { xs: [21, 55, 89], y: 80 }
-export const RIG_CAT_BED: Spot = { x: 202, y: 118 }
-export const RIG_SPOTS: SpotSet = { mangaka: RIG_MANGAKA, seats: RIG_SEATS, catBed: RIG_CAT_BED }
+export const RIG_SPOTS: SpotSet = { seats: RIG_SEATS }
 
 /**
- * Which characters draw from the rig (0.11.0): off until each one's set is complete (the plan's tasks 17 and 19 turn
- * them on for good); a dev build turns both on with `?rig` in the URL (StudioScene). Tests turn them on and back off.
+ * Which characters draw from the rig besides the mangaka (always, since 0.11.0's task 17): the assistants, off until
+ * their set is complete (the plan's task 19 turns them on for good); a dev build turns them on with `?rig` in the URL
+ * (StudioScene). Tests turn them on and back off.
  */
-export const RIG_LIVE: { mangaka: boolean; assistants: boolean } = { mangaka: false, assistants: false }
+export const RIG_LIVE: { assistants: boolean } = { assistants: false }
 
-export function setRigLive(live: { mangaka: boolean; assistants: boolean }): void {
-  RIG_LIVE.mangaka = live.mangaka
+export function setRigLive(live: { assistants: boolean }): void {
   RIG_LIVE.assistants = live.assistants
 }
 
-/** The spots the live cast stands on: the rig's for each character it draws, else the 0.10 ones. */
+/** The seats the live cast sits on: the rig's while the assistants draw from it, else the 0.10 ones. */
 export function liveSpots(): SpotSet {
-  return {
-    mangaka: RIG_LIVE.mangaka ? RIG_MANGAKA : LEGACY_SPOTS.mangaka,
-    seats: RIG_LIVE.assistants ? RIG_SEATS : LEGACY_SPOTS.seats,
-    catBed: RIG_LIVE.mangaka ? RIG_CAT_BED : LEGACY_SPOTS.catBed,
-  }
+  return RIG_LIVE.assistants ? RIG_SPOTS : LEGACY_SPOTS
 }
 
 /** What the plan reads from the scene's snapshot. */
@@ -137,11 +135,10 @@ export function planActors(table: ActorTable, snap: ActorPlanInput, spots: SpotS
   const resting = !absent && !busy && snap.phase !== 'idle' && snap.phase !== 'ready'
 
   const m = table.mangaka
-  const door = spots.mangaka.door
-  if (busy) send(m, spots.mangaka.seat, 'seated', door)
-  else if (resting) send(m, spots.mangaka.bed, 'sleeping', door)
-  else if (absent) send(m, door, 'away', door)
-  else send(m, spots.mangaka.stand, 'standing', door)
+  if (busy) send(m, MANGAKA_SEAT, 'seated', MANGAKA_DOOR)
+  else if (resting) send(m, MANGAKA_BED, 'sleeping', MANGAKA_DOOR)
+  else if (absent) send(m, MANGAKA_DOOR, 'away', MANGAKA_DOOR)
+  else send(m, MANGAKA_STAND, 'standing', MANGAKA_DOOR)
 
   const n = Math.min(3, snap.assistants.length)
   for (let i = 0; i < 3; i++) {
@@ -159,7 +156,7 @@ export function planActors(table: ActorTable, snap: ActorPlanInput, spots: SpotS
 
   const c = table.cat
   if (resting) { send(c, CAT_KITCHEN, 'sitting'); c.legs = 'yx' }
-  else { send(c, spots.catBed, 'sleeping'); c.legs = 'xy' }
+  else { send(c, CAT_BED, 'sleeping'); c.legs = 'xy' }
 }
 
 function stepActor(a: Actor, dtMs: number, reduced: boolean) {

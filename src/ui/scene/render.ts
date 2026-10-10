@@ -4,7 +4,7 @@
 // prop image replaces its piece at the same footprint and the same place in the draw order. This module never imports
 // the art registry.
 import type { EquipmentId, StudioTierId } from '../../sim'
-import { ASSISTANT_SEAT_X, RIG_BED_FRAME, RIG_LIVE, RIG_MANGAKA, RIG_SEATS } from './actors'
+import { ASSISTANT_SEAT_X, MANGAKA_BED_FRAME, MANGAKA_SEAT, RIG_LIVE, RIG_SEATS } from './actors'
 import type { Actor, ActorTable, Spot } from './actors'
 import { baseAnimFor } from './castPlay'
 import type { CastContext, CastWho } from './castPlay'
@@ -19,7 +19,7 @@ import {
 import { OLD_CAST } from './oldCast'
 import { drawCast, drawCastTop, getCastCache, lookPalette, outfitPalette } from './spriteCache'
 import type { CastFrame, PaletteId, SpriteCache } from './spriteCache'
-import { BREATHE_POSES, catFrame, idleFrame, moodOf } from './mood'
+import { catFrame, moodOf } from './mood'
 import type { Mood, MoodInput } from './mood'
 import { BAR_X, paneRect, rawRect, rect, shadow } from './paint'
 import { drawSeasonNight, drawSeasonPane, drawSeasonSill, drawSeasonWall } from './season'
@@ -95,30 +95,21 @@ function glyph(ctx: CanvasRenderingContext2D, ch: string, x: number, y: number, 
 }
 
 /**
- * The mark slot at the head's top-right edge: a 3x5 glyph at cols 20-22, rows -2 to 2 of a 24x32 frame, right of the
- * hair (whose outline reaches col 18 on row 2 and col 19 from row 3) and clear of it; mirrored (cols 1-3) when the
- * frame faces right.
+ * The mark slot at the head's top-right edge of a 24x32 frame: a 3x5 glyph at cols 20-22, rows -2 to 2, right of the
+ * hair (whose outline reaches col 18 on row 2 and col 19 from row 3) and clear of it.
  */
 const MARK_DX = 20
 const MARK_DY = -2
-function markX(x: number, flip = false): number {
-  return flip ? x + 24 - MARK_DX - 3 : x + MARK_DX
-}
 
 /**
- * The mood overlay for a head-steady pose: the face (FACES[mood], rows 9-12 of the anchor, at x+4/x+6 flipped,
- * y+9+headDy) and, when `mark` is true, its mark at the head's top-right edge (MARKS[mood], at `markX`, y-2, in
- * MARK_PAL). Nothing
- * when neutral. Only one glyph ever occupies the mark slot above the head at once (fix round 1): the standing
- * mangaka's ready-manuscript '!' beats the mood mark, which beats the idle '?', so `mark` lets a caller draw the
- * face without the mark when something else already claims that slot. `face` is false for a pose that is not
- * head-steady (the idle cycle's stretch and sip, Decision 6): the mark may still show, but the pose's own baked-in
- * expression (closed eyes, a mug at the mouth) is left alone.
+ * The mood overlay over a 0.10 seated assistant (the rig bakes the face into its frames; the assistants keep their 0.10
+ * frames until 0.11.0's task 19): the face (FACES[mood], rows 9-12 of the anchor, at x+4, y+9+headDy) and its mark at
+ * the head's top-right edge (MARKS[mood], at x+20, y-2, in MARK_PAL). Nothing when neutral.
  */
-function drawMood(ctx: CanvasRenderingContext2D, mood: Mood, x: number, y: number, headDy: number, mark = true, face = true) {
+function drawMood(ctx: CanvasRenderingContext2D, mood: Mood, x: number, y: number, headDy: number) {
   if (mood === 'neutral') return
-  if (face) drawSprite(ctx, FACES[mood], x + 4, y + 9 + headDy, 4, PAL)
-  if (mark) drawSprite(ctx, MARKS[mood], markX(x), y + MARK_DY, 5, MARK_PAL)
+  drawSprite(ctx, FACES[mood], x + 4, y + 9 + headDy, 4, PAL)
+  drawSprite(ctx, MARKS[mood], x + MARK_DX, y + MARK_DY, 5, MARK_PAL)
 }
 
 /**
@@ -162,10 +153,10 @@ export function workingOf(s: Snapshot): boolean {
 
 /**
  * Where a rig pose is drawn: at the actor, the seat's half pose at the seat, the bed's frames at their own origin
- * (`RIG_BED_FRAME`, 19 px left of the actor's bed spot, which stands on the lying head).
+ * (`MANGAKA_BED_FRAME`, 19 px left of the actor's bed spot, which stands on the lying head).
  */
 export function poseOrigin(at: PoseDef['at'], a: Spot): Spot {
-  return at === 'actor' ? a : at === 'seat' ? RIG_MANGAKA.seat : RIG_BED_FRAME
+  return at === 'actor' ? a : at === 'seat' ? MANGAKA_SEAT : MANGAKA_BED_FRAME
 }
 
 const LEGACY_DESKS = [{ x: 62, w: 28 }, { x: 62, w: 48 }, { x: 62, w: 68 }] as const
@@ -192,7 +183,10 @@ const SEAT_TOP_ROWS = 40
  */
 const seatedTop: { frame: CastFrame | null; pal: PaletteId; x: number; y: number } = { frame: null, pal: 'pal', x: 0, y: 0 }
 
-/** The pose an actor shows: the one the cast driver set, else (a settled table, reduced motion) its base loop's first, when its rig is on. */
+/**
+ * The pose an actor shows: the one the cast driver set, else (a settled table, reduced motion) its base loop's first,
+ * when its rig is on (the mangaka's always is); '' when it has none (away, hidden, or a 0.10 assistant).
+ */
 function poseOf(a: Actor, who: CastWho, live: boolean, s: Snapshot, working: boolean): PoseId | '' {
   if (a.pose || !live) return a.pose
   castCtx.working = working
@@ -240,76 +234,18 @@ function drawRigMangaka(
 }
 
 /**
- * The mangaka, in whatever pose the table holds, each one drawImage from the sprite cache (`cast`). A rig pose (the
- * cast driver's, or its base loop's first step while the rig is on) is drawn by `drawRigMangaka`; with none, the 0.10
- * frames (24x32, 30x14 in bed; the mood overlay stays code-drawn over them). Called twice: before the desk (paints only
- * when y < 75: seated, behind the desk top) and after it (only when y >= 75: standing, walking, at the door or in bed,
- * in front of it).
+ * The mangaka, always from the rig (since 0.11.0's task 17): the pose the cast driver set, or its base loop's first
+ * step on a settled table (reduced motion), one drawImage from the sprite cache (`cast`) by `drawRigMangaka`; nothing
+ * while away or hidden. Called twice: before the desk (paints only when y < 75: seated, behind the desk top, or at
+ * its door) and after it (only when y >= 75: standing, walking or in bed, in front of it).
  */
 function drawMangaka(
   ctx: CanvasRenderingContext2D, s: Snapshot, a: Actor, frame: number, working: boolean, front: boolean, night: boolean,
   cast: SpriteCache,
 ) {
   if ((a.y >= 75) !== front) return
-  const pose = poseOf(a, 'mangaka', RIG_LIVE.mangaka, s, working)
-  if (pose) {
-    drawRigMangaka(ctx, cast, s, a, pose, frame, working, night)
-    return
-  }
-  const x = a.x
-  const y = a.y
-  switch (a.state) {
-    case 'seated': {
-      // late on a chapter, the mangaka throws up their hands for 40 frames in every 240
-      const panicking = working && s.late && frame % 240 < 40
-      const idx = working ? Math.floor(frame / 8) % 2 : 0
-      drawCast(ctx, cast, panicking ? OLD_CAST.mangakaPanic[idx] : OLD_CAST.mangakaSit[idx], outfitPalette(s.level), x, y, false)
-      if (!panicking) {
-        const mood = moodFor(s.actors.editor.state === 'standing', s.cheer, s.stamina, night && working)
-        drawMood(ctx, mood, x, y, HEAD_DY.sit[idx])
-      }
-      return
-    }
-    case 'standing': {
-      shadow(ctx, x + 4, y + 30, 16)
-      const ready = s.phase === 'ready'
-      // the manuscript is in hand while ready, so the idle cycle (Decision 6) applies only otherwise
-      const pose = ready ? BREATHE_POSES[Math.floor(frame / 16) % 2] : idleFrame(frame)
-      let castFrame: CastFrame
-      let headDy: number
-      // only the breathing pose is head-steady: the stretch and sip bake their own expression into the frame
-      let faceSteady: boolean
-      if (pose.set === 'stretch') { castFrame = OLD_CAST.mangakaStretch[pose.index]; headDy = HEAD_DY.stretch[pose.index]; faceSteady = false }
-      else if (pose.set === 'sip') { castFrame = OLD_CAST.mangakaSip[pose.index]; headDy = HEAD_DY.sip[pose.index]; faceSteady = false }
-      else { castFrame = OLD_CAST.mangakaIdle[pose.index]; headDy = HEAD_DY.idle[pose.index]; faceSteady = true }
-      drawCast(ctx, cast, castFrame, outfitPalette(s.level), x, y, false)
-      const mood = moodFor(s.actors.editor.state === 'standing', s.cheer, s.stamina, false)
-      // only one mark above the head at a time: the ready manuscript's '!' beats the mood mark, which beats the
-      // idle '?' (fix round 1); the face overlay only ever shows on the head-steady breathing pose
-      drawMood(ctx, mood, x, y, headDy, !ready, faceSteady)
-      if (ready) {
-        // the manuscript in the leading hand (row 22)
-        rawRect(ctx, x - 8, y + 17, 8, 10, '#fdfcf7'); rawRect(ctx, x - 7, y + 19, 6, 1, '#b8b2a5'); rawRect(ctx, x - 7, y + 21, 6, 1, '#b8b2a5')
-        glyph(ctx, '!', markX(x), y + MARK_DY, '#e5484d')
-      } else if (faceSteady && mood === 'neutral' && frame % 120 < 40) glyph(ctx, '?', markX(x), y + MARK_DY, '#2f5ecf')
-      return
-    }
-    case 'walking':
-      shadow(ctx, x + 4, y + 30, 16)
-      drawCast(ctx, cast, OLD_CAST.mangakaWalk[Math.floor(a.anim / 100) % 4], outfitPalette(s.level), x, y, a.facing === 1)
-      return
-    case 'sleeping': {
-      // the head on the pillow, the body under the blanket (canvas 196-229 x 114-121) and its fold
-      drawCast(ctx, cast, OLD_CAST.mangakaLie, 'pal', x, y, false)
-      rawRect(ctx, 196, 114, 34, 8, '#c94b4b')
-      rawRect(ctx, 196, 114, 34, 2, '#a83c3c')
-      const zz = Math.floor(frame / 20) % 3
-      for (let i = 0; i <= zz; i++) glyph(ctx, 'Z', x + 18 + i * 3, y - 6 - i * 4, '#2f5ecf')
-      return
-    }
-    default:
-      return
-  }
+  const pose = poseOf(a, 'mangaka', true, s, working)
+  if (pose) drawRigMangaka(ctx, cast, s, a, pose, frame, working, night)
 }
 
 // ---------- the props (each a generated sprite when one is ready, else these fills) ----------

@@ -261,14 +261,16 @@ never walk: they are placed straight into their seat, seated or asleep, and whil
 
 **The 0.11 spots** (0.11.0, `actors.ts`). The rig's people are 32x48 frames (48x32 in bed), so they stand on spots of
 their own; each is still the top-left of its pose's frame, as in 0.10 (the bed spot of a standing frame, whose head
-sits on the lying head; the bed frames have their own origin, `RIG_BED_FRAME`), and each is checked against the
-furniture by `actors.test.ts` ("fits the 0.11 spots around the furniture"):
+sits on the lying head; the bed frames have their own origin, `MANGAKA_BED_FRAME`), and each is checked against the
+furniture by `actors.test.ts` ("fits the 0.11 spots around the furniture"). Since task 17 the mangaka's and the cat's
+bed are the only ones, under the 0.10 names (`MANGAKA_SEAT`, `MANGAKA_STAND`, `MANGAKA_BED`, the new `MANGAKA_DOOR`,
+`CAT_BED`); only the assistants' seats still switch with their frames:
 
 | Spot | 0.10 (24x32) | 0.11 (32x48 rig) | Why |
 |---|---|---|---|
 | The mangaka's seat | (132, 67) | (124, 58) | the waist (row 40) on the desk top, y 98; the head (rows 6-27, y 64-85) under the corkboard (to y 63); the right edge 155, clear of the arm lamp (x 156) |
 | The standing spot | (170, 81) | (170, 81) | the feet on row 47 at y 128; the head below the sill's coffee machine and trophies (to y 80); the left edge clear of the arm lamp (to x 169) |
-| The bed | (216, 106) | (220, 90); the bed frames at (201, 90) | the actor's spot: its standing head (cols 4-27, rows 0-21) sits on the bed frames' lying and sitting-up head, so walking into or out of bed the head never jumps; the 48x32 bed frames at their own origin (`RIG_BED_FRAME`, 19 px left of it): the lying head (cols 23-46, rows 8-29) at x 224-247, y 98-119, over the pillow (x 232-245) |
+| The bed | (216, 106) | (220, 90); the bed frames at (201, 90) | the actor's spot: its standing head (cols 4-27, rows 0-21) sits on the bed frames' lying and sitting-up head, so walking into or out of bed the head never jumps; the 48x32 bed frames at their own origin (`MANGAKA_BED_FRAME`, 19 px left of it): the lying head (cols 23-46, rows 8-29) at x 224-247, y 98-119, over the pillow (x 232-245) |
 | The mangaka's door | the door spot (254, 85) | (250, 69) | the feet at y 116, the editor's door floor line, centred on the door |
 | The cat's bed | (196, 118) | (202, 118) | clear of the standing frame (to x 201), of the lying head (from x 224) and of the standing frame at the bed (from x 220), on the blanket |
 | The assistants' seats | x 66, 86, 106, y 89 | x 21, 55, 89, y 80 | one row, 34 px apart (below) |
@@ -285,11 +287,13 @@ over the third head). The row's desk (`render.ts` `assistantDesk`) runs from 2 p
 34 per further assistant (x 19-122 for three), y 120-131 as before, the seated waist (row 40) on its top (y 80 + 40 =
 120); the 0.10 stools go (a seated 32x48 body covers them). The 0.10 desk was x 62, 8 px plus 20 per assistant.
 
-**The rig switch.** `RIG_LIVE` holds each character's switch, the mangaka's and the assistants', off until its set
-of poses is complete (task 17 turns the mangaka's on for good, task 19 the assistants'); `setRigLive` flips them (the
-tests turn them on and back off, and a dev build's `?rig`, below). `liveSpots()` is the spot set the live cast stands
-on: the rig's for each character the rig draws (the cat's bed moves with the mangaka's switch), else the 0.10 ones
-(`LEGACY_SPOTS`, `RIG_SPOTS`); `planActors` takes it by default.
+**The rig switch.** The mangaka draws from the rig for good since task 17 (its 0.10 path and frames went then):
+`planActors` always sends it to its 0.11 spots through `MANGAKA_DOOR` and the cat to `CAT_BED`, the driver always
+poses it and render always draws it from the rig. `RIG_LIVE` holds the one switch left, the assistants', off until
+their set of poses is complete (task 19 turns it on for good); `setRigLive({ assistants })` flips it (the tests turn
+it on and back off, and a dev build's `?rig`, below). `liveSpots()` is the seat row the live assistants sit in: the
+rig's while their switch is on, else the 0.10 one (`RIG_SPOTS`, `LEGACY_SPOTS`, each a `SpotSet { seats }`);
+`planActors` takes it by default.
 
 **The cast driver** (`castPlay.ts`, 0.11.0) poses every rig-drawn actor each loop step (`stepCast`): it writes the
 pose showing now on the actor (`Actor.pose`) from an animation player (`animation.ts`) per character. The base loop
@@ -311,11 +315,12 @@ scene clock of its own, `sceneMs`, the sum of the loop's steps, so it never jump
 hidden, and fills one input object in place each step (`fillCast`). Until each animation's art task draws it, it plays
 one 500 ms step of `stand.idle` (see "The rig" below).
 
-**Drawing the rig** (`render.ts`, 0.11.0 task 10). An actor with a pose, or with none while its switch is on (a
-settled table: its base loop's first step, `poseOf`), is drawn from the rig; with the switch off, from its 0.10
-frames. The rig mangaka is one `drawImage` of `rigFrame(pose, mood, ready)` in its outfit's palette, at the actor, or
-for a pose placed there at the seat or at the bed frames' origin (`poseOrigin`; `RIG_BED_FRAME` (201, 90), 19 px left
-of the actor's bed spot, which stands on the lying head). Standing or walking it has a 20 px contact shadow under its
+**Drawing the rig** (`render.ts`, 0.11.0 task 10). An actor with a pose, or with none while its rig is on (a settled
+table: its base loop's first step, `poseOf`), is drawn from the rig: the mangaka always (task 17), an assistant while
+its switch is on, else from its 0.10 frames. The mangaka is one `drawImage` of `rigFrame(pose, mood, ready)` in its
+outfit's palette, at the actor, or for a pose placed there at the seat or at the bed frames' origin (`poseOrigin`;
+`MANGAKA_BED_FRAME` (201, 90), 19 px left of the actor's bed spot, which stands on the lying head); seated at the
+desk, its rows 0-39 go on a second time over the page stack (`drawCastTop`, task 12). Standing or walking it has a 20 px contact shadow under its
 feet (x + 6, y + 46), and walking right it is mirrored. In bed it takes no mood (the bed frames bake their own face);
 on the sleep loop's lying poses only (never the sitting-up frame of lying down, whose head they would cross) the Zs
 rise beside the lying head, from the bed frame's (36, 2); a pose at the bed draws the blanket over the shoulders (x
@@ -345,8 +350,8 @@ the same tick archived it), the rule that pins the corkboard's star and red mark
 `seat-draw-late`, which opens on the panic (640 ms in every 3,640 ms, 0.10's 40 frames in 240) once its art lands, so
 the panic recurs as before and reduced motion still shows it.
 
-**The `?rig` dev preview.** A dev build (`npm run dev`) opened at `?rig` turns the rig on for the whole cast (both
-switches, so the 0.11 spots too); `?rig=<animation>` (an `AnimId`, such as `?rig=stand-look`) also plays that
+**The `?rig` dev preview.** A dev build (`npm run dev`) opened at `?rig` turns the rig on for the assistants too (their
+switch, so their 0.11 row too; the mangaka draws from the rig without it since task 17); `?rig=<animation>` (an `AnimId`, such as `?rig=stand-look`) also plays that
 animation over every base of its posture whenever nothing else plays, so an art task sees its moments and reactions
 in the running scene. A production build never reads the URL (the read sits behind `import.meta.env.DEV`).
 
@@ -382,26 +387,30 @@ head at rows 5-8: with the raised arms the hands read as hands, not ears. The ca
 `#f0ead6`) in every frame where its chest shows (not the curled `CAT_SLEEP`), and sleeps on a round mustard cushion
 at `CAT_BED` (4 fills, drawn just before it).
 
-- **Expressions** are an overlay, not baked into most frames: `FACES[mood]` (14 wide x 4 tall, `mood.ts`'s `Mood`,
-  excluding `neutral`) is drawn at `(x+4, y+9+headDy)`, only on head-steady poses (the standing mangaka's breathing
-  idle, the seated mangaka outside panic, the seated assistants). Walking, panic, bed and doze keep their own
-  baked-in expression. `neutral` draws no overlay at all (the anchor's own face shows).
+- **Expressions** are an overlay over the 0.10 frames, not baked into most of them: `FACES[mood]` (14 wide x 4 tall,
+  `mood.ts`'s `Mood`, excluding `neutral`) is drawn at `(x+4, y+9+headDy)`, only on head-steady poses: today the
+  seated 0.10 assistants (until task 19); up to 0.10 also the standing mangaka's breathing idle and the seated mangaka
+  outside panic. Since 0.11.0 (task 17) the mangaka's face and mark are baked into each rig frame (`rigFrame(pose,
+  mood, ready)`, see "The rig"), so no overlay paints over it. The doze keeps its own baked-in expression. `neutral`
+  draws no overlay at all (the anchor's own face shows).
 - **Moods and marks** (`mood.ts` `moodOf`, priority order): `surprised` (the editor is standing in the studio and the
   mangaka is home) beats `happy` (`cheer`, set for `CHEER_MS` 2400 ms by `cheersFor` after a fans pop or a level-up
   pop, never a plain xp gain) beats `tired` (stamina below `LOW_STAMINA_THRESHOLD`) beats `sleepy` (working late at
   night: the seated mangaka is drawing, the clock is running, and it is night) beats `neutral`. Panic (the seated
-  mangaka late on a chapter) is not a mood; it beats every one of them and stays the existing `MANGAKA_PANIC` frames.
-  Each mood also has a mark at the head's top-right edge, `(x+20, y-2)` (cols 20-22, rows -2 to 2: right of the hair,
-  clear of its outline; `markX` mirrors it to cols 1-3 for a frame facing right) in `MARK_PAL`: a sweat drop (tired), a sparkle (happy),
-  `!` (surprised), `z` (sleepy). Only one mark ever occupies that slot: the standing mangaka's ready-manuscript `!`
-  beats the mood mark, which beats the idle `?`.
-- **Idle cycles** are pure functions of the frame counter in `mood.ts`. The standing mangaka's 360-frame cycle
-  (`idleFrame`) is 0-239 breathing (today's `frame/16 % 2`), 240-299 a stretch (`MANGAKA_STRETCH`, 2 frames,
-  `frame/15 % 2`), 300-359 a sip from a mug (`MANGAKA_SIP`, 2 frames); it applies only outside the `ready` phase (the
-  manuscript is in hand then). The cat's 480-frame sitting cycle (`catFrame`) is 0-359 `CAT_SIT`, 360-419 a groom
-  (`CAT_GROOM`, 2 frames, `frame/15 % 2`; the ledger's ruling keeps the head in place and raises a paw over the ear
-  gap instead of the spec's "head lowered one row", which hid the change), 420-479 a stretch (`CAT_STRETCH`). Frame 0
-  (reduced motion) is always the plain idle for both.
+  mangaka late on a chapter) is not a mood; it beats every one of them: since 0.11.0 it is the late loop's panic key
+  frames (`seat-draw-late`, their face their own), up to 0.10 the `MANGAKA_PANIC` frames. Each mood also has a mark;
+  over a 0.10 frame it goes at the head's top-right edge, `(x+20, y-2)` (cols 20-22, rows -2 to 2: right of the hair,
+  clear of its outline) in `MARK_PAL`: a sweat drop (tired), a sparkle (happy), `!` (surprised), `z` (sleepy); the rig
+  stamps it into the frame's mark slot (cols 28-30). Only one mark ever occupies that slot: the standing mangaka's
+  ready-manuscript `!` beats the mood mark (the ready frame leaves its own out), which beats the idle `?`.
+- **Idle cycles.** The cat's is a pure function of the frame counter in `mood.ts`: its 480-frame sitting cycle
+  (`catFrame`) is 0-359 `CAT_SIT`, 360-419 a groom (`CAT_GROOM`, 2 frames, `frame/15 % 2`; the ledger's ruling keeps
+  the head in place and raises a paw over the ear gap instead of the spec's "head lowered one row", which hid the
+  change), 420-479 a stretch (`CAT_STRETCH`); frame 0 (reduced motion) is the plain sit. The mangaka's idle moments are
+  the rig's since 0.11.0 (task 17): the cast driver's seeded schedule (a look round or a sip standing; a stretch, a
+  sip, a page flipped or rubbing the eyes at the desk; see "The cast driver"). History: up to 0.10 the standing
+  mangaka had a 360-frame cycle of its own (`idleFrame`: breathing, then a stretch, `MANGAKA_STRETCH`, then a sip,
+  `MANGAKA_SIP`, outside the `ready` phase), retired with its frames at task 17.
 - **Outfits by level** (`outfitOf`, `OUTFIT_PALS`), the mangaka only, swap `J`/`j` in the palette: levels 1-4 a hoodie
   (`#6f7a8c`/`#525c6b`, the original palette), 5-9 a cardigan (`#c9a24a`/`#a8832f`), 10+ a blazer
   (`#2e3a78`/`#222b5c`). The idle and seated frames carry a collar (`K`, either side of the neck) and a tie (`Y`, shade
@@ -608,7 +617,7 @@ at `CAT_BED` (4 fills, drawn just before it).
   standing ones (the knees now sit apart over turned-in shins), and the first open hand lost its top corner to the
   outline (it now has its own top edge).
 - **The bed and the ready stance** (0.11.0, task 13). The bed's three poses are key frames (`rig/keyFrames.ts`, 48x32,
-  Decision 5), drawn at the bed (`RIG_BED_FRAME`, canvas (201, 90)) in the outfit's palette, their face baked in (no
+  Decision 5), drawn at the bed (`MANGAKA_BED_FRAME`, canvas (201, 90)) in the outfit's palette, their face baked in (no
   mood). `bed.lie-0` (`BED_LIE_0`, after 0.10's `MANGAKA_LIE`): the rig head lying on the pillow, upright and frontal,
   at cols 23-46, rows 8-29 (canvas x 224-247, y 98-119), the eyes closed (the head's `closed` curve) and the mouth
   closed; the shoulders lie to its left at cols 3-26, rows 24-31 (the top outline meeting the jaw's, the hood's shade
@@ -635,7 +644,7 @@ at `CAT_BED` (4 fills, drawn just before it).
   `!` above the tired head with its sweat mark left out; one redraw: the shoulders' left end, square, read as a box in the sheet (its
   corners now round; the blanket hides it in the scene).
 - **The transitions** (0.11.0, task 14). Down into the chair and up out of it go through `seat.half`, the one part pose
-  drawn at the seat (`at: 'seat'`, `RIG_MANGAKA.seat`, whatever the actor's position): the torso at (7, 24), so the
+  drawn at the seat (`at: 'seat'`, `MANGAKA_SEAT`, whatever the actor's position): the torso at (7, 24), so the
   head lands at (4, 3), halfway between standing (row 0) and seated (row 6), and the hips on row 37; the arms hang
   (`arm-*-hang`) and the legs bend halfway down to the chair (`leg-l-half`, 6x11, hipL (3, 0); `leg-r-half` its mirror
   in `LEG_R_STAND`'s shading, hipR (2, 0); rows 37-47): the thigh leaves the hip as the standing trousers, then comes
@@ -655,7 +664,8 @@ at `CAT_BED` (4 fills, drawn just before it).
   frames' geometry first added a jump of its own: with the actor's bed spot on the bed frames' origin, the bed frame's
   head (its col 23) sat 19 px right of the standing frame's (col 4), so the head jumped 19 px arriving and 31 leaving
   (22 even at the shortest step). Ruled in the task's fix round: the actor's bed spot moved to (220, 90), the standing
-  head on the lying and sitting-up head, and the frames kept their origin as `RIG_BED_FRAME` (201, 90); arriving there
+  head on the lying and sitting-up head, and the frames kept their origin as `RIG_BED_FRAME` (201, 90; named
+  `MANGAKA_BED_FRAME` since task 17); arriving there
   is now no jump, and leaving only the timing's: the walk shows 12 px left of the sitting-up head (8.8 px at 40 px/s,
   held to the next frame), so `get-up` keeps its 220 ms, the sitting-up beat that reads as "sits up, then is up". The
   Zs, drawn whenever the actor was asleep, crossed the sitting-up head for the 220 ms of lying down; they now rise only
@@ -721,25 +731,28 @@ at `CAT_BED` (4 fills, drawn just before it).
   banzai, the slump as a hung head, the tear as a page ripped in two; one redraw: the first panic's hands, three cells
   at the hair's corners, read as ears, so each hand now spreads six wide over the crown.
 
-The frame sets: idle 2 frames (`frame/16 % 2`), walk 4 (`anim/100 % 4`), sit 2 (`frame/8 % 2` while working, frame 0
-otherwise), panic 2 (for 40 of every 240 frames while working on a late chapter, `Snapshot.late`), a 30x14 lying
-sprite for the bed (under a blanket, only head and shoulders show), the assistants' doze, the editor's idle and walk,
-the standing idle cycle's stretch and sip, and the 12x8 cat (sleep, sit, its groom and stretch, walk `anim/125 % 2`).
+The frame sets still drawn: sit 2 (`frame/8 % 2` while working, frame 0 otherwise; the 0.10 assistants', in their
+looks, until task 19), the assistants' doze, the editor's idle and walk, and the 12x8 cat (sleep, sit, its groom and
+stretch, walk `anim/125 % 2`). The mangaka draws from the rig since 0.11.0 (task 17; see "The rig"); its 0.10 sets
+(idle 2, walk 4, sit 2, panic 2 for 40 of every 240 frames on a late chapter, a 30x14 lying sprite under the blanket,
+the idle cycle's stretch and sip) are no longer drawn (`oldCast.ts` dropped them; the maps stay in `sprites.ts` until
+task 19).
 Props (envelope, letter, contract, trophy) are small maps of their own. `SpriteAvatar` draws the rig head (since
 0.11.0: rows 0-21, cols 0-23, 24x22; the SVG viewBox matches) as SVG rects (`spriteSvg.ts`) for the staff portraits.
 
 | Spot | Canvas (top left of the frame) |
 |---|---|
-| `MANGAKA_SEAT` | (132, 67) |
+| `MANGAKA_SEAT` | (124, 58) (0.10: (132, 67)) |
 | `MANGAKA_STAND` | (170, 81) |
-| `MANGAKA_BED` | (216, 106) |
+| `MANGAKA_BED` | (220, 90), the bed frames at `MANGAKA_BED_FRAME` (201, 90) (0.10: (216, 106)) |
+| `MANGAKA_DOOR` | (250, 69) (0.10: the door spot) |
 | `DOOR_SPOT` | (254, 85) |
 | `EDITOR_SPOT` | (198, 85) |
-| `CAT_BED` | (196, 118), at the foot of the bed on the blanket's lower edge |
+| `CAT_BED` | (202, 118), on the blanket (0.10: (196, 118)) |
 | `CAT_KITCHEN` | (44, 150) |
-| `ASSISTANT_SEAT_X` / `_Y` | [66, 86, 106] / 89 |
+| `ASSISTANT_SEAT_X` / `_Y` | [66, 86, 106] / 89 (the rig's row, `RIG_SEATS`, [21, 55, 89] / 80) |
 
-Actors whose frame top is at canvas y 75 or below (standing, walking, at the door, in bed) are drawn in the front pass, after the desk; the seated mangaka (y 67) is drawn before it. The assistants sit on stools behind their own desk
+Actors whose frame top is at canvas y 75 or below (standing, walking, in bed, the editor and the cat) are drawn in the front pass, after the desk; the seated mangaka (y 58) and the mangaka at its door (y 69) are drawn before it. The assistants sit on stools behind their own desk
 (canvas x 62, width 8 + 20n for n assistants shown, at most 3, y 120-131), drawn after them so only head and shoulders
 show; each seated assistant's page is drawn after the desk, on its top, with one ink line per third of progress.
 
@@ -795,6 +808,13 @@ code-drawn wall, the night, the editor's shadow, prop and `!`) left two budget l
 budget and the third under 5, so each loop's worst scene has its own pin and the loop is held to 1.5x that: the flat
 in spring at night with the art ready 235 (budget 352.5, `render.test.ts` `ART_WORST_FILLS`), and the full scene with the editor visiting 462
 (693, `studioArt.test.ts` `VISIT_FULL_BASELINE`), 285 with the art ready (427.5, `VISIT_ART_BASELINE`).
+The mangaka's switch to the rig (task 17) took the mood overlay over it out of the fill log, the face and mark now in
+its frame: the scenes where it showed lose it, `BARE_FULL`'s sleepy face 12 and mark 5, 309 - 17 = 292 and 193 - 17 =
+176 with the art ready (budgets 438 and 264), the flat at night with the art ready the same, 235 - 17 = 218 (327), and
+the visit's surprised face 22 and mark 4, 462 - 26 = 436 and 285 - 26 = 259 (654 and 388.5). The reference scene
+(neutral by day, 274 and 157) and the rest scene (the bed frame one image as the lying sprite was, the blanket 2 and the
+Zs 27 still fills, 303) keep their pins; the seated mangaka's second image (its rows 0-39 over the page stack) is a
+`drawImage`, not a fill.
 
 ### Art
 The live scene is code-drawn `fillRect` (`render.ts`, `roomArt.ts`, `studioArt.ts`, `sprites.ts`), and since 0.9.0 it

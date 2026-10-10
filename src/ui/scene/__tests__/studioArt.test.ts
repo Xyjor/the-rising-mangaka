@@ -76,9 +76,11 @@ const EVERYTHING: Partial<Snapshot> = {
  * Upgrade 0.11.0 Task 6 re-measured it the same way at 309 (-816): every character is one drawImage from the sprite
  * cache (spriteCache.ts) now, so its runs leave the fill log: MANGAKA_SIT[0] three times (the mangaka and assistants 0
  * and 1) 582, MANGAKA_SIT[1] once (assistant 2) 195 and CAT_SLEEP 39: 1125 - 582 - 195 - 39 = 309. The sleepy face's 17
- * fills over the mangaka stay fills (the mood overlay is code-drawn until the rig head bakes it).
+ * fills over the mangaka stay fills (the mood overlay is code-drawn until the rig head bakes it). Upgrade 0.11.0 Task 17
+ * re-measured it the same way at 292 (-17): BARE_FULL's mangaka is seated, working, at night, so sleepy, and its face
+ * and mark (FACES.sleepy 12 runs, MARKS.sleepy 5) are in its rig frame now: 309 - 17 = 292.
  */
-const FULL_BASELINE = 309
+const FULL_BASELINE = 292
 
 /**
  * fillRect calls for `BARE_FULL` at night, t 0.9, frame 100, with every generated image ready (`fakeSceneArt`),
@@ -93,10 +95,11 @@ const FULL_BASELINE = 309
  * re-measured it the same way at 1009 (+35): the room image is the wall alone now, and the apartment's code-drawn
  * floor paints under it (`TIER_FLOOR`: the tatami fill 1, the weave lines 21, the three heri 3 and the seams 10), as
  * the 584's +35: 974 + 35 = 1009. Upgrade 0.11.0 Task 6 re-measured it the same way at 193 (-816), as the 309's (the
- * images replace no sprite): 1009 - 582 - 195 - 39 = 193. The full scene with the art ready must stay under 1.5 times
- * this (its own budget, 289.5).
+ * images replace no sprite): 1009 - 582 - 195 - 39 = 193. Upgrade 0.11.0 Task 17 re-measured it the same way at 176
+ * (-17), as the 292's (the sleepy face 12 and mark 5 in the rig frame; the images replace no sprite): 193 - 17 = 176.
+ * The full scene with the art ready must stay under 1.5 times this (its own budget, 264).
  */
-const FULL_ART_BASELINE = 193
+const FULL_ART_BASELINE = 176
 
 /**
  * fillRect calls for the worst scene of the full-scene loop with no art (`EVERYTHING`: the loft, every piece of
@@ -111,10 +114,13 @@ const FULL_ART_BASELINE = 193
  * drafting table +4 (11 for the stock desk's 7), the pen tablet +4 (3 and its glow 1), 24 volumes +24, the anime poster
  * +12 (16 for the stock poster's 4) and 4 trophies +16: 309 + 120 = 429. The editor's visit adds 33: his contact shadow
  * 1, the contract 19 and the ! above him 4 (24), and the mangaka's mood goes from sleepy (face 12, mark 5) to surprised
- * (face 22, mark 4), +9: 429 + 33 = 462. The loop's other scenes are 429 (frame 0), 429 and 399 (by day). Every scene in
- * the loop must stay under 1.5 times this (693).
+ * (face 22, mark 4), +9: 429 + 33 = 462. The loop's other scenes are 429 (frame 0), 429 and 399 (by day). Upgrade 0.11.0
+ * Task 17 re-measured it the same way at 436 (-26): the mangaka's surprised face (22) and mark (4) are in its rig frame
+ * now (`~ring.o.bang`), so they leave the fill log: 462 - 26 = 436 (the visit itself adds 24, his shadow, the contract and
+ * the !). The loop's other scenes lose the sleepy face and mark (-17) at night, 412 (frame 0) and 412, and stay 399 by
+ * day (neutral). Every scene in the loop must stay under 1.5 times this (654).
  */
-const VISIT_FULL_BASELINE = 462
+const VISIT_FULL_BASELINE = 436
 
 /**
  * fillRect calls for the same worst scene (the editor visiting, t 0.9, frame 100) with every generated image ready
@@ -124,10 +130,12 @@ const VISIT_FULL_BASELINE = 462
  * tall chair and drafting table 0 each (sprites; the lamp's bulb and glow 3 replace the stock lamp's 3), the pen tablet
  * +4 (3 and its glow 1; it has no sprite), 24 volumes +24, the anime poster +16 (code-drawn, the stock poster's image
  * is not drawn) and 4 trophies +16: 193 + 59 = 252. The visit adds the same 33 as the 462's (shadow 1, contract 19, ! 4,
- * sleepy to surprised +9): 252 + 33 = 285. The loop's other scenes are 252 (frame 0), 252 and 221 (by day). Every scene
- * in the loop must stay under 1.5 times this (427.5).
+ * sleepy to surprised +9): 252 + 33 = 285. The loop's other scenes are 252 (frame 0), 252 and 221 (by day). Upgrade
+ * 0.11.0 Task 17 re-measured it the same way at 259 (-26), as the 436's (the surprised face 22 and mark 4 in the rig
+ * frame): 285 - 26 = 259; the loop's other scenes are 235 (frame 0), 235 (-17 each, the sleepy overlay) and 221 (by
+ * day). Every scene in the loop must stay under 1.5 times this (388.5).
  */
-const VISIT_ART_BASELINE = 285
+const VISIT_ART_BASELINE = 259
 
 function paint(over: Partial<Snapshot> = {}, t = 0.3, frame = 100): FillCall[] {
   const { ctx, log } = fakeContext()
@@ -185,9 +193,9 @@ const POSTER: Box = [116, 138, 50, 78]
 const TROPHIES: Box = [194, 210, 74, 80]
 /** All the studio's art keeps inside the phone crop, x 24-296: object-fit: cover crops the rest at 375x667. */
 const PHONE_CROP: Box = [24, 296, 0, 179]
-/** The mangaka (24x32) seated at the desk, and standing beside it. */
-const SEATED: Box = [132, 155, 67, 98]
-const STANDING: Box = [170, 193, 81, 112]
+/** The mangaka (the 32x48 rig) seated at the desk (down to the desk top's line, row 39), and standing beside it. */
+const SEATED: Box = [124, 155, 58, 97]
+const STANDING: Box = [170, 201, 81, 128]
 /** Where the editor stands on a visit (Task 2.3): the furniture keeps off it too. */
 const EDITOR_SPOT_BOX: Box = [198, 221, 85, 116]
 const LAMP_GLOW = 'rgba(255,236,170,0.18)'
@@ -232,16 +240,16 @@ describe('the studio in the scene', () => {
     expect(key(paint({ trophies: 2 }))).not.toBe(key(paint({ trophies: 1 })))
   })
 
-  it('paints the scene with no studio look in its measured 309 fills', () => {
+  it('paints the scene with no studio look in its measured 292 fills', () => {
     expect(paint(BARE_FULL, 0.9, 100)).toHaveLength(FULL_BASELINE)
-    expect(FULL_BASELINE * 1.5).toBe(463.5)
+    expect(FULL_BASELINE * 1.5).toBe(438)
   })
 
   it('keeps the full scene inside the canvas, free of magenta and under 1.5 times its own worst case', () => {
     // the loop's worst scene, the editor visiting, has its own pin (VISIT_FULL_BASELINE), and the loop is held to 1.5
     // times that
     const budget = VISIT_FULL_BASELINE * 1.5
-    expect(budget).toBe(693)
+    expect(budget).toBe(654)
     let most = 0
     for (const [t, frame, visiting] of [[0.9, 100, 0], [0.9, 0, 0], [0.3, 100, 0], [0.9, 100, 1]]) {
       const log = paint(visiting ? { ...EVERYTHING, visitor: 'editor', visitorProp: 'contract' } : EVERYTHING, t, frame)
@@ -265,11 +273,11 @@ describe('the studio in the scene', () => {
     const bare = fakeContext()
     render(bare.ctx, sceneSnapshot(BARE_FULL), 0.9, 100, art)
     expect(bare.log).toHaveLength(FULL_ART_BASELINE)
-    expect(FULL_ART_BASELINE * 1.5).toBe(289.5)
+    expect(FULL_ART_BASELINE * 1.5).toBe(264)
     // the loop's worst scene, the editor visiting, has its own pin (VISIT_ART_BASELINE), and the loop is held to 1.5
     // times that
     const budget = VISIT_ART_BASELINE * 1.5
-    expect(budget).toBe(427.5)
+    expect(budget).toBe(388.5)
     let most = 0
     for (const [t, frame, visiting] of [[0.9, 100, 0], [0.9, 0, 0], [0.3, 100, 0], [0.9, 100, 1]]) {
       const { ctx, log, images } = fakeContext()
@@ -417,13 +425,13 @@ describe('the studio art', () => {
       for (const c of log) {
         const where = `${what}: ${JSON.stringify(c)}`
         // the drafting table's top overhangs to x 175, under the standing mangaka's leading arm (drawn after it)
-        expect(overlaps(c, what === 'drafting-table' ? [176, 193, 81, 112] : STANDING), where).toBe(false)
+        expect(overlaps(c, what === 'drafting-table' ? [176, 201, 81, 128] : STANDING), where).toBe(false)
         expect(overlaps(c, EDITOR_SPOT_BOX), where).toBe(false)
         // the mangaka sits in the chair, drawn over it, and in front of the poster on the wall (x 116-137, y 50-77)
         if (what === 'chair' || what === 'anime poster') continue
-        // the drafting table stands in the desk's place: its top (y 98) runs across the lap, as the desk's does; the pen
-        // tablet (x 150-159, y 96-97) lies inside the seated box but under no lap pixel (the lap is x 135-148)
-        const box: Box = what === 'drafting-table' ? [132, 155, 67, 97] : what === 'tablet' ? [132, 149, 67, 98] : SEATED
+        // the drafting table stands in the desk's place: its top (y 98) runs under the waist line, as the desk's does;
+        // the pen tablet (x 150-159, y 96-97) lies inside the seated box, right of the pen hand (x 124-149)
+        const box: Box = what === 'tablet' ? [124, 149, 58, 97] : SEATED
         expect(overlaps(c, box), where).toBe(false)
       }
     }
@@ -547,8 +555,8 @@ describe('the studio\'s draw order', () => {
   it('seats the hero in the tall chair (drawn before the hero) behind the drafting table (drawn after)', () => {
     const { ctx, log, images } = fakeContext()
     render(ctx, sceneSnapshot(EVERYTHING), 0.3, 100)
-    // the seated mangaka's cached frame, drawn at the seat (132, 67)
-    const seated = images.find((i) => i.id === 'cast/mangaka.sit.0/pal')
+    // the seated mangaka's cached frame, drawn at the seat (124, 58) (its rows 0-39 again after the page stack)
+    const seated = images.find((i) => i.id === 'cast/seat.draw-a~open.closed.none/pal')
     expect(seated).toBeDefined()
     const hero = seated!.at
     for (const i of at(log, alone((ctx) => EQUIPMENT_ART.chair(ctx, FULL, 100, false)))) {

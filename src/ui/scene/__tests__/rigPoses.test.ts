@@ -1,7 +1,7 @@
 // The cast's pose families keep their contracts (0.11.0): written from each family's rules, not cell literals, so a
 // redraw that keeps the rules passes. Pure data, node environment.
 import { describe, expect, it } from 'vitest'
-import { RIG_SPOTS } from '../actors'
+import { MANGAKA_SEAT } from '../actors'
 import { placeLayers } from '../rig/assemble'
 import { ANIMS } from '../rig/anims'
 import type { AnimId } from '../rig/anims'
@@ -208,7 +208,7 @@ describe('the desk (task 12)', () => {
 
   it('seats the head at rows 6-27 and the hips on row 40, the desk top\'s line at the seat', () => {
     expect([at('seat.rest', 'head'), at('seat.rest', 'torso'), at('seat.rest', 'legFront')]).toEqual([{ x: 4, y: 6 }, { x: 7, y: 27 }, { x: 10, y: 40 }])
-    expect(RIG_SPOTS.mangaka.seat.y + 40).toBe(98)
+    expect(MANGAKA_SEAT.y + 40).toBe(98)
     expect(frame('seat.rest')[47]).toMatch(/[^.]/)
   })
 

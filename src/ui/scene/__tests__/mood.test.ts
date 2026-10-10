@@ -1,7 +1,7 @@
 // mood.ts is pure TypeScript (no DOM), so this runs in the default node environment.
 import { describe, expect, it } from 'vitest'
 import { LOW_STAMINA_THRESHOLD } from '../../../sim'
-import { CHEER_MS, catFrame, cheersFor, idleFrame, moodOf } from '../mood'
+import { CHEER_MS, catFrame, cheersFor, moodOf } from '../mood'
 import { FACES, PAL } from '../sprites'
 
 describe('moodOf', () => {
@@ -51,24 +51,6 @@ describe('cheersFor', () => {
 describe('CHEER_MS', () => {
   it('is 2400', () => {
     expect(CHEER_MS).toBe(2400)
-  })
-})
-
-describe('idleFrame', () => {
-  it('cycles breathe (0-239), stretch (240-299) and sip (300-359) over a 360-frame period', () => {
-    expect(idleFrame(0)).toEqual({ set: 'breathe', index: 0 })
-    expect(idleFrame(16)).toEqual({ set: 'breathe', index: 1 })
-    expect(idleFrame(239)).toEqual({ set: 'breathe', index: 0 })
-    expect(idleFrame(240)).toEqual({ set: 'stretch', index: 0 })
-    expect(idleFrame(255)).toEqual({ set: 'stretch', index: 1 })
-    expect(idleFrame(300)).toEqual({ set: 'sip', index: 0 })
-    expect(idleFrame(315)).toEqual({ set: 'sip', index: 1 })
-    expect(idleFrame(360)).toEqual({ set: 'breathe', index: 0 })
-  })
-
-  it('returns the same object for the same pose (nothing allocated per call)', () => {
-    expect(idleFrame(0)).toBe(idleFrame(32))
-    expect(idleFrame(240)).toBe(idleFrame(240))
   })
 })
 

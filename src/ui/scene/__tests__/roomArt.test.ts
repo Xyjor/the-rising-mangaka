@@ -51,8 +51,8 @@ const LETTERS: Box = [259, 273, 108, 113]
 const BIN: Box = [232, 244, 150, 168]
 const POSTER: Box = [116, 138, 50, 78]
 const FRONT: Box = [60, 260, 140, 179]
-const SEATED: Box = [132, 155, 67, 98]
-const STANDING: Box = [170, 193, 81, 112]
+const SEATED: Box = [124, 155, 58, 97]
+const STANDING: Box = [170, 201, 81, 128]
 const EDITOR: Box = [198, 221, 85, 116]
 
 describe('each tier\'s room', () => {
@@ -326,11 +326,11 @@ describe('contact shadows', () => {
   it('grounds the standing mangaka: a shadow under the feet, drawn before them', () => {
     const { ctx, log, images } = fakeContext()
     render(ctx, sceneSnapshot({ phase: 'ready' }), 0.3, 100)
-    // the standing spot's frame is one image at (170, 81), its soles on row 31 (y 112): the shadow row under the feet
-    // (x 174-189, y 111-112) is painted before it
-    const under = covers(log, SHADOW, 178, 112)
+    // the standing spot's frame is one image at (170, 81), its soles on row 47 (y 128): the shadow under the feet
+    // (x 176-195, y 127-128) is painted before it
+    const under = covers(log, SHADOW, 180, 127)
     expect(under).toBeGreaterThan(-1)
-    const hero = images.find((i) => i.id.startsWith('cast/mangaka.') && i.x === 170 && i.y === 81)
+    const hero = images.find((i) => i.id.startsWith('cast/') && i.x === 170 && i.y === 81)
     expect(hero).toBeDefined()
     expect(hero!.at).toBeGreaterThan(under)
   })

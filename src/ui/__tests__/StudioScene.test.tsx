@@ -14,7 +14,6 @@ import type { GameState } from '../../sim'
 import { useClock } from '../../state/clock'
 import { useStore } from '../../state/store'
 import { StudioScene } from '../scene/StudioScene'
-import { setRigLive } from '../scene/actors'
 import { createSpriteCache, installCastCache } from '../scene/spriteCache'
 
 const PETAL = '#f7b6c8'
@@ -108,25 +107,39 @@ describe('StudioScene', () => {
     fake.log.length = 0
     fake.images.length = 0
     act(() => useStore.setState({ game: late }))
-    // the panic frame, drawn at the seat (132, 67)
-    const panic = (i: { id: string; x: number; y: number }) => i.id === 'cast/mangaka.panic.0/pal' && i.x === 132 && i.y === 67
+    // the panic frame (the late loop's first step), drawn at the seat (124, 58)
+    const panic = (i: { id: string; x: number; y: number }) => i.id === 'cast/key.panic-0/pal' && i.x === 124 && i.y === 58
     expect(fake.images.some(panic)).toBe(true)
     fake.log.length = 0
     fake.images.length = 0
     act(() => useStore.setState({ game: { ...late, serial: { ...late.serial!, nextDueDay: late.day + 60 } } }))
     expect(fake.log.length).toBeGreaterThan(0)
-    expect(fake.images.some((i) => i.id === 'cast/mangaka.sit.0/pal' && i.x === 132 && i.y === 67)).toBe(true)
+    expect(fake.images.some((i) => i.id === 'cast/seat.draw-a~open.closed.none/pal' && i.x === 124 && i.y === 58)).toBe(true)
     expect(fake.images.some(panic)).toBe(false)
   })
 
-  it('drives the cast with the rig on: the mangaka drawn from its base pose at the 0.11 standing spot', () => {
-    setRigLive({ mangaka: true, assistants: true })
+  it('drives the cast: the mangaka drawn from its base pose at the 0.11 standing spot', () => {
+    render(<StudioScene running={false} />)
+    act(() => useStore.setState({ game: { ...game, studio: { tier: 'loft', owned: [] } } }))
+    expect(fake.images.some((i) => i.id === 'cast/stand.idle~open.closed.none/pal' && i.x === 170 && i.y === 81)).toBe(true)
+  })
+
+  it('cheers when a good one-shot result is dismissed', () => {
+    restoreMotion()
+    restoreMotion = stubReducedMotion(false)
+    vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame', 'performance'] })
     try {
+      const pending = withPendingResult()
+      const good: GameState = { ...pending, pendingResult: { ...pending.pendingResult!, rank: 1 } }
+      useStore.setState({ game: good })
       render(<StudioScene running={false} />)
-      act(() => useStore.setState({ game: { ...game, studio: { tier: 'loft', owned: [] } } }))
-      expect(fake.images.some((i) => i.id === 'cast/stand.idle~open.closed.none/pal' && i.x === 170 && i.y === 81)).toBe(true)
+      vi.advanceTimersByTime(3000) // the editor walks in; everyone settles
+      fake.images.length = 0
+      act(() => useStore.setState({ game: { ...good, pendingResult: null } }))
+      vi.advanceTimersByTime(120)
+      expect(fake.images.some((i) => i.id.startsWith('cast/key.cheer-stand-'))).toBe(true)
     } finally {
-      setRigLive({ mangaka: false, assistants: false })
+      vi.useRealTimers()
     }
   })
 

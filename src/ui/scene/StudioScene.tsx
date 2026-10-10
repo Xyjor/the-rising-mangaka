@@ -6,7 +6,7 @@ import type { StudioLook } from '../../sim'
 import { useClock } from '../../state/clock'
 import { useStore } from '../../state/store'
 import { prefersReducedMotion } from '../motion'
-import { RIG_LIVE, anyWalking, editorWalksIn, newActorTable, planActors, setRigLive, settleActors, stepActors } from './actors'
+import { anyWalking, editorWalksIn, newActorTable, planActors, setRigLive, settleActors, stepActors } from './actors'
 import { headCentre, headTop, newCastPlay, resumeCast, settleCast, stepCast } from './castPlay'
 import type { CastInput } from './castPlay'
 import { reactionFor } from './reactions'
@@ -41,12 +41,12 @@ const NO_LOOK: StudioLook = {
 }
 
 /**
- * A dev build's `?rig` turns the rig on for the whole cast; `?rig=<animation>` also plays that animation over every
- * base of its posture whenever nothing else plays, so an art task sees its moments and reactions in the running
- * scene. A production build never reads it.
+ * A dev build's `?rig` turns the rig on for the assistants too (the mangaka always draws from it); `?rig=<animation>`
+ * also plays that animation over every base of its posture whenever nothing else plays, so an art task sees its
+ * moments and reactions in the running scene. A production build never reads it.
  */
 const DEV_RIG = import.meta.env.DEV && typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('rig') : null
-if (DEV_RIG !== null) setRigLive({ mangaka: true, assistants: true })
+if (DEV_RIG !== null) setRigLive({ assistants: true })
 const PREVIEW: AnimId | null = DEV_RIG !== null && DEV_RIG in ANIMS ? (DEV_RIG as AnimId) : null
 
 /** Reaction cues count up for the session, so the driver takes each once. */
@@ -116,13 +116,11 @@ export function StudioScene({ running }: { running: boolean }) {
       if (!st.readOnly && !st.windowHidden) getSound().play('knock')
     }
   }, [actors])
-  // over the rig head's centre while the rig draws the mangaka (its head top and centre per state), else the 24-wide
-  // 0.10 frame's
+  // the mangaka's over the rig head's centre (its head top and centre per state), the editor's over his 24-wide frame
   const placeBubbles = useCallback(() => {
     const m = actors.mangaka
     const e = actors.editor
-    const rig = RIG_LIVE.mangaka
-    placeBubble(mangakaBubble.current, rectRef.current, m.x + (rig ? headCentre(m.state) : 12), m.y + (rig ? headTop(m.state) : 0) - 2)
+    placeBubble(mangakaBubble.current, rectRef.current, m.x + headCentre(m.state), m.y + headTop(m.state) - 2)
     placeBubble(editorBubble.current, rectRef.current, e.x + 12, e.y - 2)
   }, [actors])
   // the driver's input, one object filled in place each step: nothing allocated per frame
@@ -226,8 +224,7 @@ export function StudioScene({ running }: { running: boolean }) {
   const popAnchor = useCallback(() => {
     const m = actors.mangaka
     if (m.state === 'away' || m.state === 'hidden') return DESK
-    const rig = RIG_LIVE.mangaka
-    return { x: m.x + (rig ? headCentre(m.state) : 12), y: m.y + (rig ? headTop(m.state) : 0) - 4 }
+    return { x: m.x + headCentre(m.state), y: m.y + headTop(m.state) - 4 }
   }, [actors])
   useEffect(() => useStore.subscribe((next, prev) => {
     if (next.windowHidden) return

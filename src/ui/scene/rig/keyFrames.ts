@@ -5,7 +5,7 @@
 import type { SpriteMap } from './types'
 
 /**
- * Asleep in bed, 48 wide x 32 tall, drawn at the bed frame (`RIG_BED_FRAME`, canvas (201, 90); the actor's bed spot
+ * Asleep in bed, 48 wide x 32 tall, drawn at the bed frame (`MANGAKA_BED_FRAME`, canvas (201, 90); the actor's bed spot
  * is (220, 90), so the standing head lands on the lying one), after 0.10's `MANGAKA_LIE`:
  * the rig head lying on the pillow, upright and frontal, at cols 23-46, rows 8-29 (the crown's outline on row 8; canvas
  * x 224-247, y 98-119, over the pillow), the eyes closed (`FACE_ART.eyes.closed`, a downward curve), the mouth closed;

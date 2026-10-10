@@ -2,7 +2,10 @@
 import { describe, expect, it } from 'vitest'
 import { sceneSnapshot } from '../../../test/fakeCanvas'
 import type { Snapshot } from '../render'
-import { EDITOR_SPOT, EDITOR_WALK_MS, RIG_BED_FRAME, RIG_SPOTS, editorWalksIn, newActorTable, planActors, settleActors, stepActors } from '../actors'
+import {
+  CAT_BED, EDITOR_SPOT, EDITOR_WALK_MS, MANGAKA_BED, MANGAKA_BED_FRAME, MANGAKA_DOOR, MANGAKA_SEAT, MANGAKA_STAND, RIG_SPOTS,
+  editorWalksIn, newActorTable, planActors, settleActors, stepActors,
+} from '../actors'
 import type { Actor, ActorTable } from '../actors'
 
 function walker(over: Partial<Actor> = {}): ActorTable {
@@ -54,25 +57,25 @@ describe('the actor table', () => {
 describe('planActors', () => {
   it('seats the mangaka and one assistant in the reference scene, the cat asleep in its bed', () => {
     const t = planned()
-    expect([t.mangaka.targetX, t.mangaka.targetY, t.mangaka.goal]).toEqual([132, 67, 'seated'])
+    expect([t.mangaka.targetX, t.mangaka.targetY, t.mangaka.goal]).toEqual([124, 58, 'seated'])
     const a = t.assistants
     expect([a[0].x, a[0].y, a[0].state]).toEqual([66, 89, 'seated'])
     expect([a[1].state, a[2].state]).toEqual(['hidden', 'hidden'])
     expect(t.editor.goal).toBe('hidden')
-    expect([t.cat.targetX, t.cat.targetY, t.cat.goal, t.cat.legs]).toEqual([196, 118, 'sleeping', 'xy'])
+    expect([t.cat.targetX, t.cat.targetY, t.cat.goal, t.cat.legs]).toEqual([202, 118, 'sleeping', 'xy'])
   })
 
   it('sends everyone to rest, stands the mangaka between projects, away on a trip, to bed when spent', () => {
     const rest = planned({ activity: 'rest' })
-    expect([rest.mangaka.targetX, rest.mangaka.targetY, rest.mangaka.goal]).toEqual([216, 106, 'sleeping'])
+    expect([rest.mangaka.targetX, rest.mangaka.targetY, rest.mangaka.goal]).toEqual([220, 90, 'sleeping'])
     expect(rest.assistants[0].state).toBe('sleeping')
     expect([rest.cat.targetX, rest.cat.targetY, rest.cat.goal, rest.cat.legs]).toEqual([44, 150, 'sitting', 'yx'])
     const idle = planned({ phase: 'idle' }).mangaka
     expect([idle.targetX, idle.targetY, idle.goal]).toEqual([170, 81, 'standing'])
     const away = planned({ away: true }).mangaka
-    expect([away.targetX, away.targetY, away.goal]).toEqual([254, 85, 'away'])
+    expect([away.targetX, away.targetY, away.goal]).toEqual([250, 69, 'away'])
     const spent = planned({ stamina: 0 }).mangaka
-    expect([spent.targetX, spent.targetY, spent.goal]).toEqual([216, 106, 'sleeping'])
+    expect([spent.targetX, spent.targetY, spent.goal]).toEqual([220, 90, 'sleeping'])
   })
 
   it('brings the editor in through the door and sends them back out', () => {
@@ -143,7 +146,13 @@ describe('the 0.11 spots (task 9)', () => {
   })
 
   it('fits the 0.11 spots around the furniture', () => {
-    const { seat, stand, bed } = RIG_SPOTS.mangaka
+    expect([MANGAKA_SEAT, MANGAKA_STAND, MANGAKA_BED, MANGAKA_DOOR, CAT_BED]).toEqual([
+      { x: 124, y: 58 }, { x: 170, y: 81 }, { x: 220, y: 90 }, { x: 250, y: 69 }, { x: 202, y: 118 },
+    ])
+    expect(MANGAKA_BED_FRAME).toEqual({ x: 201, y: 90 })
+    const seat = MANGAKA_SEAT
+    const stand = MANGAKA_STAND
+    const bed = MANGAKA_BED
     expect(seat.y + 40).toBe(98) // the seated waist (row 40) on the desk top
     expect(seat.x + 31).toBeLessThanOrEqual(155) // clear of the arm lamp (x 156)
     expect(seat.y + 6).toBeGreaterThan(63) // the seated head (row 6) under the corkboard (to y 63)
@@ -156,13 +165,13 @@ describe('the 0.11 spots (task 9)', () => {
     expect(xs[0] + 3).toBeGreaterThanOrEqual(24) // the first page and head inside the phone crop (x 24)
     expect(xs[2] + 27).toBeLessThanOrEqual(116) // the third head ends at the stock desk's left edge
     // the bed's key frames at their own origin: the lying head (cols 23-46) over the pillow (x 232-245)
-    expect([RIG_BED_FRAME.x + 23, RIG_BED_FRAME.x + 46]).toEqual([224, 247])
+    expect([MANGAKA_BED_FRAME.x + 23, MANGAKA_BED_FRAME.x + 46]).toEqual([224, 247])
     // the actor's bed spot puts its standing head (cols 4-27, rows 0-21) on the lying and sitting-up head, so walking
     // in or out of bed the head never jumps
-    expect([bed.x + 4, bed.y]).toEqual([RIG_BED_FRAME.x + 23, RIG_BED_FRAME.y])
-    const cat = RIG_SPOTS.catBed
+    expect([bed.x + 4, bed.y]).toEqual([MANGAKA_BED_FRAME.x + 23, MANGAKA_BED_FRAME.y])
+    const cat = CAT_BED
     expect(cat.x).toBeGreaterThan(stand.x + 31)
-    expect(cat.x + 11).toBeLessThan(RIG_BED_FRAME.x + 23) // clear of the lying head
+    expect(cat.x + 11).toBeLessThan(MANGAKA_BED_FRAME.x + 23) // clear of the lying head
     expect(cat.x + 11).toBeLessThan(bed.x) // and of the standing frame at the bed
     expect(cat.y).toBeGreaterThan(EDITOR_SPOT.y + 31)
   })

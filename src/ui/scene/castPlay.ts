@@ -184,9 +184,12 @@ function stepTrack(t: Track, a: Actor, who: CastWho, seat: number, live: boolean
   a.pose = poseAt(t.player, now)
 }
 
-/** One loop step for the whole cast at scene time `now`; `reduced` (reduced motion) holds every base's first step. */
+/**
+ * One loop step for the whole cast at scene time `now` (the mangaka always, the assistants while
+ * `RIG_LIVE.assistants`); `reduced` (reduced motion) holds every base's first step.
+ */
 export function stepCast(play: CastPlay, table: ActorTable, input: CastInput, now: number, reduced: boolean): void {
-  stepTrack(play.mangaka, table.mangaka, 'mangaka', 0, RIG_LIVE.mangaka, input, now, reduced)
+  stepTrack(play.mangaka, table.mangaka, 'mangaka', 0, true, input, now, reduced)
   for (let i = 0; i < 3; i++) stepTrack(play.assistants[i], table.assistants[i], 'assistant', i + 1, RIG_LIVE.assistants, input, now, reduced)
 }
 
@@ -206,7 +209,7 @@ function settleTrack(t: Track, a: Actor, who: CastWho, seat: number, live: boole
 
 /** Everyone on their base loop from now (a mount, a loaded save): no transition, the waiting cue taken as seen. */
 export function settleCast(play: CastPlay, table: ActorTable, input: CastInput, now: number): void {
-  settleTrack(play.mangaka, table.mangaka, 'mangaka', 0, RIG_LIVE.mangaka, input, now)
+  settleTrack(play.mangaka, table.mangaka, 'mangaka', 0, true, input, now)
   for (let i = 0; i < 3; i++) settleTrack(play.assistants[i], table.assistants[i], 'assistant', i + 1, RIG_LIVE.assistants, input, now)
 }
 
