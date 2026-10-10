@@ -410,7 +410,7 @@ the rig in the order its tasks drew it, then what every character shares. The ed
   the mark slot is clear, every eyes and mouth drawing fills its slot (its size, no `.`), and every mark is the slot's
   size in mark keys (`MARK_KEYS`, `L W A X`). `headWith(face)` stamps a whole face, the mark beside the hair. The staff
   portrait (`SpriteAvatar`) draws `headWith(NEUTRAL_FACE)` cropped to the head, rows 0-21 and cols 0-23
-  (`AVATAR_CROP`, 24x22; the SVG viewBox matches), in each assistant's colours. `ANCHOR_HEAD` stays for the editor's
+  (`AVATAR_CROP`, 24x22; the SVG viewBox adds a blank row above and below, 24x24, so the backdrop fills the 48x48 box), in each assistant's colours. `ANCHOR_HEAD` stays for the editor's
   0.10 frames and `scripts/pixelate.ts`'s graft. The gate's row I (`npm run sprites`) is the head with every eyes x
   mouth x mark at 8x, one row per eyes in `EYES` order; at task 7 every face read as its mood at a glance and each
   mark sat beside the hair, not on it, after two redraws: the first head was a round helmet over a moon face (the
@@ -700,7 +700,7 @@ late chapter, a 30x14 lying sprite under the blanket, the idle cycle's stretch a
 and the walk (`LEGACY_IDLE`, `LEGACY_WALK`): they stay undrawn as the editor's source (his walk is their legs in his
 suit) and as the anchor `scripts/pixelate.ts` checks `faceRules` against. Props (envelope, letter, contract, trophy)
 are small maps of their own. `SpriteAvatar` draws the rig head (since 0.11.0: rows 0-21, cols 0-23, 24x22; the SVG
-viewBox matches) as SVG rects (`spriteSvg.ts`) for the staff portraits.
+viewBox adds a blank row above and below, 24x24, so the backdrop fills the 48x48 box) as SVG rects (`spriteSvg.ts`) for the staff portraits.
 
 - **The cast redraw** (0.9.0, Release B). Every string-map frame but `ANCHOR_HEAD` is hand-redrawn by Claude in the
   same format, with the four Higgsfield sheets in `art/raw/sprites/` used as reference for proportions, colours and

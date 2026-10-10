@@ -27,6 +27,16 @@ function recording() {
 
 const FRAME: CastFrame = { id: 'test.frame', map: ['LJ.', '.JL'] }
 
+describe('the look palettes', () => {
+  it('has one palette id per assistant look, each wrapping as ASSISTANT_PALS does', () => {
+    const looks = Object.keys(CAST_PALETTES).filter((k) => k.startsWith('look'))
+    expect(looks.length).toBe(ASSISTANT_PALS.length)
+    for (let i = 0; i < ASSISTANT_PALS.length * 2; i++) {
+      expect(CAST_PALETTES[lookPalette(i)]).toBe(ASSISTANT_PALS[i % ASSISTANT_PALS.length])
+    }
+  })
+})
+
 describe('the sprite cache', () => {
   afterEach(() => installCastCache(null))
 

@@ -9,10 +9,12 @@ import { ASSISTANT_PALS } from '../sprites'
 import { NEUTRAL_FACE, headWith } from '../rig/head'
 
 describe('SpriteAvatar', () => {
-  it('renders the rig head in the look\'s colours, one rect per run plus the backdrop, in a 24x22 box', () => {
+  it('renders the rig head in the look\'s colours, one rect per run plus the backdrop, over a backdrop that fills the whole 48x48 box', () => {
     for (const look of [0, 1]) {
       const { container, unmount } = render(<SpriteAvatar look={look} />)
-      expect(container.querySelector('svg')?.getAttribute('viewBox')).toBe('0 0 24 22')
+      expect(container.querySelector('svg')?.getAttribute('viewBox')).toBe('0 -1 24 24')
+      const bg = container.querySelector('rect')
+      expect([bg?.getAttribute('y'), bg?.getAttribute('height'), bg?.getAttribute('width')]).toEqual(['-1', '24', '24'])
       const want = spriteRects(headWith(NEUTRAL_FACE), ASSISTANT_PALS[look], AVATAR_CROP)
       const rects = [...container.querySelectorAll('rect')].slice(1)
       expect(rects.map((r) => [r.getAttribute('x'), r.getAttribute('y'), r.getAttribute('width'), r.getAttribute('fill')]))

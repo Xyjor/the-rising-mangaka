@@ -1,6 +1,8 @@
 // The scene's reactions (0.11.0): which game event a store change brings that the cast reacts to. StudioScene
 // subscribes and hands each one to the snapshot as a one-shot cue (`Snapshot.reaction`). Pure: reads two states,
 // touches nothing. Good and bad are the corkboard's own tones (story.ts `rankToneOf`).
+// One cue is held per animation frame: two reactions inside one frame leave only the second (it overwrites the first
+// before the driver reads it), which is rare and accepted.
 import { chapterDeadline } from '../../sim'
 import type { GameState } from '../../sim'
 import type { PopState } from './Pops'
