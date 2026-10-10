@@ -149,10 +149,10 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   `headWith(face)`), `parts.ts` (`PARTS`: every torso, arm, leg and prop (the pen, the manuscript, the mug, the page) by name with its anchors, each outlined but where it
   joins another; the 32x48 frame standing has the head at (4, 0), the torso at (7, 21), the feet on row 47),
   `keyFrames.ts` (the poses the parts cannot make, hand-drawn whole with their face baked in: the bed's 48x32
-  `BED_LIE_0`, `BED_LIE_1` and `BED_SIT`, drawn at the bed; the reactions' 32x48 panic, cheer, slump and torn page), `poses.ts`
+  `BED_LIE_0`, `BED_LIE_1` and `BED_SIT`, drawn at the bed; the reactions' 32x48 panic, cheer, slump and torn page; the assistants' 32x48 doze, `DOZE_0`/`DOZE_1`), `poses.ts`
   (`PoseId`, `POSES`: each a part pose or a key frame and where it is drawn, `at` the actor, the seat or the bed),
   `anims.ts` (`AnimId`, `ANIM_IDS`, `ANIMS`: the 24 animations' fixed postures and looping, each step a pose and its
-  ms; one not drawn yet plays `STAND_IN`) and `frames.ts` (`rigFrame(pose, mood, ready)`: the frame assembled with the
+  ms, every one drawn) and `frames.ts` (`rigFrame(pose, mood, ready)`: the frame assembled with the
   mood's face, `faceOf`, memoized per pose, mood and ready, its id `pose~eyes.mouth.mark`, `frameId`); `spriteCache.ts` (0.11.0) the per-session sprite cache: each
   cast frame painted once per palette (`PaletteId`: `pal`, the outfits, `look0`-`look5`) and facing into an
   OffscreenCanvas (a `<canvas>` without one or when it gives no 2D context, a stand-in in node), keyed by frame id;

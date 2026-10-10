@@ -474,3 +474,24 @@ describe('the reactions (task 16)', () => {
     expect(chest('key.tear-2').some((row) => runs(row).length >= 2)).toBe(true)
   })
 })
+
+describe('the doze (task 18)', () => {
+  it('dozes at the desk, 900 ms a breath', () => {
+    expect(ANIMS.doze.steps).toEqual([{ pose: 'key.doze-0', ms: 900 }, { pose: 'key.doze-1', ms: 900 }])
+  })
+
+  it('lays the head on the folded arms: the crown at row 16 or below, the eyes shut, the sleeves across rows 33-39', () => {
+    for (const id of ['key.doze-0', 'key.doze-1'] as const) {
+      const m = key(id)
+      expect(crown(m), id).toBeGreaterThanOrEqual(16)
+      expect(m.join(''), id).not.toContain('E')
+      expect(m.slice(33, 40).join(''), id).toContain('j')
+    }
+  })
+
+  it('leaves the Z\'s cells clear above the head (cols 25-27, rows 11-15)', () => {
+    for (const id of ['key.doze-0', 'key.doze-1'] as const) {
+      for (let r = 11; r <= 15; r++) expect(key(id)[r].slice(25, 28), `${id} row ${r}`).toBe('...')
+    }
+  })
+})

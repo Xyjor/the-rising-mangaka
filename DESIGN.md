@@ -554,7 +554,7 @@ at `CAT_BED` (4 fills, drawn just before it).
   `seat.half` at the seat). Standing: `stand.idle`, `stand.breath` (the head a row lower into the collar, the body
   unchanged from row 23 down) and `stand.blink` (the blink eyes over the mood's face). `rig/anims.ts` `ANIMS` is the
   fixed table of the 24 animations (`AnimId`, `ANIM_IDS`): each id's posture and looping are final, and until its art
-  task draws it each plays one 500 ms step of `stand.idle` (`STAND_IN`). `stand` loops idle and breath (500 ms each,
+  task drew it each played one 500 ms step of `stand.idle` (`STAND_IN`, gone since the doze, task 18). `stand` loops idle and breath (500 ms each,
   the last breath 380 ms) and blinks for 120 ms, 3 s a cycle. `rig/frames.ts` `rigFrame(pose, mood, ready)` assembles
   a part pose with its face (`faceOf`: the mood's, the pose's own slots over it, no mark while the manuscript is
   ready) on first use and returns the same `CastFrame` after, its id the pose and the face
@@ -730,6 +730,22 @@ at `CAT_BED` (4 fills, drawn just before it).
   panic, the three outfits, the seated cheer in the six looks; a scratch scene mock at 1x, 2x and 6x) the cheer read as
   banzai, the slump as a hung head, the tear as a page ripped in two; one redraw: the first panic's hands, three cells
   at the hair's corners, read as ears, so each hand now spreads six wide over the crown.
+- **The doze** (0.11.0, task 18). The assistants' base loop asleep at the row's desk (`doze`, posture `bed`, the
+  slot an assistant's sleep fills), two key frames (`rig/keyFrames.ts` `DOZE_0`, `DOZE_1`, 32x48, at the actor), after
+  0.10's generated `ASSISTANT_DOZE` at 1.5x: the head down on the arms folded on the desk. The rig head (`seat.rest`'s,
+  eyes shut, the blush) at (4, 16), its crown's outline on row 16, the mouth and chin behind the arms; the shoulders
+  hunched either side of it (rows 29-31, J lit on the left, j in shade on the right); the forearms folded across rows
+  32-39 in the sleeves' j, round at the ends, the elbows a column wider, the near forearm's cuff at col 14 and its hand
+  lying out of it on the far forearm (cols 15-17, rows 34-35); their underside on row 39, the desk-top line (canvas y
+  120 at the assistants' y 80); rows 40-47 `seat.rest`'s hips, legs and shoes, which the desk covers. The breath
+  (`DOZE_1`) sinks the head and the shoulders a row into the arms. 900 ms each, as the bed's sleep. Render's Z goes at
+  (25, 11): cols 25-27, rows 11-15 stay clear (rigPoses.test). In the six looks the hair H/h carries the look; the
+  shirt R/r is hidden under the bowed head, as in 0.10's doze. At the gate (task 18, `--only doze` beside
+  `ASSISTANT_DOZE`, the three outfits and the six looks, and a 1x crop) it read as a head bowed on a pillow of arms;
+  two redraws: the first draft's upper arms rose beside the head as posts and its forearms were eight rows stacked,
+  which read as a grey bar held up, so the arms became one rounded band with small hunched shoulders and the head a row
+  lower (the mouth hidden in both beats); and a hand centred on the band read as a button, so it lies out of the near
+  cuff. The doze was the last `STAND_IN`: every animation is drawn and the stand-in is gone.
 
 The frame sets still drawn: sit 2 (`frame/8 % 2` while working, frame 0 otherwise; the 0.10 assistants', in their
 looks, until task 19), the assistants' doze, the editor's idle and walk, and the 12x8 cat (sleep, sit, its groom and

@@ -2,8 +2,8 @@
 // it is drawn: at the actor, or at the seat or the bed whatever the actor's position (a transition there plays while
 // the actor already walks). Every PoseId is in the union and the table, so a pose named anywhere and not drawn fails tsc.
 import {
-  BED_LIE_0, BED_LIE_1, BED_SIT, CHEER_SEAT_0, CHEER_SEAT_1, CHEER_STAND_0, CHEER_STAND_1, PANIC_0, PANIC_1, SLUMP_SEAT_0,
-  SLUMP_SEAT_1, SLUMP_STAND_0, SLUMP_STAND_1, TEAR_0, TEAR_1, TEAR_2,
+  BED_LIE_0, BED_LIE_1, BED_SIT, CHEER_SEAT_0, CHEER_SEAT_1, CHEER_STAND_0, CHEER_STAND_1, DOZE_0, DOZE_1, PANIC_0, PANIC_1,
+  SLUMP_SEAT_0, SLUMP_SEAT_1, SLUMP_STAND_0, SLUMP_STAND_1, TEAR_0, TEAR_1, TEAR_2,
 } from './keyFrames'
 import type { PartPose, Place, Pose } from './types'
 
@@ -18,6 +18,7 @@ export type PoseId =
   | 'seat.rub-a' | 'seat.rub-b'
   | 'key.panic-0' | 'key.panic-1' | 'key.cheer-stand-0' | 'key.cheer-stand-1' | 'key.cheer-seat-0' | 'key.cheer-seat-1'
   | 'key.slump-stand-0' | 'key.slump-stand-1' | 'key.slump-seat-0' | 'key.slump-seat-1' | 'key.tear-0' | 'key.tear-1' | 'key.tear-2'
+  | 'key.doze-0' | 'key.doze-1'
 
 export interface PoseDef { readonly pose: Pose; readonly at: 'actor' | 'seat' | 'bed' }
 
@@ -117,4 +118,7 @@ export const POSES: Readonly<Record<PoseId, PoseDef>> = {
   'key.tear-0': { pose: { kind: 'key', map: TEAR_0 }, at: 'actor' },
   'key.tear-1': { pose: { kind: 'key', map: TEAR_1 }, at: 'actor' },
   'key.tear-2': { pose: { kind: 'key', map: TEAR_2 }, at: 'actor' },
+  // the assistants' doze at the row's desk, the head down on the folded arms, and its breath
+  'key.doze-0': { pose: { kind: 'key', map: DOZE_0 }, at: 'actor' },
+  'key.doze-1': { pose: { kind: 'key', map: DOZE_1 }, at: 'actor' },
 }

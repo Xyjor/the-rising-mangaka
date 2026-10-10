@@ -818,3 +818,121 @@ export const TEAR_2: SpriteMap = [
   '...........LOooLLOooL...........', // 46
   '...........LLLLLLLLLL...........', // 47
 ]
+
+/**
+ * The assistants' doze (32 x 48, at the actor), after 0.10's generated `ASSISTANT_DOZE` at 1.5x: seated at the row's
+ * desk, the head down on the arms folded on it. The rig head (`seat.rest`'s, its eyes shut, `FACE_ART.eyes.closed`,
+ * the blush, no E) at (4, 16), its crown's outline on row 16 and the hair from row 17, the mouth and chin behind the
+ * folded arms; the shoulders hunched either side of it (rows 29-31, the hoodie J lit on the left, j in shade on the
+ * right); the forearms folded across rows 32-39 in the sleeves' j (so the outfits' palettes recolour them), their ends
+ * round and the elbows a column wider, the near forearm's cuff at col 14 and its hand (S, cols 15-17, rows 34-35)
+ * lying out of it on the far forearm; their underside's outline on row 39, on the desk-top line (canvas y 120 at the assistants' y 80). Rows
+ * 40-47 are `seat.rest`'s hips, legs and shoes, which the assistants' desk covers. Render's Z goes at (25, 11): cols
+ * 25-27, rows 11-15 stay clear. In the six looks the hair H/h carries the look (the shirt R/r is hidden under the
+ * bowed head, as in 0.10's doze).
+ */
+export const DOZE_0: SpriteMap = [
+  '................................', // 0
+  '................................', // 1
+  '................................', // 2
+  '................................', // 3
+  '................................', // 4
+  '................................', // 5
+  '................................', // 6
+  '................................', // 7
+  '................................', // 8
+  '................................', // 9
+  '................................', // 10
+  '................................', // 11
+  '................................', // 12
+  '................................', // 13
+  '................................', // 14
+  '................................', // 15
+  '...........LLLLLLLLLL...........', // 16 the crown's outline
+  '.........LLHHHHHHHHHHLL.........', // 17
+  '.......LLHHHHHHHHHHHHhhLL.......', // 18
+  '......LHHHHHHHHHHHHHHHHhhL......', // 19
+  '.....LHHHHHHHHHHHHHHHHHHhhL.....', // 20
+  '.....LHHHHHHHHHHHHHHHHHHhhL.....', // 21
+  '....LHHHHHHHHHHHHHHHHHHHHhhL....', // 22
+  '....LHHHHHHHHHHHHHHHHHHHHhhL....', // 23
+  '....LHHHHHHHSHHHHHHSHHHHHhhL....', // 24 the bangs
+  '....LHHHHHHSSHHHHHSSHHHHHhhL....', // 25
+  '.....LHHSSSSSSSSSSSSSSSShhL.....', // 26
+  '....LSHHSSSSSSSSSSSSSSSShhsL....', // 27
+  '....LSHHSLSSLSSSSSSLSSLShhsL....', // 28 the eyes shut, a downward curve
+  '...LLSLSSSLLSSSSSSSSLLSSSLsLL...', // 29 the shoulders hunched either side of the head
+  '..LJLSLSBBBSSSSSSSSSSBBBSLsLjL..', // 30 the blush
+  '..LJJLSSSSSSSSSSSSSSSSSSSsLjjL..', // 31
+  '...LLLLLLLLLLLLLLLLLLLLLLLLLL...', // 32 the folded arms' top outline over the mouth and chin
+  '..LjjjjjjjjjjjLjjjjjjjjjjjjjjL..', // 33 the near forearm's cuff (col 14) over the far forearm
+  '.LjjjjjjjjjjjjLSSSLjjjjjjjjjjjL.', // 34 the near hand out of it, lying on the far forearm
+  '.LjjjjjjjjjjjjLSssLjjjjjjjjjjjL.', // 35
+  '.LjjjjjjjjjjjjLLLLjjjjjjjjjjjjL.', // 36 under the hand
+  '.LjjjjjjjjjjjjLjjjjjjjjjjjjjjjL.', // 37
+  '..LjjjjjjjjjjjLjjjjjjjjjjjjjjL..', // 38
+  '...LLLLLLLLLLLLLLLLLLLLLLLLLL...', // 39 the arms' underside, on the desk-top line
+  '..........LLLLLLLLLLLL..........', // 40 under the desk from here (`seat.rest`'s hips, legs and shoes)
+  '..........LFFFFLLFFffL..........', // 41
+  '..........LFFFfLLFFffL..........', // 42
+  '...........LLffLLffLL...........', // 43
+  '............LffLLffL............', // 44
+  '...........LOOoLLOOoL...........', // 45
+  '...........LOooLLOooL...........', // 46
+  '...........LLLLLLLLLL...........', // 47
+]
+
+/**
+ * The doze's breath: `DOZE_0` with the head and the shoulders a row lower (the head at (4, 17), sunk a row into the
+ * arms, which cover the row under the blush; the shoulders' tops on row 30), the folded arms and rows 32-47 as before.
+ */
+export const DOZE_1: SpriteMap = [
+  '................................', // 0
+  '................................', // 1
+  '................................', // 2
+  '................................', // 3
+  '................................', // 4
+  '................................', // 5
+  '................................', // 6
+  '................................', // 7
+  '................................', // 8
+  '................................', // 9
+  '................................', // 10
+  '................................', // 11
+  '................................', // 12
+  '................................', // 13
+  '................................', // 14
+  '................................', // 15
+  '................................', // 16
+  '...........LLLLLLLLLL...........', // 17 the crown's outline, a row lower
+  '.........LLHHHHHHHHHHLL.........', // 18
+  '.......LLHHHHHHHHHHHHhhLL.......', // 19
+  '......LHHHHHHHHHHHHHHHHhhL......', // 20
+  '.....LHHHHHHHHHHHHHHHHHHhhL.....', // 21
+  '.....LHHHHHHHHHHHHHHHHHHhhL.....', // 22
+  '....LHHHHHHHHHHHHHHHHHHHHhhL....', // 23
+  '....LHHHHHHHHHHHHHHHHHHHHhhL....', // 24
+  '....LHHHHHHHSHHHHHHSHHHHHhhL....', // 25
+  '....LHHHHHHSSHHHHHSSHHHHHhhL....', // 26
+  '.....LHHSSSSSSSSSSSSSSSShhL.....', // 27
+  '....LSHHSSSSSSSSSSSSSSSShhsL....', // 28
+  '....LSHHSLSSLSSSSSSLSSLShhsL....', // 29
+  '...LLSLSSSLLSSSSSSSSLLSSSLsLL...', // 30 the shoulders, a row lower
+  '..LJLSLSBBBSSSSSSSSSSBBBSLsLjL..', // 31 the blush, at the arms' edge
+  '...LLLLLLLLLLLLLLLLLLLLLLLLLL...', // 32
+  '..LjjjjjjjjjjjLjjjjjjjjjjjjjjL..', // 33
+  '.LjjjjjjjjjjjjLSSSLjjjjjjjjjjjL.', // 34
+  '.LjjjjjjjjjjjjLSssLjjjjjjjjjjjL.', // 35
+  '.LjjjjjjjjjjjjLLLLjjjjjjjjjjjjL.', // 36
+  '.LjjjjjjjjjjjjLjjjjjjjjjjjjjjjL.', // 37
+  '..LjjjjjjjjjjjLjjjjjjjjjjjjjjL..', // 38
+  '...LLLLLLLLLLLLLLLLLLLLLLLLLL...', // 39
+  '..........LLLLLLLLLLLL..........', // 40
+  '..........LFFFFLLFFffL..........', // 41
+  '..........LFFFfLLFFffL..........', // 42
+  '...........LLffLLffLL...........', // 43
+  '............LffLLffL............', // 44
+  '...........LOOoLLOOoL...........', // 45
+  '...........LOooLLOooL...........', // 46
+  '...........LLLLLLLLLL...........', // 47
+]

@@ -1,5 +1,5 @@
-// The cast's animations (0.11.0): every step a pose and how long it shows. The ids, postures and looping are final;
-// an animation whose art has not landed yet plays one step of the standing pose (`STAND_IN`) until its task draws it.
+// The cast's animations (0.11.0): every step a pose and how long it shows. The ids, postures and looping are final,
+// and every animation is drawn (the stand-in that played until each landed is gone since the doze, task 18).
 import type { Anim, Posture, Step } from '../animation'
 import type { PoseId } from './poses'
 
@@ -90,8 +90,8 @@ const TEAR: readonly Step<PoseId>[] = [
   { pose: 'key.tear-1', ms: 200 }, { pose: 'key.tear-2', ms: 300 },
 ]
 
-/** One step of the standing pose, while an animation's art has not landed. */
-const STAND_IN: readonly Step<PoseId>[] = [{ pose: 'stand.idle', ms: 500 }]
+/** The assistants' doze at their desk: the head on the folded arms, then the breath (head and shoulders a row lower), 900 ms each, as the bed's sleep. */
+const DOZE: readonly Step<PoseId>[] = [{ pose: 'key.doze-0', ms: 900 }, { pose: 'key.doze-1', ms: 900 }]
 
 export const ANIMS: Readonly<Record<AnimId, Anim<PoseId>>> = {
   stand: anim('stand', 'stand', true, [
@@ -111,7 +111,7 @@ export const ANIMS: Readonly<Record<AnimId, Anim<PoseId>>> = {
     { pose: 'seat.breath', ms: 380 }, { pose: 'seat.blink', ms: 120 },
   ]),
   sleep: anim('sleep', 'bed', true, [{ pose: 'bed.lie-0', ms: 900 }, { pose: 'bed.lie-1', ms: 900 }]),
-  doze: anim('doze', 'bed', true, STAND_IN),
+  doze: anim('doze', 'bed', true, DOZE),
   'sit-down': anim('sit-down', 'seat', false, SIT_DOWN),
   'stand-up': anim('stand-up', 'walk', false, STAND_UP),
   'lie-down': anim('lie-down', 'bed', false, SIT_UP),
