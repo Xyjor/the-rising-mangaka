@@ -419,22 +419,20 @@ describe('art manifest', () => {
   })
 
   it('remaps the doze\'s folded arms (rows 27-30) from the torso J to the sleeves j, as the mangaka\'s body (task B3)', () => {
+    // the recipe keeps its remap, retired since 0.11.0 task 19 (the rig's hand-drawn doze replaced it); `npm run art --
+    // sprite/assistant-doze` restores the module with it
     const doze = loadSprites().find((e) => e.id === 'sprite/assistant-doze')
     expect(doze?.remap).toEqual([{ rows: [27, 30], from: 'J', to: 'j' }])
-    // and the generated module carries it: no J on those rows (the eight manifest cells touch none of them)
-    const mod = readFileSync(join(SCENE_DIR, 'generated', 'assistant-doze.ts'), 'utf8')
-    const rows = [...mod.matchAll(/^\s+'([.A-Za-z]{24})', \/\/ (\d+)$/gm)].map((m) => [Number(m[2]), m[1]] as const)
-    expect(rows).toHaveLength(32)
-    for (const [r, row] of rows) if (r >= 27 && r <= 30) expect(row, `row ${r}`).not.toContain('J')
-    expect(rows.filter(([r]) => r >= 27 && r <= 30).some(([, row]) => row.includes('j'))).toBe(true)
+    expect(doze?.retired).toBe(true)
   })
 
   it('has no generated frame module without a non-retired sprite entry', () => {
     const live = new Set(loadSprites().filter((e) => !e.retired).map((e) => `${e.id.slice(7)}.ts`))
-    const onDisk = readdirSync(join(SCENE_DIR, 'generated')).filter((f) => f.endsWith('.ts'))
+    const dir = join(SCENE_DIR, 'generated')
+    const onDisk = existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith('.ts')) : []
     for (const f of onDisk) expect(live.has(f), `orphan or retired frame module: generated/${f}`).toBe(true)
-    // and the controller's ruling: only the assistants' doze is drawn from a generated frame
-    expect(onDisk).toEqual(['assistant-doze.ts'])
+    // since 0.11.0 no generated frame is drawn: the assistants' doze is a hand-drawn rig key frame
+    expect(onDisk).toEqual([])
   })
 
   it('has no orphan PNGs under src/assets/art', () => {

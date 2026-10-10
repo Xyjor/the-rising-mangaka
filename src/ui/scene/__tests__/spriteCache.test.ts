@@ -5,6 +5,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { fakeContext } from '../../../test/fakeCanvas'
 import type { FillCall } from '../../../test/fakeCanvas'
 import { OLD_CAST } from '../oldCast'
+import { MOODS, rigFrame } from '../rig/frames'
+import { POSES } from '../rig/poses'
+import type { PoseId } from '../rig/poses'
 import { ASSISTANT_PALS, OUTFIT_PALS, PAL, drawSprite } from '../sprites'
 import {
   CAST_PALETTES, castSurfaceId, createSpriteCache, defaultSurface, drawCast, drawCastTop, getCastCache, installCastCache,
@@ -56,20 +59,29 @@ describe('the sprite cache', () => {
 
   it('paints each run of one key as one fill, mirrored runs too', () => {
     const { made, cache } = recording()
-    cache.image(OLD_CAST.mangakaSit[0], 'pal', false)
-    // row 1 '....LLHHHHHHHHHhLL......': one 9-wide hair run from col 6
-    expect(made[0].log).toContainEqual({ style: '#2b2140', x: 6, y: 1, w: 9, h: 1 })
-    expect(made[0].log).not.toContainEqual({ style: '#2b2140', x: 7, y: 1, w: 1, h: 1 })
+    // the standing rig frame's row 1, the crown's hair: one run of H, read off its map
+    const stand = rigFrame('stand.idle', 'neutral', false)
+    const hair = /H+/.exec(stand.map[1])!
+    expect(hair[0].length).toBeGreaterThan(1)
+    cache.image(stand, 'pal', false)
+    expect(made[0].log).toContainEqual({ style: '#2b2140', x: hair.index, y: 1, w: hair[0].length, h: 1 })
+    expect(made[0].log).not.toContainEqual({ style: '#2b2140', x: hair.index + 1, y: 1, w: 1, h: 1 })
     cache.image(OLD_CAST.editorIdle[0], 'pal', true)
     // row 24 '.......LggggggggL.LFFFfL' mirrored: FFF at cols 2-4, the hem's g at cols 8-15
     expect(made[1].log).toContainEqual({ style: '#6d4c33', x: 2, y: 24, w: 3, h: 1 })
     expect(made[1].log).toContainEqual({ style: '#2c3656', x: 8, y: 24, w: 8, h: 1 })
   })
 
-  it('paints every 0.10 cast frame in each palette it is drawn in, never magenta', () => {
+  it('paints every cast frame (the editor and the cat, every rig pose in every mood) in all nine palettes, never magenta', () => {
     const { made, cache } = recording()
-    const frames = Object.values(OLD_CAST).flatMap((f) => (Array.isArray(f) ? f : [f])) as CastFrame[]
-    for (const f of frames) for (const pal of ['pal', 'cardigan', 'blazer', 'look0', 'look5'] as const) cache.image(f, pal, false)
+    const old = Object.values(OLD_CAST).flatMap((f) => (Array.isArray(f) ? f : [f])) as CastFrame[]
+    const rig = (Object.keys(POSES) as PoseId[]).flatMap((pose) => [
+      ...MOODS.map((mood) => rigFrame(pose, mood, false)), rigFrame(pose, 'neutral', true),
+    ])
+    const pals = Object.keys(CAST_PALETTES) as (keyof typeof CAST_PALETTES)[]
+    expect(pals).toHaveLength(9)
+    for (const f of [...old, ...rig]) for (const pal of pals) cache.image(f, pal, false)
+    expect(made.length).toBeGreaterThan(9 * Object.keys(POSES).length)
     for (const m of made) expect(m.log.some((c) => c.style === '#f0f'), m.id).toBe(false)
   })
 

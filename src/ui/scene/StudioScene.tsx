@@ -6,7 +6,7 @@ import type { StudioLook } from '../../sim'
 import { useClock } from '../../state/clock'
 import { useStore } from '../../state/store'
 import { prefersReducedMotion } from '../motion'
-import { anyWalking, editorWalksIn, newActorTable, planActors, setRigLive, settleActors, stepActors } from './actors'
+import { anyWalking, editorWalksIn, newActorTable, planActors, settleActors, stepActors } from './actors'
 import { headCentre, headTop, newCastPlay, resumeCast, settleCast, stepCast } from './castPlay'
 import type { CastInput } from './castPlay'
 import { reactionFor } from './reactions'
@@ -41,12 +41,10 @@ const NO_LOOK: StudioLook = {
 }
 
 /**
- * A dev build's `?rig` turns the rig on for the assistants too (the mangaka always draws from it); `?rig=<animation>`
- * also plays that animation over every base of its posture whenever nothing else plays, so an art task sees its
- * moments and reactions in the running scene. A production build never reads it.
+ * A dev build's `?rig=<animation>` plays that animation over every base of its posture whenever nothing else plays, so
+ * an art task sees its moments and reactions in the running scene. A production build never reads it.
  */
 const DEV_RIG = import.meta.env.DEV && typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('rig') : null
-if (DEV_RIG !== null) setRigLive({ assistants: true })
 const PREVIEW: AnimId | null = DEV_RIG !== null && DEV_RIG in ANIMS ? (DEV_RIG as AnimId) : null
 
 /** Reaction cues count up for the session, so the driver takes each once. */

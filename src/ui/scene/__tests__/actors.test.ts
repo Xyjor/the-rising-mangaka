@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest'
 import { sceneSnapshot } from '../../../test/fakeCanvas'
 import type { Snapshot } from '../render'
 import {
-  CAT_BED, EDITOR_SPOT, EDITOR_WALK_MS, MANGAKA_BED, MANGAKA_BED_FRAME, MANGAKA_DOOR, MANGAKA_SEAT, MANGAKA_STAND, RIG_SPOTS,
-  editorWalksIn, newActorTable, planActors, settleActors, stepActors,
+  ASSISTANT_SEAT_X, ASSISTANT_SEAT_Y, CAT_BED, EDITOR_SPOT, EDITOR_WALK_MS, MANGAKA_BED, MANGAKA_BED_FRAME, MANGAKA_DOOR,
+  MANGAKA_SEAT, MANGAKA_STAND, editorWalksIn, newActorTable, planActors, settleActors, stepActors,
 } from '../actors'
 import type { Actor, ActorTable } from '../actors'
 
@@ -59,7 +59,7 @@ describe('planActors', () => {
     const t = planned()
     expect([t.mangaka.targetX, t.mangaka.targetY, t.mangaka.goal]).toEqual([124, 58, 'seated'])
     const a = t.assistants
-    expect([a[0].x, a[0].y, a[0].state]).toEqual([66, 89, 'seated'])
+    expect([a[0].x, a[0].y, a[0].state]).toEqual([21, 80, 'seated'])
     expect([a[1].state, a[2].state]).toEqual(['hidden', 'hidden'])
     expect(t.editor.goal).toBe('hidden')
     expect([t.cat.targetX, t.cat.targetY, t.cat.goal, t.cat.legs]).toEqual([202, 118, 'sleeping', 'xy'])
@@ -126,22 +126,22 @@ describe('the 0.11 spots (task 9)', () => {
     expect([t.mangaka.pose, t.editor.pose, t.cat.pose]).toEqual(['', '', ''])
   })
 
-  it('plans the rig spots when asked: the mangaka in through its own door, the assistants\' row, the cat\'s bed', () => {
+  it('plans the rig spots: the mangaka in through its own door, the assistants\' row, the cat\'s bed', () => {
     const t = newActorTable()
-    planActors(t, sceneSnapshot({ actors: t }), RIG_SPOTS)
+    planActors(t, sceneSnapshot({ actors: t }))
     expect([t.mangaka.x, t.mangaka.y, t.mangaka.targetX, t.mangaka.targetY, t.mangaka.goal]).toEqual([250, 69, 124, 58, 'seated'])
     expect(t.assistants.map((a) => [a.x, a.y, a.state])).toEqual([[21, 80, 'seated'], [254, 85, 'hidden'], [254, 85, 'hidden']])
     expect([t.cat.targetX, t.cat.targetY]).toEqual([202, 118])
     const plan = (over: Partial<Snapshot>) => {
       const u = newActorTable()
-      planActors(u, sceneSnapshot({ ...over, actors: u }), RIG_SPOTS)
+      planActors(u, sceneSnapshot({ ...over, actors: u }))
       return [u.mangaka.targetX, u.mangaka.targetY, u.mangaka.goal]
     }
     expect(plan({ activity: 'rest' })).toEqual([220, 90, 'sleeping'])
     expect(plan({ phase: 'idle' })).toEqual([170, 81, 'standing'])
     expect(plan({ away: true })).toEqual([250, 69, 'away'])
     const three = newActorTable()
-    planActors(three, sceneSnapshot({ assistants: [{ look: 0, stamina: 80 }, { look: 1, stamina: 80 }, { look: 2, stamina: 80 }], actors: three }), RIG_SPOTS)
+    planActors(three, sceneSnapshot({ assistants: [{ look: 0, stamina: 80 }, { look: 1, stamina: 80 }, { look: 2, stamina: 80 }], actors: three }))
     expect(three.assistants.map((a) => a.x)).toEqual([21, 55, 89])
   })
 
@@ -159,7 +159,9 @@ describe('the 0.11 spots (task 9)', () => {
     expect(stand.x).toBeGreaterThanOrEqual(170) // clear of the arm lamp (to x 169)
     expect(stand.y).toBeGreaterThanOrEqual(81) // below the sill's coffee machine and trophies (to y 80)
     expect(stand.y + 47).toBe(128)
-    const { xs, y } = RIG_SPOTS.seats
+    expect([ASSISTANT_SEAT_X, ASSISTANT_SEAT_Y]).toEqual([[21, 55, 89], 80])
+    const xs = ASSISTANT_SEAT_X
+    const y = ASSISTANT_SEAT_Y
     expect(xs.map((x, i) => (i ? x - xs[i - 1] : 0))).toEqual([0, 34, 34])
     expect(y + 40).toBe(120) // the assistants' waist on their desk top
     expect(xs[0] + 3).toBeGreaterThanOrEqual(24) // the first page and head inside the phone crop (x 24)

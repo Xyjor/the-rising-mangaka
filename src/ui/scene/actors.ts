@@ -27,7 +27,7 @@ export interface Actor {
   anim: number
   /**
    * The rig pose showing now (castPlay.ts sets it each step); '' for an actor the driver has not posed (render then
-   * draws its base loop's first step) or that draws its 0.10 frames (the assistants until their rig, the editor, the cat).
+   * draws its base loop's first step) or that draws its 0.10 frames (the editor and the cat).
    */
   pose: PoseId | ''
 }
@@ -59,37 +59,15 @@ export const EDITOR_SPOT: Spot = { x: 198, y: 85 }
 /** The cat's bed on the blanket: clear of the standing frame at the stand (to x 201) and of the lying head (from x 224). */
 export const CAT_BED: Spot = { x: 202, y: 118 }
 export const CAT_KITCHEN: Spot = { x: 44, y: 150 }
-export const ASSISTANT_SEAT_Y = 89
-export const ASSISTANT_SEAT_X: readonly number[] = [66, 86, 106]
+/**
+ * The assistants' seats for the 32x48 rig (0.11.0, the plan's decision 3, each checked in actors.test): one row, 34 px
+ * apart, in front of the main desk, from x 21 (the first head and page inside the phone crop, x 24) to the third head
+ * ending at the stock desk's left edge (x 116); the seated waist (row 40) on their desk top (y 120).
+ */
+export const ASSISTANT_SEAT_Y = 80
+export const ASSISTANT_SEAT_X: readonly number[] = [21, 55, 89]
 /** The editor's walk from the door to their spot: 56 + 0 px at 40 px/s, 1400 ms. */
 export const EDITOR_WALK_MS = ((DOOR_SPOT.x - EDITOR_SPOT.x) + (DOOR_SPOT.y - EDITOR_SPOT.y)) / WALK_PX_PER_S * 1000
-
-/** The assistants' seats: one row, the seats' left edges and their shared top. */
-export interface SeatRow { readonly xs: readonly number[]; readonly y: number }
-/** The spots that still depend on which frames draw: the assistants' row (the mangaka's are the rig's for good). */
-export interface SpotSet { readonly seats: SeatRow }
-
-/** The 0.10 seats, for the 24x32 frames. */
-export const LEGACY_SPOTS: SpotSet = { seats: { xs: ASSISTANT_SEAT_X, y: ASSISTANT_SEAT_Y } }
-/** The 0.11 seats for the 32x48 rig (the plan's decision 3: one row, 34 px apart, each checked in actors.test). */
-export const RIG_SEATS: SeatRow = { xs: [21, 55, 89], y: 80 }
-export const RIG_SPOTS: SpotSet = { seats: RIG_SEATS }
-
-/**
- * Which characters draw from the rig besides the mangaka (always, since 0.11.0's task 17): the assistants, off until
- * their set is complete (the plan's task 19 turns them on for good); a dev build turns them on with `?rig` in the URL
- * (StudioScene). Tests turn them on and back off.
- */
-export const RIG_LIVE: { assistants: boolean } = { assistants: false }
-
-export function setRigLive(live: { assistants: boolean }): void {
-  RIG_LIVE.assistants = live.assistants
-}
-
-/** The seats the live cast sits on: the rig's while the assistants draw from it, else the 0.10 ones. */
-export function liveSpots(): SpotSet {
-  return RIG_LIVE.assistants ? RIG_SPOTS : LEGACY_SPOTS
-}
 
 /** What the plan reads from the scene's snapshot. */
 export interface ActorPlanInput {
@@ -129,7 +107,7 @@ function place(a: Actor, x: number, y: number, state: ActorState) {
 }
 
 /** Sets everyone's target and goal from the game (the same absent, busy and resting rules as the painter). */
-export function planActors(table: ActorTable, snap: ActorPlanInput, spots: SpotSet = liveSpots()): void {
+export function planActors(table: ActorTable, snap: ActorPlanInput): void {
   const absent = snap.away || snap.activity === 'job'
   const busy = !absent && snap.phase === 'drawing' && snap.activity === 'work' && snap.stamina > 0
   const resting = !absent && !busy && snap.phase !== 'idle' && snap.phase !== 'ready'
@@ -145,7 +123,7 @@ export function planActors(table: ActorTable, snap: ActorPlanInput, spots: SpotS
     const a = table.assistants[i]
     if (i < n) {
       const asleep = snap.assistants[i].stamina <= 0 || snap.activity === 'rest'
-      place(a, spots.seats.xs[i], spots.seats.y, asleep ? 'sleeping' : 'seated')
+      place(a, ASSISTANT_SEAT_X[i], ASSISTANT_SEAT_Y, asleep ? 'sleeping' : 'seated')
     } else place(a, DOOR_SPOT.x, DOOR_SPOT.y, 'hidden')
   }
 

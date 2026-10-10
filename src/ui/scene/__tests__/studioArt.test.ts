@@ -78,9 +78,13 @@ const EVERYTHING: Partial<Snapshot> = {
  * and 1) 582, MANGAKA_SIT[1] once (assistant 2) 195 and CAT_SLEEP 39: 1125 - 582 - 195 - 39 = 309. The sleepy face's 17
  * fills over the mangaka stay fills (the mood overlay is code-drawn until the rig head bakes it). Upgrade 0.11.0 Task 17
  * re-measured it the same way at 292 (-17): BARE_FULL's mangaka is seated, working, at night, so sleepy, and its face
- * and mark (FACES.sleepy 12 runs, MARKS.sleepy 5) are in its rig frame now: 309 - 17 = 292.
+ * and mark (FACES.sleepy 12 runs, MARKS.sleepy 5) are in its rig frame now: 309 - 17 = 292. Upgrade 0.11.0 Task 19
+ * re-measured it the same way at 289 (-3): the three assistants draw from the rig only, each seat-draw's first frame at
+ * the 0.11 row (21, 55, 89; y 80), and the 0.10 row's three stools (one 10x4 fill each) go, a 32x48 seated body covering
+ * each; the assistants are neutral (stamina 80, no cheer, never sleepy), so `drawMood`'s removal takes 0; their desk and
+ * pages move after the main desk group, the same count: 292 - 3 = 289.
  */
-const FULL_BASELINE = 292
+const FULL_BASELINE = 289
 
 /**
  * fillRect calls for `BARE_FULL` at night, t 0.9, frame 100, with every generated image ready (`fakeSceneArt`),
@@ -97,9 +101,10 @@ const FULL_BASELINE = 292
  * the 584's +35: 974 + 35 = 1009. Upgrade 0.11.0 Task 6 re-measured it the same way at 193 (-816), as the 309's (the
  * images replace no sprite): 1009 - 582 - 195 - 39 = 193. Upgrade 0.11.0 Task 17 re-measured it the same way at 176
  * (-17), as the 292's (the sleepy face 12 and mark 5 in the rig frame; the images replace no sprite): 193 - 17 = 176.
- * The full scene with the art ready must stay under 1.5 times this (its own budget, 264).
+ * Upgrade 0.11.0 Task 19 re-measured it the same way at 173 (-3), as the 289's (the three stools; the images replace no
+ * stool): 176 - 3 = 173. The full scene with the art ready must stay under 1.5 times this (its own budget, 259.5).
  */
-const FULL_ART_BASELINE = 176
+const FULL_ART_BASELINE = 173
 
 /**
  * fillRect calls for the worst scene of the full-scene loop with no art (`EVERYTHING`: the loft, every piece of
@@ -118,9 +123,13 @@ const FULL_ART_BASELINE = 176
  * Task 17 re-measured it the same way at 436 (-26): the mangaka's surprised face (22) and mark (4) are in its rig frame
  * now (`~ring.o.bang`), so they leave the fill log: 462 - 26 = 436 (the visit itself adds 24, his shadow, the contract and
  * the !). The loop's other scenes lose the sleepy face and mark (-17) at night, 412 (frame 0) and 412, and stay 399 by
- * day (neutral). Every scene in the loop must stay under 1.5 times this (654).
+ * day (neutral). Upgrade 0.11.0 Task 19 re-measured it the same way at 433 (-3): the three assistants' stools go (a
+ * 32x48 seated rig body covers each), and their mood overlay took nothing out (all three neutral: stamina 80, no cheer;
+ * the editor's visit never surprises an assistant), so `drawMood`'s removal is 0: 436 - 3 = 433; the loop's other
+ * scenes are 409 (frame 0), 409 and 396 (by day), each -3. Every scene in the loop must stay under 1.5 times this
+ * (649.5).
  */
-const VISIT_FULL_BASELINE = 436
+const VISIT_FULL_BASELINE = 433
 
 /**
  * fillRect calls for the same worst scene (the editor visiting, t 0.9, frame 100) with every generated image ready
@@ -133,9 +142,11 @@ const VISIT_FULL_BASELINE = 436
  * sleepy to surprised +9): 252 + 33 = 285. The loop's other scenes are 252 (frame 0), 252 and 221 (by day). Upgrade
  * 0.11.0 Task 17 re-measured it the same way at 259 (-26), as the 436's (the surprised face 22 and mark 4 in the rig
  * frame): 285 - 26 = 259; the loop's other scenes are 235 (frame 0), 235 (-17 each, the sleepy overlay) and 221 (by
- * day). Every scene in the loop must stay under 1.5 times this (388.5).
+ * day). Upgrade 0.11.0 Task 19 re-measured it the same way at 256 (-3), as the 433's (the three stools; the assistants'
+ * overlay 0): 259 - 3 = 256; the loop's other scenes are 232 (frame 0), 232 and 218 (by day). Every scene in the loop
+ * must stay under 1.5 times this (384).
  */
-const VISIT_ART_BASELINE = 259
+const VISIT_ART_BASELINE = 256
 
 function paint(over: Partial<Snapshot> = {}, t = 0.3, frame = 100): FillCall[] {
   const { ctx, log } = fakeContext()
@@ -240,16 +251,16 @@ describe('the studio in the scene', () => {
     expect(key(paint({ trophies: 2 }))).not.toBe(key(paint({ trophies: 1 })))
   })
 
-  it('paints the scene with no studio look in its measured 292 fills', () => {
+  it('paints the scene with no studio look in its measured 289 fills', () => {
     expect(paint(BARE_FULL, 0.9, 100)).toHaveLength(FULL_BASELINE)
-    expect(FULL_BASELINE * 1.5).toBe(438)
+    expect(FULL_BASELINE * 1.5).toBe(433.5)
   })
 
   it('keeps the full scene inside the canvas, free of magenta and under 1.5 times its own worst case', () => {
     // the loop's worst scene, the editor visiting, has its own pin (VISIT_FULL_BASELINE), and the loop is held to 1.5
     // times that
     const budget = VISIT_FULL_BASELINE * 1.5
-    expect(budget).toBe(654)
+    expect(budget).toBe(649.5)
     let most = 0
     for (const [t, frame, visiting] of [[0.9, 100, 0], [0.9, 0, 0], [0.3, 100, 0], [0.9, 100, 1]]) {
       const log = paint(visiting ? { ...EVERYTHING, visitor: 'editor', visitorProp: 'contract' } : EVERYTHING, t, frame)
@@ -273,11 +284,11 @@ describe('the studio in the scene', () => {
     const bare = fakeContext()
     render(bare.ctx, sceneSnapshot(BARE_FULL), 0.9, 100, art)
     expect(bare.log).toHaveLength(FULL_ART_BASELINE)
-    expect(FULL_ART_BASELINE * 1.5).toBe(264)
+    expect(FULL_ART_BASELINE * 1.5).toBe(259.5)
     // the loop's worst scene, the editor visiting, has its own pin (VISIT_ART_BASELINE), and the loop is held to 1.5
     // times that
     const budget = VISIT_ART_BASELINE * 1.5
-    expect(budget).toBe(388.5)
+    expect(budget).toBe(384)
     let most = 0
     for (const [t, frame, visiting] of [[0.9, 100, 0], [0.9, 0, 0], [0.3, 100, 0], [0.9, 100, 1]]) {
       const { ctx, log, images } = fakeContext()

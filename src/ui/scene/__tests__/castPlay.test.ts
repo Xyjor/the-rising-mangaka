@@ -1,7 +1,7 @@
 // The cast driver: pure rules plus a table of tracks mutated in place, node environment. Assertions name animations
 // by id and poses through ANIMS, so they hold as each animation's art replaces its stand-in.
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { newActorTable, setRigLive } from '../actors'
+import { describe, expect, it } from 'vitest'
+import { newActorTable } from '../actors'
 import { animLength } from '../animation'
 import {
   IDLE_MOMENTS, PHASE_MS, baseAnimFor, headCentre, headTop, idlePool, newCastPlay, reactionAnim, resumeCast, settleCast,
@@ -68,9 +68,6 @@ describe('the driver\'s rules', () => {
 })
 
 describe('stepCast', () => {
-  beforeEach(() => setRigLive({ assistants: true }))
-  afterEach(() => setRigLive({ assistants: false }))
-
   it('sits down on arriving at the desk, then draws; stands up on leaving it', () => {
     const t = newActorTable()
     const play = newCastPlay()
@@ -217,15 +214,6 @@ describe('stepCast', () => {
     // 24 fps up to just short of the shortest idle wait (6 s)
     for (let ms = 41; ms < 6000; ms += 41) stepCast(play, t, one, ms, false)
     expect([play.mangaka.player === m, play.assistants[0].player === a]).toEqual([true, true])
-  })
-
-  it('sets no pose while the rig is off for a character', () => {
-    setRigLive({ assistants: false })
-    const t = newActorTable()
-    t.mangaka.state = 'seated'
-    t.assistants[0].state = 'seated'
-    stepCast(newCastPlay(), t, input(), 0, false)
-    expect([t.mangaka.pose, t.assistants[0].pose]).toEqual([ANIMS['seat-draw'].steps[0].pose, ''])
   })
 
   it('settles every track to its base from now, and resumes with everything played out', () => {

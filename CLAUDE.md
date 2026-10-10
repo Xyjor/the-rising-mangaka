@@ -109,32 +109,35 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   window pane; `render.ts` holds the palettes, string-map sprites and `render`, one frame painted from a `Snapshot`
   with nothing allocated per frame (`Snapshot.late` turns the seated mangaka to the late loop, which opens on the panic;
   `Snapshot.reaction` is the one-shot `ReactionCue` the cast driver takes once per character, render never reads it);
-  since 0.11.0 the mangaka (always, since task 17) and an assistant while `RIG_LIVE.assistants` is on draw from the rig:
-  its pose (`Actor.pose`, or with none its base loop's first step) is one `drawImage` of `rigFrame(pose, mood, ready)`,
-  the mood's face and mark baked in, at `poseOrigin` (the actor, or `MANGAKA_SEAT` or `MANGAKA_BED_FRAME`); a 0.10
-  assistant draws its 0.10 frame with the `drawMood` overlay; `workingOf(s)` (drawing at the desk with the clock running, shared with the driver) and
-  `assistantDesk(rig, shown)` (the 0.10 or the 0.11 row's desk, constants); `sceneArt.ts`
+  since 0.11.0 the mangaka (task 17) and the assistants (task 19) draw from the rig only: a pose (`Actor.pose`, or with
+  none its base loop's first step) is one `drawImage` of `rigFrame(pose, mood, ready)`, the mood's face and mark baked
+  in (no overlay), at `poseOrigin` (the actor, or `MANGAKA_SEAT` or `MANGAKA_BED_FRAME`); the assistants' row
+  (`drawAssistants`: the figures, their desk, their pages) goes after the desk group and before the mangaka's front
+  pass, in front of the main desk by depth; `workingOf(s)` (drawing at the desk with the clock running, shared with the
+  driver) and `assistantDesk(shown)` (the row's desk, a constant per count); `sceneArt.ts`
   `SceneArt` (render's fifth argument, before the sprite cache, default `NO_ART`): generated room walls (320x114, drawn over rows 0-113, the apartment's and the loft's; the flat has none since 0.10.1, its wall always code-drawn, `TIER_WALL`; the tier's floor is always code-drawn, `roomArt.ts` `TIER_FLOOR`) and prop sprites (structural, furniture, front row) drawn with
   `drawImage` (`ready`, `drawProp`; a sprite keeps its aspect at `PROP_SPRITE`, placed by `spriteBox` (`placeSprite` under `PROP_ALIGN`, sized by `PROP_SPRITE`/`PROP_MIN_H`/`PROP_MAX_W`; a desk by `hangSprite`) at render.ts's
   `PROP_BOX`, the fallback inside `PROP_FOOTPRINT`), each falling back to its code-drawn piece
   (`drawRoomShell`, the window frame, `TIER_DOOR`, ...) while missing or loading; `sceneImages.ts` builds them once from
   the registry's `ROOM_ART`/`SCENE_PROP_ART` (render.ts never imports the registry; `ROOM_ART` lists every tier, the
   flat `null`, so a new tier fails `tsc` until its wall is decided) and `StudioScene` repaints on a
-  load; characters stay string maps; `sprites.ts` the
-  palette (uppercase base, lowercase shade, `L` outline), the 24×32 chibi string-map frames (head rows 0-15, body
-  16-31), the run-length `drawSprite`, `frameRules` (closed outline, feet on the last row, every key in the palette),
-  `RUN_CAPS` (sprites.test.ts: each frame's run count capped at 1.3x its pre-redraw count, never raised),
-  `faceRules` (the FACES window rows 9-12 cols 4-17 holds only face keys, the mark slot clear, the head inside the
+  load; `sprites.ts` the
+  palette (uppercase base, lowercase shade, `L` outline), the 24×32 chibi string-map frames left (head rows 0-15, body
+  16-31: the editor's, and the 0.10 standing and walk frames he is cut from, `LEGACY_IDLE`/`LEGACY_WALK`, undrawn), the
+  12x8 cat and the editor's props, the run-length `drawSprite`, `frameRules` (closed outline, feet on the last row,
+  every key in the palette), `RUN_CAPS` (sprites.test.ts: the editor's and the cat's frames, each run count capped at
+  1.3x its pre-redraw count, never raised),
+  `faceRules` (the 0.10 face window rows 9-12 cols 4-17 holds only face keys, the mark slot clear, the head inside the
   0.10 avatar crop; it, `frameRules`, `PAL`, `FACE_KEYS`, `MARK_KEYS` and `ANCHOR_HEAD` live in the import-free leaf
   `spriteCore.ts`, re-exported, so `npm run art` never loads sprites.ts), `ANCHOR_HEAD` (the 0.10 frames' hand-drawn
   head, the editor's is built on it, and the `--sprite` graft uses it),
-  the generated frames (`src/ui/scene/generated/*.ts`, written by `npm run art` and never hand-edited): the cast is
-  hand-redrawn in 0.9.0 (Release B, gated on `npm run sprites`), every pose but `ANCHOR_HEAD` (`MANGAKA_IDLE` is
-  `ANCHOR_HEAD` over the hand-drawn body, frame 1 its `breathOf`); the one generated frame is the assistants' doze
-  (`ASSISTANT_DOZE`, task C2), its folded arms remapped `J` to `j` in the manifest, and every losing
-  candidate (C1's nine probe-sheet frames, C2's idle, walk, seated, stretch, sip, editor and cat) is retired: its
-  manifest recipe (`"retired": true`) and raw sheet kept, no module (art.test: `generated/` holds only
-  `assistant-doze.ts`), restored by `npm run art -- sprite/<name>`, see DESIGN.md "The sprites"), `FACES`/`MARKS` (the mood overlay and its mark above the head, drawn by `drawMood`) and `outfitOf`/`OUTFIT_PALS`
+  the generated frames (`src/ui/scene/generated/*.ts`, written by `npm run art` and never hand-edited; empty since
+  0.11.0 task 19): the 0.10 cast was hand-redrawn in 0.9.0 (Release B, gated on `npm run sprites`), every pose but
+  `ANCHOR_HEAD` (`LEGACY_IDLE` is `ANCHOR_HEAD` over the hand-drawn body); every generated candidate (C1's nine
+  probe-sheet frames, C2's idle, walk, seated, stretch, sip, editor and cat, and the assistants' doze, drawn from C2
+  until task 19 replaced it with the rig's hand-drawn doze) is retired: its manifest recipe (`"retired": true`) and raw
+  sheet kept, no module (art.test: no `generated/*.ts` without a non-retired entry, and none at all now), restored by
+  `npm run art -- sprite/<name>`, see DESIGN.md "The sprites"), and `outfitOf`/`OUTFIT_PALS`
   (the mangaka's outfit by level: hoodie, cardigan, blazer); `mood.ts` `moodOf` (the mood priority order),
   `cheersFor` (a fans or level-up pop starts a `CHEER_MS` cheer) and `catFrame` (the sitting cat's idle cycle; the
   mangaka's 0.10 `idleFrame` went with its 0.10 frames in 0.11.0, its idle moments are the cast driver's); `spriteSvg.ts` `spriteRects` and
@@ -160,9 +163,9 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   seated rig mangaka's rows 0-39 again with it, after the page stack); `getCastCache`/`installCastCache` (tests install a recording one). Memory: at most
   324 frames x 9 palettes x 2 facings x 6,144 B (a 32x48 RGBA surface), about 36 MB in theory; a realistic long career
   builds about 900-1,000 surfaces, about 6 MB. `oldCast.ts` (0.11.0) the 0.10 maps as cast frames (`OLD_CAST`), drawn
-  through the cache until each character's rig release (the mangaka's left at task 17: only the assistants' seated
-  and dozing frames, the editor's and the cat's remain); `render`'s last argument is the cache (`getCastCache()` by
-  default), each character one `drawImage` and the mood overlay still code-drawn over the 0.10 assistants'. `animation.ts` (0.11.0)
+  through the cache until each character's rig release (the mangaka's left at task 17, the assistants' at task 19:
+  the editor's and the cat's remain); `render`'s last argument is the cache (`getCastCache()` by default), each
+  character one `drawImage`, no mood overlay (the rig frames bake the face). `animation.ts` (0.11.0)
   the pure animation player: `Anim` (steps of a pose and ms, a loop or a one-shot, a `Posture`), `PlayerState` (the base
   loop and its start, the one-shot over it, a queue of at most `QUEUE_MAX` 2), `switchBase` (a transition first; a moment
   survives a base change within its posture), `enqueue`, `interrupt` (a one-shot that replaces the one playing),
@@ -185,9 +188,8 @@ canvas space; `story.ts` `storyLook`, the story props' five snapshot inputs read
   `settleActors` at `WALK_PX_PER_S`, and `EDITOR_WALK_MS`; since 0.11.0 `Actor.pose` (the rig pose `castPlay.ts` sets,
   '' when unposed), the mangaka's 0.11 spots under the 0.10 names (`MANGAKA_SEAT` (124, 58), `MANGAKA_STAND` (170, 81),
   `MANGAKA_BED` (220, 90) with the bed frames at `MANGAKA_BED_FRAME` (201, 90), `MANGAKA_DOOR` (250, 69), `CAT_BED`
-  (202, 118)), the assistants' 0.10 and 0.11 seat rows (`SpotSet { seats }`: `LEGACY_SPOTS`, `RIG_SPOTS`, passed to
-  `planActors(table, snap, spots = liveSpots())`) and `RIG_LIVE { assistants }` (their switch, off until their set is
-  complete, `setRigLive`; `liveSpots` picks the row by it); `visitor.ts` the editor's reason for visiting, its prop and
+  (202, 118)) and the assistants' 0.11 row (`ASSISTANT_SEAT_X` [21, 55, 89], `ASSISTANT_SEAT_Y` 80), all planned by
+  `planActors(table, snap)`; `visitor.ts` the editor's reason for visiting, its prop and
   its greeting (`sceneReasonOf` adds `tutorial`, the lowest reason: the editor stands at the spot while a tutorial step
   is open, empty-handed and silent, walking in on a new career's step 0 through `actors.ts` `editorWalksIn`, and the
   scene's greeting bubble hides while the guide is on screen, `clock.ts` `guideVisible`, not while a step waits); `sceneAnchor.ts` `sceneToCss` mapping scene pixels to the canvas's cover-fit CSS box; `Bubble.tsx`
@@ -196,15 +198,16 @@ canvas space; `story.ts` `storyLook`, the story props' five snapshot inputs read
   from the presentation clock, playing the `knock` and `pop` cues; since 0.11.0 it steps the cast driver every loop
   step on a scene clock of its own, `sceneMs`, the sum of the loop's steps, so it never jumps across a hidden stretch
   (`settleCast` on mount and a loaded save, `resumeCast` when the stopped loop restarts), turns `reactionFor` into a
-  `ReactionCue` on the snapshot (never while the window is hidden), and in a dev build `?rig` turns the assistants'
-  rig switch on, `?rig=<anim>` also playing that animation over every base of its posture; a production build never reads it,
+  `ReactionCue` on the snapshot (never while the window is hidden), and in a dev build `?rig=<anim>` plays that
+  animation over every base of its posture; a production build never reads it,
   `import.meta.env.DEV`); every render is checked against a hand-measured
-  fillRect baseline (`render.test.ts` 274, `studioArt.test.ts` 292; with every scene image ready, 157 and 176; the
-  rest scene with the doze, `render.test.ts` 303; re-measured by the 0.9.0 cast redraw, the art baselines rose by
+  fillRect baseline (`render.test.ts` 273, `studioArt.test.ts` 289; with every scene image ready, 156 and 173; the
+  rest scene with the doze, `render.test.ts` 302; re-measured by the 0.9.0 cast redraw, the art baselines rose by
   the apartment's code floor in 0.10.0, and all five fell in 0.11.0 once every character became one `drawImage` from the
-  sprite cache and left the fill log, the full scene's again once the mangaka's mood face moved into its rig frame; the
-  budget loops that sweep many scenes have their own worst-case pins: the flat in spring at night with the art ready
-  218, the full scene with the editor visiting 436, 259 with the art ready) and
+  sprite cache and left the fill log, the full scene's again once the mangaka's mood face moved into its rig frame, and
+  all five once more when the assistants' 0.10 stools went (task 19); the budget loops that sweep many scenes have
+  their own worst-case pins: the flat in spring at night with the art ready 217, the full scene with the editor
+  visiting 433, 256 with the art ready) and
   must stay under 1.5x
   it),
   `components.tsx` (Bar, Pips, Modal, RankChart), `format.ts` (money/compact/plural formatters), `Icon.tsx`

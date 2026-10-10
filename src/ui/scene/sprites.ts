@@ -1,10 +1,10 @@
 // The scene's sprites: the palette, the string maps and the painter that draws one (pure module constants, no React,
 // nothing allocated per frame). Each map is a list of rows, one character per pixel: '.' is clear, every other key is a
 // colour in PAL (uppercase the base, lowercase its shade; the light comes from the top left). Every 24x32 frame passes
-// `frameRules` (sprites.test.ts). Facing left; drawSprite mirrors a frame to face right.
+// `frameRules` (sprites.test.ts). Facing left; drawSprite mirrors a frame to face right. Since 0.11.0 the rig (rig/)
+// draws the mangaka and the assistants; the string maps left are the editor's and the cat's, the editor's props, and
+// the 0.10 standing and walk frames the editor is cut from (`LEGACY_IDLE`, `LEGACY_WALK`).
 import { LOOK_HAIRS, LOOK_HAIRS_SHADE, LOOK_SHIRTS, LOOK_SHIRTS_SHADE } from '../looks'
-import { ASSISTANT_DOZE_C2 } from './generated/assistant-doze'
-import type { Mood } from './mood'
 import { ANCHOR_HEAD, PAL, type SpriteMap } from './spriteCore'
 
 export { ANCHOR_HEAD, PAL, faceRules, frameRules } from './spriteCore'
@@ -33,11 +33,6 @@ export const OUTFIT_PALS: Record<Outfit, Record<string, string>> = {
   blazer: { ...PAL, J: '#2e3a78', j: '#222b5c', K: '#f6f6f6', Y: '#c0392b', y: '#8e2a20' },
 }
 
-/** The breath (as the hand-drawn idle has it): rows 0-23 a row lower, row 24 (the hem) tucked under, rows 25-31 kept. */
-export function breathOf(f: SpriteMap): SpriteMap {
-  return ['.'.repeat(f[0].length), ...f.slice(0, 24), ...f.slice(25)]
-}
-
 /** A map with each key in `from` swapped for the key at the same place in `to`, every other cell kept (pure: the
  * editor walks on the mangaka's legs recoloured to his suit). */
 function recolour(map: SpriteMap, from: string, to: string): SpriteMap {
@@ -48,7 +43,7 @@ function recolour(map: SpriteMap, from: string, to: string): SpriteMap {
  * torso J with its hood shadow j over the shoulders and down the right, the collar K either side of the neck over a
  * shirt V (R, the assistants' shirt colour) that the drawstring Y hangs from, three-wide darker sleeves j seamed from
  * the torso by an L and ending in a hand S (one s on its shaded side) closed by its own outline on row 23, so the
- * breath (`breathOf`, which tucks row 24, the hem j) never opens it; brown trousers F/f with the gap between the legs,
+ * 0.10 breath (which tucked row 24, the hem j) never opened it; brown trousers F/f with the gap between the legs,
  * and red shoes O/o on an L sole. Sleeve and hand are separate runs, so OUTFIT_PALS' darker j gives the cardigan and
  * blazer darker sleeves for free. */
 const IDLE_BODY: SpriteMap = [
@@ -71,141 +66,12 @@ const IDLE_BODY: SpriteMap = [
 ]
 const IDLE_0: SpriteMap = [...ANCHOR_HEAD, ...IDLE_BODY]
 
-/** Standing, the style anchor (frame 0: ANCHOR_HEAD over IDLE_BODY) and its breath (frame 1: rows 0-23 a row lower,
- * the hem tucked under, `breathOf`), 16 frames each. Hand-drawn: task C2's generated idle (`sprite/mangaka-front-idle`)
- * was a near tie and would have switched bodies mid-cycle against the hand-drawn stretch and sip, so it was retired
- * (its manifest recipe and raw sheet kept, no frame module; DESIGN.md "The sprites"). */
-export const MANGAKA_IDLE: readonly [SpriteMap, SpriteMap] = [IDLE_0, breathOf(IDLE_0)]
-
-/** How far each head-steady pose moves the head (the FACES overlay goes at rows 9-12 + headDy). stretch[1] is a row
- * lower than stretch[0] (MANGAKA_STRETCH[1] leads with a blank row, like MANGAKA_IDLE); sip's two frames share the
- * same row 0, so sip has no offset. */
-export const HEAD_DY = { idle: [0, 1], sit: [0, 0], stretch: [0, 1], sip: [0, 0] } as const satisfies {
-  idle: readonly [0, 1]; sit: readonly [0, 0]; stretch: readonly [0, 1]; sip: readonly [0, 0]
-}
-
 /**
- * The idle cycle's stretch (Decision 6): the standing body with both arms flung out and up beside the head, eyes closed.
- * Each sleeve rises from its shoulder cap (row 17, as the idle) a column further out per row to a fist beside the cheek
- * (rows 12-14, one wide at the fingertips, capped by an L on row 11, and three at the wrist, its one s at the bottom
- * corner); the arms leave the avatar crop, which is why the stretch is exempt from faceRules. Under the shoulders the
- * torso stands alone, two columns wider than the chest between the idle's seams, closed under each sleeve by an L row.
- * STRETCH[1] is the breath (`breathOf`: rows 0-23 a row lower, the hem tucked, headDy = 1), as MANGAKA_IDLE[1] is to
- * MANGAKA_IDLE[0].
+ * The 0.10 mangaka's standing and walk frames: no longer drawn (the rig draws the mangaka since 0.11.0); the editor's
+ * walk is cut from their legs until 0.12.0 redraws him. The standing frame is ANCHOR_HEAD over IDLE_BODY, the style
+ * anchor (`scripts/pixelate.ts` reports faceRules against it).
  */
-const STRETCH_0: SpriteMap = [
-  '......LLLLLLLLLL........', // 0
-  '....LLHHHHHHHHHhLL......', // 1
-  '...LHHHHHHHHHHHHhhL.....', // 2
-  '..LHHHHHHHHHHHHHHhhL....', // 3
-  '..LHHHHHHHHHHHHHHhhL....', // 4
-  '..LHHHHHHHHHHHHHHhhL....', // 5
-  '..LHHHSHHHHSHHHHHhhL....', // 6
-  '..LHSSSSSSSSSSSSSShL....', // 7
-  '..LHSSSSSSSSSSSSSSsL....', // 8
-  '..LHSSSSSSSSSSSSSSsL....', // 9  eyes closed
-  '..LHSSssSSSSSSssSSsL....', // 10 eyes closed
-  '.LLHSSSSSSSSSSSSSSsLL...', // 11 eyes closed; the L over each fist's fingertips
-  'LSLSBBSSSSMMSSSSBBsLSL..', // 12 the fingertips beside the cheeks
-  'LSSLSSSSSSSSSSSSSSsLSSL.', // 13
-  'LSSsLSSSSSSSSSSSSsLSSsL.', // 14 the fists, three wide at the wrist, one s each
-  '.LjjjLLsssssssssLLjjjL..', // 15 the raised sleeves, a column in per row down to the shoulders
-  '..LjjjLjKKsssKKjLjjjL...', // 16
-  '...LjjjLJKRRRKjLjjjL....', // 17 the shoulder caps, as the idle
-  '....LLLJJJRYRJJjLLL.....', // 18 the sleeves' undersides closed; the torso alone below, no arm-line L
-  '......LJJJJYJJJjL.......', // 19
-  '......LJJJJYJJJjL.......', // 20
-  '......LJJJJYJJJjL.......', // 21
-  '......LJJJJYJJJjL.......', // 22
-  '......LLJJJJJJjLL.......', // 23
-  '.......LjjjjjjjjL.......', // 24
-  '.......LFFFFFFFfL.......', // 25
-  '.......LFFFLFFFfL.......', // 26
-  '.......LFFFLFFFfL.......', // 27
-  '.......LFFFLFFFfL.......', // 28
-  '.......LFFfLFfffL.......', // 29
-  '......LOOoLLOOOoL.......', // 30
-  '......LLLLLLLLLLL.......', // 31
-]
-export const MANGAKA_STRETCH: readonly [SpriteMap, SpriteMap] = [STRETCH_0, breathOf(STRETCH_0)]
-
-/**
- * The idle cycle's sip (Decision 6): the standing body with the leading (left) arm raised, a mug at the mouth (rows
- * 12-14: the W rim in its L outline, then the hand holding it, S with its s). The sleeve stands where the idle's hangs
- * (cols 4-6) but ends at row 19, closed by an L row at 20, and its forearm turns in along row 15 under the chin to the
- * hand; the other arm hangs as the idle's. The mug's cells are face keys, so both frames pass faceRules and a mood
- * paints over it. SIP[1] closes the eyes, otherwise unchanged.
- */
-export const MANGAKA_SIP: readonly [SpriteMap, SpriteMap] = [
-  [
-    '......LLLLLLLLLL........', // 0
-    '....LLHHHHHHHHHhLL......', // 1
-    '...LHHHHHHHHHHHHhhL.....', // 2
-    '..LHHHHHHHHHHHHHHhhL....', // 3
-    '..LHHHHHHHHHHHHHHhhL....', // 4
-    '..LHHHHHHHHHHHHHHhhL....', // 5
-    '..LHHHSHHHHSHHHHHhhL....', // 6
-    '..LHSSSSSSSSSSSSSShL....', // 7
-    '..LHSSSSSSSSSSSSSSsL....', // 8
-    '..LHSSEESSSSSSEESSsL....', // 9
-    '..LHSSEWSSSSSSEWSSsL....', // 10
-    '..LHSSEESSSSSSEESSsL....', // 11
-    '..LSBBSSLWWLSSSSBBsL....', // 12 the mug rim
-    '...LSSSSLWWLSSSSSSsL....', // 13 the mug
-    '....LSSSLSsLSSSSSsL.....', // 14 the hand on the mug
-    '...LjjjjjjLsssssLL......', // 15 the forearm, in along the chin to the hand
-    '...LjjjLKKsssKKjjLL.....', // 16 the raised sleeve over the hood's shadow
-    '...LjjjLJKRRRKjLjjjL....', // 17
-    '...LjjjLJJRYRJjLjjjL....', // 18
-    '...LjjjLJJJYJJjLjjjL....', // 19
-    '....LLLLJJJYJJjLjjjL....', // 20 the raised sleeve's underside; the other arm hangs as the idle
-    '.......LJJJYJJjLjjjL....', // 21
-    '.......LJJJYJJjLSSsL....', // 22
-    '.......LJJJJJJjLLLL.....', // 23
-    '.......LjjjjjjjjL.......', // 24
-    '.......LFFFFFFFfL.......', // 25
-    '.......LFFFLFFFfL.......', // 26
-    '.......LFFFLFFFfL.......', // 27
-    '.......LFFFLFFFfL.......', // 28
-    '.......LFFfLFfffL.......', // 29
-    '......LOOoLLOOOoL.......', // 30
-    '......LLLLLLLLLLL.......', // 31
-  ],
-  [
-    '......LLLLLLLLLL........', // 0
-    '....LLHHHHHHHHHhLL......', // 1
-    '...LHHHHHHHHHHHHhhL.....', // 2
-    '..LHHHHHHHHHHHHHHhhL....', // 3
-    '..LHHHHHHHHHHHHHHhhL....', // 4
-    '..LHHHHHHHHHHHHHHhhL....', // 5
-    '..LHHHSHHHHSHHHHHhhL....', // 6
-    '..LHSSSSSSSSSSSSSShL....', // 7
-    '..LHSSSSSSSSSSSSSSsL....', // 8
-    '..LHSSSSSSSSSSSSSSsL....', // 9  eyes closed
-    '..LHSSssSSSSSSssSSsL....', // 10 eyes closed
-    '..LHSSSSSSSSSSSSSSsL....', // 11 eyes closed
-    '..LSBBSSLWWLSSSSBBsL....', // 12
-    '...LSSSSLWWLSSSSSSsL....', // 13
-    '....LSSSLSsLSSSSSsL.....', // 14
-    '...LjjjjjjLsssssLL......', // 15
-    '...LjjjLKKsssKKjjLL.....', // 16
-    '...LjjjLJKRRRKjLjjjL....', // 17
-    '...LjjjLJJRYRJjLjjjL....', // 18
-    '...LjjjLJJJYJJjLjjjL....', // 19
-    '....LLLLJJJYJJjLjjjL....', // 20
-    '.......LJJJYJJjLjjjL....', // 21
-    '.......LJJJYJJjLSSsL....', // 22
-    '.......LJJJJJJjLLLL.....', // 23
-    '.......LjjjjjjjjL.......', // 24
-    '.......LFFFFFFFfL.......', // 25
-    '.......LFFFLFFFfL.......', // 26
-    '.......LFFFLFFFfL.......', // 27
-    '.......LFFFLFFFfL.......', // 28
-    '.......LFFfLFfffL.......', // 29
-    '......LOOoLLOOOoL.......', // 30
-    '......LLLLLLLLLLL.......', // 31
-  ],
-] as const
+export const LEGACY_IDLE: SpriteMap = IDLE_0
 
 /** The walk's first contact under ANCHOR_HEAD: the left leg stepping out, a column further per row to a long shoe
  * whose toe reaches two columns past it, the right leg straight under the hip, the crotch line (L) on the hip row above
@@ -269,132 +135,16 @@ const WALK_PASS: SpriteMap = [
  * contact frames lead with different legs (the left foot reaching out on frame 0, the right on frame 2, the long shoe
  * the forward one), so the cycle steps rather than slides, and each swings up the arm opposite its forward leg (the
  * right on frame 0, the left on frame 2), never the same side's (a pacing gait); the pass frames are one map. */
-export const MANGAKA_WALK: readonly [SpriteMap, SpriteMap, SpriteMap, SpriteMap] = [
+export const LEGACY_WALK: readonly [SpriteMap, SpriteMap, SpriteMap, SpriteMap] = [
   [...ANCHOR_HEAD, ...WALK_CONTACT_0], WALK_PASS, [...ANCHOR_HEAD, ...WALK_CONTACT_2], WALK_PASS,
 ]
-
-/** The seated lap and legs (rows 25-31, task B3), shared by both sit frames and the panic: the thighs F forward to the
- * desk (left) with their underside in shade f, the knee at the left end, the shins dropping under it at cols 1-6 to
- * the shoe O/o on its L sole. Rows 29-30 stay inside cols 1-6, clear of the pen tablet (render.test's tablet box). */
-const SIT_LAP: SpriteMap = [
-  '.LFFFFFFFFFFFFFfL.......', // 25
-  '.LFFFFFFFFFFFFFfL.......', // 26
-  '.LFFFFFfffffffffL.......', // 27
-  '.LFFFfLLLLLLLLLLL.......', // 28
-  '.LFFFfL.................', // 29
-  '.LOOOoL.................', // 30
-  '.LLLLLL.................', // 31
-]
-
-/**
- * Seated at the desk (task B3): ANCHOR_HEAD over the idle's shoulders (rows 16-19: the K collar, the R V, the Y
- * drawstring, both sleeves j at the shoulders), then the leading arm bends out along the desk on rows 20-21 to the hand
- * round the pen (row 22, S with its s beside the pen's L at col 0, the pen's tip two rows above the fist), the trailing
- * sleeve hanging as the idle's to its hand on row 22, and the hem over the lap (SIT_LAP) toward the desk. Frame 1 is
- * the stroke: the forearm, the hand and the pen a row lower (rows 20-24), everything else shared, so only the hand
- * moves. No y shade on the drawstring (PAL.y is blue, which would speckle the hoodie's white cord; the idle has none).
- */
-const SIT_0: SpriteMap = [
-  ...ANCHOR_HEAD,
-  ...IDLE_BODY.slice(0, 4), // 16-19: the shoulders, collar, V and the sleeves at the shoulders, as the idle
-  'L.LjjjjLJJJYJJjLjjjL....', // 20 the pen's tip; the leading forearm turns out along the desk
-  'LLjjjjjLJJJYJJjLjjjL....', // 21
-  'LSSsLLLLJJJYJJjLSSsL....', // 22 the hand round the pen (its L at col 0); the trailing hand, as the idle's
-  'LLLL...LJJJJJJjLLLL.....', // 23
-  '.LLLLLLLjjjjjjjjL.......', // 24 the hem over the lap's top edge, out to the knee
-  ...SIT_LAP,
-]
-export const MANGAKA_SIT: readonly [SpriteMap, SpriteMap] = [
-  SIT_0,
-  [
-    ...SIT_0.slice(0, 20),
-    '...LjjjLJJJYJJjLjjjL....', // 20 the sleeve hangs a row longer
-    'L.LjjjjLJJJYJJjLjjjL....', // 21 the pen's tip; the forearm turns out a row lower
-    'LLjjjjjLJJJYJJjLSSsL....', // 22 the trailing hand stays
-    'LSSsLLLLJJJJJJjLLLL.....', // 23 the hand round the pen, a row lower: the stroke
-    'LLLLLLLLjjjjjjjjL.......', // 24 the pen's end on the lap's top edge
-    ...SIT_LAP,
-  ],
-]
-
-/**
- * Seated, late on a chapter: both hands clamped on top of the head (the hands meet the hair at rows 1-3, the forearms
- * run down and out over the hair's edge, the elbows out at cols 0-3 and 20-23), ringed eyes, the mouth open. This
- * replaces the earlier ruling's fists beside the head (rows 5-8): with the arms raised and the elbows out, the hands
- * on top read as hands, not ears. Task B3 made the raised arms j sleeves (a cuff under each hand on row 3, the upper
- * arms out along row 16 over the collar, closed under by row 17) and put the stretch's lone torso (rows 18-23) over
- * SIT_LAP under them. Frame 1 presses the hands a row lower (rows 2-3); rows 4-31 are frame 0's.
- */
-const PANIC_0: SpriteMap = [
-  '..LLLLLLLLLLLLLLLLLL....', // 0
-  '..LSSLHHHHHHHHHHLSsL....', // 1  the hands on top of the head
-  '.LSSSLHHHHHHHHHHhLSsL...', // 2
-  '.LjjLHHHHHHHHHHHHhLjjL..', // 3  the cuffs: the sleeves run down beside the head
-  'LjjLHHHHHHHHHHHHHhhLjjL.', // 4
-  'LjjLHHHHHHHHHHHHHhhLLjjL', // 5
-  'LjjLHHSHHHHSHHHHHhhLLjjL', // 6
-  'LjjLSSSSSSSSSSSSSShLLjjL', // 7
-  'LjjLSSSSSSSSSSSSSSsLLjjL', // 8
-  'LjLHSWWWSSSSSWWWSSsLLjjL', // 9  the ringed eyes
-  'LjLHSWEWSSSSSWEWSSsLLjjL', // 10
-  'LjLHSWWWSSSSSWWWSSsLLjjL', // 11
-  'LjLSBBSSSLMMLSSSBBsLLjjL', // 12 the mouth open
-  'LjLLSSSSSSSSSSSSSSsLLjjL', // 13
-  'LjL.LSSSSSSSSSSSSsL.LjjL', // 14
-  'LjL..LLsssssssssLL..LjjL', // 15
-  'LjjjjjLjKKsssKKjLjjjjjjL', // 16 the upper arms out to the elbows, over the hood's shadow and the collar
-  'LLLLLLLLJKRRRKjLLLLLLLL.', // 17 the arms' undersides closed; the V
-  '......LJJJRYRJJjL.......', // 18 the torso alone under the raised arms, as the stretch's
-  ...STRETCH_0.slice(19, 24), // 19-23
-  '.LLLLLLLjjjjjjjjL.......', // 24 the hem over the lap's top edge, as the sit
-  ...SIT_LAP,
-]
-export const MANGAKA_PANIC: readonly [SpriteMap, SpriteMap] = [
-  PANIC_0,
-  [
-    '......LLLLLLLLLL........', // 0
-    '..LLLLHHHHHHHHHhLLLL....', // 1
-    '..LSSLHHHHHHHHHHhLSsL...', // 2  the hands pressed a row lower
-    '.LSSSLHHHHHHHHHHHhLSsL..', // 3
-    ...PANIC_0.slice(4), // 4-31
-  ],
-]
-
-/** Asleep in bed (30x14): the chibi head on the pillow (cols 12-29, eyes shut), the shoulders under the blanket: the
- * hood's shadow j over the hoodie J, its underside in shade (task B3). */
-export const MANGAKA_LIE: SpriteMap = [
-  '..............................', // 0
-  '................LLLLLLLLLL....', // 1
-  '..............LLHHHHHHHHHhLL..', // 2
-  '.............LHHHHHHHHHHHHhhL.', // 3
-  '............LHHHHHHHHHHHHHHhhL', // 4
-  '............LHHHSHHHHSHHHHHhhL', // 5
-  '............LHSSSSSSSSSSSSSShL', // 6
-  '............LHSSSSSSSSSSSSSSsL', // 7
-  'LLLLLLLLLLLLLHSSSSSSSSSSSSSSsL', // 8
-  'LjjjjjjjjjjjLHSSssSSSSSSssSSsL', // 9  the hood's shadow over the shoulders
-  'LJJJJJJJJJJJLSBBSSSSMMSSSSBBsL', // 10 the hoodie
-  'LJJJJJJJJJJL..LSSSSSSSSSSSSsL.', // 11
-  'LjjjjjjjjjjL...LLsssssssssLL..', // 12 its underside in shade
-  'LLLLLLLLLLLL..................', // 13
-]
-
-/**
- * An assistant asleep at the desk, generated (task C2, art/manifest.json `sprite/assistant-doze`, from the front sheet's
- * dozing cell fitted to a 20x23 box on the frame's last rows): the head down on the folded arms (rows 10-26, eyes shut,
- * eight cells touched in the manifest), the arms on rows 27-30, sleeves (j) since task B3's manifest remap of their J
- * (so they match the seated body's darker sleeves). The readability gate found it reads as dozing more clearly than
- * the hand-drawn frame it replaced (113 fills; 100 at the gate, 91 with the remap). Drawn with the assistant's palette,
- * no mood.
- */
-export const ASSISTANT_DOZE: SpriteMap = ASSISTANT_DOZE_C2
 
 /**
  * The editor's head (task B4): ANCHOR_HEAD with square glasses over the eyes, two 4x3 P frames (rows 9-11, cols 6-9
  * and 11-14) joined by one P cell on row 10, each with the eye E and its W highlight inside and skin either side, so
  * they read as two lenses rather than the dark bar the 0.8.0 frame wore. The hair rows 0-8 and the blush, mouth and
- * chin rows 12-15 are the anchor's. The editor never takes the mood overlay (render.ts draws moods on the mangaka
- * only), so the P inside the FACES window is fine: the editor stays exempt from faceRules.
+ * chin rows 12-15 are the anchor's. The editor takes no mood (the rig bakes the mangaka's and the
+ * assistants' faces), so the P inside faceRules' window is fine: the editor stays exempt from faceRules.
  */
 const EDITOR_HEAD: SpriteMap = [
   ...ANCHOR_HEAD.slice(0, 9), // 0-8: the hair and brow, as the anchor's
@@ -435,7 +185,7 @@ const EDITOR_0: SpriteMap = [...EDITOR_HEAD, ...EDITOR_BODY]
 
 /**
  * The editor standing at the spot: frame 0 EDITOR_HEAD over EDITOR_BODY, frame 1 the breath, rows 0-23 a row lower
- * with the hem tucked under as `breathOf` has it, but hand-drawn below the hem so the briefcase comes down whole with
+ * with the hem tucked under as the 0.10 idle's breath had it, but hand-drawn below the hem so the briefcase comes down whole with
  * the hand that holds it (rows 23-29, as on the walk's pass frames) instead of losing a row to the tuck.
  */
 export const EDITOR_IDLE: readonly [SpriteMap, SpriteMap] = [
@@ -465,7 +215,7 @@ function editorLegs(walk: SpriteMap, from: number): SpriteMap {
 }
 
 /**
- * The editor's walk, built on MANGAKA_WALK: its timing, its arm swing and its legs (`editorLegs`, the mangaka's
+ * The editor's walk, built on LEGACY_WALK: its timing, its arm swing and its legs (`editorLegs`, the mangaka's
  * rows recoloured to the suit), under EDITOR_HEAD and EDITOR_BODY's shoulders. The briefcase keeps its idle place on
  * both contact frames (rows 22-28), always in the right hand: on frame 0, where the right arm swings up against the
  * stepping left leg, it hangs from the raised fist's closure row by a short L handle; on frame 2, where the left arm
@@ -487,7 +237,7 @@ export const EDITOR_WALK: readonly [SpriteMap, SpriteMap, SpriteMap, SpriteMap] 
     '...LSSsLGGGGGGgLLLLLLLLL', // 22 the left hand hanging, as the idle's; the case hangs from the fist by its handle
     '....LLLLGGGGGGgL..LFFFfL', // 23
     EDITOR_BODY[8], // 24 the jacket's hem, as the idle's
-    ...editorLegs(MANGAKA_WALK[0], 25), // 25-31: the left leg steps out, the right stays under
+    ...editorLegs(LEGACY_WALK[0], 25), // 25-31: the left leg steps out, the right stays under
   ],
   EDITOR_PASS,
   [
@@ -498,7 +248,7 @@ export const EDITOR_WALK: readonly [SpriteMap, SpriteMap, SpriteMap, SpriteMap] 
     '.......LGGGGGGgLSsLLLLLL', // 22 the right hand on the briefcase, as the idle's
     '.......LGGGGGGgLLLLFFFfL', // 23
     EDITOR_BODY[8], // 24
-    ...editorLegs(MANGAKA_WALK[2], 25), // 25-31: the right leg steps out, behind the case on row 28
+    ...editorLegs(LEGACY_WALK[2], 25), // 25-31: the right leg steps out, behind the case on row 28
   ],
   EDITOR_PASS,
 ]
@@ -626,57 +376,8 @@ export const PROP_CONTRACT: SpriteMap = ['LLLLL', 'LWWWL', 'LRRRL', 'LWWWL', 'LW
 /** A trophy (5x6): the gold cup on its stem and a wooden base. */
 export const PROP_TROPHY: SpriteMap = ['LLLLL', 'LYYYL', '.LYL.', '.LYL.', 'LFFFL', 'LLLLL']
 
-/**
- * The mood overlay: 14 wide x 4 tall, painted at (x+4, y+9+headDy) over rows 9-12 of a head-steady pose (flipped and
- * shifted to x+6 when the actor faces right). `neutral` has no overlay, so it is not a key here. Each map fully
- * repaints its cells (no '.'), so the closed-outline rule (frameRules) does not apply; only width, height and palette
- * keys are checked.
- */
-export const FACES: Record<Exclude<Mood, 'neutral'>, SpriteMap> = {
-  happy: [
-    'SSSSSSSSSSSSSS',
-    'SLESSSSSSSLESS',
-    'SSSSSSSSSSSSSS',
-    'BBSSSSMMSSSSBB',
-  ],
-  tired: [
-    'SSSSSSSSSSSSSS',
-    'SEESSSSSSSEESS',
-    'SSSSSSSSSSSSSS',
-    'SSSSSLLLLSSSSS',
-  ],
-  surprised: [
-    'SSEESSSSSSEESS',
-    'SEWESSSSSEWESS',
-    'SSEESSSSSSEESS',
-    'SSSSSSLLSSSSSS',
-  ],
-  sleepy: [
-    'SSSSSSSSSSSSSS',
-    'SLLSSSSSSSLLSS',
-    'SSSSSSSSSSSSSS',
-    'BBSSSSSMSSSSBB',
-  ],
-}
-
-/** The mood marks' own palette: a white highlight, a pale blue sweat drop, gold for the sparkle, the outline. */
-export const MARK_PAL: Record<string, string> = { W: '#f6f6f6', R: '#8fd3ff', Y: '#f5b700', L: '#1c1a26' }
-
-/** The mark at the head's top-right edge, at (x+20, y-2) (render.ts `markX`, `MARK_DY`: cols 20-22, rows -2 to 2),
- * 3 wide x 5 tall, in MARK_PAL: a sweat drop (tired), a sparkle (happy), and the existing '!'/'z' glyph shapes
- * (surprised/sleepy) recoloured to MARK_PAL's L. */
-export const MARKS: Record<Exclude<Mood, 'neutral'>, SpriteMap> = {
-  tired: ['.W.', 'WRW', 'WRW', '.W.', '...'],
-  happy: ['.Y.', 'YWY', '.Y.', '...', '...'],
-  surprised: ['.L.', '.L.', '.L.', '...', '.L.'],
-  sleepy: ['LLL', '..L', '.L.', 'L..', 'LLL'],
-}
-
-/** Every exported 24x32 frame, for the frame-rules test. */
-export const HUMAN_FRAMES: readonly SpriteMap[] = [
-  ...MANGAKA_IDLE, ...MANGAKA_WALK, ...MANGAKA_SIT, ...MANGAKA_PANIC, ...MANGAKA_STRETCH, ...MANGAKA_SIP,
-  ASSISTANT_DOZE, ...EDITOR_IDLE, ...EDITOR_WALK,
-]
+/** The editor's drawn 24x32 frames (standing and walking), for the frame-rules test. */
+export const EDITOR_FRAMES: readonly SpriteMap[] = [...EDITOR_IDLE, ...EDITOR_WALK]
 
 /**
  * A string-map sprite in canvas space, its top-left at (x, y) rounded: rows `fromRow` to `rows - 1`, mirrored left to

@@ -65,6 +65,8 @@ async function loadBase(ref: string): Promise<Sprites | null> {
   const dir = resolve(root, 'node_modules/.cache/rising-mangaka-sprites/base')
   const looks = posix(resolve(root, 'src/ui/looks.ts'))
   rmSync(dir, { recursive: true, force: true })
+  // the base's sprites.ts still imports its generated doze (on main until the 0.11.0 merge; the working tree retired it
+  // at task 19, and its own rows read only the rig, the editor and the cat)
   for (const file of ['sprites.ts', 'spriteCore.ts', 'generated/assistant-doze.ts']) {
     let src: string
     try {
