@@ -3,7 +3,7 @@
 // after art/raw/sprites/mangaka-front.png. Each part is outlined all round but where it joins another: the torso's neck
 // row under the head's jaw, its shoulder caps over the arms' tops, the legs' tops under its hem (closeSilhouette closes
 // them if a pose ever shows them). Sleeve and hand are separate runs, so OUTFIT_PALS' darker j darkens the sleeves.
-import { HEAD } from './head'
+import { EDITOR_HEAD, HEAD } from './head'
 import type { Part, PartLib } from './types'
 
 /**
@@ -958,7 +958,7 @@ const ARM_L_RUB_B: Part = {
 
 /** Every part a pose may name, by name. */
 export const PARTS: PartLib = {
-  head: HEAD, torso: TORSO, 'arm-l-hang': ARM_L_HANG, 'arm-r-hang': ARM_R_HANG,
+  head: HEAD, 'editor-head': EDITOR_HEAD, torso: TORSO, 'arm-l-hang': ARM_L_HANG, 'arm-r-hang': ARM_R_HANG,
   'leg-l-stand': LEG_L_STAND, 'leg-r-stand': LEG_R_STAND,
   'leg-l-step': LEG_L_STEP, 'leg-l-step-bend': LEG_L_STEP_BEND, 'leg-l-plant-bend': LEG_L_PLANT_BEND,
   'leg-l-lift': LEG_L_LIFT, 'leg-l-reach': LEG_L_REACH,

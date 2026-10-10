@@ -1,14 +1,14 @@
 // The rig's frames as the sprite cache draws them (0.11.0): a pose with the face its mood picks, assembled on first use
 // and memoized, so render looks each one up by pose and mood and allocates nothing once it is built.
 import { assemblePose, placeLayers } from './assemble'
-import { FACE_ART, FACE_BY_MOOD } from './head'
+import { EDITOR_FACE_ART, FACE_ART, FACE_BY_MOOD } from './head'
 import { PARTS } from './parts'
 import { POSES } from './poses'
 import type { PoseId } from './poses'
 import type { CastFrame, Face, FaceArt, Mood, PartPose, Point } from './types'
 
 /** The face art each head part takes, by the part's name (the editor's head has its own eyes, with the lens rims). */
-const FACE_ART_BY_HEAD: Readonly<Record<string, FaceArt>> = { head: FACE_ART }
+const FACE_ART_BY_HEAD: Readonly<Record<string, FaceArt>> = { head: FACE_ART, 'editor-head': EDITOR_FACE_ART }
 
 /** The face art for a part pose: its head part's. */
 export function faceArtOf(pose: PartPose): FaceArt {

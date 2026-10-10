@@ -20,7 +20,7 @@ npm run art -- <id>|--all   # Regenerates a static illustration from art/manifes
                              # one regenerates it); run after adding or editing a manifest entry; `--all` currently
                              # rewrites `prop/kitchenette.png` (held back in 0.10.2, DESIGN.md "2026-10-09, the
                              # remaining minors"); `git checkout` it back unless that change is intended
-npm run sprites -- <out.png> [--walk] [--base <ref>] [--only <prefix>]   # Sprite contact sheet (scripts/spriteSheet.ts), 8x (the cat at 16x): per rig animation a strip beside the 0.10 frames it replaces (base ref: `--base`, default main, where the 0.10 frames stay until the merge), in every outfit and assistant look, `--only <prefix>` (the animations whose id starts with it), the blocks on shelves (`shelve`); then the rig's poses in the five moods, the editor and the cat beside the base, and row I, the rig head with every eyes x mouth x mark; --walk the walk strips only; a palette missing on either side (or a base frame or file) is an empty cell and a note
+npm run sprites -- <out.png> [--walk] [--base <ref>] [--only <prefix>]   # Sprite contact sheet (scripts/spriteSheet.ts), 8x (the cat at 16x): per rig animation a strip beside the 0.10 frames it replaces (base ref: `--base`, default main, where the 0.10 frames stay until the merge), in every outfit and assistant look, `--only <prefix>` (the animations whose id starts with it), the blocks on shelves (`shelve`); then the rig's poses in the five moods, the editor and the cat beside the base, row I, the rig head with every eyes x mouth x mark, and row J, the editor's head with every eyes; --walk the walk strips only; a palette missing on either side (or a base frame or file) is an empty cell and a note
 npm run balance -- [from=1] [to=20] [--detail seed]   # Balance bots (src/sim/bot.ts): a line per seed per bot, then the balance-band rows
 npm run tauri dev       # Desktop window; stop any running `npm run dev` first (it starts its own, strict port 5173)
 npm run tauri build     # Windows NSIS installer, in src-tauri/target/release/bundle/nsis/
@@ -145,11 +145,11 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   `AVATAR_CROP`); `rig/` (0.11.0) the cast rig:
   `types.ts` (parts with anchors, part poses and key poses, faces, `CastFrame`, `Mood`), `assemble.ts`
   (`assemblePose`: parts layered back to front by their join anchors (`JOIN`), the outline closed where they meet,
-  the face stamped into the head; `partRules`, `poseRules`, `headRules`: every slot inside the map, the face slots face keys...) and `head.ts` (the hand-drawn 27x22 chibi head
+  the face stamped into the head; `partRules`, `poseRules`, `headRules`: every slot inside the map, the face slots hold only face keys, the bare head is neutral, the mark slot is clear, every face drawing fills its slot) and `head.ts` (the hand-drawn 27x22 chibi head
   `HEAD`: cols 0-23 the head, cols 24-26 the mark slot; its eye slot rows 10-13 cols 4-19, mouth slot rows 15-16 cols
   10-13, the neck anchor (12, 21); `EYES` (open, blink, closed, ring, squint, happy), `MOUTHS` (closed, open, smile,
   frown, o), `MARK_ART` (sweat, sparkle, bang, zee in `PAL.A`/`PAL.X`), `FACE_ART`, `NEUTRAL_FACE`, `FACE_BY_MOOD`,
-  `headWith(face)`), `parts.ts` (`PARTS`: every torso, arm, leg and prop (the pen, the manuscript, the mug, the page) by name with its anchors, each outlined but where it
+  `headWith(face, head?, art?)`; the editor's head (0.12.0) `EDITOR_HEAD` on the same slots, hair parted at col 10 and square glasses, `EDITOR_EYES` (the six eyes inside the lens rims, `L` at head cols 4, 10, 13 and 19, the bridge on row 11), `EDITOR_FACE_ART`), `parts.ts` (`PARTS`: every torso, arm, leg and prop (the pen, the manuscript, the mug, the page) by name with its anchors, each outlined but where it
   joins another; the 32x48 frame standing has the head at (4, 0), the torso at (7, 21), the feet on row 47),
   `keyFrames.ts` (the poses the parts cannot make, hand-drawn whole with their face baked in: the bed's 48x32
   `BED_LIE_0`, `BED_LIE_1` and `BED_SIT`, drawn at the bed; the reactions' 32x48 panic, cheer, slump and torn page; the assistants' 32x48 doze, `DOZE_0`/`DOZE_1`), `poses.ts`

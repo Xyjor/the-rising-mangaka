@@ -3,7 +3,7 @@
 // of its steps' frames beside the 0.10 frames it replaces at the base, the same strip in the cardigan and the blazer
 // under it (and, for the assistants' animations, in each of the six assistant looks), then a mood row (the rig's
 // standing, seated and walking poses in the five moods); the editor and the cat beside the base (rows F, G); the walk
-// strips (row H); and the rig head with every eyes x mouth x mark (row I).
+// strips (row H); the rig head with every eyes x mouth x mark (row I); and the editor's head with every eyes (row J).
 // Run with: npm run sprites -- <out.png> [--walk] [--base <ref>] [--only <prefix>]   (--walk writes only the walk
 // strips, row H; --only draws only the animations whose id starts with the prefix)
 // The PNG has no text; stdout names each row's cells in order. The pure pixel work is scripts/lib/spriteSheet.ts.
@@ -16,7 +16,7 @@ import { blank, cellOrEmpty, hcat, paintOver, rasterize, shelve, vcat, type Rgba
 import { ANIMS, ANIM_IDS } from '../src/ui/scene/rig/anims'
 import type { AnimId } from '../src/ui/scene/rig/anims'
 import { MOODS, rigFrame } from '../src/ui/scene/rig/frames'
-import { EYES, MOUTHS, headWith } from '../src/ui/scene/rig/head'
+import { EDITOR_EYES, EDITOR_FACE_ART, EDITOR_HEAD, EYES, MOUTHS, headWith } from '../src/ui/scene/rig/head'
 import { POSES } from '../src/ui/scene/rig/poses'
 import type { PoseId } from '../src/ui/scene/rig/poses'
 import type { EyesId, MarkId, MouthId } from '../src/ui/scene/rig/types'
@@ -237,6 +237,11 @@ async function main() {
       rasterize(headWith({ eyes, mouth, mark }), now.PAL, SCALE)), GUTTER)), PAIR_GAP)), GUTTER))
     legend.push(`row I (the rig head: one row per eyes in EYES order, each mouth x mark (${ROW_I_MARKS.join(', ')}) across): `
       + `rows ${eyeIds.join(', ')}; across ${mouthIds.join(', ')}, each with every mark`)
+    // the editor's head (0.12.0) behind his glasses, every eyes he takes, the mouth closed
+    const editorEyes = Object.keys(EDITOR_EYES) as EyesId[]
+    rows.push(hcat(editorEyes.map((eyes) =>
+      rasterize(headWith({ eyes, mouth: 'closed', mark: 'none' }, EDITOR_HEAD, EDITOR_FACE_ART), now.PAL, SCALE)), GUTTER))
+    legend.push(`row J (the editor's head, 0.12.0: each eyes in EDITOR_EYES order, the mouth closed): ${editorEyes.join(', ')}`)
   }
 
   // the blocks on shelves no wider than the widest row or block, so the sheet's area stays near its content's

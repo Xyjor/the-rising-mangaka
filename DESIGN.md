@@ -416,6 +416,14 @@ the rig in the order its tasks drew it, then what every character shares. The ed
   mark sat beside the hair, not on it, after two redraws: the first head was a round helmet over a moon face (the
   hair now puffs out wider than the face and the jaw rounds in sooner), and the first tired eyes, a flat lid, read as
   grumpy (the lid now droops to the outer corner).
+- **The editor's head** (0.12.0, task 3): `EDITOR_HEAD`, 27x22 on `HEAD`'s slots and neck anchor; the hair rows 1-8
+  parted at col 10 (a strand of shade swept off the parting either side, rows 3-6), the forehead row 9 with the
+  glasses' top edges, row 14 their bottom edges (no blush); `EDITOR_EYES`, the mangaka's six eyes inside 5-wide lenses
+  whose rims (`L`, face keys, decision 4 of the 0.12.0 plan) sit at head cols 4, 10, 13 and 19 with the bridge on row
+  11; `EDITOR_FACE_ART`; `headWith(face, head, art)`; the sheet's row J. The gate (row J at 8x and 1x): the glasses read
+  as two lenses at both sizes, the blink and the closed eyes read behind them; the open and squint pupils fill the
+  lens top to bottom, so they meet the rims (a dark eye with its highlight, still legible); the first drawing's bare
+  parting read as a seam, so the swept strands went in.
 - **The rig** (0.11.0, task 8). A person is a 32x48 frame (Decision 4): standing, the head part (27x22: the head in
   cols 0-23, the mark slot in cols 24-26) at (4, 0), so the mark slot is frame cols 28-30, rows 0-4, where render's
   '!' and '?' go too; the torso (18x14) at (7, 21), its neck (9, 0) under the head's neck (12, 21); the hips on row 34
