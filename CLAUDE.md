@@ -20,7 +20,7 @@ npm run art -- <id>|--all   # Regenerates a static illustration from art/manifes
                              # one regenerates it); run after adding or editing a manifest entry; `--all` currently
                              # rewrites `prop/kitchenette.png` (held back in 0.10.2, DESIGN.md "2026-10-09, the
                              # remaining minors"); `git checkout` it back unless that change is intended
-npm run sprites -- <out.png> [--walk] [--base <ref>] [--only <prefix>]   # Sprite contact sheet (scripts/spriteSheet.ts), 8x (the cat at 16x): per rig animation a strip beside the 0.10 frames it replaces (base ref: `--base`, default main, where the 0.10 frames stay until the merge), in every outfit and assistant look, `--only <prefix>` (the animations whose id starts with it), the blocks on shelves (`shelve`); then the rig's poses in the five moods, the editor and the cat beside the base, row I, the rig head with every eyes x mouth x mark, and row J, the editor's head with every eyes; --walk the walk strips only; a palette missing on either side (or a base frame or file) is an empty cell and a note
+npm run sprites -- <out.png> [--walk] [--base <ref>] [--only <prefix>]   # Sprite contact sheet (scripts/spriteSheet.ts), 8x (the cat at 16x): per rig animation a strip beside the 0.10 frames it replaces (base ref: `--base`, default main, where the 0.10 frames stay until the merge), in every outfit and assistant look (the editor's `editor-*` blocks in `EDITOR_PAL` only, beside the base's 0.10 editor), `--only <prefix>` (the animations whose id starts with it), the blocks on shelves (`shelve`); then the rig's poses in the five moods, the cat beside the base (row G; no row F since 0.12.0), row H the walk strips (the rig's walk and the rig editor's `editor-walk`, each above the base's 0.10 cycle, then the cat), row I, the rig head with every eyes x mouth x mark, and row J, the editor's head with every eyes; --walk the walk strips only; a palette missing on either side (or a base frame or file) is an empty cell and a note
 npm run balance -- [from=1] [to=20] [--detail seed]   # Balance bots (src/sim/bot.ts): a line per seed per bot, then the balance-band rows
 npm run tauri dev       # Desktop window; stop any running `npm run dev` first (it starts its own, strict port 5173)
 npm run tauri build     # Windows NSIS installer, in src-tauri/target/release/bundle/nsis/
@@ -149,13 +149,17 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   `HEAD`: cols 0-23 the head, cols 24-26 the mark slot; its eye slot rows 10-13 cols 4-19, mouth slot rows 15-16 cols
   10-13, the neck anchor (12, 21); `EYES` (open, blink, closed, ring, squint, happy), `MOUTHS` (closed, open, smile,
   frown, o), `MARK_ART` (sweat, sparkle, bang, zee in `PAL.A`/`PAL.X`), `FACE_ART`, `NEUTRAL_FACE`, `FACE_BY_MOOD`,
-  `headWith(face, head?, art?)`; the editor's head (0.12.0) `EDITOR_HEAD` on the same slots, hair parted at col 10 and square glasses, `EDITOR_EYES` (the six eyes inside the lens rims, `L` at head cols 4, 10, 13 and 19, the bridge on row 11), `EDITOR_FACE_ART`), `parts.ts` (`PARTS`: every torso, arm, leg and prop (the pen, the manuscript, the mug, the page) by name with its anchors, each outlined but where it
-  joins another; the 32x48 frame standing has the head at (4, 0), the torso at (7, 21), the feet on row 47),
+  `headWith(face, head?, art?)`; the editor's head (0.12.0) `EDITOR_HEAD` on the same slots, hair parted at col 10 and square glasses, `EDITOR_EYES` (the six eyes inside the lens rims, `L` at head cols 4, 10, 13 and 19, the bridge on row 11; open and squint drawn for the lens, the others copied from `EYES`), `EDITOR_FACE_ART`), `parts.ts` (`PARTS`: every torso, arm, leg and prop (the pen, the manuscript, the mug, the page) by name with its anchors, each outlined but where it
+  joins another; the 32x48 frame standing has the head at (4, 0), the torso at (7, 21), the feet on row 47; the
+  editor's suit (0.12.0) `editor-torso`, `arm-l-suit-hang` and `arm-r-suit-case`, the briefcase baked under the far
+  fist),
   `keyFrames.ts` (the poses the parts cannot make, hand-drawn whole with their face baked in: the bed's 48x32
   `BED_LIE_0`, `BED_LIE_1` and `BED_SIT`, drawn at the bed; the reactions' 32x48 panic, cheer, slump and torn page; the assistants' 32x48 doze, `DOZE_0`/`DOZE_1`), `poses.ts`
-  (`PoseId`, `POSES`: each a part pose or a key frame and where it is drawn, `at` the actor, the seat or the bed),
-  `anims.ts` (`AnimId`, `ANIM_IDS`, `ANIMS`: the 24 animations' fixed postures and looping, each step a pose and its
-  ms, every one drawn) and `frames.ts` (`rigFrame(pose, mood, ready)`: the frame assembled with the
+  (`PoseId`, `POSES`: each a part pose or a key frame and where it is drawn, `at` the actor, the seat or the bed; the
+  editor's `editor.*` poses from `editorStand(over)`, all at the actor),
+  `anims.ts` (`AnimId`, `ANIM_IDS`, `ANIMS`: the 33 animations' fixed postures and looping, each step a pose and its
+  ms; the cast's 24 drawn, the editor's nine `editor-*` (0.12.0) drawn as they land, `editor-stand` now, the rest one
+  step of `editor.stand`, `EDITOR_STAND_IN`, until tasks 8-10) and `frames.ts` (`rigFrame(pose, mood, ready)`: the frame assembled with the
   mood's face, `faceOf`, in the head's own face art, `faceArtOf`, memoized per pose, mood and ready, its id `pose~eyes.mouth.mark`, `frameId`; `frontHand(pose)`, the front arm's hand cell, memoized, where the visit's prop is drawn (0.12.0)); `spriteCache.ts` (0.11.0) the per-session sprite cache: each
   cast frame painted once per palette (`PaletteId`: `pal`, the outfits, `editor`, `look0`-`look5`) and facing into an
   OffscreenCanvas (a `<canvas>` without one or when it gives no 2D context, a stand-in in node), keyed by frame id;

@@ -1,11 +1,13 @@
 // The sprite contact sheet at 8x (the cat at 16x) on a flat grey ground, judged against what each drawing replaces
-// (`--base <ref>`, default main, where the 0.10 frames stay until the 0.11.0 merge): per rig animation (0.11.0) a strip
-// of its steps' frames beside the 0.10 frames it replaces at the base, the same strip in the cardigan and the blazer
-// under it (and, for the assistants' animations, in each of the six assistant looks), then a mood row (the rig's
-// standing, seated and walking poses in the five moods); the editor and the cat beside the base (rows F, G); the walk
-// strips (row H); the rig head with every eyes x mouth x mark (row I); and the editor's head with every eyes (row J).
+// (`--base <ref>`, default main, where the 0.10 frames stay until the merge): per rig animation (0.11.0) a strip of its
+// steps' frames beside the 0.10 frames it replaces at the base, the same strip in the cardigan and the blazer under it
+// (and, for the assistants' animations, in each of the six assistant looks); an editor animation (0.12.0, `editor-*`)
+// draws its strip in EDITOR_PAL only, beside the base's 0.10 editor frames; then a mood row (the rig's standing,
+// seated and walking poses in the five moods); the cat beside the base (row G; row F, the 0.10 editor, went at 0.12.0
+// task 4); the walk strips (row H: the rig's walk and the rig editor's, each above the base's 0.10 cycle, then the
+// cat); the rig head with every eyes x mouth x mark (row I); and the editor's head with every eyes (row J).
 // Run with: npm run sprites -- <out.png> [--walk] [--base <ref>] [--only <prefix>]   (--walk writes only the walk
-// strips, row H; --only draws only the animations whose id starts with the prefix)
+// strips, row H; --only draws only the animations whose id starts with the prefix, `editor-` the editor's)
 // The PNG has no text; stdout names each row's cells in order. The pure pixel work is scripts/lib/spriteSheet.ts.
 import { execFileSync } from 'node:child_process'
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
@@ -32,6 +34,7 @@ type Sprites = Record<string, unknown> & {
   PAL: Pal
   OUTFIT_PALS?: Partial<Record<'hoodie' | 'cardigan' | 'blazer', Pal>>
   ASSISTANT_PALS?: readonly (Pal | undefined)[]
+  EDITOR_PAL?: Pal
 }
 
 const SCALE = 8
@@ -126,9 +129,9 @@ const REPLACES: Partial<Record<AnimId, Ref[]>> = {
   'seat-draw-late': refs('MANGAKA_PANIC', 2), 'seat-panic': refs('MANGAKA_PANIC', 2), sleep: [{ name: 'MANGAKA_LIE' }],
   'stand-sip': refs('MANGAKA_SIP', 2), 'seat-sip': refs('MANGAKA_SIP', 2), 'seat-stretch': refs('MANGAKA_STRETCH', 2),
   doze: [{ name: 'ASSISTANT_DOZE' }],
+  'editor-stand': refs('EDITOR_IDLE', 2), 'editor-walk': refs('EDITOR_WALK', 4),
 }
 
-const ROW_F: Ref[] = [...refs('EDITOR_IDLE', 2), ...refs('EDITOR_WALK', 4)]
 const ROW_G: Ref[] = [
   { name: 'CAT_SLEEP' }, { name: 'CAT_SIT' }, ...refs('CAT_WALK', 2), ...refs('CAT_GROOM', 2), { name: 'CAT_STRETCH' },
 ]
@@ -174,6 +177,10 @@ async function main() {
     return hcat(steps.map((st) => cellOrEmpty(rigFrame(st.pose, 'neutral', id === 'stand-ready').map, pal, SCALE, notes,
       `note: the working tree has no ${palName}, its cells are empty`)), GUTTER)
   }
+  /** A cycle three times over in one list: a walk strip's length. */
+  const thrice = <T>(cycle: readonly T[]): T[] => Array.from({ length: 3 }, () => cycle).flat()
+  /** A 0.10 walk cycle at the base, three times over in one strip (under the rig's walk strip). */
+  const oldStrip = (cycle: readonly Ref[]): Rgba => hcat(thrice(cycle).map(oldCell), GUTTER)
 
   const blocks: Rgba[] = []
   const rows: Rgba[] = []
@@ -182,21 +189,25 @@ async function main() {
   if (!walkOnly) {
     const ids = ANIM_IDS.filter((a) => a.startsWith(only))
     if (!ids.length) throw new Error(`no animation id starts with ${only}`)
-    legend.push(`the animations, a block each, left to right on shelves: the strip in PAL (each step neutral, ready in `
-      + `stand-ready) beside the base's frames it replaces, then the strip in each palette named, a row each`)
+    legend.push(`the animations, a block each, left to right on shelves: the strip in PAL (EDITOR_PAL for the editor's; `
+      + `each step neutral, ready in stand-ready) beside the base's frames it replaces, then the strip in each palette `
+      + `named, a row each`)
     for (const id of ids) {
       const a = ANIMS[id]
       const old = REPLACES[id]
-      const strip = rigStrip(id, now.PAL, 'PAL')
+      // the editor (0.12.0) wears his own palette, no outfits or looks under it
+      const editor = id.startsWith('editor-')
+      const strip = editor ? rigStrip(id, now.EDITOR_PAL, 'EDITOR_PAL') : rigStrip(id, now.PAL, 'PAL')
       const lines = [old ? hcat([strip, hcat(old.map(oldCell), GUTTER)], PAIR_GAP) : strip]
-      const under = ['cardigan', 'blazer'] as const
+      const under = editor ? [] : (['cardigan', 'blazer'] as const)
       for (const outfit of under) lines.push(rigStrip(id, now.OUTFIT_PALS?.[outfit], `OUTFIT_PALS.${outfit}`))
       const looks = ASSISTANT_ANIMS.has(id) ? LOOKS : []
       for (const look of looks) lines.push(rigStrip(id, now.ASSISTANT_PALS?.[look], `ASSISTANT_PALS[${look}]`))
       blocks.push(vcat(lines, GUTTER))
       legend.push(`${blocks.length}. ${id} (${a.posture}, ${a.loop ? 'loop' : 'once'}): ${a.steps.map((st) => `${st.pose} ${st.ms}`).join(', ')}`
+        + `${editor ? ' in EDITOR_PAL' : ''}`
         + `${old ? `; beside it the base's ${names(old)}` : '; nothing at the base'}`
-        + `; under it in ${under.map((o) => `OUTFIT_PALS.${o}`).join(', ')}`
+        + `${under.length ? `; under it in ${under.map((o) => `OUTFIT_PALS.${o}`).join(', ')}` : ''}`
         + `${looks.length ? `, then ASSISTANT_PALS[${looks.join(', ')}]` : ''}`)
     }
 
@@ -206,27 +217,26 @@ async function main() {
       rasterize(rigFrame(p, mood, false).map, now.PAL, SCALE)), GUTTER)), PAIR_GAP))
     legend.push(`row moods (each pose in ${MOODS.join(', ')}): ${moodPoses.join(', ')}`)
 
-    rows.push(hcat(ROW_F.map((r) => pair(r, (m) => m.PAL, SCALE)), PAIR_GAP))
-    legend.push(`row F (the editor, each pair new then base): ${names(ROW_F)}`)
     rows.push(hcat(ROW_G.map((r) => pair(r, (m) => m.PAL, CAT_SCALE)), PAIR_GAP))
     legend.push(`row G (the cat at ${CAT_SCALE}x, each pair new then base): ${names(ROW_G)}`)
   }
 
-  /** A walk cycle three times over in one strip, the working tree's above the base's. */
+  /** The cat's walk cycle three times over in one strip, the working tree's above the base's. */
   const strips = (cycle: Ref[], scale: number): Rgba => {
-    const loop = [...cycle, ...cycle, ...cycle]
+    const loop = thrice(cycle)
     return vcat([
       hcat(loop.map((r) => rasterize(mustNow(r), now.PAL, scale)), GUTTER),
       hcat(loop.map((r) => drawBase(r, (m) => m.PAL, scale)), GUTTER),
     ], GUTTER)
   }
-  const oldWalk = refs('MANGAKA_WALK', 4)
   rows.push(vcat([
-    vcat([rigStrip('walk', now.PAL, 'PAL', 3), hcat([...oldWalk, ...oldWalk, ...oldWalk].map(oldCell), GUTTER)], GUTTER),
-    strips(refs('EDITOR_WALK', 4), SCALE), strips(refs('CAT_WALK', 2), CAT_SCALE),
+    vcat([rigStrip('walk', now.PAL, 'PAL', 3), oldStrip(refs('MANGAKA_WALK', 4))], GUTTER),
+    vcat([rigStrip('editor-walk', now.EDITOR_PAL, 'EDITOR_PAL', 3), oldStrip(refs('EDITOR_WALK', 4))], GUTTER),
+    strips(refs('CAT_WALK', 2), CAT_SCALE),
   ], PAIR_GAP))
   legend.push(`row H (the walk strips, each cycle three times, the new strip above the base's): the rig's walk `
-    + `(${ANIMS.walk.steps.map((st) => st.pose).join(', ')}) above the base's MANGAKA_WALK[0..3], then `
+    + `(${ANIMS.walk.steps.map((st) => st.pose).join(', ')}) above the base's MANGAKA_WALK[0..3], then the rig's `
+    + `editor-walk in EDITOR_PAL (${ANIMS['editor-walk'].steps.map((st) => st.pose).join(', ')}) above the base's `
     + `EDITOR_WALK[0..3], then CAT_WALK[0..1] at ${CAT_SCALE}x`)
 
   if (!walkOnly) {

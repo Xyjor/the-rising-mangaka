@@ -5,7 +5,8 @@ import { MANGAKA_SEAT } from '../actors'
 import { placeLayers } from '../rig/assemble'
 import { ANIMS } from '../rig/anims'
 import type { AnimId } from '../rig/anims'
-import { rigFrame } from '../rig/frames'
+import { frontHand, rigFrame } from '../rig/frames'
+import { EDITOR_EYES } from '../rig/head'
 import { PARTS } from '../rig/parts'
 import { POSES } from '../rig/poses'
 import type { PoseId } from '../rig/poses'
@@ -493,5 +494,65 @@ describe('the doze (task 18)', () => {
     for (const id of ['key.doze-0', 'key.doze-1'] as const) {
       for (let r = 11; r <= 15; r++) expect(key(id)[r].slice(25, 28), `${id} row ${r}`).toBe('...')
     }
+  })
+})
+
+describe('the editor\'s suit and standing loop (0.12.0, task 4)', () => {
+  it('catalogues the suit torso, the hanging sleeve and the case sleeve', () => {
+    expectCatalogue({
+      'editor-torso': [18, 14, { neck: [9, 0], shoulderL: [2, 2], shoulderR: [15, 2], hipL: [6, 13], hipR: [11, 13] }],
+      'arm-l-suit-hang': [5, 12, { shoulderL: [3, 0], hand: [2, 10] }],
+      'arm-r-suit-case': [7, 19, { shoulderR: [1, 0], hand: [2, 10] }],
+    })
+  })
+
+  it('stands the editor as the mangaka stands: the head (4, 0), the torso (7, 21), the legs from row 34, the feet on row 47, the front hand at (8, 33)', () => {
+    expect([at('editor.stand', 'head'), at('editor.stand', 'torso'), at('editor.stand', 'legFront'), at('editor.stand', 'legBack'), at('editor.stand', 'armBack')])
+      .toEqual([{ x: 4, y: 0 }, { x: 7, y: 21 }, { x: 10, y: 34 }, { x: 16, y: 34 }, { x: 21, y: 23 }])
+    expect(frontHand('editor.stand')).toEqual({ x: 8, y: 33 })
+    expect(frame('editor.stand')[47]).toMatch(/[^.]/)
+    expect(part('editor.stand').head.part).toBe('editor-head')
+    expect([part('editor.stand').legFront?.part, part('editor.stand').legBack?.part]).toEqual(['leg-l-stand', 'leg-r-stand'])
+  })
+
+  it('dresses the editor: the suit G/g, the collar W, the tie N down col 9 of the torso, the case D/d; none of the mangaka\'s keys', () => {
+    const torso = PARTS['editor-torso'].map
+    for (let r = 3; r <= 11; r++) expect(torso[r][9], `torso row ${r}`).toBe('N')
+    expect(torso[0].slice(3, 15)).toMatch(/^WWs+WW$/)
+    for (const name of ['editor-torso', 'arm-l-suit-hang', 'arm-r-suit-case']) {
+      expect(PARTS[name].map.join(''), name).toMatch(/G/)
+      expect(PARTS[name].map.join(''), name).not.toMatch(/[JjKRYyFfOo]/)
+    }
+    const all = frame('editor.stand').join('')
+    for (const k of 'GgWNDdSs') expect(all, k).toContain(k)
+  })
+
+  it('hangs the 6x7 briefcase under the far fist: an L box of D/d at the sleeve\'s cols 1-6, rows 11-18, in the frame at cols 22-27', () => {
+    const box = PARTS['arm-r-suit-case'].map.slice(11, 19).map((row) => row.slice(1, 7))
+    expect(box[0]).toBe('LLLLLL')
+    expect(box[7]).toBe('LLLLLL')
+    for (const row of box.slice(1, 6)) expect(row).toMatch(/^L[Dd]{4}L$/)
+    expect(box[6]).toMatch(/^Ld{4}L$/)
+    // in the frame the case sits at cols 22-27, rows 34-41, right of the far leg's shoe (to col 21); col 31 stays clear
+    const m = frame('editor.stand')
+    for (let r = 34; r <= 41; r++) expect(m[r].slice(22, 28), `row ${r}`).toMatch(/^L[LDd]{4}L$/)
+    for (let r = 0; r < 48; r++) expect(m[r][31], `row ${r} col 31`).toBe('.')
+  })
+
+  it('breathes and blinks on the mangaka\'s timing, the blink behind the lenses', () => {
+    expect(ANIMS['editor-stand'].steps).toEqual([
+      { pose: 'editor.stand', ms: 500 }, { pose: 'editor.breath', ms: 500 }, { pose: 'editor.stand', ms: 500 },
+      { pose: 'editor.breath', ms: 500 }, { pose: 'editor.stand', ms: 500 }, { pose: 'editor.breath', ms: 380 },
+      { pose: 'editor.blink', ms: 120 },
+    ])
+    expect(at('editor.breath', 'head')).toEqual({ x: 4, y: 1 })
+    expect(frame('editor.breath').slice(23)).toEqual(frame('editor.stand').slice(23))
+    expect(frame('editor.blink').slice(10, 14).map((row) => row.slice(8, 24))).toEqual(EDITOR_EYES.blink)
+    expect(frame('editor.stand').slice(10, 14).map((row) => row.slice(8, 24))).toEqual(EDITOR_EYES.open)
+  })
+
+  it('names the editor\'s neutral frame by its pose and face, the mark slot (cols 28-30, rows 0-4) clear', () => {
+    expect(rigFrame('editor.stand', 'neutral', false).id).toBe('editor.stand~open.closed.none')
+    for (let r = 0; r < 5; r++) expect(frame('editor.stand')[r].slice(28, 31)).toBe('...')
   })
 })

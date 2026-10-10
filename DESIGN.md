@@ -428,6 +428,24 @@ the rig in the order its tasks drew it, then what every character shares. The ed
   lenses filled them top to bottom and read as sunglasses, and the squint fused lid, eye and rim into one band (both
   redrawn for the lens); the top rim under solid hair read as a brow line (row 8 became forehead, the hair's edge
   moved to row 7). Now the glasses read as two clear square frames at both sizes, every eyes legible behind them.
+- **The editor's suit** (0.12.0, task 4): three parts on the mangaka's sizes and anchors, in the suit's keys (never the
+  mangaka's `J j K R Y y`): `editor-torso` 18x14 (`TORSO`'s construction: the white collar `W` beside the neck, its
+  points narrowing to the tie's knot `N` at cols 8-9, the shirt `W` beside the tie on row 3, the tie `N` down col 9 to
+  row 11, the jacket `G` with its shade `g` down col 13, the lapel's edge `g` at col 5 to row 6, the hem `g`);
+  `arm-l-suit-hang` 5x12 (`ARM_L_HANG` with the sleeve `G`/`g`, lit from the left); `arm-r-suit-case` 7x19, the far
+  sleeve with the briefcase baked under its fist (decision 1 of the 0.12.0 plan: the rig's prop layer joins the front
+  hand only): the fist's closure and the case's top edge one row, the leather `D` with its shade `d` on the right, the
+  underside `d`, standing at frame cols 22-27, rows 34-41, right of the far shoe and drawn behind the legs.
+  `editorStand(over)` in `poses.ts` puts the suit torso at (7, 21) under `editor-head`, the case sleeve behind, the
+  hanging sleeve in front (its fist at (8, 33), `frontHand`) and the mangaka's standing legs (`EDITOR_PAL` turns their
+  `F`/`f` to the suit and the shoes to black); `editor.stand`, `editor.breath` (the head a row lower) and
+  `editor.blink` (behind the lenses) make `editor-stand`, the mangaka's `stand` timing (500 ms steps, the breath before
+  the 120 ms blink 380 ms). The other eight `editor-*` animations (walk, arrive, leave, glasses, watch, glance, nod,
+  sigh) are tabled with their final postures and looping and play one 500 ms step of `editor.stand` until tasks 8-10
+  draw them. The sheet's `editor-*` blocks draw in `EDITOR_PAL` beside the base's 0.10 `EDITOR_IDLE`/`EDITOR_WALK`
+  (row F went; row H's editor strip is the rig's `editor-walk` above the base's `EDITOR_WALK`). The gate
+  (`--only editor-` at 8x and 1x) read on the first drawing: the same man as row J in a navy suit, the collar and
+  the red tie clear, the case in the far hand clear of the leg, the breath a soft sink, the blink behind the lenses.
 - **The rig** (0.11.0, task 8). A person is a 32x48 frame (Decision 4): standing, the head part (27x22: the head in
   cols 0-23, the mark slot in cols 24-26) at (4, 0), so the mark slot is frame cols 28-30, rows 0-4, where render's
   '!' and '?' go too; the torso (18x14) at (7, 21), its neck (9, 0) under the head's neck (12, 21); the hips on row 34

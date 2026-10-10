@@ -1,5 +1,7 @@
 // The cast's animations (0.11.0): every step a pose and how long it shows. The ids, postures and looping are final,
-// and every animation is drawn (the stand-in that played until each landed is gone since the doze, task 18).
+// and every one of the cast's 0.11 animations is drawn (the stand-in that played until each landed is gone since the
+// doze, task 18). The editor's (0.12.0): an editor animation whose art has not landed plays one step of `editor.stand`
+// (EDITOR_STAND_IN) until tasks 8-10 draw it.
 import type { Anim, Posture, Step } from '../animation'
 import type { PoseId } from './poses'
 
@@ -8,13 +10,17 @@ export type AnimId =
   | 'sit-down' | 'stand-up' | 'lie-down' | 'get-up'
   | 'stand-look' | 'stand-sip' | 'seat-stretch' | 'seat-sip' | 'seat-flip' | 'seat-rub'
   | 'stand-cheer' | 'seat-cheer' | 'stand-slump' | 'seat-slump' | 'seat-panic' | 'seat-tear'
+  | 'editor-stand' | 'editor-walk' | 'editor-arrive' | 'editor-leave' | 'editor-glasses' | 'editor-watch' | 'editor-glance'
+  | 'editor-nod' | 'editor-sigh'
 
-/** Every animation in the sheet's order: base loops, transitions, idle moments, reactions. */
+/** Every animation in the sheet's order: base loops, transitions, idle moments, reactions; then the editor's. */
 export const ANIM_IDS: readonly AnimId[] = [
   'stand', 'stand-ready', 'walk', 'seat-draw', 'seat-draw-late', 'seat-idle', 'sleep', 'doze',
   'sit-down', 'stand-up', 'lie-down', 'get-up',
   'stand-look', 'stand-sip', 'seat-stretch', 'seat-sip', 'seat-flip', 'seat-rub',
   'stand-cheer', 'seat-cheer', 'stand-slump', 'seat-slump', 'seat-panic', 'seat-tear',
+  'editor-stand', 'editor-walk', 'editor-arrive', 'editor-leave', 'editor-glasses', 'editor-watch', 'editor-glance',
+  'editor-nod', 'editor-sigh',
 ]
 
 function anim(id: AnimId, posture: Posture, loop: boolean, steps: readonly Step<PoseId>[]): Anim<PoseId> {
@@ -93,6 +99,9 @@ const TEAR: readonly Step<PoseId>[] = [
 /** The assistants' doze at their desk: the head on the folded arms, then the breath (head and shoulders a row lower), 900 ms each, as the bed's sleep. */
 const DOZE: readonly Step<PoseId>[] = [{ pose: 'key.doze-0', ms: 900 }, { pose: 'key.doze-1', ms: 900 }]
 
+/** One step of the editor's standing pose, while an editor animation's art has not landed (0.12.0, tasks 8-10). */
+const EDITOR_STAND_IN: readonly Step<PoseId>[] = [{ pose: 'editor.stand', ms: 500 }]
+
 export const ANIMS: Readonly<Record<AnimId, Anim<PoseId>>> = {
   stand: anim('stand', 'stand', true, [
     { pose: 'stand.idle', ms: 500 }, { pose: 'stand.breath', ms: 500 }, { pose: 'stand.idle', ms: 500 },
@@ -128,4 +137,18 @@ export const ANIMS: Readonly<Record<AnimId, Anim<PoseId>>> = {
   'seat-slump': anim('seat-slump', 'seat', false, [{ pose: 'key.slump-seat-0', ms: 800 }, { pose: 'key.slump-seat-1', ms: 800 }]),
   'seat-panic': anim('seat-panic', 'seat', false, PANIC_STEPS),
   'seat-tear': anim('seat-tear', 'seat', false, TEAR),
+  // the editor (0.12.0): his standing loop on the mangaka's timing; the rest stand-ins until tasks 8-10 draw them
+  'editor-stand': anim('editor-stand', 'stand', true, [
+    { pose: 'editor.stand', ms: 500 }, { pose: 'editor.breath', ms: 500 }, { pose: 'editor.stand', ms: 500 },
+    { pose: 'editor.breath', ms: 500 }, { pose: 'editor.stand', ms: 500 }, { pose: 'editor.breath', ms: 380 },
+    { pose: 'editor.blink', ms: 120 },
+  ]),
+  'editor-walk': anim('editor-walk', 'walk', true, EDITOR_STAND_IN),
+  'editor-arrive': anim('editor-arrive', 'stand', false, EDITOR_STAND_IN),
+  'editor-leave': anim('editor-leave', 'walk', false, EDITOR_STAND_IN),
+  'editor-glasses': anim('editor-glasses', 'stand', false, EDITOR_STAND_IN),
+  'editor-watch': anim('editor-watch', 'stand', false, EDITOR_STAND_IN),
+  'editor-glance': anim('editor-glance', 'stand', false, EDITOR_STAND_IN),
+  'editor-nod': anim('editor-nod', 'stand', false, EDITOR_STAND_IN),
+  'editor-sigh': anim('editor-sigh', 'stand', false, EDITOR_STAND_IN),
 }

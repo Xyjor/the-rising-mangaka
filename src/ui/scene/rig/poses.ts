@@ -19,6 +19,7 @@ export type PoseId =
   | 'key.panic-0' | 'key.panic-1' | 'key.cheer-stand-0' | 'key.cheer-stand-1' | 'key.cheer-seat-0' | 'key.cheer-seat-1'
   | 'key.slump-stand-0' | 'key.slump-stand-1' | 'key.slump-seat-0' | 'key.slump-seat-1' | 'key.tear-0' | 'key.tear-1' | 'key.tear-2'
   | 'key.doze-0' | 'key.doze-1'
+  | 'editor.stand' | 'editor.breath' | 'editor.blink'
 
 export interface PoseDef { readonly pose: Pose; readonly at: 'actor' | 'seat' | 'bed' }
 
@@ -32,6 +33,17 @@ function stand(over: Over = {}): PartPose {
   return {
     kind: 'parts', w: W, h: H, torso: { part: 'torso', x: 7, y: 21 }, head: HEAD,
     armBack: { part: 'arm-r-hang' }, armFront: { part: 'arm-l-hang' },
+    legBack: { part: 'leg-r-stand' }, legFront: { part: 'leg-l-stand' }, ...over,
+  }
+}
+
+const EDITOR_HEAD_PLACE: Place = { part: 'editor-head' }
+
+/** The editor standing (0.12.0): the suit torso at (7, 21) under his own head, the near sleeve hanging, the far one holding the case, the mangaka's legs (recoloured by EDITOR_PAL). */
+function editorStand(over: Over = {}): PartPose {
+  return {
+    kind: 'parts', w: W, h: H, torso: { part: 'editor-torso', x: 7, y: 21 }, head: EDITOR_HEAD_PLACE,
+    armBack: { part: 'arm-r-suit-case' }, armFront: { part: 'arm-l-suit-hang' },
     legBack: { part: 'leg-r-stand' }, legFront: { part: 'leg-l-stand' }, ...over,
   }
 }
@@ -121,4 +133,8 @@ export const POSES: Readonly<Record<PoseId, PoseDef>> = {
   // the assistants' doze at the row's desk, the head down on the folded arms, and its breath
   'key.doze-0': { pose: { kind: 'key', map: DOZE_0 }, at: 'actor' },
   'key.doze-1': { pose: { kind: 'key', map: DOZE_1 }, at: 'actor' },
+  // the editor (0.12.0), every pose at the actor: standing with the case, his breath, his blink behind the lenses
+  'editor.stand': { pose: editorStand(), at: 'actor' },
+  'editor.breath': { pose: editorStand({ head: { part: 'editor-head', dy: 1 } }), at: 'actor' },
+  'editor.blink': { pose: editorStand({ face: { eyes: 'blink' } }), at: 'actor' },
 }

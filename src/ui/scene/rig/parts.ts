@@ -956,6 +956,91 @@ const ARM_L_RUB_B: Part = {
   anchors: { shoulderL: { x: 2, y: 12 }, hand: { x: 3, y: 1 } },
 }
 
+/**
+ * The editor's suit jacket (0.12.0), 18 x 14, TORSO's construction and anchors in the suit's keys (never the
+ * mangaka's J j K R Y y), after art/raw/sprites/editor.png. Row 0: the shoulders' top outline, the collar W beside the
+ * jaw (cols 3-4 and 13-14), the neck s between. Row 1: the shoulders in the suit's shade g, the collar W (cols 4-6 and
+ * 11-13) either side of the neck. Row 2: the shoulder caps g (cols 0-2 and 15-17) over the sleeves, the seams L (cols 3
+ * and 14), the collar's points W narrowing to the tie's knot N at cols 8-9. Row 3: the shirt W (cols 6-8 and 10-11)
+ * beside the tie N (col 9), the lapels' shadow g (cols 5 and 12). Rows 4-11: the tie N down col 9, a one-wide red
+ * line, the jacket G with its shade g down the right (col 13) and the lapel's edge g at col 5 to row 6. Row 12: the
+ * hem g; row 13: the outline the hips sit on.
+ */
+const EDITOR_TORSO: Part = {
+  map: [
+    '.LLWWssssssssWWLL.', // 0  the shoulders' top; the collar beside the jaw; the neck under the chin
+    'LgggWWWssssWWWgggL', // 1  the shoulders in shade; the collar either side of the neck
+    'gggLgWWWNNWWWgLggg', // 2  the shoulder caps; the seams; the collar's points meeting at the tie's knot
+    '...LGgWWWNWWggL...', // 3  the shirt beside the tie; the lapels' shadow
+    '...LGgGGGNGGGgL...', // 4  the lapel's edge to row 6
+    '...LGgGGGNGGGgL...', // 5
+    '...LGgGGGNGGGgL...', // 6
+    '...LGGGGGNGGGgL...', // 7
+    '...LGGGGGNGGGgL...', // 8
+    '...LGGGGGNGGGgL...', // 9
+    '...LGGGGGNGGGgL...', // 10
+    '...LGGGGGNGGGgL...', // 11 the tie's tip
+    '...LggggggggggL...', // 12 the hem
+    '...LLLLLLLLLLLL...', // 13 the outline the hips sit on
+  ],
+  anchors: { neck: { x: 9, y: 0 }, shoulderL: { x: 2, y: 2 }, shoulderR: { x: 15, y: 2 }, hipL: { x: 6, y: 13 }, hipR: { x: 11, y: 13 } },
+}
+
+/**
+ * The editor's near (left) sleeve hanging (0.12.0), 5 x 12: ARM_L_HANG's map in the suit, the sleeve G on cols 1-2
+ * and its shade g on col 3 (lit from the left), rows 0-8; the fist S/s rows 9-10 (hand (2, 10)), closed by L on row 11.
+ */
+const ARM_L_SUIT_HANG: Part = {
+  map: [
+    'LGGgL', // 0  under the shoulder cap
+    'LGGgL', // 1
+    'LGGgL', // 2
+    'LGGgL', // 3
+    'LGGgL', // 4
+    'LGGgL', // 5
+    'LGGgL', // 6
+    'LGGgL', // 7
+    'LGGgL', // 8
+    'LSSsL', // 9  the fist
+    'LSssL', // 10
+    '.LLL.', // 11
+  ],
+  anchors: { shoulderL: { x: 3, y: 0 }, hand: { x: 2, y: 10 } },
+}
+
+/**
+ * The editor's far (right) sleeve holding the briefcase (0.12.0, decision 1: the rig's prop layer joins the front
+ * hand only, so the case is baked into the back arm's sleeve), 7 x 19: cols 0-4 the sleeve and fist as
+ * ARM_L_SUIT_HANG (rows 0-10, shoulderR (1, 0), hand (2, 10)); row 11 the fist's closure and the case's top edge in
+ * one (cols 1-6); rows 12-16 the leather D with its shade d on the right, row 17 the underside d, row 18 the bottom
+ * edge. Standing (at (21, 23)) the case lands at frame cols 22-27, rows 34-41, right of the far shoe; the armBack
+ * layer paints first, so a stepping leg passes in front of it.
+ */
+const ARM_R_SUIT_CASE: Part = {
+  map: [
+    'LGGgL..', // 0  under the shoulder cap
+    'LGGgL..', // 1
+    'LGGgL..', // 2
+    'LGGgL..', // 3
+    'LGGgL..', // 4
+    'LGGgL..', // 5
+    'LGGgL..', // 6
+    'LGGgL..', // 7
+    'LGGgL..', // 8
+    'LSSsL..', // 9  the fist on the handle
+    'LSssL..', // 10
+    '.LLLLLL', // 11 the fist's closure and the case's top edge
+    '.LDDDdL', // 12 the leather
+    '.LDDDdL', // 13
+    '.LDDDdL', // 14
+    '.LDDDdL', // 15
+    '.LDDDdL', // 16
+    '.LddddL', // 17 the underside
+    '.LLLLLL', // 18
+  ],
+  anchors: { shoulderR: { x: 1, y: 0 }, hand: { x: 2, y: 10 } },
+}
+
 /** Every part a pose may name, by name. */
 export const PARTS: PartLib = {
   head: HEAD, 'editor-head': EDITOR_HEAD, torso: TORSO, 'arm-l-hang': ARM_L_HANG, 'arm-r-hang': ARM_R_HANG,
@@ -974,4 +1059,5 @@ export const PARTS: PartLib = {
   'arm-l-out': ARM_L_OUT, 'arm-r-out': ARM_R_OUT, 'arm-l-up': ARM_L_UP, 'arm-r-up': ARM_R_UP,
   'arm-l-flip-a': ARM_L_FLIP_A, 'arm-l-flip-b': ARM_L_FLIP_B, 'arm-l-flip-c': ARM_L_FLIP_C, page: PAGE,
   'arm-l-rub-a': ARM_L_RUB_A, 'arm-l-rub-b': ARM_L_RUB_B,
+  'editor-torso': EDITOR_TORSO, 'arm-l-suit-hang': ARM_L_SUIT_HANG, 'arm-r-suit-case': ARM_R_SUIT_CASE,
 }

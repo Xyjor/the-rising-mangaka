@@ -117,7 +117,24 @@ describe('the rig tables', () => {
       'seat-stretch': 'seat once', 'seat-sip': 'seat once', 'seat-flip': 'seat once', 'seat-rub': 'seat once',
       'stand-cheer': 'stand once', 'seat-cheer': 'seat once', 'stand-slump': 'stand once', 'seat-slump': 'seat once',
       'seat-panic': 'seat once', 'seat-tear': 'seat once',
+      'editor-stand': 'stand loop', 'editor-walk': 'walk loop', 'editor-arrive': 'stand once', 'editor-leave': 'walk once',
+      'editor-glasses': 'stand once', 'editor-watch': 'stand once', 'editor-glance': 'stand once', 'editor-nod': 'stand once',
+      'editor-sigh': 'stand once',
     } satisfies Record<AnimId, string>)
+  })
+
+  it("keeps the editor's poses on the editor's head and torso at the actor, everyone else's off them, and his animations on his poses", () => {
+    for (const [id, def] of ENTRIES) {
+      if (def.pose.kind !== 'parts') continue
+      const editor = id.startsWith('editor.')
+      expect(def.pose.head.part, id).toBe(editor ? 'editor-head' : 'head')
+      expect(def.pose.torso.part, id).toBe(editor ? 'editor-torso' : 'torso')
+      if (editor) expect(def.at, id).toBe('actor')
+    }
+    for (const id of ANIM_IDS) {
+      const editor = id.startsWith('editor-')
+      for (const st of ANIMS[id].steps) expect(st.pose.startsWith('editor.'), `${id} ${st.pose}`).toBe(editor)
+    }
   })
 
   it('builds each frame once and names it by its pose and face (no mark while ready)', () => {
