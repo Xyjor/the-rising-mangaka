@@ -1,5 +1,5 @@
-// The mood overlay's pure rules: which mood wins (moodOf) and how long a cheer lasts after a pop worth celebrating
-// (cheersFor). No React, no DOM; render.ts and StudioScene.tsx both read this.
+// The cast's mood rules, pure: which mood wins (moodOf) and how long a cheer lasts after a pop worth celebrating
+// (cheersFor), and the cat's idle cycle (catFrame). No React, no DOM; render.ts and StudioScene.tsx both read this.
 import { LOW_STAMINA_THRESHOLD } from '../../sim'
 import type { PopKind } from './Pops'
 import type { Mood } from './rig/types'

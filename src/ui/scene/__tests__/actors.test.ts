@@ -121,9 +121,9 @@ describe('editorWalksIn', () => {
 })
 
 describe('the 0.11 spots (task 9)', () => {
-  it('starts every actor with no pose: the 0.10 frames until the cast driver sets one', () => {
+  it('starts every actor unposed: the driver poses the rig cast, the editor and the cat keep their 0.10 frames', () => {
     const t = newActorTable()
-    expect([t.mangaka.pose, t.editor.pose, t.cat.pose]).toEqual(['', '', ''])
+    expect([t.mangaka.pose, ...t.assistants.map((a) => a.pose), t.editor.pose, t.cat.pose]).toEqual(['', '', '', '', '', ''])
   })
 
   it('plans the rig spots: the mangaka in through its own door, the assistants\' row, the cat\'s bed', () => {

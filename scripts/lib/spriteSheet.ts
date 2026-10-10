@@ -99,7 +99,7 @@ export function markPalette(pal: Record<string, string>, markPal: Record<string,
   return out
 }
 
-/** Rows and columns where render.ts's drawMood puts a face (x+4, y+9+headDy) and a mark (markX: x+20, y-2). */
+/** Rows and columns where 0.10's drawMood (gone in 0.11.0) put a face (x+4, y+9+headDy) and a mark (x+20, y-2). */
 const FACE_ROW = 9
 const FACE_COL = 4
 const MARK_COL = 20

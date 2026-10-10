@@ -28,8 +28,8 @@ export const PAL: Record<string, string> = {
 /**
  * The hand-drawn anchor head (rows 0-15 of the original standing frame): the 0.10 frames' head (the editor's is built
  * on it), and the `--sprite` pipeline grafts it onto a generated frame whose own head fails `faceRules` (manifest
- * `graft: "anchor-head"`), so the FACES overlay and the mark always land where they were drawn for. The staff portrait
- * draws the rig's head since 0.11.0 (`rig/head.ts`).
+ * `graft: "anchor-head"`), so up to 0.11.0 the 0.10 FACES overlay and its mark landed where they were drawn for. The
+ * staff portrait draws the rig's head since 0.11.0 (`rig/head.ts`).
  */
 export const ANCHOR_HEAD: SpriteMap = [
   '......LLLLLLLLLL........', // 0
@@ -71,8 +71,8 @@ export function frameRules(map: SpriteMap, w = 24, h = 32, pal: Record<string, s
 }
 
 /**
- * The keys a face may show inside the FACES window and the rig head's eye and mouth slots: skin and its shade, the
- * eyes and their white, mouth, blush, outline.
+ * The keys a face may show inside the rig head's eye and mouth slots (and `faceRules`' 0.10 face window): skin and its
+ * shade, the eyes and their white, mouth, blush, outline.
  */
 export const FACE_KEYS = 'SsEWMBL'
 
@@ -80,10 +80,10 @@ export const FACE_KEYS = 'SsEWMBL'
 export const MARK_KEYS = 'LWAX'
 
 /**
- * What stops a head-steady frame taking the mood overlay, [] when nothing: rows 9-12, cols 4-17 (where `FACES` lands)
- * hold only face keys, so the overlay paints over a face; rows 0-2, cols 20-22 (the mark slot) are clear; and the head
- * (rows 0-15) stays inside cols 2-19, the 0.10 staff portrait's crop. The `--sprite` pipeline grafts the anchor head
- * onto a generated frame that fails it.
+ * What stopped a 0.10 head-steady frame taking the mood overlay (gone since 0.11.0, the rig bakes its faces), [] when
+ * nothing: rows 9-12, cols 4-17 (where the 0.10 `FACES` landed) hold only face keys; rows 0-2, cols 20-22 (the 0.10
+ * mark slot) are clear; and the head (rows 0-15) stays inside cols 2-19, the 0.10 staff portrait's crop. The
+ * `--sprite` pipeline still reports it and grafts the anchor head onto a generated frame that fails it.
  */
 export function faceRules(map: SpriteMap): string[] {
   const out: string[] = []
