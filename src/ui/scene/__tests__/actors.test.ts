@@ -1,10 +1,11 @@
 // The actor table is pure: node environment, hand-derived literals (40 px/s, so 4 px per 100 ms).
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { sceneSnapshot } from '../../../test/fakeCanvas'
 import type { Snapshot } from '../render'
 import {
   ASSISTANT_SEAT_X, ASSISTANT_SEAT_Y, CAT_BED, EDITOR_SPOT, EDITOR_WALK_MS, MANGAKA_BED, MANGAKA_BED_FRAME, MANGAKA_DOOR,
-  MANGAKA_SEAT, MANGAKA_STAND, editorWalksIn, newActorTable, planActors, settleActors, stepActors,
+  MANGAKA_SEAT, MANGAKA_STAND, RIG_EDITOR_DOOR, RIG_EDITOR_SPOT, WALK_PX_PER_S, editorWalksIn, newActorTable, planActors,
+  setRigLive, settleActors, stepActors,
 } from '../actors'
 import type { Actor, ActorTable } from '../actors'
 
@@ -176,5 +177,60 @@ describe('the 0.11 spots (task 9)', () => {
     expect(cat.x + 11).toBeLessThan(MANGAKA_BED_FRAME.x + 23) // clear of the lying head
     expect(cat.x + 11).toBeLessThan(bed.x) // and of the standing frame at the bed
     expect(cat.y).toBeGreaterThan(EDITOR_SPOT.y + 31)
+  })
+})
+
+describe('the editor\'s rig spots (0.12.0, task 7)', () => {
+  beforeEach(() => setRigLive({ editor: true }))
+  afterEach(() => setRigLive({ editor: false }))
+
+  it('fits the editor in front of the bed facing the desk, his feet on the floor, his door the mangaka\'s, a 1650 ms walk', () => {
+    expect([RIG_EDITOR_SPOT, RIG_EDITOR_DOOR]).toEqual([{ x: 205, y: 90 }, MANGAKA_DOOR])
+    expect(RIG_EDITOR_SPOT.y + 47).toBe(137) // the feet on the floor in front of the bed (its footprint ends at y 127)
+    expect(RIG_EDITOR_SPOT.x).toBeGreaterThan(MANGAKA_STAND.x + 31) // right of the standing mangaka's frame
+    expect(RIG_EDITOR_SPOT.x + 31).toBeLessThan(250) // left of the door (x 250-283)
+    const walk = Math.abs(RIG_EDITOR_DOOR.x - RIG_EDITOR_SPOT.x) + Math.abs(RIG_EDITOR_DOOR.y - RIG_EDITOR_SPOT.y)
+    expect([walk, walk / WALK_PX_PER_S * 1000]).toEqual([66, 1650])
+  })
+
+  it('walks him in from the door y first then along the floor, left at the spot; out along the floor first', () => {
+    const t = newActorTable()
+    planActors(t, sceneSnapshot({ visitor: 'editor', actors: t }))
+    const e = t.editor
+    expect([e.x, e.y, e.targetX, e.targetY, e.legs, e.goal]).toEqual([250, 69, 205, 90, 'yx', 'standing'])
+    stepActors(t, 525, false) // 21 px down, beside the door
+    expect([e.x, e.y, e.state]).toEqual([250, 90, 'walking'])
+    stepActors(t, 1125, false) // 45 px left along the floor
+    expect([e.x, e.y, e.state, e.facing]).toEqual([205, 90, 'standing', -1])
+    planActors(t, sceneSnapshot({ visitor: 'none', actors: t }))
+    expect([e.targetX, e.targetY, e.legs, e.goal]).toEqual([250, 69, 'xy', 'away'])
+    stepActors(t, 100, false)
+    expect([e.x, e.y, e.facing]).toEqual([209, 90, 1])
+    editorWalksIn(t)
+    expect([e.x, e.y, e.state]).toEqual([250, 69, 'hidden'])
+  })
+})
+
+describe('a held actor (0.12.0, task 7, decision 14)', () => {
+  it('starts every actor unheld, and holds one in place and in its state while holdMs runs, counting it down by dt', () => {
+    expect(newActorTable().editor.holdMs).toBe(0)
+    const t = walker({ holdMs: 150 })
+    const m = t.mangaka
+    stepActors(t, 100, false)
+    expect([m.x, m.y, m.state, m.anim, m.holdMs]).toEqual([100, 100, 'standing', 0, 50])
+    // the hold is still running at this step's start: held once more, and spent
+    stepActors(t, 100, false)
+    expect([m.x, m.state, m.holdMs]).toEqual([100, 'standing', 0])
+    stepActors(t, 100, false)
+    expect([m.x, m.state]).toEqual([104, 'walking'])
+  })
+
+  it('is cleared by reduced motion (the actor snaps) and by a settle', () => {
+    const snap = walker({ holdMs: 500 })
+    stepActors(snap, 1, true)
+    expect([snap.mangaka.x, snap.mangaka.y, snap.mangaka.state, snap.mangaka.holdMs]).toEqual([110, 105, 'standing', 0])
+    const settled = walker({ holdMs: 500 })
+    settleActors(settled)
+    expect([settled.mangaka.x, settled.mangaka.state, settled.mangaka.holdMs]).toEqual([110, 'standing', 0])
   })
 })

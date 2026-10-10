@@ -6,7 +6,7 @@
 import { LOW_STAMINA_THRESHOLD } from '../../sim'
 import { RIG_LIVE } from './actors'
 import type { Actor, ActorState, ActorTable } from './actors'
-import { advance, enqueue, interrupt, poseAt, settle, startPlayer, switchBase } from './animation'
+import { advance, animLength, enqueue, interrupt, poseAt, settle, startPlayer, switchBase } from './animation'
 import type { Anim, PlayerState } from './animation'
 import { nextIdle } from './idleSchedule'
 import type { ReactionCue, ReactionKind } from './reactions'
@@ -95,6 +95,19 @@ export function reactionAnim(kind: ReactionKind, who: CastWho, state: ActorState
 /** Whether a dev preview animation is the character's own: the editor plays only `editor-*`, and no one else does. */
 export function previewFits(who: CastWho, anim: Anim): boolean {
   return anim.id.startsWith('editor-') === (who === 'editor')
+}
+
+/** The loop walks the actors (and counts a hold down) once before the driver takes a cue: a hold outlasts its verdict by this much. */
+export const VERDICT_HOLD_SLACK_MS = 50
+
+/**
+ * How long the editor stays at the spot for a reaction cue (the 0.12.0 plan's decision 14): his verdict's length plus
+ * the slack while he stands (the nod on an offer or a good poll, the sigh on a bad one), 0 when the cue is not his
+ * or he is not standing. StudioScene sets `Actor.holdMs` from it before the plan sends him to the door.
+ */
+export function verdictHoldMs(kind: ReactionKind, editor: Actor): number {
+  const r = reactionAnim(kind, 'editor', editor.state)
+  return r === null ? 0 : animLength(ANIMS[r]) + VERDICT_HOLD_SLACK_MS
 }
 
 /** The rig head's top row in a state's frame: 6 seated, 8 in the bed frame, else 0 (bubbles and pops sit above it). */

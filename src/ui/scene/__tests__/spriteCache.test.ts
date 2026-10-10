@@ -7,6 +7,7 @@ import type { FillCall } from '../../../test/fakeCanvas'
 import { OLD_CAST } from '../oldCast'
 import { MOODS, rigFrame } from '../rig/frames'
 import { POSES } from '../rig/poses'
+import { VISIT_PROPS } from '../rig/props'
 import type { PoseId } from '../rig/poses'
 import { ASSISTANT_PALS, EDITOR_PAL, OUTFIT_PALS, PAL, drawSprite } from '../sprites'
 import {
@@ -90,7 +91,8 @@ describe('the sprite cache', () => {
     ])
     const pals = Object.keys(CAST_PALETTES) as (keyof typeof CAST_PALETTES)[]
     expect(pals).toHaveLength(10)
-    for (const f of [...old, ...rig]) for (const pal of pals) cache.image(f, pal, false)
+    const props = Object.values(VISIT_PROPS).map((p) => p.frame)
+    for (const f of [...old, ...rig, ...props]) for (const pal of pals) cache.image(f, pal, false)
     expect(made.length).toBeGreaterThan(9 * Object.keys(POSES).length)
     for (const m of made) expect(m.log.some((c) => c.style === '#f0f'), m.id).toBe(false)
   })

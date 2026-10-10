@@ -324,6 +324,14 @@ the phase (`EDITOR_SEAT`: the mangaka is 0, the assistants 1-3). He only stands 
 `editor-walk`); his transitions are his own (`transitionFor(who, from, to)`: `editor-arrive`, the turn at the spot on
 arriving, and `editor-leave`, the turn back toward the door), and so is his pool of waiting moments (`EDITOR_POOL`:
 pushing up his glasses, checking his watch, a glance at the manuscript pile), never tired.
+**The verdict hold** (0.12.0 task 7, the plan's decision 14): dismissing a result can send the editor to the door in
+the same store change that brings his verdict, and the loop walks the actors before the driver takes the cue, so he
+would be walking (no verdict) by then. `Actor.holdMs` keeps an actor where it is, in its state, while `stepActors`
+counts it down by dt (a settle and reduced motion clear it); `StudioScene`'s reaction subscription, which runs on the
+store change before React re-renders and the plan effect, sets the editor's hold to `verdictHoldMs(kind, editor)`
+(`castPlay.ts`: his verdict's `animLength` plus `VERDICT_HOLD_SLACK_MS` 50, the one loop step that walks the actors
+before the driver takes the cue, while he stands; 0 otherwise). He nods or sighs at the spot, then leaves through
+`editor-leave`. Presentation only: the desk card and the clock are untouched.
 
 **Drawing the rig** (`render.ts`, 0.11.0 task 10). The mangaka (since task 17) and the assistants (since task 19) are
 drawn from the rig: the actor's pose, or with none (a settled table) its base loop's first step (`poseOf`). The
@@ -340,6 +348,12 @@ top row. An assistant draws its pose in its look, its mood's face (tired or happ
 25, y + 11).
 The mangaka's bubble and pops sit above the rig head's centre (`headCentre`: col 16 from the actor in every state, in
 bed too, its spot on the lying head's column) and top (`headTop`: row 0, 6 seated, 8 in bed).
+The editor (0.12.0 task 7, while `RIG_LIVE.editor`; else `drawOldEditor`, his 0.10 frames, until task 11) is
+`drawRigEditor`: his pose (or his base loop's first step) as one `drawImage` of its neutral frame in `EDITOR_PAL`,
+mirrored facing right, over a 20 px contact shadow (x + 6, y + 46), drawn after the cat. Standing at the spot facing
+the desk with something to deliver, the visit's prop (`rig/props.ts`) goes after the body with its hand cell on the
+pose's `frontHand`, and the `!` bobs in the rig's mark slot (frame col 28, a row higher every other 16 frames; the
+plan's decision 13). His greeting bubble sits over the rig head (`headCentre`, `headTop`) while the switch is on.
 
 **Reactions** (`reactions.ts`, 0.11.0). One store change brings at most one reaction (`reactionFor`, by priority),
 never across a save load, a new career's world seed, a jump of more than a day, or in a read-only tab (the pops'
@@ -364,8 +378,9 @@ the panic recurs as before and reduced motion still shows it.
 **The `?rig` dev preview.** A dev build's `?rig=<animation>` (`npm run dev`, an `AnimId`, such as `?rig=stand-look`)
 plays that animation over every base of its posture whenever nothing else plays, on its own character only
 (`previewFits`: an `editor-*` animation on the editor, any other on everyone else), so an art task sees its moments
-and reactions in the running scene (since task 19 there is no switch for `?rig` alone to turn on). A production build never
-reads the URL (the read sits behind `import.meta.env.DEV`).
+and reactions in the running scene. `?rig`, with or without an animation, also turns the editor's switch on
+(`RIG_LIVE.editor`, 0.12.0 task 7), so he walks to the 0.12 spot and is drawn from the rig until the switch is on for
+good. A production build never reads the URL (the read sits behind `import.meta.env.DEV`).
 
 **The editor's visit** (`visitor.ts`, `useArrival`) picks the one reason they are at the desk, in priority order:
 a pending chapter result, a pending offer, the project ready to submit, an anime offer, a random event, then an
@@ -454,6 +469,13 @@ the rig in the order its tasks drew it, then what every character shares. The ed
   (row F went; row H's editor strip is the rig's `editor-walk` above the base's `EDITOR_WALK`). The gate
   (`--only editor-` at 8x and 1x) read on the first drawing: the same man as row J in a navy suit, the collar and
   the red tie clear, the case in the far hand clear of the leg, the breath a soft sink, the blink behind the lenses.
+- **The visit's props** (0.12.0, task 7): `rig/props.ts` `VISIT_PROPS`, the four things the editor delivers, each a
+  small cast frame in PAL keys (`prop.<id>`) with a `hand` anchor, drawn in the editor's palette after the body at the
+  pose's front hand (the plan's decision 2: not the 0.10 `PROP_PAL`, which retires with his 0.10 frames): the
+  envelope 6x4 (paper `W`, the flap's fold lines `w`, held at (3, 1)), the letter 5x6 (two lines of writing `w` on
+  `W`, held at (2, 1)), the contract 5x7 (the blue heading `R`, the red seal `M`, held at (2, 1)) and the trophy 5x6
+  (the gold cup `X` on its stem over the wooden base `D`, held by the rim at (2, 2)). One drawImage each, so the
+  body's frames never multiply by four props; `rigProps.test` holds each to `frameRules` and `partRules`.
 - **The rig** (0.11.0, task 8). A person is a 32x48 frame (Decision 4): standing, the head part (27x22: the head in
   cols 0-23, the mark slot in cols 24-26) at (4, 0), so the mark slot is frame cols 28-30, rows 0-4, where render's
   '!' and '?' go too; the torso (18x14) at (7, 21), its neck (9, 0) under the head's neck (12, 21); the hips on row 34
@@ -820,6 +842,7 @@ viewBox adds a blank row above and below, 24x24, so the backdrop fills the 48x48
 | `MANGAKA_DOOR` | (250, 69) (0.10: the door spot) |
 | `DOOR_SPOT` | (254, 85) |
 | `EDITOR_SPOT` | (198, 85) |
+| The editor's spot (0.12.0) | (198, 85) → `RIG_EDITOR_SPOT` (205, 90): the feet on the floor in front of the bed, y 137, facing the desk; his door the mangaka's, `RIG_EDITOR_DOOR` (250, 69); behind `RIG_LIVE.editor` (`editorSpots()`) until task 11. He walks in y first (`legs` `'yx'`: down beside the door, then along the floor, so his frame crosses the bed in front of it) and out x first (`'xy'`), 66 px either way (the plan's decision 7) |
 | `CAT_BED` | (202, 118), on the blanket (0.10: (196, 118)) |
 | `CAT_KITCHEN` | (44, 150) |
 | `ASSISTANT_SEAT_X` / `_Y` | [21, 55, 89] / 80 (0.10: [66, 86, 106] / 89) |

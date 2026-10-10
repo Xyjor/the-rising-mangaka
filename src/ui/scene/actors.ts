@@ -27,9 +27,14 @@ export interface Actor {
   anim: number
   /**
    * The rig pose showing now (castPlay.ts sets it each step); '' for an actor the driver has not posed (render then
-   * draws its base loop's first step) or that draws its 0.10 frames (the editor and the cat).
+   * draws its base loop's first step) or that draws its 0.10 frames (the cat, and the editor while his switch is off).
    */
   pose: PoseId | ''
+  /**
+   * Milliseconds the actor stays put in its state whatever its target (a verdict playing, the 0.12.0 plan's decision
+   * 14): stepActors counts it down; 0 when free. Presentation only.
+   */
+  holdMs: number
 }
 
 export interface ActorTable { mangaka: Actor; assistants: readonly [Actor, Actor, Actor]; editor: Actor; cat: Actor }
@@ -70,13 +75,29 @@ export const ASSISTANT_SEAT_X: readonly number[] = [21, 55, 89]
 export const EDITOR_WALK_MS = ((DOOR_SPOT.x - EDITOR_SPOT.x) + (DOOR_SPOT.y - EDITOR_SPOT.y)) / WALK_PX_PER_S * 1000
 
 /**
- * The editor's switch (0.12.0): the cast driver poses him from his rig set only while it is on, off until the set is
- * complete. Tests turn it on and back off.
+ * The editor's switch (0.12.0): the cast driver poses him from his rig set, render draws him from it and he walks to
+ * the rig's spots only while it is on, off until the set is complete. A dev build's `?rig` turns it on
+ * (StudioScene); tests turn it on and back off.
  */
 export const RIG_LIVE: { editor: boolean } = { editor: false }
 
 export function setRigLive(live: { editor: boolean }): void {
   RIG_LIVE.editor = live.editor
+}
+
+/**
+ * The editor's spots for the 32x48 rig (0.12.0): in front of the bed, his feet on the floor (y 137) facing the desk,
+ * and the mangaka's door; the 0.10 ones stay until his switch (`RIG_LIVE.editor`) is on for good.
+ */
+export const RIG_EDITOR_SPOT: Spot = { x: 205, y: 90 }
+export const RIG_EDITOR_DOOR: Spot = MANGAKA_DOOR
+export interface EditorSpots { readonly spot: Spot; readonly door: Spot }
+const LEGACY_EDITOR: EditorSpots = { spot: EDITOR_SPOT, door: DOOR_SPOT }
+const RIG_EDITOR: EditorSpots = { spot: RIG_EDITOR_SPOT, door: RIG_EDITOR_DOOR }
+
+/** The editor's spot and door: the rig's while his switch is on, else the 0.10 ones. */
+export function editorSpots(): EditorSpots {
+  return RIG_LIVE.editor ? RIG_EDITOR : LEGACY_EDITOR
 }
 
 /** What the plan reads from the scene's snapshot. */
@@ -92,7 +113,7 @@ export interface ActorPlanInput {
 function newActor(): Actor {
   return {
     x: DOOR_SPOT.x, y: DOOR_SPOT.y, targetX: DOOR_SPOT.x, targetY: DOOR_SPOT.y,
-    facing: -1, state: 'hidden', goal: 'hidden', legs: 'xy', anim: 0, pose: '',
+    facing: -1, state: 'hidden', goal: 'hidden', legs: 'xy', anim: 0, pose: '', holdMs: 0,
   }
 }
 
@@ -138,9 +159,11 @@ export function planActors(table: ActorTable, snap: ActorPlanInput): void {
   }
 
   const e = table.editor
-  if (snap.visitor !== 'none') send(e, EDITOR_SPOT, 'standing')
+  const es = editorSpots()
+  // in: down from the door, then along the floor (y first), so the frame crosses the bed in front of it; out: the way back
+  if (snap.visitor !== 'none') { send(e, es.spot, 'standing', es.door); e.legs = 'yx' }
   // once the editor has been in, they leave through the door; before that they stay hidden
-  else if (e.goal !== 'hidden') send(e, DOOR_SPOT, 'away')
+  else if (e.goal !== 'hidden') { send(e, es.door, 'away', es.door); e.legs = 'xy' }
 
   const c = table.cat
   if (resting) { send(c, CAT_KITCHEN, 'sitting'); c.legs = 'yx' }
@@ -148,6 +171,11 @@ export function planActors(table: ActorTable, snap: ActorPlanInput): void {
 }
 
 function stepActor(a: Actor, dtMs: number, reduced: boolean) {
+  // held: where it is, in its state, the hold counting down; reduced motion (which snaps) clears it instead
+  if (a.holdMs > 0) {
+    if (!reduced) { a.holdMs = Math.max(0, a.holdMs - dtMs); a.anim = 0; return }
+    a.holdMs = 0
+  }
   if (a.x === a.targetX && a.y === a.targetY) { a.state = a.goal; a.anim = 0; return }
   if (reduced) { a.x = a.targetX; a.y = a.targetY; a.state = a.goal; a.anim = 0; return }
   let budget = dtMs * WALK_PX_PER_S / 1000
@@ -175,7 +203,7 @@ export function stepActors(table: ActorTable, dtMs: number, reduced: boolean): v
   stepActor(table.cat, dtMs, reduced)
 }
 
-function settle(a: Actor) { a.x = a.targetX; a.y = a.targetY; a.state = a.goal; a.anim = 0 }
+function settle(a: Actor) { a.x = a.targetX; a.y = a.targetY; a.state = a.goal; a.anim = 0; a.holdMs = 0 }
 
 /** Everyone in place at once: nobody walks in on a mount or a loaded save. */
 export function settleActors(table: ActorTable): void {
@@ -191,7 +219,8 @@ export function settleActors(table: ActorTable): void {
  */
 export function editorWalksIn(table: ActorTable): void {
   const e = table.editor
-  e.x = DOOR_SPOT.x; e.y = DOOR_SPOT.y; e.facing = -1; e.state = 'hidden'; e.anim = 0
+  const door = editorSpots().door
+  e.x = door.x; e.y = door.y; e.facing = -1; e.state = 'hidden'; e.anim = 0
 }
 
 function off(a: Actor): boolean { return a.x !== a.targetX || a.y !== a.targetY }

@@ -113,7 +113,9 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   none its base loop's first step) is one `drawImage` of `rigFrame(pose, mood, ready)`, the mood's face and mark baked
   in (no overlay), at `poseOrigin` (the actor, or `MANGAKA_SEAT` or `MANGAKA_BED_FRAME`); the assistants' row
   (`drawAssistants`: the figures, their desk, their pages) goes after the desk group and before the mangaka's front
-  pass, in front of the main desk by depth; `workingOf(s)` (drawing at the desk with the clock running, shared with the
+  pass, in front of the main desk by depth; the editor (0.12.0) from the rig while `RIG_LIVE.editor` (`drawRigEditor`:
+  his neutral frame in the `editor` palette, the visit's prop at `frontHand`, the `!` in the mark slot), else his 0.10
+  frames (`drawOldEditor`); `workingOf(s)` (drawing at the desk with the clock running, shared with the
   driver) and `assistantDesk(shown)` (the row's desk, a constant per count); `sceneArt.ts`
   `SceneArt` (render's fifth argument, before the sprite cache, default `NO_ART`): generated room walls (320x114, drawn over rows 0-113, the apartment's and the loft's; the flat has none since 0.10.1, its wall always code-drawn, `TIER_WALL`; the tier's floor is always code-drawn, `roomArt.ts` `TIER_FLOOR`) and prop sprites (structural, furniture, front row) drawn with
   `drawImage` (`ready`, `drawProp`; a sprite keeps its aspect at `PROP_SPRITE`, placed by `spriteBox` (`placeSprite` under `PROP_ALIGN`, sized by `PROP_SPRITE`/`PROP_MIN_H`/`PROP_MAX_W`; a desk by `hangSprite`) at render.ts's
@@ -160,7 +162,9 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   `anims.ts` (`AnimId`, `ANIM_IDS`, `ANIMS`: the 33 animations' fixed postures and looping, each step a pose and its
   ms; the cast's 24 drawn, the editor's nine `editor-*` (0.12.0) drawn as they land, `editor-stand` now, the rest one
   step of `editor.stand`, `EDITOR_STAND_IN`, until tasks 8-10) and `frames.ts` (`rigFrame(pose, mood, ready)`: the frame assembled with the
-  mood's face, `faceOf`, in the head's own face art, `faceArtOf`, memoized per pose, mood and ready, its id `pose~eyes.mouth.mark`, `frameId`; `frontHand(pose)`, the front arm's hand cell, memoized, where the visit's prop is drawn (0.12.0)); `spriteCache.ts` (0.11.0) the per-session sprite cache: each
+  mood's face, `faceOf`, in the head's own face art, `faceArtOf`, memoized per pose, mood and ready, its id `pose~eyes.mouth.mark`, `frameId`; `frontHand(pose)`, the front arm's hand cell, memoized, where the visit's prop is drawn (0.12.0)) and `props.ts`
+  (0.12.0, `VISIT_PROPS`: the envelope, letter, contract and trophy as small cast frames `prop.<id>` in PAL keys with a
+  `hand` anchor, drawn in the editor's palette after his body at `frontHand`); `spriteCache.ts` (0.11.0) the per-session sprite cache: each
   cast frame painted once per palette (`PaletteId`: `pal`, the outfits, `editor`, `look0`-`look5`) and facing into an
   OffscreenCanvas (a `<canvas>` without one or when it gives no 2D context, a stand-in in node), keyed by frame id;
   `drawCast` is one `drawImage`, `drawCastTop` one 9-argument `drawImage` of a cached frame's top rows (render draws the
@@ -185,7 +189,8 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   (`idlePool`, `nextIdle`: a new game day restarts the count, never the wait; his waiting moments, `EDITOR_POOL`) and
   the snapshot's reaction cue (`reactionAnim`: it cuts an idle moment short, waits behind a transition; his verdicts, a
   nod on `offer` or `good-poll`, a sigh on `bad-poll`, standing only), and writes `Actor.pose`; `previewFits` (a dev
-  preview on its own character only); `settleCast`, `resumeCast`; `headTop`/`headCentre` for the bubbles and pops. `season.ts` has `seasonOf(day)` and the window's season layer; `roomArt.ts` each tier's walls and floor (`TIER_ROOM` is `TIER_WALL` then `TIER_FLOOR`:
+  preview on its own character only); `verdictHoldMs(kind, editor)` (0.12.0, decision 14: his verdict's length plus
+  `VERDICT_HOLD_SLACK_MS` 50 while he stands, else 0); `settleCast`, `resumeCast`; `headTop`/`headCentre` for the bubbles and pops. `season.ts` has `seasonOf(day)` and the window's season layer; `roomArt.ts` each tier's walls and floor (`TIER_ROOM` is `TIER_WALL` then `TIER_FLOOR`:
 tatami, planks, concrete), the front row of floor props (`TIER_FRONT`, drawn after the actors), the story props (corkboard,
 calendar, cups, the serial's cover, fan letters, bin) and `drawAmbient` (daylight shaft, lamp pool, vignette), all in
 canvas space; `story.ts` `storyLook`, the story props' five snapshot inputs read from the game; `studioArt.ts` the
@@ -196,7 +201,11 @@ canvas space; `story.ts` `storyLook`, the story props' five snapshot inputs read
   '' when unposed), the mangaka's 0.11 spots under the 0.10 names (`MANGAKA_SEAT` (124, 58), `MANGAKA_STAND` (170, 81),
   `MANGAKA_BED` (220, 90) with the bed frames at `MANGAKA_BED_FRAME` (201, 90), `MANGAKA_DOOR` (250, 69), `CAT_BED`
   (202, 118)) and the assistants' 0.11 row (`ASSISTANT_SEAT_X` [21, 55, 89], `ASSISTANT_SEAT_Y` 80), all planned by
-  `planActors(table, snap)`; `visitor.ts` the editor's reason for visiting, its prop and
+  `planActors(table, snap)`; since 0.12.0 the editor's switch `RIG_LIVE`/`setRigLive` (his rig track, drawing and
+  spots; `?rig` turns it on in a dev build), `editorSpots()` (`RIG_EDITOR_SPOT` (205, 90) and `RIG_EDITOR_DOOR`, the
+  mangaka's door, while it is on, else `EDITOR_SPOT`/`DOOR_SPOT`; in y first, legs `'yx'`, out x first) and
+  `Actor.holdMs` (a held actor stays put in its state while `stepActors` counts it down; a settle and reduced motion
+  clear it); `visitor.ts` the editor's reason for visiting, its prop and
   its greeting (`sceneReasonOf` adds `tutorial`, the lowest reason: the editor stands at the spot while a tutorial step
   is open, empty-handed and silent, walking in on a new career's step 0 through `actors.ts` `editorWalksIn`, and the
   scene's greeting bubble hides while the guide is on screen, `clock.ts` `guideVisible`, not while a step waits); `sceneAnchor.ts` `sceneToCss` mapping scene pixels to the canvas's cover-fit CSS box; `Bubble.tsx`
@@ -205,8 +214,10 @@ canvas space; `story.ts` `storyLook`, the story props' five snapshot inputs read
   from the presentation clock, playing the `knock` and `pop` cues; since 0.11.0 it steps the cast driver every loop
   step on a scene clock of its own, `sceneMs`, the sum of the loop's steps, so it never jumps across a hidden stretch
   (`settleCast` on mount and a loaded save, `resumeCast` when the stopped loop restarts), turns `reactionFor` into a
-  `ReactionCue` on the snapshot (never while the window is hidden), and in a dev build `?rig=<anim>` plays that
-  animation over every base of its posture; a production build never reads it,
+  `ReactionCue` on the snapshot (never while the window is hidden), holding the editor at the spot for his verdict
+  first (`verdictHoldMs` into `Actor.holdMs`, before the plan effect sends him to the door), and in a dev build
+  `?rig=<anim>` plays that animation over every base of its posture on its own character only (`previewFits`), and
+  `?rig` turns the editor's switch on; a production build never reads it,
   `import.meta.env.DEV`); every render is checked against a hand-measured
   fillRect baseline (`render.test.ts` 273, `studioArt.test.ts` 289; with every scene image ready, 156 and 173; the
   rest scene with the doze, `render.test.ts` 302; re-measured by the 0.9.0 cast redraw, the art baselines rose by

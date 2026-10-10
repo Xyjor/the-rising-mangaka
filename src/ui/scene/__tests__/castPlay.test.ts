@@ -1,15 +1,16 @@
 // The cast driver: pure rules plus a table of tracks mutated in place, node environment. Assertions name animations
 // by id and poses through ANIMS, so they hold as each animation's art replaces its stand-in.
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { newActorTable, setRigLive } from '../actors'
+import { newActorTable, planActors, setRigLive, settleActors, stepActors } from '../actors'
 import { animLength } from '../animation'
 import {
-  EDITOR_SEAT, IDLE_MOMENTS, PHASE_MS, baseAnimFor, headCentre, headTop, idlePool, newCastPlay, previewFits, reactionAnim, resumeCast,
-  settleCast, stepCast, transitionFor,
+  EDITOR_SEAT, IDLE_MOMENTS, PHASE_MS, VERDICT_HOLD_SLACK_MS, baseAnimFor, headCentre, headTop, idlePool, newCastPlay, previewFits,
+  reactionAnim, resumeCast, settleCast, stepCast, transitionFor, verdictHoldMs,
 } from '../castPlay'
 import type { CastInput } from '../castPlay'
 import { nextIdle } from '../idleSchedule'
 import { ANIMS } from '../rig/anims'
+import { sceneSnapshot } from '../../../test/fakeCanvas'
 
 const input = (over: Partial<CastInput> = {}): CastInput => ({
   day: 12, working: true, late: false, ready: false, stamina: 100, assistants: [], reaction: null, preview: null, ...over,
@@ -352,6 +353,53 @@ describe('stepCast', () => {
     expect(play.editor.player?.over).not.toBeNull()
     resumeCast(play, 900)
     expect([play.editor.player?.over, play.editor.player?.baseAt, play.editor.nextIdleAt]).toEqual([null, 900 - EDITOR_SEAT * PHASE_MS, -1])
+  })
+
+  it('holds the editor for his verdict: the length of the nod or the sigh plus the slack, standing; nothing otherwise', () => {
+    const t = newActorTable()
+    t.editor.state = 'standing'
+    expect(verdictHoldMs('bad-poll', t.editor)).toBe(animLength(ANIMS['editor-sigh']) + VERDICT_HOLD_SLACK_MS)
+    expect(verdictHoldMs('good-poll', t.editor)).toBe(animLength(ANIMS['editor-nod']) + VERDICT_HOLD_SLACK_MS)
+    expect(verdictHoldMs('offer', t.editor)).toBe(animLength(ANIMS['editor-nod']) + VERDICT_HOLD_SLACK_MS)
+    expect([verdictHoldMs('level-up', t.editor), verdictHoldMs('late', t.editor), verdictHoldMs('missed', t.editor)]).toEqual([0, 0, 0])
+    t.editor.state = 'walking'
+    expect(verdictHoldMs('bad-poll', t.editor)).toBe(0)
+    expect(VERDICT_HOLD_SLACK_MS).toBe(50)
+  })
+
+  it('keeps the editor at the spot through his sigh when the dismissal sends him away, then lets him leave through the turn (the loop\'s real order)', () => {
+    const t = newActorTable()
+    planActors(t, sceneSnapshot({ visitor: 'editor', actors: t }))
+    settleActors(t)
+    const play = newCastPlay()
+    settleCast(play, t, input(), 0)
+    expect([t.editor.x, t.editor.y, t.editor.state]).toEqual([205, 90, 'standing'])
+    // the store change: the reaction subscription holds him first, then the plan effect sends him to the door
+    const cue = { id: 1, kind: 'bad-poll' } as const
+    const sigh = animLength(ANIMS['editor-sigh'])
+    const hold = sigh + VERDICT_HOLD_SLACK_MS
+    t.editor.holdMs = verdictHoldMs(cue.kind, t.editor)
+    planActors(t, sceneSnapshot({ visitor: 'none', actors: t }))
+    expect([t.editor.holdMs, t.editor.targetX, t.editor.targetY, t.editor.goal]).toEqual([hold, 250, 69, 'away'])
+    // the loop: the actors walk (and the hold counts down), then the driver steps, 41 ms apart
+    let now = 0
+    let steps = 0
+    while (t.editor.state === 'standing' && steps < 60) {
+      stepActors(t, 41, false)
+      now += 41
+      stepCast(play, t, input({ reaction: cue }), now, false)
+      steps++
+      if (now <= 41 + sigh) {
+        // the sigh, taken on the first step at 41, plays out in place: he is at the spot with it over him
+        expect([t.editor.x, t.editor.y, play.editor.player?.over?.anim.id], `${now} ms`).toEqual([205, 90, 'editor-sigh'])
+      }
+    }
+    // the hold reaches 0 on the step whose 41 ms cover it, and he walks on the next, after the sigh (taken at 41) ended
+    const release = Math.ceil(hold / 41) + 1
+    expect([steps, now]).toEqual([release, release * 41])
+    expect(now).toBeGreaterThan(41 + sigh)
+    expect([t.editor.state, play.editor.player?.base.id, play.editor.player?.over?.anim.id]).toEqual(['walking', 'editor-walk', 'editor-leave'])
+    expect(t.editor.x).toBeGreaterThan(205)
   })
 
   it('sets no pose for the editor while his switch is off', () => {
