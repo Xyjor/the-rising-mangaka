@@ -176,7 +176,7 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   `advance`, `poseAt`, `settle` (everything played out: the window shown again, a settle). `idleSchedule.ts` (0.11.0)
   `nextIdle(day, who, n)`: the n-th idle moment's wait (6-14 s) and pick for a character, hashed (`mix`) from the day,
   the character and the count; no RNG state. `reactions.ts` (0.11.0) `reactionFor(prev, next)`: the cast's reaction to a
-  store change (a missed issue, a bad or good poll by the corkboard's `rankToneOf` (`story.ts`), a level-up, the chapter
+  store change (a missed issue, a bad or good poll by the corkboard's `rankToneOf` (`story.ts`), the offer coming into view, a level-up, the chapter
   turning late), with `popsFor`'s guards; a one-shot result reacts when dismissed, never as it arrives. `castPlay.ts` (0.11.0) the cast driver: per actor a `Track` (the player, the
   state last seen, the last cue taken, the idle schedule); `stepCast` picks the base loop (`baseAnimFor`, each seat's
   phase kept through every change), plays the transition between two states (`transitionFor`), the seeded idle moments

@@ -345,6 +345,7 @@ guards); `StudioScene` also skips them while the window is hidden. Each becomes 
 | `missed` | the issues missed by every serial, running or archived (`missedIssuesOf`), grew | `seat-tear` if seated | none |
 | `bad-poll` | the newest poll placed in the bottom third (`rankToneOf` 'low': rank x 3 > entrants x 2) | `stand-slump` standing, `seat-slump` seated | none |
 | `good-poll` | the newest poll placed in the top three (`rankToneOf` 'top': rank <= 3) | `stand-cheer` standing, `seat-cheer` seated | `seat-cheer` if seated |
+| `offer` | the serialisation offer came into view: pending with no result in front (`offerShown`), where before there was none or the envelope stood in front | none | none (the editor's column comes at Task 6) |
 | `level-up` | the player's level grew | `stand-cheer` standing, `seat-cheer` seated | none |
 | `late` | the chapter's deadline turned late | `seat-panic` if seated | none |
 

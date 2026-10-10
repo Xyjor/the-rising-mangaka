@@ -4,7 +4,7 @@ import { acceptOffer, createGame } from '../../../sim'
 import type { ChapterResult, GameState } from '../../../sim'
 import { KIDS_OFFER, withPendingResult } from '../../../test/fixtures'
 import type { PopState } from '../Pops'
-import { missedIssuesOf, reactionFor } from '../reactions'
+import { missedIssuesOf, offerShown, reactionFor } from '../reactions'
 
 const st = (game: GameState | null, over: Partial<PopState> = {}): PopState => ({ game, saveLoads: 0, readOnly: false, ...over })
 const g = createGame('Rin', 1)
@@ -39,11 +39,29 @@ describe('reactionFor', () => {
     expect(reactionFor(st(serial), st({ ...serial, serial: null, serials: [{ ...serial.serial!, missedIssues: 1 }] }))).toBe('missed')
   })
 
-  it('picks one by priority: missed, bad poll, good poll, level-up, late', () => {
+  it('picks one by priority: missed, bad poll, good poll, offer, level-up, late', () => {
     const both = { ...serial, serial: { ...serial.serial!, missedIssues: 1, results: [chapter(1, 10)] } }
     expect(reactionFor(st(serial), st(both))).toBe('missed')
     const up = { ...serial, player: { ...serial.player, level: serial.player.level + 1 }, serial: { ...serial.serial!, results: [chapter(1, 10)] } }
     expect(reactionFor(st(serial), st(up))).toBe('good-poll')
+    const offerAndLevel = { ...g, pendingOffer: KIDS_OFFER, player: { ...g.player, level: g.player.level + 1 } }
+    expect(reactionFor(st(g), st(offerAndLevel))).toBe('offer')
+  })
+
+  it('nods on an offer once it is in view: the result dismissed with the offer behind it, or an offer set with no result in front', () => {
+    const behind = { ...g, pendingResult: poll(5, 12), pendingOffer: KIDS_OFFER }
+    // rank 5 of 12 is neither top three nor the bottom third, so only the offer speaks
+    expect(reactionFor(st(behind), st({ ...behind, pendingResult: null }))).toBe('offer')
+    expect(reactionFor(st(g), st({ ...g, pendingOffer: KIDS_OFFER }))).toBe('offer')
+    // the result's own tick sets both: the offer waits behind the envelope, no cue yet
+    expect(reactionFor(st(g), st(behind))).toBeNull()
+    // the offer already in view: nothing new
+    const shown = { ...g, pendingOffer: KIDS_OFFER }
+    expect(reactionFor(st(shown), st({ ...shown, day: g.day + 1 }))).toBeNull()
+    // a top-three result with the offer behind it: the poll speaks (the editor nods either way, the mangaka cheers)
+    const top = { ...g, pendingResult: poll(2, 12), pendingOffer: KIDS_OFFER }
+    expect(reactionFor(st(top), st({ ...top, pendingResult: null }))).toBe('good-poll')
+    expect([offerShown(shown), offerShown(behind), offerShown(g)]).toEqual([true, false, false])
   })
 
   it('never reacts across a save load, another career, a jump of days, a read-only tab, no game, or the same game', () => {

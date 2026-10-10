@@ -64,6 +64,8 @@ export function reactionAnim(kind: ReactionKind, who: CastWho, state: ActorState
     case 'bad-poll': return standing ? 'stand-slump' : seated ? 'seat-slump' : null
     case 'late': return seated ? 'seat-panic' : null
     case 'missed': return seated ? 'seat-tear' : null
+    // the mangaka and the assistants ignore an offer; the editor's nod comes with his track (Task 6)
+    case 'offer': return null
   }
 }
 

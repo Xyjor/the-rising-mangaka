@@ -8,7 +8,12 @@ import type { GameState } from '../../sim'
 import type { PopState } from './Pops'
 import { rankToneOf } from './story'
 
-export type ReactionKind = 'good-poll' | 'bad-poll' | 'level-up' | 'late' | 'missed'
+export type ReactionKind = 'good-poll' | 'bad-poll' | 'offer' | 'level-up' | 'late' | 'missed'
+
+/** The serialisation offer is in view: pending, with no result in front of it (the result's tick sets both; the envelope comes first). */
+export function offerShown(g: GameState): boolean {
+  return g.pendingOffer !== null && g.pendingResult === null
+}
 
 /** A reaction for the snapshot: `id` grows with every cue, so each character plays it once. */
 export interface ReactionCue { readonly id: number; readonly kind: ReactionKind }
@@ -33,7 +38,7 @@ function newPoll(a: GameState, b: GameState): { rank: number; entrants: number }
 /**
  * The reaction one store change brings, or null: never across a save load, a new career (another world seed), a jump
  * of more than a day, or in a read-only tab (popsFor's guards). By priority: a missed issue, a bad poll, a good poll,
- * a level-up, the chapter turning late.
+ * the offer coming into view (the 0.12.0 plan's decision 6), a level-up, the chapter turning late.
  */
 export function reactionFor(prev: PopState, next: PopState): ReactionKind | null {
   const a = prev.game
@@ -49,6 +54,7 @@ export function reactionFor(prev: PopState, next: PopState): ReactionKind | null
   const tone = poll ? rankToneOf(poll.rank, poll.entrants) : 'none'
   if (tone === 'low') return 'bad-poll'
   if (tone === 'top') return 'good-poll'
+  if (!offerShown(a) && offerShown(b)) return 'offer'
   if (b.player.level > a.player.level) return 'level-up'
   if (chapterDeadline(a)?.status !== 'late' && chapterDeadline(b)?.status === 'late') return 'late'
   return null
