@@ -8,7 +8,7 @@ import { OLD_CAST } from '../oldCast'
 import { MOODS, rigFrame } from '../rig/frames'
 import { POSES } from '../rig/poses'
 import type { PoseId } from '../rig/poses'
-import { ASSISTANT_PALS, OUTFIT_PALS, PAL, drawSprite } from '../sprites'
+import { ASSISTANT_PALS, EDITOR_PAL, OUTFIT_PALS, PAL, drawSprite } from '../sprites'
 import {
   CAST_PALETTES, castSurfaceId, createSpriteCache, defaultSurface, drawCast, drawCastTop, getCastCache, installCastCache,
   lookPalette, outfitPalette,
@@ -82,14 +82,14 @@ describe('the sprite cache', () => {
     expect(made[1].log).toContainEqual({ style: '#2c3656', x: 8, y: 24, w: 8, h: 1 })
   })
 
-  it('paints every cast frame (the editor and the cat, every rig pose in every mood) in all nine palettes, never magenta', () => {
+  it('paints every cast frame (the editor and the cat, every rig pose in every mood) in all ten palettes, never magenta', () => {
     const { made, cache } = recording()
     const old = Object.values(OLD_CAST).flatMap((f) => (Array.isArray(f) ? f : [f])) as CastFrame[]
     const rig = (Object.keys(POSES) as PoseId[]).flatMap((pose) => [
       ...MOODS.map((mood) => rigFrame(pose, mood, false)), rigFrame(pose, 'neutral', true),
     ])
     const pals = Object.keys(CAST_PALETTES) as (keyof typeof CAST_PALETTES)[]
-    expect(pals).toHaveLength(9)
+    expect(pals).toHaveLength(10)
     for (const f of [...old, ...rig]) for (const pal of pals) cache.image(f, pal, false)
     expect(made.length).toBeGreaterThan(9 * Object.keys(POSES).length)
     for (const m of made) expect(m.log.some((c) => c.style === '#f0f'), m.id).toBe(false)
@@ -106,6 +106,7 @@ describe('the sprite cache', () => {
     expect([0, 1, 5, 6, 7].map(lookPalette)).toEqual(['look0', 'look1', 'look5', 'look0', 'look1'])
     expect(CAST_PALETTES.pal).toBe(PAL)
     expect(CAST_PALETTES.blazer).toBe(OUTFIT_PALS.blazer)
+    expect(CAST_PALETTES.editor).toBe(EDITOR_PAL)
     expect(CAST_PALETTES.look3).toBe(ASSISTANT_PALS[3])
   })
 

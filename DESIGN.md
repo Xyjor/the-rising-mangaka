@@ -659,11 +659,12 @@ the rig in the order its tasks drew it, then what every character shares. The ed
   `y`, down the shirt): the cardigan and the blazer show them white and red; in the hoodie (`PAL`) and on every
   assistant (`ASSISTANT_PALS`, `y` their own shirt colour) they keep the colours of the cells they replaced, so those
   look unchanged. Purely cosmetic, so no UI hint is needed.
+- **The editor's palette** (0.12.0, task 2): `EDITOR_PAL`, PAL with `F`/`f` as `G`/`g` and `O`/`o` as `E`; the case's leather is PAL's `D`/`d` (`#6d4c33`/`#4e3622`).
 - **Drawing through the cache** (0.11.0, task 6). Every character is one `drawImage` of its frame from
   `spriteCache.ts`, painted once per palette and facing into its own surface; the 0.10 maps are `oldCast.ts`'s cast
   frames (`OLD_CAST`, each with the id the cache names it by) until each rig release replaces them: the mangaka's went
   at task 17 and the assistants' (the seated pair and the generated doze) at task 19, so `OLD_CAST` holds the editor's
-  and the cat's; the mood overlay over the people went with them (baked into the rig frames). The cache's memory: at most 324 frames x 9 palettes x 2 facings x 6,144 B (a 32x48 RGBA surface),
+  and the cat's; the mood overlay over the people went with them (baked into the rig frames). The cache's memory: at most 324 frames x 10 palettes x 2 facings x 6,144 B (a 32x48 RGBA surface),
   about 36 MB in theory; a realistic long career builds about 900-1,000 surfaces, about 6 MB. `render` takes the cache
   as its last argument (the session's by default, `getCastCache()`), so a test hands it a recording one
   (`fakeSurface`) and reads each character as an entry in `images`, named `cast/<frame>/<palette>`, `/r` mirrored.

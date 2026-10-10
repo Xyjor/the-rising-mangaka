@@ -23,6 +23,8 @@ export const PAL: Record<string, string> = {
   // the mood marks' sweat drop (A) and sparkle (X), drawn in the rig head's mark slot (0.11.0); w, the paper's lines,
   // W's shade
   A: '#8fd3ff', X: '#f5b700', w: '#b8b2a5',
+  // the briefcase's leather (0.12.0): the 0.10 F/f colours under their own keys, since EDITOR_PAL remaps F/f to the suit
+  D: '#6d4c33', d: '#4e3622',
 }
 
 /**

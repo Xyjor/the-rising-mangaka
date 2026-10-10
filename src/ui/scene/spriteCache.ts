@@ -3,18 +3,18 @@
 // an OffscreenCanvas, else a <canvas>, else (no canvas at all: node tests) a stand-in carrying its id and size, which
 // the recording test context names in `images`. A hit allocates nothing: two Map lookups by the frame's stored id and
 // a constant palette id.
-// Memory: at most 324 frames x 9 palettes x 2 facings x 6,144 B (a 32x48 RGBA surface), about 36 MB in theory; a
+// Memory: at most 324 frames x 10 palettes x 2 facings x 6,144 B (a 32x48 RGBA surface), about 36 MB in theory; a
 // realistic long career builds about 900-1,000 surfaces, about 6 MB.
-import { ASSISTANT_PALS, OUTFIT_PALS, PAL, drawSprite, outfitOf } from './sprites'
+import { ASSISTANT_PALS, EDITOR_PAL, OUTFIT_PALS, PAL, drawSprite, outfitOf } from './sprites'
 import type { CastFrame } from './rig/types'
 
 export type { CastFrame }
 
-export type PaletteId = 'pal' | 'cardigan' | 'blazer' | 'look0' | 'look1' | 'look2' | 'look3' | 'look4' | 'look5'
+export type PaletteId = 'pal' | 'cardigan' | 'blazer' | 'editor' | 'look0' | 'look1' | 'look2' | 'look3' | 'look4' | 'look5'
 
-/** Every palette a cast frame is drawn in: PAL (the hoodie, the editor, the cat), the other two outfits, the six looks. */
+/** Every palette a cast frame is drawn in: PAL (the hoodie, the cat), the other two outfits, the editor's suit, the six looks. */
 export const CAST_PALETTES: Readonly<Record<PaletteId, Record<string, string>>> = {
-  pal: PAL, cardigan: OUTFIT_PALS.cardigan, blazer: OUTFIT_PALS.blazer,
+  pal: PAL, cardigan: OUTFIT_PALS.cardigan, blazer: OUTFIT_PALS.blazer, editor: EDITOR_PAL,
   look0: ASSISTANT_PALS[0], look1: ASSISTANT_PALS[1], look2: ASSISTANT_PALS[2],
   look3: ASSISTANT_PALS[3], look4: ASSISTANT_PALS[4], look5: ASSISTANT_PALS[5],
 }

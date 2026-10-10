@@ -157,11 +157,11 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   `anims.ts` (`AnimId`, `ANIM_IDS`, `ANIMS`: the 24 animations' fixed postures and looping, each step a pose and its
   ms, every one drawn) and `frames.ts` (`rigFrame(pose, mood, ready)`: the frame assembled with the
   mood's face, `faceOf`, in the head's own face art, `faceArtOf`, memoized per pose, mood and ready, its id `pose~eyes.mouth.mark`, `frameId`; `frontHand(pose)`, the front arm's hand cell, memoized, where the visit's prop is drawn (0.12.0)); `spriteCache.ts` (0.11.0) the per-session sprite cache: each
-  cast frame painted once per palette (`PaletteId`: `pal`, the outfits, `look0`-`look5`) and facing into an
+  cast frame painted once per palette (`PaletteId`: `pal`, the outfits, `editor`, `look0`-`look5`) and facing into an
   OffscreenCanvas (a `<canvas>` without one or when it gives no 2D context, a stand-in in node), keyed by frame id;
   `drawCast` is one `drawImage`, `drawCastTop` one 9-argument `drawImage` of a cached frame's top rows (render draws the
   seated rig mangaka's rows 0-39 again with it, after the page stack); `getCastCache`/`installCastCache` (tests install a recording one). Memory: at most
-  324 frames x 9 palettes x 2 facings x 6,144 B (a 32x48 RGBA surface), about 36 MB in theory; a realistic long career
+  324 frames x 10 palettes x 2 facings x 6,144 B (a 32x48 RGBA surface), about 36 MB in theory; a realistic long career
   builds about 900-1,000 surfaces, about 6 MB. `oldCast.ts` (0.11.0) the 0.10 maps as cast frames (`OLD_CAST`), drawn
   through the cache until each character's rig release (the mangaka's left at task 17, the assistants' at task 19:
   the editor's and the cat's remain); `render`'s last argument is the cache (`getCastCache()` by default), each

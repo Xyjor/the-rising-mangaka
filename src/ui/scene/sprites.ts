@@ -33,6 +33,12 @@ export const OUTFIT_PALS: Record<Outfit, Record<string, string>> = {
   blazer: { ...PAL, J: '#2e3a78', j: '#222b5c', K: '#f6f6f6', Y: '#c0392b', y: '#8e2a20' },
 }
 
+/**
+ * The editor's palette (0.12.0): PAL with the mangaka's trousers F/f as the suit's G/g and the shoes O/o black (E),
+ * so the editor walks on the mangaka's leg parts unchanged, as the 0.10 editor walked on recoloured legs. Built once.
+ */
+export const EDITOR_PAL: Record<string, string> = { ...PAL, F: PAL.G, f: PAL.g, O: PAL.E, o: PAL.E }
+
 /** A map with each key in `from` swapped for the key at the same place in `to`, every other cell kept (pure: the
  * editor walks on the mangaka's legs recoloured to his suit). */
 function recolour(map: SpriteMap, from: string, to: string): SpriteMap {

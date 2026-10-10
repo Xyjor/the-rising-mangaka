@@ -4,7 +4,7 @@
 // standing and walk frames the editor is cut from (LEGACY_IDLE, LEGACY_WALK).
 import { describe, expect, it } from 'vitest'
 import {
-  ANCHOR_HEAD, ASSISTANT_PALS, CAT_GROOM, CAT_SIT, CAT_SLEEP, CAT_STRETCH, CAT_WALK, EDITOR_FRAMES, EDITOR_IDLE, EDITOR_WALK,
+  ANCHOR_HEAD, ASSISTANT_PALS, CAT_GROOM, CAT_SIT, CAT_SLEEP, CAT_STRETCH, CAT_WALK, EDITOR_FRAMES, EDITOR_IDLE, EDITOR_PAL, EDITOR_WALK,
   LEGACY_IDLE, LEGACY_WALK, OUTFIT_PALS, PAL, PROP_CONTRACT, PROP_ENVELOPE, PROP_LETTER, PROP_PAL, PROP_TROPHY, faceRules,
   frameRules, outfitOf, type SpriteMap,
 } from '../sprites'
@@ -85,6 +85,13 @@ function earTips(f: SpriteMap): string[] {
 }
 
 describe('the sprites', () => {
+  it("dresses the mangaka's leg parts as the editor's: EDITOR_PAL turns the trousers F/f to the suit G/g and the shoes O/o black", () => {
+    expect([EDITOR_PAL.F, EDITOR_PAL.f, EDITOR_PAL.O, EDITOR_PAL.o]).toEqual([PAL.G, PAL.g, PAL.E, PAL.E])
+    // everything else is PAL's, the case's leather D/d included
+    for (const k of Object.keys(PAL)) if (!'FfOo'.includes(k)) expect(EDITOR_PAL[k], k).toBe(PAL[k])
+    expect([PAL.D, PAL.d]).toEqual(['#6d4c33', '#4e3622'])
+  })
+
   it('passes the frame rules for every 24x32 frame (the editor and his 0.10 source) and the 12x8 cat', () => {
     expect(EDITOR_FRAMES).toEqual([...EDITOR_IDLE, ...EDITOR_WALK])
     expect(EDITOR_FRAMES).toHaveLength(6)
