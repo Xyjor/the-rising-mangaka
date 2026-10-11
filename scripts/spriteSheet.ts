@@ -122,7 +122,11 @@ function frameOf(mod: Sprites | null, ref: Ref): Frame | undefined {
   return Array.isArray(f) && typeof f[0] === 'string' ? (f as Frame) : undefined
 }
 
-/** The 0.10 frames each rig animation replaces, read from the base ref (none: a new animation, nothing beside it). */
+/**
+ * The 0.10 frames each rig animation replaces, read from the base ref (none: a new animation, nothing beside it). The
+ * working tree has none of them since its rig took over (the editor's `EDITOR_IDLE`/`EDITOR_WALK` at 0.12.0 task 11);
+ * they stay on the base ref until the merge.
+ */
 const REPLACES: Partial<Record<AnimId, Ref[]>> = {
   stand: refs('MANGAKA_IDLE', 2), 'stand-ready': [{ name: 'MANGAKA_IDLE', index: 0 }], walk: refs('MANGAKA_WALK', 4),
   'seat-draw': refs('MANGAKA_SIT', 2), 'seat-idle': [{ name: 'MANGAKA_SIT', index: 0 }],

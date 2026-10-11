@@ -2,9 +2,8 @@
 // into a pose on the actor (`Actor.pose`) through the animation player: the base loop for the state, the transition
 // between two states, the idle moments the seeded schedule picks and the reactions the snapshot's cue brings. The
 // tracks are mutated in place, like the actor table; the rules they follow are pure functions, tested alone. No
-// clock: StudioScene passes its scene time.
+// clock: StudioScene passes its scene time. The cat keeps its 0.10 frames until 0.13.0.
 import { LOW_STAMINA_THRESHOLD } from '../../sim'
-import { RIG_LIVE } from './actors'
 import type { Actor, ActorState, ActorTable } from './actors'
 import { advance, animLength, enqueue, interrupt, poseAt, settle, startPlayer, switchBase } from './animation'
 import type { Anim, PlayerState } from './animation'
@@ -179,11 +178,7 @@ function staminaOf(who: CastWho, seat: number, input: CastInput): number {
   return 100
 }
 
-function stepTrack(t: Track, a: Actor, who: CastWho, seat: number, live: boolean, input: CastInput, now: number, reduced: boolean): void {
-  if (!live) {
-    a.pose = ''
-    return
-  }
+function stepTrack(t: Track, a: Actor, who: CastWho, seat: number, input: CastInput, now: number, reduced: boolean): void {
   const id = baseOf(who, a, input)
   if (id === null) {
     t.player = null
@@ -237,21 +232,16 @@ function stepTrack(t: Track, a: Actor, who: CastWho, seat: number, live: boolean
 }
 
 /**
- * One loop step for the whole cast at scene time `now` (the mangaka, the three assistants' seats and, while his switch
- * is on, the editor at the fifth seat; the cat keeps its 0.10 frames); `reduced` (reduced motion) holds every base's
- * first step.
+ * One loop step for the whole cast at scene time `now` (the mangaka, the three assistants' seats and the editor at the
+ * fifth seat; the cat keeps its 0.10 frames); `reduced` (reduced motion) holds every base's first step.
  */
 export function stepCast(play: CastPlay, table: ActorTable, input: CastInput, now: number, reduced: boolean): void {
-  stepTrack(play.mangaka, table.mangaka, 'mangaka', 0, true, input, now, reduced)
-  for (let i = 0; i < 3; i++) stepTrack(play.assistants[i], table.assistants[i], 'assistant', i + 1, true, input, now, reduced)
-  stepTrack(play.editor, table.editor, 'editor', EDITOR_SEAT, RIG_LIVE.editor, input, now, reduced)
+  stepTrack(play.mangaka, table.mangaka, 'mangaka', 0, input, now, reduced)
+  for (let i = 0; i < 3; i++) stepTrack(play.assistants[i], table.assistants[i], 'assistant', i + 1, input, now, reduced)
+  stepTrack(play.editor, table.editor, 'editor', EDITOR_SEAT, input, now, reduced)
 }
 
-function settleTrack(t: Track, a: Actor, who: CastWho, seat: number, live: boolean, input: CastInput, now: number): void {
-  if (!live) {
-    a.pose = ''
-    return
-  }
+function settleTrack(t: Track, a: Actor, who: CastWho, seat: number, input: CastInput, now: number): void {
   const id = baseOf(who, a, input)
   t.player = id === null ? null : startPlayer(ANIMS[id], now - seat * PHASE_MS)
   t.state = a.state
@@ -263,9 +253,9 @@ function settleTrack(t: Track, a: Actor, who: CastWho, seat: number, live: boole
 
 /** Everyone on their base loop from now (a mount, a loaded save): no transition, the waiting cue taken as seen. */
 export function settleCast(play: CastPlay, table: ActorTable, input: CastInput, now: number): void {
-  settleTrack(play.mangaka, table.mangaka, 'mangaka', 0, true, input, now)
-  for (let i = 0; i < 3; i++) settleTrack(play.assistants[i], table.assistants[i], 'assistant', i + 1, true, input, now)
-  settleTrack(play.editor, table.editor, 'editor', EDITOR_SEAT, RIG_LIVE.editor, input, now)
+  settleTrack(play.mangaka, table.mangaka, 'mangaka', 0, input, now)
+  for (let i = 0; i < 3; i++) settleTrack(play.assistants[i], table.assistants[i], 'assistant', i + 1, input, now)
+  settleTrack(play.editor, table.editor, 'editor', EDITOR_SEAT, input, now)
 }
 
 /**

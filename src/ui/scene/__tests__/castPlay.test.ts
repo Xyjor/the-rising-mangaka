@@ -1,7 +1,7 @@
 // The cast driver: pure rules plus a table of tracks mutated in place, node environment. Assertions name animations
 // by id and poses through ANIMS, so they hold as each animation's art replaces its stand-in.
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { newActorTable, planActors, setRigLive, settleActors, stepActors } from '../actors'
+import { describe, expect, it } from 'vitest'
+import { newActorTable, planActors, settleActors, stepActors } from '../actors'
 import { animLength } from '../animation'
 import {
   EDITOR_SEAT, IDLE_MOMENTS, PHASE_MS, VERDICT_HOLD_SLACK_MS, baseAnimFor, headCentre, headTop, idlePool, newCastPlay, previewFits,
@@ -87,9 +87,6 @@ describe('the driver\'s rules', () => {
 })
 
 describe('stepCast', () => {
-  beforeEach(() => setRigLive({ editor: true }))
-  afterEach(() => setRigLive({ editor: false }))
-
   it('sits down on arriving at the desk, then draws; stands up on leaving it', () => {
     const t = newActorTable()
     const play = newCastPlay()
@@ -405,15 +402,5 @@ describe('stepCast', () => {
     expect([steps, now, 41 + sigh]).toEqual([32, 1312, 1241])
     expect([t.editor.state, play.editor.player?.base.id, play.editor.player?.over?.anim.id]).toEqual(['walking', 'editor-walk', 'editor-leave'])
     expect(t.editor.x).toBeGreaterThan(205)
-  })
-
-  it('sets no pose for the editor while his switch is off', () => {
-    setRigLive({ editor: false })
-    const t = newActorTable()
-    const play = newCastPlay()
-    t.editor.state = 'standing'
-    stepCast(play, t, input(), 0, false)
-    settleCast(play, t, input(), 0)
-    expect([t.editor.pose, play.editor.player]).toEqual(['', null])
   })
 })

@@ -14,7 +14,6 @@ import type { GameState } from '../../sim'
 import { useClock } from '../../state/clock'
 import { useStore } from '../../state/store'
 import { StudioScene } from '../scene/StudioScene'
-import { setRigLive } from '../scene/actors'
 import { animLength } from '../scene/animation'
 import { VERDICT_HOLD_SLACK_MS } from '../scene/castPlay'
 import { ANIMS } from '../scene/rig/anims'
@@ -149,7 +148,7 @@ describe('StudioScene', () => {
 
   describe('the editor visits', () => {
     let sound: FakeSound
-    const editorHere = () => fake.images.some((i) => i.id.startsWith('cast/editor.') && i.x === 198 && i.y === 85)
+    const editorHere = () => fake.images.some((i) => i.id.startsWith('cast/editor.') && i.x === 205 && i.y === 90)
     beforeEach(() => { sound = createFakeSound(); installSound(sound) })
     afterEach(() => { installSound(nullEngine) })
 
@@ -165,21 +164,15 @@ describe('StudioScene', () => {
       expect(sound.plays).toEqual(['knock'])
     })
 
-    it('draws the editor from the rig at the 0.12 spot while his switch is on, still knocking once', () => {
-      setRigLive({ editor: true })
-      try {
-        render(<StudioScene running={false} />)
-        act(() => useStore.setState({ game: withPendingResult() }))
-        expect(sound.plays).toEqual(['knock'])
-        expect(fake.images.some((i) => i.id.startsWith('cast/editor.stand') && i.x === 205 && i.y === 90)).toBe(true)
-        expect(fake.images.some((i) => i.id === 'cast/prop.envelope/editor')).toBe(true)
-      } finally {
-        setRigLive({ editor: false })
-      }
+    it('draws the editor from the rig at the spot with the envelope, knocking once', () => {
+      render(<StudioScene running={false} />)
+      act(() => useStore.setState({ game: withPendingResult() }))
+      expect(sound.plays).toEqual(['knock'])
+      expect(fake.images.some((i) => i.id.startsWith('cast/editor.stand') && i.x === 205 && i.y === 90)).toBe(true)
+      expect(fake.images.some((i) => i.id === 'cast/prop.envelope/editor')).toBe(true)
     })
 
     it('sighs at a bad result when it is dismissed, staying at the spot while it plays (the hold, decision 14)', () => {
-      setRigLive({ editor: true })
       restoreMotion()
       restoreMotion = stubReducedMotion(false)
       vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame', 'performance'] })
@@ -211,7 +204,6 @@ describe('StudioScene', () => {
         expect(drawnPoses().some((id) => id.startsWith('editor.turn-back~'))).toBe(true)
       } finally {
         vi.useRealTimers()
-        setRigLive({ editor: false })
       }
     })
 

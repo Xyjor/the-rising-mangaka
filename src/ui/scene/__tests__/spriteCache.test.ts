@@ -77,13 +77,13 @@ describe('the sprite cache', () => {
     cache.image(stand, 'pal', false)
     expect(made[0].log).toContainEqual({ style: '#2b2140', x: hair.index, y: 1, w: hair[0].length, h: 1 })
     expect(made[0].log).not.toContainEqual({ style: '#2b2140', x: hair.index + 1, y: 1, w: 1, h: 1 })
-    cache.image(OLD_CAST.editorIdle[0], 'pal', true)
-    // row 24 '.......LggggggggL.LFFFfL' mirrored: FFF at cols 2-4, the hem's g at cols 8-15
-    expect(made[1].log).toContainEqual({ style: '#6d4c33', x: 2, y: 24, w: 3, h: 1 })
-    expect(made[1].log).toContainEqual({ style: '#2c3656', x: 8, y: 24, w: 8, h: 1 })
+    cache.image(OLD_CAST.catSleep, 'pal', true)
+    // row 6 '.LCCCCCCCccL' mirrored, 'LccCCCCCCCL.': the fur's C at cols 3-9, the shade's cc at cols 1-2
+    expect(made[1].log).toContainEqual({ style: '#e39a4a', x: 3, y: 6, w: 7, h: 1 })
+    expect(made[1].log).toContainEqual({ style: '#c67d33', x: 1, y: 6, w: 2, h: 1 })
   })
 
-  it('paints every cast frame (the editor and the cat, every rig pose in every mood) in all ten palettes, never magenta', () => {
+  it('paints every cast frame (the cat, the visit props, every rig pose in every mood) in all ten palettes, never magenta', () => {
     const { made, cache } = recording()
     const old = Object.values(OLD_CAST).flatMap((f) => (Array.isArray(f) ? f : [f])) as CastFrame[]
     const rig = (Object.keys(POSES) as PoseId[]).flatMap((pose) => [

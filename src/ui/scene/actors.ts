@@ -27,7 +27,7 @@ export interface Actor {
   anim: number
   /**
    * The rig pose showing now (castPlay.ts sets it each step); '' for an actor the driver has not posed (render then
-   * draws its base loop's first step) or that draws its 0.10 frames (the cat, and the editor while his switch is off).
+   * draws its base loop's first step) or that draws its 0.10 frames (the cat, until 0.13.0).
    */
   pose: PoseId | ''
   /**
@@ -46,21 +46,24 @@ export interface Spot { readonly x: number; readonly y: number }
  * actors.test): the seat (the waist, row 40, on the desk top y 98; the head under the corkboard; clear of the arm
  * lamp), the standing spot (the feet on row 47 at y 128), the bed (where the actor walks to and lies: its standing head,
  * cols 4-27 and rows 0-21, sits on the bed frames' lying and sitting-up head, so walking into or out of bed the head never
- * jumps; the frames themselves are drawn at `MANGAKA_BED_FRAME`) and its own door (the feet on the editor's door floor
- * line, y 116).
+ * jumps; the frames themselves are drawn at `MANGAKA_BED_FRAME`); its door is everyone's, `DOOR_SPOT`.
  */
 export const MANGAKA_SEAT: Spot = { x: 124, y: 58 }
 export const MANGAKA_STAND: Spot = { x: 170, y: 81 }
 export const MANGAKA_BED: Spot = { x: 220, y: 90 }
-export const MANGAKA_DOOR: Spot = { x: 250, y: 69 }
 /**
  * The bed key frames' origin (48x32, drawn here whatever the actor's position): the lying head at cols 23-46 (x
  * 224-247) over the pillow (x 232-245). The actor's bed spot is 19 px right of it, so its standing head sits on the
  * lying head.
  */
 export const MANGAKA_BED_FRAME: Spot = { x: 201, y: 90 }
-export const DOOR_SPOT: Spot = { x: 254, y: 85 }
-export const EDITOR_SPOT: Spot = { x: 198, y: 85 }
+/**
+ * The door, everyone's: the feet on the door's floor line, y 116, centred on the door; the mangaka's since 0.11.0, the
+ * editor's since 0.12.0.
+ */
+export const DOOR_SPOT: Spot = { x: 250, y: 69 }
+/** The editor's spot for the 32x48 rig (0.12.0): in front of the bed, his feet on the floor (y 137), facing the desk. */
+export const EDITOR_SPOT: Spot = { x: 205, y: 90 }
 /** The cat's bed on the blanket: clear of the standing frame at the stand (to x 201) and of the lying head (from x 224). */
 export const CAT_BED: Spot = { x: 202, y: 118 }
 export const CAT_KITCHEN: Spot = { x: 44, y: 150 }
@@ -71,34 +74,8 @@ export const CAT_KITCHEN: Spot = { x: 44, y: 150 }
  */
 export const ASSISTANT_SEAT_Y = 80
 export const ASSISTANT_SEAT_X: readonly number[] = [21, 55, 89]
-/** The editor's walk from the door to their spot: 56 + 0 px at 40 px/s, 1400 ms. */
-export const EDITOR_WALK_MS = ((DOOR_SPOT.x - EDITOR_SPOT.x) + (DOOR_SPOT.y - EDITOR_SPOT.y)) / WALK_PX_PER_S * 1000
-
-/**
- * The editor's switch (0.12.0): the cast driver poses him from his rig set, render draws him from it and he walks to
- * the rig's spots only while it is on, off until the set is complete. A dev build's `?rig` turns it on
- * (StudioScene); tests turn it on and back off.
- */
-export const RIG_LIVE: { editor: boolean } = { editor: false }
-
-export function setRigLive(live: { editor: boolean }): void {
-  RIG_LIVE.editor = live.editor
-}
-
-/**
- * The editor's spots for the 32x48 rig (0.12.0): in front of the bed, his feet on the floor (y 137) facing the desk,
- * and the mangaka's door; the 0.10 ones stay until his switch (`RIG_LIVE.editor`) is on for good.
- */
-export const RIG_EDITOR_SPOT: Spot = { x: 205, y: 90 }
-export const RIG_EDITOR_DOOR: Spot = MANGAKA_DOOR
-export interface EditorSpots { readonly spot: Spot; readonly door: Spot }
-const LEGACY_EDITOR: EditorSpots = { spot: EDITOR_SPOT, door: DOOR_SPOT }
-const RIG_EDITOR: EditorSpots = { spot: RIG_EDITOR_SPOT, door: RIG_EDITOR_DOOR }
-
-/** The editor's spot and door: the rig's while his switch is on, else the 0.10 ones. */
-export function editorSpots(): EditorSpots {
-  return RIG_LIVE.editor ? RIG_EDITOR : LEGACY_EDITOR
-}
+/** The editor's walk from the door to his spot: 45 + 21 px at 40 px/s, 1650 ms. */
+export const EDITOR_WALK_MS = (Math.abs(DOOR_SPOT.x - EDITOR_SPOT.x) + Math.abs(DOOR_SPOT.y - EDITOR_SPOT.y)) / WALK_PX_PER_S * 1000
 
 /** What the plan reads from the scene's snapshot. */
 export interface ActorPlanInput {
@@ -144,10 +121,10 @@ export function planActors(table: ActorTable, snap: ActorPlanInput): void {
   const resting = !absent && !busy && snap.phase !== 'idle' && snap.phase !== 'ready'
 
   const m = table.mangaka
-  if (busy) send(m, MANGAKA_SEAT, 'seated', MANGAKA_DOOR)
-  else if (resting) send(m, MANGAKA_BED, 'sleeping', MANGAKA_DOOR)
-  else if (absent) send(m, MANGAKA_DOOR, 'away', MANGAKA_DOOR)
-  else send(m, MANGAKA_STAND, 'standing', MANGAKA_DOOR)
+  if (busy) send(m, MANGAKA_SEAT, 'seated')
+  else if (resting) send(m, MANGAKA_BED, 'sleeping')
+  else if (absent) send(m, DOOR_SPOT, 'away')
+  else send(m, MANGAKA_STAND, 'standing')
 
   const n = Math.min(3, snap.assistants.length)
   for (let i = 0; i < 3; i++) {
@@ -159,11 +136,10 @@ export function planActors(table: ActorTable, snap: ActorPlanInput): void {
   }
 
   const e = table.editor
-  const es = editorSpots()
   // in: down from the door, then along the floor (y first), so the frame crosses the bed in front of it; out: the way back
-  if (snap.visitor !== 'none') { send(e, es.spot, 'standing', es.door); e.legs = 'yx' }
+  if (snap.visitor !== 'none') { send(e, EDITOR_SPOT, 'standing'); e.legs = 'yx' }
   // once the editor has been in, they leave through the door; before that they stay hidden
-  else if (e.goal !== 'hidden') { send(e, es.door, 'away', es.door); e.legs = 'xy' }
+  else if (e.goal !== 'hidden') { send(e, DOOR_SPOT, 'away'); e.legs = 'xy' }
 
   const c = table.cat
   if (resting) { send(c, CAT_KITCHEN, 'sitting'); c.legs = 'yx' }
@@ -219,8 +195,7 @@ export function settleActors(table: ActorTable): void {
  */
 export function editorWalksIn(table: ActorTable): void {
   const e = table.editor
-  const door = editorSpots().door
-  e.x = door.x; e.y = door.y; e.facing = -1; e.state = 'hidden'; e.anim = 0
+  e.x = DOOR_SPOT.x; e.y = DOOR_SPOT.y; e.facing = -1; e.state = 'hidden'; e.anim = 0
 }
 
 function off(a: Actor): boolean { return a.x !== a.targetX || a.y !== a.targetY }

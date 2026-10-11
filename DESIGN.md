@@ -264,14 +264,15 @@ their own; each is still the top-left of its pose's frame, as in 0.10 (the bed s
 sits on the lying head; the bed frames have their own origin, `MANGAKA_BED_FRAME`), and each is checked against the
 furniture by `actors.test.ts` ("fits the 0.11 spots around the furniture"). Since task 17 the mangaka's spots and the
 cat's bed, and since task 19 the assistants' seats, are the only ones, under the 0.10 names (`MANGAKA_SEAT`,
-`MANGAKA_STAND`, `MANGAKA_BED`, the new `MANGAKA_DOOR`, `CAT_BED`, `ASSISTANT_SEAT_X`/`_Y`):
+`MANGAKA_STAND`, `MANGAKA_BED`, `CAT_BED`, `ASSISTANT_SEAT_X`/`_Y`; the mangaka's door, `MANGAKA_DOOR` until 0.12.0,
+is everyone's `DOOR_SPOT` since 0.12.0 task 11):
 
 | Spot | 0.10 (24x32) | 0.11 (32x48 rig) | Why |
 |---|---|---|---|
 | The mangaka's seat | (132, 67) | (124, 58) | the waist (row 40) on the desk top, y 98; the head (rows 6-27, y 64-85) under the corkboard (to y 63); the right edge 155, clear of the arm lamp (x 156) |
 | The standing spot | (170, 81) | (170, 81) | the feet on row 47 at y 128; the head below the sill's coffee machine and trophies (to y 80); the left edge clear of the arm lamp (to x 169) |
 | The bed | (216, 106) | (220, 90); the bed frames at (201, 90) | the actor's spot: its standing head (cols 4-27, rows 0-21) sits on the bed frames' lying and sitting-up head, so walking into or out of bed the head never jumps; the 48x32 bed frames at their own origin (`MANGAKA_BED_FRAME`, 19 px left of it): the lying head (cols 23-46, rows 8-29) at x 224-247, y 98-119, over the pillow (x 232-245) |
-| The mangaka's door | the door spot (254, 85) | (250, 69) | the feet at y 116, the editor's door floor line, centred on the door |
+| The mangaka's door (`DOOR_SPOT` since 0.12.0) | the door spot (254, 85) | (250, 69) | the feet at y 116, the door's floor line, centred on the door |
 | The cat's bed | (196, 118) | (202, 118) | clear of the standing frame (to x 201), of the lying head (from x 224) and of the standing frame at the bed (from x 220), on the blanket |
 | The assistants' seats | x 66, 86, 106, y 89 | x 21, 55, 89, y 80 | one row, 34 px apart (below) |
 
@@ -293,11 +294,12 @@ there. The 0.10 row is history: stools behind a desk at x 62, 8 px plus 20 per a
 y 89, and `PAGE_UNDER_DESK`, which redrew a page the drafting table's sprite would cover (gone with the stools at task
 19; a 32x48 seated body covers where a stool stood).
 
-**The rig everywhere.** The mangaka draws from the rig since task 17 and the assistants since task 19 (0.11.0); the
-switch that staged them (`RIG_LIVE`, `setRigLive`, `liveSpots`, the two spot sets) is gone. `planActors(table, snap)`
-sends the mangaka to its 0.11 spots through `MANGAKA_DOOR`, the cat to `CAT_BED` and seats the assistants at
-`ASSISTANT_SEAT_X` [21, 55, 89], `ASSISTANT_SEAT_Y` 80; the driver poses all four every step and render draws them
-from the rig, the editor and the cat from their 0.10 maps (`oldCast.ts`) until 0.12.0 and 0.13.0.
+**The rig everywhere.** The mangaka draws from the rig since task 17 and the assistants since task 19 (0.11.0), the
+editor since 0.12.0 task 11; the switches that staged them (0.11.0's `liveSpots` and two spot sets, 0.12.0's editor
+switch and `editorSpots()`) are gone. `planActors(table, snap)` sends the mangaka to its 0.11 spots and the editor to
+`EDITOR_SPOT` (205, 90), both through `DOOR_SPOT` (250, 69), the cat to `CAT_BED` and seats the assistants at
+`ASSISTANT_SEAT_X` [21, 55, 89], `ASSISTANT_SEAT_Y` 80; the driver poses all five every step and render draws them
+from the rig, the cat alone from its 0.10 maps (`oldCast.ts`) until 0.13.0.
 
 **The cast driver** (`castPlay.ts`, 0.11.0) poses every rig-drawn actor each loop step (`stepCast`): it writes the
 pose showing now on the actor (`Actor.pose`) from an animation player (`animation.ts`) per character. The base loop
@@ -318,8 +320,8 @@ restarting after the window was hidden) jumps every transition and moment to its
 scene clock of its own, `sceneMs`, the sum of the loop's steps, so it never jumps across a stretch the window was
 hidden, and fills one input object in place each step (`fillCast`). Every animation is drawn; until its art task drew
 it, each played one 500 ms step of `stand.idle` (`STAND_IN`, gone with the doze, task 18; see "The rig" below).
-Since 0.12.0 the driver has a fifth track, the editor's, posed only while his switch is on (`actors.ts`
-`RIG_LIVE.editor`; off, his pose stays empty and he draws from his 0.10 maps). He is seat 4 of the idle schedule and
+Since 0.12.0 the driver has a fifth track, the editor's (staged behind a switch from task 6, posed for good since
+task 11). He is seat 4 of the idle schedule and
 the phase (`EDITOR_SEAT`: the mangaka is 0, the assistants 1-3). He only stands and walks (`editor-stand`,
 `editor-walk`); his transitions are his own (`transitionFor(who, from, to)`: `editor-arrive`, the turn at the spot on
 arriving, and `editor-leave`, the turn back toward the door), and so is his pool of waiting moments (`EDITOR_POOL`:
@@ -348,12 +350,12 @@ top row. An assistant draws its pose in its look, its mood's face (tired or happ
 25, y + 11).
 The mangaka's bubble and pops sit above the rig head's centre (`headCentre`: col 16 from the actor in every state, in
 bed too, its spot on the lying head's column) and top (`headTop`: row 0, 6 seated, 8 in bed).
-The editor (0.12.0 task 7, while `RIG_LIVE.editor`; else `drawOldEditor`, his 0.10 frames, until task 11) is
-`drawRigEditor`: his pose (or his base loop's first step) as one `drawImage` of its neutral frame in `EDITOR_PAL`,
+The editor (0.12.0: built behind a switch at task 7, his only path since task 11, when the 0.10 `drawOldEditor` and
+the code-drawn `drawVisitorProp` went) is `drawRigEditor`: his pose (or his base loop's first step) as one `drawImage` of its neutral frame in `EDITOR_PAL`,
 mirrored facing right, over a 20 px contact shadow (x + 6, y + 46), drawn after the cat. Standing at the spot facing
 the desk with something to deliver, the visit's prop (`rig/props.ts`) goes after the body with its hand cell on the
 pose's `frontHand`, and the `!` bobs in the rig's mark slot (frame col 28, a row higher every other 16 frames; the
-plan's decision 13). His greeting bubble sits over the rig head (`headCentre`, `headTop`) while the switch is on.
+plan's decision 13). His greeting bubble sits over the rig head (`headCentre`, `headTop`), as the mangaka's does.
 
 **Reactions** (`reactions.ts`, 0.11.0). One store change brings at most one reaction (`reactionFor`, by priority),
 never across a save load, a new career's world seed, a jump of more than a day, or in a read-only tab (the pops'
@@ -378,15 +380,17 @@ the panic recurs as before and reduced motion still shows it.
 **The `?rig` dev preview.** A dev build's `?rig=<animation>` (`npm run dev`, an `AnimId`, such as `?rig=stand-look`)
 plays that animation over every base of its posture whenever nothing else plays, on its own character only
 (`previewFits`: an `editor-*` animation on the editor, any other on everyone else), so an art task sees its moments
-and reactions in the running scene. `?rig`, with or without an animation, also turns the editor's switch on
-(`RIG_LIVE.editor`, 0.12.0 task 7), so he walks to the 0.12 spot and is drawn from the rig until the switch is on for
-good. A production build never reads the URL (the read sits behind `import.meta.env.DEV`).
+and reactions in the running scene. From 0.12.0 task 7 to task 11 `?rig` also turned the editor's switch on, so he
+walked to the 0.12 spot and was drawn from the rig before he was for good. A production build never reads the URL
+(the read sits behind `import.meta.env.DEV`).
 
 **The editor's visit** (`visitor.ts`, `useArrival`) picks the one reason they are at the desk, in priority order:
 a pending chapter result, a pending offer, the project ready to submit, an anime offer, a random event, then an
 unread year review; each reason has its own carried prop (envelope, letter, contract or trophy) and greeting line.
-The walk from the door to the editor's spot is `EDITOR_WALK_MS` 1400, derived from the door-to-spot distance at 40
-px/s; `StudioScene` plays the `knock` cue the moment the editor's state becomes `'standing'` after actually walking
+The walk from the door (`DOOR_SPOT` (250, 69)) to the editor's spot (`EDITOR_SPOT` (205, 90)) is `EDITOR_WALK_MS`
+1650 (0.10: 1400), derived from the door-to-spot distance at 40 px/s, 45 + 21 px: he walks in y first (`legs` `'yx'`,
+down beside the door, then along the floor in front of the bed) and out x first (`'xy'`); a verdict holds him at the
+spot until it has played (the verdict hold, above); `StudioScene` plays the `knock` cue the moment the editor's state becomes `'standing'` after actually walking
 there (never on a settle, and never in a read-only tab or while the window is hidden), and `useArrival` gates a
 pending result's or offer's own card mount on that same delay (at once under reduced motion, or when it was already
 pending on mount).
@@ -408,8 +412,9 @@ ready)`), each frame painted once per palette and facing into the sprite cache a
 driver (`castPlay.ts`, above) picks the pose. Every map is in `PAL` keys: an uppercase base and its lowercase shade
 (light from the top left, so the shade sits on the right and underneath), `L` the outline; `ASSISTANT_PALS[look]`
 swaps the hair and shirt for the six assistant looks, `OUTFIT_PALS` the mangaka's outfit. The bullets below describe
-the rig in the order its tasks drew it, then what every character shares. The editor (until 0.12.0) and the cat (until
-0.13.0) are still the 0.10 string maps, described with their history after the rig ("The 0.10 string maps").
+the rig in the order its tasks drew it, then what every character shares. The editor joined the rig at 0.12.0; the
+cat alone is still a 0.10 string map (until 0.13.0), described with its history after the rig ("The 0.10 string
+maps").
 
 - **The rig head** (0.11.0, task 7). `rig/head.ts` `HEAD` is a new hand-drawn chibi head, 27 wide x 22 tall, after
   `art/raw/sprites/mangaka-front.png` (proportions, hair mass, colours) in 0.10's style (`PAL` keys, the shade on the
@@ -468,7 +473,8 @@ the rig in the order its tasks drew it, then what every character shares. The ed
   sigh) were tabled with their final postures and looping and played one 500 ms step of `editor.stand`
   (`EDITOR_STAND_IN`) until tasks 8-10 drew them (task 8 the walk and the turns, task 9 the waiting moments, task 10
   the verdicts, which retired the stand-in). The sheet's `editor-*` blocks draw in `EDITOR_PAL` beside the base's 0.10 `EDITOR_IDLE`/`EDITOR_WALK`
-  (row F went; row H's editor strip is the rig's `editor-walk` above the base's `EDITOR_WALK`). The gate
+  (row F went; row H's editor strip is the rig's `editor-walk` above the base's `EDITOR_WALK`; the working tree has
+  no 0.10 editor maps since task 11, the base keeps them until the merge). The gate
   (`--only editor-` at 8x and 1x) read on the first drawing: the same man as row J in a navy suit, the collar and
   the red tie clear, the case in the far hand clear of the leg, the breath a soft sink, the blink behind the lenses.
 - **The editor's walk and turns** (0.12.0, task 8): four suit sleeves, each docblocked in `parts.ts`:
@@ -517,7 +523,7 @@ the rig in the order its tasks drew it, then what every character shares. The ed
   pupils under the lid read as looking down at the wrist, at 8x and 1x.
 - **The visit's props** (0.12.0, task 7): `rig/props.ts` `VISIT_PROPS`, the four things the editor delivers, each a
   small cast frame in PAL keys (`prop.<id>`) with a `hand` anchor, drawn in the editor's palette after the body at the
-  pose's front hand (the plan's decision 2: not the 0.10 `PROP_PAL`, which retires with his 0.10 frames): the
+  pose's front hand (the plan's decision 2: not the 0.10 `PROP_PAL`, retired with his 0.10 frames at task 11): the
   envelope 6x4 (paper `W`, the flap's fold lines `w`, held at (3, 1)), the letter 5x6 (two lines of writing `w` on
   `W`, held at (2, 1)), the contract 5x7 (the blue heading `R`, the red seal `M`, held at (2, 1)) and the trophy 5x6
   (the gold cup `X` on its stem over the wooden base `D`, held by the rim at (2, 2)). One drawImage each, so the
@@ -788,7 +794,7 @@ the rig in the order its tasks drew it, then what every character shares. The ed
   a note on stdout. Since 0.11.0 task 8 the 0.10 mangaka's rows (A to E) are gone, each replaced by its animation's
   block.
 
-**The 0.10 string maps** (history; the editor and the cat are still drawn from them). `sprites.ts`'s string maps are
+**The 0.10 string maps** (history; the cat is still drawn from them, until 0.13.0). `sprites.ts`'s string maps are
 one character per pixel, drawn by `drawSprite`, which merges each horizontal run of one key into one fillRect and
 mirrors a frame to face right; since 0.11.0 each is a cast frame (`oldCast.ts`) painted once into the sprite cache
 like the rig's. People were 24x32 frames facing left, in chibi proportions (upgrade 0.4.0): the head rows 0-15 (18 px
@@ -800,13 +806,15 @@ raised arms the hands read as hands, not ears. The cat has a cream chest patch (
 its chest shows (not the curled `CAT_SLEEP`), and sleeps on a round mustard cushion at `CAT_BED` (4 fills, drawn just
 before it).
 
-The string-map frame sets still drawn are the editor's idle and walk and the 12x8 cat (sleep, sit, its groom and
-stretch, walk `anim/125 % 2`). The 0.10 people's sets (idle 2, walk 4, sit 2, panic 2 for 40 of every 240 frames on a
-late chapter, a 30x14 lying sprite under the blanket, the idle cycle's stretch and sip, the generated doze) left
-`sprites.ts` with the mangaka's switch to the rig (task 17) and the assistants' (task 19), all but the standing frame
-and the walk (`LEGACY_IDLE`, `LEGACY_WALK`): they stay undrawn as the editor's source (his walk is their legs in his
-suit) and as the anchor `scripts/pixelate.ts` checks `faceRules` against. Props (envelope, letter, contract, trophy)
-are small maps of their own. `SpriteAvatar` draws the rig head (since 0.11.0: rows 0-21, cols 0-23, 24x22; the SVG
+The string-map frame set still drawn is the 12x8 cat (sleep, sit, its groom and stretch, walk `anim/125 % 2`). The
+0.10 people's sets (idle 2, walk 4, sit 2, panic 2 for 40 of every 240 frames on a late chapter, a 30x14 lying sprite
+under the blanket, the idle cycle's stretch and sip, the generated doze) left `sprites.ts` with the mangaka's switch to
+the rig (task 17) and the assistants' (task 19), all but the standing frame and the walk (`LEGACY_IDLE`,
+`LEGACY_WALK`), kept undrawn as the 0.10 editor's source (his walk was their legs in his suit). The editor's own sets
+(idle 2 and walk 4, with the briefcase) went at 0.12.0 task 11 with his switch to the rig, and with them
+`LEGACY_IDLE`/`LEGACY_WALK` and the code-drawn props (envelope, letter, contract, trophy, small maps in their own
+`PROP_PAL`; the rig's `VISIT_PROPS` replace them). `ANCHOR_HEAD` stays in `spriteCore.ts` for the `--sprite` graft
+only (with `faceRules`, which `scripts/pixelate.ts` reports; `sprites.ts` no longer re-exports either). `SpriteAvatar` draws the rig head (since 0.11.0: rows 0-21, cols 0-23, 24x22; the SVG
 viewBox adds a blank row above and below, 24x24, so the backdrop fills the 48x48 box) as SVG rects (`spriteSvg.ts`) for the staff portraits.
 
 - **The cast redraw** (0.9.0, Release B). Every string-map frame but `ANCHOR_HEAD` is hand-redrawn by Claude in the
@@ -823,20 +831,21 @@ viewBox adds a blank row above and below, 24x24, so the backdrop fills the 48x48
   is hand-drawn so the case keeps its seven rows. Since 0.10.2 each walk's contact frames swing the arm opposite the
   stepping leg (their arm rows 20-23 swapped), the standing leg keeps the idle's shading on both, the editor's take
   `EDITOR_BODY`'s shoulders and the mangaka's legs through `recolour` (`F/f` to `G/g`, `O/o` to `E`) with the case
-  drawn over them, and the 0.10 stretch's raised fists were outlined (an `L` over each on row 11). The cat is a tabby (`c`
+  drawn over them, and the 0.10 stretch's raised fists were outlined (an `L` over each on row 11); the editor's frames were retired at 0.12.0 task 11, when the rig drew him. The cat is a tabby (`c`
   stripes, the `Q` chest, an `E` eye, 1-px ears) with a tail on its walk. The doze stayed the generated frame, its
   folded arms remapped `J` to `j` (sleeves) in the manifest, 100 runs to 91 (retired at 0.11.0 task 19, the recipe
   and its remap kept). Its gate was `npm run sprites` ("The gate" above, the 0.10 rows since replaced). The
   run-count caps are `RUN_CAPS` in sprites.test.ts, 1.3x each frame's pre-redraw count, which kept every fill
-  baseline inside its 1.5x budget by construction; since task 19 only the editor's and the cat's rows are left (the
-  only string maps still drawn). The ruling: **`ANCHOR_HEAD` is untouched**. The sheets' 2:1 head
+  baseline inside its 1.5x budget by construction; since task 19 only the editor's and the cat's rows were left, and
+  since 0.12.0 task 11 the cat's alone (the only string maps still drawn). The ruling: **`ANCHOR_HEAD` is untouched**. The sheets' 2:1 head
   cannot fit the `FACES`, mark-slot and avatar-crop contract, and the hand-drawn head is the part that already read,
   so the staff portraits do not change (until the rig head, 0.11.0).
 - **Face rules and generated frames** (0.11.0, task C1). `faceRules(frame)`, next to `frameRules`, lists what stopped
   a 0.10 head-steady frame taking the mood overlay: rows 9-12, cols 4-17 (where `FACES` landed) may hold only face
   keys (`S s E W M B L`), rows 0-2, cols 20-22 (the mark slot) must be clear, and the head (rows 0-15) must stay inside cols 2-19,
   the 0.10 `SpriteAvatar` crop. `ANCHOR_HEAD` is the hand-drawn anchor head (rows 0-15 of `LEGACY_IDLE`, the 0.10
-  standing frame, asserted equal); the staff portrait drew it until the rig head (0.11.0, below), and the `--sprite`
+  standing frame, asserted equal until that frame went at 0.12.0 task 11; since then sprites.test holds it to 16 rows of
+  24 that pass `faceRules`, and the `faceRules` cases are built on it); the staff portrait drew it until the rig head (0.11.0, below), and the `--sprite`
   pipeline (see "### Art") grafts it onto a generated frame whose own head fails `faceRules` (the graft rule: rows 0-15
   replaced, recorded per frame in the manifest as `graft: "anchor-head"`). The 0.10 breath (`breathOf`, rows 0-23 a row
   lower) went with the 0.10 mangaka at task 19. **None of the C1 frames is drawn**: the readability gate
@@ -849,9 +858,10 @@ viewBox adds a blank row above and below, 24x24, so the backdrop fills the 48x48
   and the doze had no cell on the sheet. Every hand-drawn frame
   that took the overlay (the breathing idle, the seated frames) passed `faceRules`, and so did the sip; the stretch
   did not (its flung arms left the avatar crop), which was harmless: render drew only the mood mark on the stretch
-  and the sip, never the face. `spriteCore.ts` holds `PAL`, `SpriteMap`, `ANCHOR_HEAD`,
-  `frameRules` and `faceRules` as a leaf module with no imports (sprites.ts re-exports them), so the pipeline checks a
-  frame without loading the generated frames or the scene.
+  and the sip, never the face. The 0.10 editor was exempt from `faceRules` (his glasses' `P` in the window); the
+  exemption went with his maps at 0.12.0 task 11. `spriteCore.ts` holds `PAL`, `SpriteMap`, `ANCHOR_HEAD`,
+  `frameRules` and `faceRules` as a leaf module with no imports (sprites.ts re-exports `PAL`, `frameRules` and
+  `SpriteMap`), so the pipeline checks a frame without loading the generated frames or the scene.
 - **Generated frames in the scene** (0.11.0, task C2). Four retry sheets (Higgsfield `z_image`, 2026-10-01: a front
   mangaka sheet, a side mangaka sheet, the editor and the cat, all in `art/raw/sprites/`) went through the same gate
   (`sprites-C2.png`: each candidate next to the hand-drawn frame it would replace, 8x at the actor's own spot on the
@@ -885,10 +895,8 @@ viewBox adds a blank row above and below, 24x24, so the backdrop fills the 48x48
 | `MANGAKA_SEAT` | (124, 58) (0.10: (132, 67)) |
 | `MANGAKA_STAND` | (170, 81) |
 | `MANGAKA_BED` | (220, 90), the bed frames at `MANGAKA_BED_FRAME` (201, 90) (0.10: (216, 106)) |
-| `MANGAKA_DOOR` | (250, 69) (0.10: the door spot) |
-| `DOOR_SPOT` | (254, 85) |
-| `EDITOR_SPOT` | (198, 85) |
-| The editor's spot (0.12.0) | (198, 85) → `RIG_EDITOR_SPOT` (205, 90): the feet on the floor in front of the bed, y 137, facing the desk; his door the mangaka's, `RIG_EDITOR_DOOR` (250, 69); behind `RIG_LIVE.editor` (`editorSpots()`) until task 11. He walks in y first (`legs` `'yx'`: down beside the door, then along the floor, so his frame crosses the bed in front of it) and out x first (`'xy'`), 66 px either way (the plan's decision 7) |
+| `DOOR_SPOT` | (250, 69), everyone's (0.12.0 task 11; 0.10: (254, 85), and the mangaka's own `MANGAKA_DOOR` (250, 69) from 0.11.0): it also moves the cat's entry door and the hidden assistants' parked spot from (254, 85), both off screen behind the door |
+| `EDITOR_SPOT` | (205, 90) (0.12.0; 0.10: (198, 85)): the feet on the floor in front of the bed, y 137, facing the desk. He walks in y first (`legs` `'yx'`: down beside the door, then along the floor, so his frame crosses the bed in front of it) and out x first (`'xy'`), 66 px either way (the plan's decision 7), `EDITOR_WALK_MS` 1650 |
 | `CAT_BED` | (202, 118), on the blanket (0.10: (196, 118)) |
 | `CAT_KITCHEN` | (44, 150) |
 | `ASSISTANT_SEAT_X` / `_Y` | [21, 55, 89] / 80 (0.10: [66, 86, 106] / 89) |
@@ -898,8 +906,9 @@ decision 3, its depth in front of the main desk): each assistant from the rig, t
 36 + 34(n - 1) for n assistants shown, at most 3, y 120-131), drawn after them so only head and shoulders show, then
 each working assistant's page on its top, with one ink line per third of progress.
 
-The scene's fillRect budget is measured, not guessed. Today's pins are the last ones below (task 19: 273 and 289,
-156 and 173 with the art ready, the rest scene 302, the worst-case loops 217, 433 and 256); how they got there
+The scene's fillRect budget is measured, not guessed. Today's pins are the last ones below (0.11.0 task 19: 273 and
+289, 156 and 173 with the art ready, the rest scene 302, the worst-case loop 217; 0.12.0 task 11: the visit loops 414
+and 237); how they got there
 follows. The one-assistant reference frame was first a baseline of 673 calls
 (`render.test.ts`), and the bare full scene (`BARE_FULL`: three assistants, looks 0-2 at stamina 80, in winter,
 otherwise the reference scene, at night, t 0.9, frame 100) a baseline of 1079 (`studioArt.test.ts`; the full scene
@@ -969,6 +978,11 @@ there is neutral: stamina 80, no cheer, and assistants never go sleepy or surpri
 assistant's face and sweat mark took 18 fills (the reference scene with the assistant tired, 292 before, 273 after
 with its stool).
 Moving the row's desk and pages after the desk group changes no count.
+The editor's switch to the rig (0.12.0 task 11) moves only the two visit pins: the contract is a cast frame
+(`rig/props.ts`) drawn with one `drawImage` at his front hand, so the 0.10 `PROP_CONTRACT`'s 19 runs (1, 3, 3, 3, 3, 5, 1
+a row) leave the fill log, while his contact shadow (1, now 20 wide under the rig frame's feet) and the `!` (4, in the
+rig's mark slot) stay: 433 - 19 = 414 and 256 - 19 = 237 (budgets 621 and 355.5). The loops' other scenes have no
+editor and keep their counts (409, 409 and 396; 232, 232 and 218), and so does every other pin.
 
 ### Art
 The live scene is code-drawn `fillRect` (`render.ts`, `roomArt.ts`, `studioArt.ts`, `sprites.ts`), and since 0.9.0 it
@@ -2026,7 +2040,7 @@ studio scene and restyled every panel. These decisions came out of that pass:
 - The cast is a table of actors (`actors.ts`): position, target, facing, current and goal pose, and which axis each
   walks first, stepped by `stepActors` and settled at once on mount or a loaded save.
 - The editor visits for a reason (`visitor.ts`), walks in from the door, and the results and offer modals do not
-  mount until `EDITOR_WALK_MS` (1400 ms, the door-to-spot distance at 40 px/s) after the result or offer lands (0
+  mount until `EDITOR_WALK_MS` (1650 ms since 0.12.0, 1400 before, the door-to-spot distance at 40 px/s) after the result or offer lands (0
   under reduced motion), so neither modal beats the editor to the desk.
 - Money, fans and xp rises are pops (`Pops.tsx`) and the mangaka's daily log line and the editor's greeting are
   speech bubbles (`Bubble.tsx`); both are DOM elements anchored to scene coordinates (`sceneAnchor.ts`'s

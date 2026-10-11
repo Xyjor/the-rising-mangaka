@@ -702,6 +702,8 @@ describe('the editor\'s verdicts (0.12.0, task 10)', () => {
     expect(crown(frame('editor.nod'))).toBe(crown(frame('editor.stand')) + 2)
     expect(frame('editor.nod').slice(24)).toEqual(frame('editor.stand').slice(24))
     expect(part('editor.nod').face).toBeUndefined()
+    // the head nods, the hand (and the prop in it) stays where it stands
+    expect(frontHand('editor.nod')).toEqual({ x: 8, y: 33 })
   })
 
   it('sighs with the shoulders dropping a row then two, the feet still on row 47, the eyes closed and the mouth down', () => {
@@ -715,7 +717,7 @@ describe('the editor\'s verdicts (0.12.0, task 10)', () => {
       expect(frame(id).join(''), id).not.toContain('E')
     }
     expect(rigFrame('editor.sigh-b', 'neutral', false).id).toBe('editor.sigh-b~closed.frown.none')
-    // the hand, and so the prop, drops with the shoulders
-    expect(frontHand('editor.sigh-b')).toEqual({ x: 8, y: 35 })
+    // the hand, and so the prop, drops with the shoulders: a row, then two
+    expect([frontHand('editor.sigh-a'), frontHand('editor.sigh-b')]).toEqual([{ x: 8, y: 34 }, { x: 8, y: 35 }])
   })
 })

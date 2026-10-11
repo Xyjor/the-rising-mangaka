@@ -1,6 +1,6 @@
 // The scene's render is a pure function of (snapshot, time of day, frame) onto a 2D context: no DOM needed, so this
 // runs in the default node environment against the recording context from src/test/fakeCanvas.ts.
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { covers, coversAny, fakeContext, fakeImage, fakeSceneArt, sceneSnapshot } from '../../../test/fakeCanvas'
 import type { FillCall, ImageCall } from '../../../test/fakeCanvas'
 import type { StudioTierId } from '../../../sim'
@@ -11,7 +11,7 @@ import { DOORWAY_BOX, DOOR_BOX, NO_EQUIPMENT } from '../studioArt'
 import { DESK_PROPS, NO_ART, PROP_ALIGN, PROP_MIN_H, PROP_SPRITE, ROOM_NIGHT_DIM, fitDesk, fitSprite, hangSprite, placeSprite, ready } from '../sceneArt'
 import type { SceneArt, ScenePropId } from '../sceneArt'
 import type { Season } from '../season'
-import { CAT_BED, MANGAKA_BED, MANGAKA_BED_FRAME, MANGAKA_SEAT, newActorTable, planActors, setRigLive, settleActors } from '../actors'
+import { CAT_BED, MANGAKA_BED, MANGAKA_BED_FRAME, MANGAKA_SEAT, newActorTable, planActors, settleActors } from '../actors'
 import { ANIMS } from '../rig/anims'
 import { rigFrame } from '../rig/frames'
 import { MARK_ART } from '../rig/head'
@@ -422,26 +422,6 @@ describe('the characters, from the actor table', () => {
     expect(castAt(day.images, 124, 58)?.id).toBe('cast/seat.draw-a~open.closed.none/pal')
   })
 
-  function editorAt(facing: -1 | 1, over: Partial<Actor> = {}): ActorTable {
-    const t = newActorTable()
-    Object.assign(t.editor, { x: 198, y: 85, targetX: 198, targetY: 85, state: 'standing', goal: 'standing', facing }, over)
-    return t
-  }
-
-  it('paints the editor at the spot, mirrored when facing right', () => {
-    // (198, 85): standing, the first of the two idle frames at frame 0; facing right is the mirrored surface
-    expect(castAt(paintWith(editorAt(-1), { visitor: 'editor' }).images, 198, 85)?.id).toBe('cast/editor.idle.0/pal')
-    expect(castAt(paintWith(editorAt(1), { visitor: 'editor' }).images, 198, 85)?.id).toBe('cast/editor.idle.0/pal/r')
-  })
-
-  it('walks the editor with their own four frames', () => {
-    // floor(anim / 100) % 4: the briefcase's bob on the pass frame is in the maps (sprites.test checks it)
-    const walk = (anim: number) => paintWith(editorAt(-1, { state: 'walking', targetX: 150, anim }), { visitor: 'editor' })
-    expect(castAt(walk(0).images, 198, 85)?.id).toBe('cast/editor.walk.0/pal')
-    expect(castAt(walk(100).images, 198, 85)?.id).toBe('cast/editor.walk.1/pal')
-    expect(castAt(walk(200).images, 198, 85)?.id).toBe('cast/editor.walk.2/pal')
-  })
-
   it('puts the mangaka to bed to rest, the Zz rising over the pillow', () => {
     const { ctx, log, images } = fakeContext()
     render(ctx, sceneSnapshot({ activity: 'rest' }), 0.3, 0)
@@ -453,34 +433,6 @@ describe('the characters, from the actor table', () => {
     const blanket = log.findIndex((c) => c.style === '#c94b4b' && c.x === 196 && c.y === 112 && c.w === 29 && c.h === 10)
     expect(blanket).toBeGreaterThanOrEqual(lie!.at)
     expect(has(log, '#2f5ecf', 238, 92)).toBe(true)
-  })
-
-  it('hands the editor their prop and bobs the ! above them while they stand facing left', () => {
-    const at = (over: Parameters<typeof sceneSnapshot>[0], frame: number) => {
-      const { ctx, log, images } = fakeContext()
-      render(ctx, sceneSnapshot(over), 0.3, frame)
-      return { log, images }
-    }
-    const env = at({ visitor: 'editor', visitorProp: 'envelope' }, 100)
-    expect(castAt(env.images, 198, 85)).toBeDefined()
-    // the envelope sprite at (198 - 2, 85 + 20) = (196, 105), the hand row 22's level: its corner, and row 1 col 2 paper
-    expect(covers(env.log, '#1c1a26', 196, 105)).toBeGreaterThan(-1)
-    expect(covers(env.log, '#fdfcf7', 198, 106)).toBeGreaterThan(-1)
-    expect(covers(env.log, '#fdfcf7', 198, 105)).toBe(-1)
-    // frame 100: floor(100 / 16) % 2 = 0, so the ! tops out at 85 - 8 = 77 from x 209, its stroke in the glyph's middle
-    // column (x 210)
-    expect(covers(env.log, '#e5484d', 210, 77)).toBeGreaterThan(-1)
-    // the trophy at (198 - 2, 85 + 18) = (196, 103): row 1 col 2 is gold
-    expect(covers(at({ visitor: 'editor', visitorProp: 'trophy' }, 100).log, '#f5b700', 198, 104)).toBeGreaterThan(-1)
-    expect(covers(at({ visitor: 'editor', visitorProp: 'envelope' }, 16).log, '#e5484d', 210, 76)).toBeGreaterThan(-1)
-  })
-
-  it('paints no prop while the editor walks', () => {
-    const table = editorAt(-1, { state: 'walking', targetX: 180 })
-    const { ctx, log } = fakeContext()
-    render(ctx, sceneSnapshot({ visitor: 'editor', visitorProp: 'envelope', actors: table }), 0.3, 100)
-    expect(covers(log, '#fdfcf7', 198, 106)).toBe(-1)
-    expect(covers(log, '#e5484d', 210, 77)).toBe(-1)
   })
 })
 
@@ -583,7 +535,7 @@ describe('the assistants, the wall clock and the cat (Task 2.5)', () => {
     const table = newActorTable()
     Object.assign(table.cat, { x: 202, y: 118, targetX: 202, targetY: 118, state: 'sleeping', goal: 'sleeping' })
     Object.assign(table.mangaka, { x: 220, y: 90, targetX: 220, targetY: 90, state: 'sleeping', goal: 'sleeping' })
-    Object.assign(table.editor, { x: 198, y: 85, targetX: 198, targetY: 85, state: 'standing', goal: 'standing', facing: -1 })
+    Object.assign(table.editor, { x: 205, y: 90, targetX: 205, targetY: 90, state: 'standing', goal: 'standing', facing: -1 })
     const { images } = full({ activity: 'rest', visitor: 'editor', actors: table })
     const lie = images.findIndex((i) => i.id.startsWith('cast/bed.lie-0/'))
     const cat = images.findIndex((i) => i.id.startsWith('cast/cat.'))
@@ -683,10 +635,11 @@ describe('the assistants, the wall clock and the cat (Task 2.5)', () => {
     expect(castAt(images, 44, 150)?.id).toBe('cast/cat.groom.0/pal')
   })
 
-  it('keeps the cat clear of the mangaka\'s, the editor\'s and the bed\'s spots', () => {
+  it('keeps the cat clear of the mangaka\'s and the bed\'s spots', () => {
     type Box = readonly [number, number, number, number]
-    // the seat frame, the standing frame, the editor's and the lying head (the bed frame's cols 23-46, rows 8-29)
-    const boxes: Box[] = [[124, 155, 58, 105], [170, 201, 81, 128], [198, 221, 85, 116], [224, 247, 98, 119]]
+    // the seat frame, the standing frame and the lying head (the bed frame's cols 23-46, rows 8-29); the editor's spot
+    // is not here: he stands in front of the napping cat, drawn after it (the 0.12.0 plan's decision 8)
+    const boxes: Box[] = [[124, 155, 58, 105], [170, 201, 81, 128], [224, 247, 98, 119]]
     for (const over of [{}, { activity: 'rest' as const }]) {
       const s = sceneSnapshot(over)
       const c = s.actors.cat
@@ -1299,9 +1252,7 @@ describe('the rig path (0.11.0 task 10)', () => {
   })
 })
 
-describe('the rig editor behind the switch (0.12.0, task 7)', () => {
-  beforeEach(() => setRigLive({ editor: true }))
-  afterEach(() => setRigLive({ editor: false }))
+describe('the editor from the rig (0.12.0)', () => {
   function rigEditorAt(facing: -1 | 1, over: Partial<Actor> = {}): ActorTable {
     const t = newActorTable()
     Object.assign(t.editor, { x: 205, y: 90, targetX: 205, targetY: 90, state: 'standing', goal: 'standing', facing }, over)
@@ -1361,12 +1312,5 @@ describe('the rig editor behind the switch (0.12.0, task 7)', () => {
       expect(f.images.some((i) => i.id.startsWith('cast/prop.')), JSON.stringify(over)).toBe(false)
       expect(covers(f.log, '#e5484d', 234, 90), JSON.stringify(over)).toBe(-1)
     }
-  })
-
-  it('draws the 0.10 editor\'s idle frame while the switch is off', () => {
-    setRigLive({ editor: false })
-    const t = newActorTable()
-    Object.assign(t.editor, { x: 198, y: 85, targetX: 198, targetY: 85, state: 'standing', goal: 'standing', facing: -1 })
-    expect(castAt(at({ visitor: 'editor' }, t).images, 198, 85)?.id).toBe('cast/editor.idle.0/pal')
   })
 })

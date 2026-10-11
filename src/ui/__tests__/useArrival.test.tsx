@@ -10,13 +10,13 @@ beforeEach(() => { vi.useFakeTimers() })
 afterEach(() => { vi.useRealTimers(); restore() })
 
 describe('useArrival', () => {
-  it('flips true 1400 ms after the flag is set, and false when it clears', () => {
+  it('flips true 1650 ms after the flag is set, and false when it clears', () => {
     restore = stubReducedMotion(false)
     const { result, rerender } = renderHook(({ p }) => useArrival(p), { initialProps: { p: false } })
     expect(result.current).toBe(false)
     rerender({ p: true })
     expect(result.current).toBe(false)
-    act(() => { vi.advanceTimersByTime(1399) })
+    act(() => { vi.advanceTimersByTime(1649) })
     expect(result.current).toBe(false)
     act(() => { vi.advanceTimersByTime(1) })
     expect(result.current).toBe(true)

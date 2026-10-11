@@ -4,7 +4,7 @@
 // prop image replaces its piece at the same footprint and the same place in the draw order. This module never imports
 // the art registry.
 import type { EquipmentId, StudioTierId } from '../../sim'
-import { ASSISTANT_SEAT_X, MANGAKA_BED_FRAME, MANGAKA_SEAT, RIG_LIVE } from './actors'
+import { ASSISTANT_SEAT_X, MANGAKA_BED_FRAME, MANGAKA_SEAT } from './actors'
 import type { Actor, ActorTable, Spot } from './actors'
 import { baseAnimFor } from './castPlay'
 import type { CastContext, CastWho } from './castPlay'
@@ -14,7 +14,7 @@ import { frontHand, rigFrame } from './rig/frames'
 import { POSES } from './rig/poses'
 import { VISIT_PROPS } from './rig/props'
 import type { PoseDef, PoseId } from './rig/poses'
-import { PROP_CONTRACT, PROP_ENVELOPE, PROP_LETTER, PROP_PAL, PROP_TROPHY, drawSprite } from './sprites'
+import { drawSprite } from './sprites'
 import { OLD_CAST } from './oldCast'
 import { drawCast, drawCastTop, getCastCache, lookPalette, outfitPalette } from './spriteCache'
 import type { CastFrame, PaletteId, SpriteCache } from './spriteCache'
@@ -113,19 +113,6 @@ function moodFor(editorHere: boolean, cheer: boolean, stamina: number, lateNight
 
 const PROP_PAPER = '#fdfcf7'
 const PROP_LINE = '#b8b2a5'
-
-/** What the standing editor holds in the leading hand (row 22: the envelope at y + 20, the others at y + 18; sprites in
- * PROP_PAL), and the ! bobbing above them. */
-function drawVisitorProp(ctx: CanvasRenderingContext2D, prop: Snapshot['visitorProp'], x: number, y: number, frame: number) {
-  switch (prop) {
-    case 'envelope': drawSprite(ctx, PROP_ENVELOPE, x - 2, y + 20, 4, PROP_PAL); break
-    case 'letter': drawSprite(ctx, PROP_LETTER, x - 2, y + 18, 6, PROP_PAL); break
-    case 'contract': drawSprite(ctx, PROP_CONTRACT, x - 2, y + 18, 7, PROP_PAL); break
-    case 'trophy': drawSprite(ctx, PROP_TROPHY, x - 2, y + 18, 6, PROP_PAL); break
-    case 'none': return
-  }
-  glyph(ctx, '!', x + 11, y - 8 - (Math.floor(frame / 16) % 2), '#e5484d')
-}
 
 /** The scene is drawing: at the desk, with the clock running (render's `working`, shared with the cast driver). */
 export function workingOf(s: Snapshot): boolean {
@@ -228,15 +215,6 @@ function drawMangaka(
   if ((a.y >= 75) !== front) return
   const pose = poseOf(a, 'mangaka', s, working)
   if (pose) drawRigMangaka(ctx, cast, s, a, pose, frame, working, night)
-}
-
-/** The 0.10 editor (until the 0.12.0 switch): his idle or walk frames, mirrored facing right, the code-drawn prop and the ! standing facing left. */
-function drawOldEditor(ctx: CanvasRenderingContext2D, cast: SpriteCache, s: Snapshot, editor: Actor, frame: number) {
-  const flip = editor.facing === 1
-  shadow(ctx, editor.x + 4, editor.y + 30, 16)
-  if (editor.state === 'walking') drawCast(ctx, cast, OLD_CAST.editorWalk[Math.floor(editor.anim / 100) % 4], 'pal', editor.x, editor.y, flip)
-  else drawCast(ctx, cast, OLD_CAST.editorIdle[Math.floor(frame / 16) % 2], 'pal', editor.x, editor.y, flip)
-  if (s.visitor === 'editor' && editor.state === 'standing' && editor.facing === -1) drawVisitorProp(ctx, s.visitorProp, editor.x, editor.y, frame)
 }
 
 /**
@@ -653,10 +631,7 @@ export function render(
     drawCast(ctx, cast, catCast, 'pal', cat.x, cat.y, catFlip)
   }
   const editor = s.actors.editor
-  if (editor.state !== 'hidden' && editor.state !== 'away') {
-    if (RIG_LIVE.editor) drawRigEditor(ctx, cast, s, editor, frame, working)
-    else drawOldEditor(ctx, cast, s, editor, frame)
-  }
+  if (editor.state !== 'hidden' && editor.state !== 'away') drawRigEditor(ctx, cast, s, editor, frame, working)
 
   // the front row, in front of everyone
   TIER_FRONT[s.tier](ctx, s, frame, night, art)

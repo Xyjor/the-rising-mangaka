@@ -29,13 +29,13 @@ describe('the editor brings the results', () => {
   let restore: () => void = () => {}
   afterEach(() => { vi.useRealTimers(); restore() })
 
-  it('mounts the results 1400 ms after they land, once the editor has walked in', () => {
+  it('mounts the results 1650 ms after they land, once the editor has walked in', () => {
     restore = stubReducedMotion(false)
     vi.useFakeTimers()
     render(<App />)
     act(() => useStore.setState({ game: withPendingResult() }))
     expect(screen.queryByRole('dialog')).toBeNull()
-    act(() => { vi.advanceTimersByTime(1400) })
+    act(() => { vi.advanceTimersByTime(1650) })
     expect(screen.getByRole('dialog', { name: /Reader poll results/i })).toBeTruthy()
   })
 
