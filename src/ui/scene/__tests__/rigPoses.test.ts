@@ -636,3 +636,52 @@ describe('the editor\'s walk and his turns (0.12.0, task 8)', () => {
     expect([part('editor.turn').armFront?.part, part('editor.turn-back').armFront?.part]).toEqual(['arm-l-suit-swing-back', 'arm-l-suit-swing-fwd'])
   })
 })
+
+describe('the editor\'s waiting moments (0.12.0, task 9)', () => {
+  it('catalogues the raised, glasses and watch sleeves', () => {
+    expectCatalogue({
+      'arm-l-suit-raise': [6, 9, { shoulderL: [2, 4], hand: [4, 1] }],
+      'arm-l-suit-glasses': [6, 14, { shoulderL: [2, 13], hand: [3, 1] }],
+      'arm-l-suit-watch': [7, 9, { shoulderL: [5, 0], hand: [2, 7] }],
+    })
+  })
+
+  it('times the moments: the glasses pushed up 900 ms, the watch checked 1100 ms, a glance at the pile 700 ms', () => {
+    expect(ANIMS['editor-glasses'].steps).toEqual([{ pose: 'editor.raise', ms: 200 }, { pose: 'editor.glasses', ms: 500 }, { pose: 'editor.raise', ms: 200 }])
+    expect(ANIMS['editor-watch'].steps).toEqual([{ pose: 'editor.raise', ms: 200 }, { pose: 'editor.watch', ms: 700 }, { pose: 'editor.raise', ms: 200 }])
+    expect(ANIMS['editor-glance'].steps).toEqual([{ pose: 'editor.glance', ms: 700 }])
+  })
+
+  it('raises the near hand to the chin, then to the left lens\'s rim with the eyes blinking behind it', () => {
+    expect([at('editor.raise', 'armFront'), frontHand('editor.raise')]).toEqual([{ x: 7, y: 19 }, { x: 11, y: 20 }])
+    expect([at('editor.glasses', 'armFront'), frontHand('editor.glasses')]).toEqual([{ x: 7, y: 10 }, { x: 10, y: 11 }])
+    expect(part('editor.glasses').face).toEqual({ eyes: 'blink' })
+    // the fist, not the lens (ruling D1: the lens interior is S, so an S over the lens's columns proves nothing): an S
+    // where the hand's anchor lands, the fist's cells over the left lens's outer rim (frame col 8, rows 11-12), where
+    // the bare head has the rim L, and the fist's top outline across the lens on row 10 (cols 8-11), where it has skin
+    const m = frame('editor.glasses')
+    const bare = frame('editor.blink')
+    expect(m[11][10]).toBe('S')
+    expect([bare[11][8], bare[12][8]]).toEqual(['L', 'L'])
+    expect([m[11][8], m[12][8]]).toEqual(['S', 'S'])
+    expect(bare[10].slice(9, 12)).toBe('SSS')
+    expect(m[10].slice(8, 12)).toBe('LLLL')
+  })
+
+  it('checks the watch with the head bowed, the watch face on the wrist', () => {
+    expect([at('editor.watch', 'armFront'), frontHand('editor.watch'), at('editor.watch', 'head')]).toEqual([{ x: 4, y: 23 }, { x: 6, y: 30 }, { x: 4, y: 1 }])
+    expect(PARTS['arm-l-suit-watch'].map.join('')).toContain('W')
+  })
+
+  it('glances toward the manuscript pile: the head a column toward the desk, the body unchanged', () => {
+    expect(at('editor.glance', 'head')).toEqual({ x: 3, y: 0 })
+    expect(frame('editor.glance').slice(23)).toEqual(frame('editor.stand').slice(23))
+  })
+
+  it('keeps the suit keys and the case through every moment', () => {
+    for (const id of ['editor.raise', 'editor.glasses', 'editor.watch', 'editor.glance'] as const) {
+      expect(part(id).armBack?.part, id).toBe('arm-r-suit-case')
+      expect(frame(id).join(''), id).not.toMatch(/[JjKRYy]/)
+    }
+  })
+})

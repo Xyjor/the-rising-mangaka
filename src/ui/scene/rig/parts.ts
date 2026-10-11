@@ -1150,6 +1150,78 @@ const ARM_R_SUIT_CASE_BACK: Part = {
   anchors: { shoulderR: { x: 1, y: 0 }, hand: { x: 3, y: 11 } },
 }
 
+/**
+ * The editor's near (left) sleeve raised halfway, the fist at the chin (0.12.0, task 9), 6 x 9 (shoulderL (2, 4),
+ * standing top-left (7, 19)), as ARM_L_MUG_HALF in the suit with the upper arm drawn: the fist S/s on rows 1-2 (frame
+ * cols 9-11, rows 20-21, under the jaw), its top on row 0, the cuff G/g on row 3; the forearm and the upper arm
+ * foreshortened together toward the viewer from the shoulder (row 4) down to the elbow (rows 4-7), the sleeve's shade
+ * g down its right, closed by an L row under the elbow (row 8). The hand (4, 1), frame (11, 20), is the fist's right
+ * column. Drawn after the head, it closes its own outline against the jaw.
+ */
+const ARM_L_SUIT_RAISE: Part = {
+  map: [
+    '.LLLL.', // 0  the fist's top
+    '.LSSSL', // 1  the fist under the chin
+    '.LSssL', // 2
+    '.LGGgL', // 3  the cuff
+    'LGGGgL', // 4  the shoulder: the forearm in front of the upper arm
+    'LGGGgL', // 5
+    'LGGGgL', // 6
+    'LGGgL.', // 7  the elbow
+    'LLLL..', // 8  the elbow's underside
+  ],
+  anchors: { shoulderL: { x: 2, y: 4 }, hand: { x: 4, y: 1 } },
+}
+
+/**
+ * The editor's near (left) sleeve raised to the glasses (0.12.0, task 9), 6 x 14 (shoulderL (2, 13), standing
+ * top-left (7, 10)), ARM_L_RUB_A in the suit: the fist S/s four wide on rows 1-2 over the left lens's outer rim (frame
+ * cols 8-11, rows 11-12), its top on row 0 across the lens; the forearm G/g straight up in front of the cheek (rows
+ * 3-7), the upper arm a column out (rows 8-12), the underside an L row over the shoulder cap (row 13). The hand (3, 1),
+ * frame (10, 11), pushes the frame up; the eyes blink behind it.
+ */
+const ARM_L_SUIT_GLASSES: Part = {
+  map: [
+    '.LLLL.', // 0  the fist's top
+    'LSSSsL', // 1  the fist on the rim
+    'LSSssL', // 2
+    '.LGGgL', // 3  the forearm, up in front of the cheek
+    '.LGGgL', // 4
+    '.LGGgL', // 5
+    '.LGGgL', // 6
+    '.LGGgL', // 7
+    'LGGgL.', // 8  the upper arm, from the elbow down to the shoulder
+    'LGGgL.', // 9
+    'LGGgL.', // 10
+    'LGGgL.', // 11
+    'LGGgL.', // 12
+    'LLLLL.', // 13 the raised sleeve's underside over the shoulder cap
+  ],
+  anchors: { shoulderL: { x: 2, y: 13 }, hand: { x: 3, y: 1 } },
+}
+
+/**
+ * The editor's near (left) sleeve across the chest, the wrist turned up to read the watch (0.12.0, task 9), 7 x 9
+ * (shoulderL (5, 0), standing top-left (4, 23)), as ARM_L_HOLD in the suit: the sleeve G/g down from the shoulder cap
+ * (rows 0-3), the forearm coming forward and across to the left (rows 4-5), then on rows 6-7 the fist S/s (cols 1-2)
+ * and the watch on the wrist beside it: the face W two rows tall (col 4) in its strap w (cols 3 and 5), so it reads at 1x;
+ * the outline under it on row 8. The hand (2, 7), frame (6, 30), is the fist.
+ */
+const ARM_L_SUIT_WATCH: Part = {
+  map: [
+    '..LGGgL', // 0  under the shoulder cap
+    '..LGGgL', // 1
+    '..LGGgL', // 2
+    '..LGGgL', // 3
+    '.LGGGgL', // 4  the forearm comes forward
+    'LGGGGgL', // 5
+    'LSSwWwL', // 6  the fist; the watch face in its strap
+    'LSswWwL', // 7
+    '.LLLLL.', // 8
+  ],
+  anchors: { shoulderL: { x: 5, y: 0 }, hand: { x: 2, y: 7 } },
+}
+
 /** Every part a pose may name, by name. */
 export const PARTS: PartLib = {
   head: HEAD, 'editor-head': EDITOR_HEAD, torso: TORSO, 'arm-l-hang': ARM_L_HANG, 'arm-r-hang': ARM_R_HANG,
@@ -1171,4 +1243,5 @@ export const PARTS: PartLib = {
   'editor-torso': EDITOR_TORSO, 'arm-l-suit-hang': ARM_L_SUIT_HANG, 'arm-r-suit-case': ARM_R_SUIT_CASE,
   'arm-l-suit-swing-fwd': ARM_L_SUIT_SWING_FWD, 'arm-l-suit-swing-back': ARM_L_SUIT_SWING_BACK,
   'arm-r-suit-case-fwd': ARM_R_SUIT_CASE_FWD, 'arm-r-suit-case-back': ARM_R_SUIT_CASE_BACK,
+  'arm-l-suit-raise': ARM_L_SUIT_RAISE, 'arm-l-suit-glasses': ARM_L_SUIT_GLASSES, 'arm-l-suit-watch': ARM_L_SUIT_WATCH,
 }

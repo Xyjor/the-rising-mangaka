@@ -28,6 +28,7 @@ export type PoseId =
   | 'key.doze-0' | 'key.doze-1'
   | 'editor.stand' | 'editor.breath' | 'editor.blink'
   | `editor.walk-${WalkPhase}` | 'editor.turn' | 'editor.turn-back'
+  | 'editor.raise' | 'editor.glasses' | 'editor.watch' | 'editor.glance'
 
 export interface PoseDef { readonly pose: Pose; readonly at: 'actor' | 'seat' | 'bed' }
 
@@ -166,4 +167,10 @@ export const POSES: Readonly<Record<PoseId, PoseDef>> = {
   // arriving; a column toward the door, the arm swung forward, leaving
   'editor.turn': { pose: editorStand({ head: { part: 'editor-head', dx: -1 }, armFront: { part: 'arm-l-suit-swing-back' } }), at: 'actor' },
   'editor.turn-back': { pose: editorStand({ head: { part: 'editor-head', dx: 1 }, armFront: { part: 'arm-l-suit-swing-fwd' } }), at: 'actor' },
+  // the waiting moments: the near hand raised to the chin, at the glasses (the eyes blinking behind it), the watch
+  // checked with the head bowed a row, a glance toward the desk
+  'editor.raise': { pose: editorStand({ armFront: { part: 'arm-l-suit-raise' } }), at: 'actor' },
+  'editor.glasses': { pose: editorStand({ armFront: { part: 'arm-l-suit-glasses' }, face: { eyes: 'blink' } }), at: 'actor' },
+  'editor.watch': { pose: editorStand({ armFront: { part: 'arm-l-suit-watch' }, head: { part: 'editor-head', dy: 1 } }), at: 'actor' },
+  'editor.glance': { pose: editorStand({ head: { part: 'editor-head', dx: -1 } }), at: 'actor' },
 }

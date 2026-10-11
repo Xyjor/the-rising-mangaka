@@ -486,6 +486,20 @@ the rig in the order its tasks drew it, then what every character shares. The ed
   `--walk`, at 8x and 1x, mirrored too) read on the first drawing: it steps rather than slides, the bob shows, the case
   swings with the far hand and passes behind the stepping leg, the turns read as a head turned; the lapel's mirror
   reads better at 8x (an open jacket rather than one edge) and is neutral at 1x, so it stays.
+- **The editor's waiting moments** (0.12.0, task 9): three near sleeves in the suit, each docblocked in `parts.ts`:
+  `arm-l-suit-raise` 6x9 (the forearm bent up halfway, as the mangaka's `arm-l-mug-half` with the upper arm drawn, the
+  fist under the chin at frame (11, 20)), `arm-l-suit-glasses` 6x14 (`arm-l-rub-a` in the suit, the fist over the left
+  lens's outer rim at frame cols 8-11, rows 11-12) and `arm-l-suit-watch` 7x9 (`arm-l-hold` in the suit, the forearm
+  across, the fist and beside it the watch face `W` two rows tall in its `w` strap). The poses: `editor.raise`,
+  `editor.glasses` (the eyes blinking behind the hand), `editor.watch` (the head bowed a row) and `editor.glance` (the
+  head a column toward the desk, the body unchanged), the case held through every one. The moments, which the driver's
+  editor pool picks while he stands: `editor-glasses` (raise 200, at the rim 500, raise 200: 900 ms), `editor-watch`
+  (raise 200, the watch 700, raise 200: 1100 ms) and `editor-glance` (700 ms). The visit's prop follows the front hand
+  to the chin and the lens (accepted: the letter held up as he adjusts his glasses). The glasses test asserts the fist
+  itself (ruling D1: the lens interior is skin, so an `S` over the lens's columns proved nothing): an `S` at the hand's
+  anchor, the fist over the rim column where the bare head has `L`, its top outline across the lens. The gate
+  (`--only editor-glasses`, `editor-watch`, `editor-glance`, 8x and 1x) read on the first drawing but the watch, whose
+  one-cell face was lost at 1x: it became two rows tall.
 - **The visit's props** (0.12.0, task 7): `rig/props.ts` `VISIT_PROPS`, the four things the editor delivers, each a
   small cast frame in PAL keys (`prop.<id>`) with a `hand` anchor, drawn in the editor's palette after the body at the
   pose's front hand (the plan's decision 2: not the 0.10 `PROP_PAL`, which retires with his 0.10 frames): the
