@@ -1,7 +1,7 @@
 // The cast's animations (0.11.0): every step a pose and how long it shows. The ids, postures and looping are final,
 // and every one of the cast's 0.11 animations is drawn (the stand-in that played until each landed is gone since the
-// doze, task 18). The editor's (0.12.0): an editor animation whose art has not landed plays one step of `editor.stand`
-// (EDITOR_STAND_IN) until task 10 draws it (his walk and turns are drawn, task 8; his waiting moments, task 9).
+// doze, task 18). The editor's (0.12.0) are all drawn too: his walk and turns (task 8), his waiting moments (task 9) and
+// his verdicts (task 10).
 import type { Anim, Posture, Step } from '../animation'
 import { WALK_PHASES } from './poses'
 import type { PoseId } from './poses'
@@ -105,8 +105,11 @@ const GLASSES: readonly Step<PoseId>[] = [{ pose: 'editor.raise', ms: 200 }, { p
 const WATCH: readonly Step<PoseId>[] = [{ pose: 'editor.raise', ms: 200 }, { pose: 'editor.watch', ms: 700 }, { pose: 'editor.raise', ms: 200 }]
 const GLANCE: readonly Step<PoseId>[] = [{ pose: 'editor.glance', ms: 700 }]
 
-/** One step of the editor's standing pose, while an editor animation's art has not landed (0.12.0, task 10). */
-const EDITOR_STAND_IN: readonly Step<PoseId>[] = [{ pose: 'editor.stand', ms: 500 }]
+/** The editor's verdicts: a nod (the head dipping twice) on an offer or a good poll; a sigh (the shoulders dropping, the eyes closed) on a bad one. */
+const NOD: readonly Step<PoseId>[] = [
+  { pose: 'editor.nod', ms: 200 }, { pose: 'editor.stand', ms: 150 }, { pose: 'editor.nod', ms: 200 }, { pose: 'editor.stand', ms: 250 },
+]
+const SIGH: readonly Step<PoseId>[] = [{ pose: 'editor.sigh-a', ms: 300 }, { pose: 'editor.sigh-b', ms: 900 }]
 
 export const ANIMS: Readonly<Record<AnimId, Anim<PoseId>>> = {
   stand: anim('stand', 'stand', true, [
@@ -143,7 +146,7 @@ export const ANIMS: Readonly<Record<AnimId, Anim<PoseId>>> = {
   'seat-slump': anim('seat-slump', 'seat', false, [{ pose: 'key.slump-seat-0', ms: 800 }, { pose: 'key.slump-seat-1', ms: 800 }]),
   'seat-panic': anim('seat-panic', 'seat', false, PANIC_STEPS),
   'seat-tear': anim('seat-tear', 'seat', false, TEAR),
-  // the editor (0.12.0): his standing loop on the mangaka's timing; his walk and turns (task 8); his waiting moments (task 9); the verdicts stand-ins until task 10 draws them
+  // the editor (0.12.0): his standing loop on the mangaka's timing; his walk and turns (task 8); his waiting moments (task 9); his verdicts (task 10)
   'editor-stand': anim('editor-stand', 'stand', true, [
     { pose: 'editor.stand', ms: 500 }, { pose: 'editor.breath', ms: 500 }, { pose: 'editor.stand', ms: 500 },
     { pose: 'editor.breath', ms: 500 }, { pose: 'editor.stand', ms: 500 }, { pose: 'editor.breath', ms: 380 },
@@ -156,6 +159,6 @@ export const ANIMS: Readonly<Record<AnimId, Anim<PoseId>>> = {
   'editor-glasses': anim('editor-glasses', 'stand', false, GLASSES),
   'editor-watch': anim('editor-watch', 'stand', false, WATCH),
   'editor-glance': anim('editor-glance', 'stand', false, GLANCE),
-  'editor-nod': anim('editor-nod', 'stand', false, EDITOR_STAND_IN),
-  'editor-sigh': anim('editor-sigh', 'stand', false, EDITOR_STAND_IN),
+  'editor-nod': anim('editor-nod', 'stand', false, NOD),
+  'editor-sigh': anim('editor-sigh', 'stand', false, SIGH),
 }

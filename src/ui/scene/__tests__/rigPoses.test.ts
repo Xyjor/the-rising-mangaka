@@ -671,6 +671,9 @@ describe('the editor\'s waiting moments (0.12.0, task 9)', () => {
   it('checks the watch with the head bowed, the watch face on the wrist', () => {
     expect([at('editor.watch', 'armFront'), frontHand('editor.watch'), at('editor.watch', 'head')]).toEqual([{ x: 4, y: 23 }, { x: 6, y: 30 }, { x: 4, y: 1 }])
     expect(PARTS['arm-l-suit-watch'].map.join('')).toContain('W')
+    // the gaze goes down to the wrist (task 10): the heavy lid over the low pupils, the squint (closed read as asleep)
+    expect(part('editor.watch').face).toEqual({ eyes: 'squint' })
+    expect(rigFrame('editor.watch', 'neutral', false).id).toBe('editor.watch~squint.closed.none')
   })
 
   it('glances toward the manuscript pile: the head a column toward the desk, the body unchanged', () => {
@@ -683,5 +686,36 @@ describe('the editor\'s waiting moments (0.12.0, task 9)', () => {
       expect(part(id).armBack?.part, id).toBe('arm-r-suit-case')
       expect(frame(id).join(''), id).not.toMatch(/[JjKRYy]/)
     }
+  })
+})
+
+describe('the editor\'s verdicts (0.12.0, task 10)', () => {
+  it('nods twice in 800 ms and sighs for 1200 ms', () => {
+    expect(ANIMS['editor-nod'].steps).toEqual([
+      { pose: 'editor.nod', ms: 200 }, { pose: 'editor.stand', ms: 150 }, { pose: 'editor.nod', ms: 200 }, { pose: 'editor.stand', ms: 250 },
+    ])
+    expect(ANIMS['editor-sigh'].steps).toEqual([{ pose: 'editor.sigh-a', ms: 300 }, { pose: 'editor.sigh-b', ms: 900 }])
+  })
+
+  it('nods with the head two rows lower into the collar, the body unchanged, the eyes open', () => {
+    expect(at('editor.nod', 'head')).toEqual({ x: 4, y: 2 })
+    expect(crown(frame('editor.nod'))).toBe(crown(frame('editor.stand')) + 2)
+    expect(frame('editor.nod').slice(24)).toEqual(frame('editor.stand').slice(24))
+    expect(part('editor.nod').face).toBeUndefined()
+  })
+
+  it('sighs with the shoulders dropping a row then two, the feet still on row 47, the eyes closed and the mouth down', () => {
+    expect([at('editor.sigh-a', 'torso'), at('editor.sigh-b', 'torso')]).toEqual([{ x: 7, y: 22 }, { x: 7, y: 23 }])
+    expect([at('editor.sigh-a', 'head'), at('editor.sigh-b', 'head')]).toEqual([{ x: 4, y: 1 }, { x: 4, y: 2 }])
+    for (const id of ['editor.sigh-a', 'editor.sigh-b'] as const) {
+      expect(at(id, 'legFront'), id).toEqual({ x: 10, y: 34 })
+      expect(at(id, 'legBack'), id).toEqual({ x: 16, y: 34 })
+      expect(frame(id)[47], id).toMatch(/[^.]/)
+      expect(part(id).face, id).toEqual({ eyes: 'closed', mouth: 'frown' })
+      expect(frame(id).join(''), id).not.toContain('E')
+    }
+    expect(rigFrame('editor.sigh-b', 'neutral', false).id).toBe('editor.sigh-b~closed.frown.none')
+    // the hand, and so the prop, drops with the shoulders
+    expect(frontHand('editor.sigh-b')).toEqual({ x: 8, y: 35 })
   })
 })

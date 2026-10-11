@@ -160,8 +160,8 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   (`PoseId`, `POSES`: each a part pose or a key frame and where it is drawn, `at` the actor, the seat or the bed; the
   editor's `editor.*` poses from `editorStand(over)`, all at the actor),
   `anims.ts` (`AnimId`, `ANIM_IDS`, `ANIMS`: the 33 animations' fixed postures and looping, each step a pose and its
-  ms; the cast's 24 drawn, the editor's nine `editor-*` (0.12.0) drawn as they land, `editor-stand` now, the rest one
-  step of `editor.stand`, `EDITOR_STAND_IN`, until tasks 8-10) and `frames.ts` (`rigFrame(pose, mood, ready)`: the frame assembled with the
+  ms; the cast's 24 drawn, and the editor's nine `editor-*` (0.12.0): his stand, walk, turns, waiting moments and
+  verdicts, the nod and the sigh, part poses so the visit's prop stays in his hand) and `frames.ts` (`rigFrame(pose, mood, ready)`: the frame assembled with the
   mood's face, `faceOf`, in the head's own face art, `faceArtOf`, memoized per pose, mood and ready, its id `pose~eyes.mouth.mark`, `frameId`; `frontHand(pose)`, the front arm's hand cell, memoized, where the visit's prop is drawn (0.12.0)) and `props.ts`
   (0.12.0, `VISIT_PROPS`: the envelope, letter, contract and trophy as small cast frames `prop.<id>` in PAL keys with a
   `hand` anchor, drawn in the editor's palette after his body at `frontHand`); `spriteCache.ts` (0.11.0) the per-session sprite cache: each

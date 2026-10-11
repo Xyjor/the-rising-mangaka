@@ -185,6 +185,8 @@ describe('StudioScene', () => {
       vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame', 'performance'] })
       // the editor's frames are his (the cat's and the props' are not); where each was drawn
       const editorAt = () => fake.images.filter((i) => i.id.startsWith('cast/editor.')).map((i) => [i.x, i.y])
+      // the editor's frame ids drawn (`cast/<frame id>/<palette>`): the pose and its face
+      const drawnPoses = () => fake.images.filter((i) => i.id.startsWith('cast/editor.')).map((i) => i.id.split('/')[1])
       const sigh = animLength(ANIMS['editor-sigh'])
       try {
         const pending = withPendingResult()
@@ -199,10 +201,14 @@ describe('StudioScene', () => {
         // the sigh plays at the spot although the plan sent him to the door: he never stepped off it
         expect(editorAt().length).toBeGreaterThan(0)
         expect(editorAt().every(([x, y]) => x === 205 && y === 90)).toBe(true)
+        // the sigh's two drawn poses (task 10): the shoulders a row down, then two, the eyes closed, the mouth down
+        expect(sigh).toBe(1200)
+        expect(drawnPoses()).toEqual(expect.arrayContaining(['editor.sigh-a~closed.frown.none', 'editor.sigh-b~closed.frown.none']))
         fake.images.length = 0
         vi.advanceTimersByTime(VERDICT_HOLD_SLACK_MS + 500)
         // the hold ran out: the turn toward the door, then the walk, off the spot
         expect(editorAt().some(([x]) => x > 205)).toBe(true)
+        expect(drawnPoses().some((id) => id.startsWith('editor.turn-back~'))).toBe(true)
       } finally {
         vi.useRealTimers()
         setRigLive({ editor: false })

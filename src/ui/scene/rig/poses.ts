@@ -29,6 +29,7 @@ export type PoseId =
   | 'editor.stand' | 'editor.breath' | 'editor.blink'
   | `editor.walk-${WalkPhase}` | 'editor.turn' | 'editor.turn-back'
   | 'editor.raise' | 'editor.glasses' | 'editor.watch' | 'editor.glance'
+  | 'editor.nod' | 'editor.sigh-a' | 'editor.sigh-b'
 
 export interface PoseDef { readonly pose: Pose; readonly at: 'actor' | 'seat' | 'bed' }
 
@@ -168,9 +169,30 @@ export const POSES: Readonly<Record<PoseId, PoseDef>> = {
   'editor.turn': { pose: editorStand({ head: { part: 'editor-head', dx: -1 }, armFront: { part: 'arm-l-suit-swing-back' } }), at: 'actor' },
   'editor.turn-back': { pose: editorStand({ head: { part: 'editor-head', dx: 1 }, armFront: { part: 'arm-l-suit-swing-fwd' } }), at: 'actor' },
   // the waiting moments: the near hand raised to the chin, at the glasses (the eyes blinking behind it), the watch
-  // checked with the head bowed a row, a glance toward the desk
+  // checked with the head bowed a row and the eyes squinting down at the wrist (task 10), a glance toward the desk
   'editor.raise': { pose: editorStand({ armFront: { part: 'arm-l-suit-raise' } }), at: 'actor' },
   'editor.glasses': { pose: editorStand({ armFront: { part: 'arm-l-suit-glasses' }, face: { eyes: 'blink' } }), at: 'actor' },
-  'editor.watch': { pose: editorStand({ armFront: { part: 'arm-l-suit-watch' }, head: { part: 'editor-head', dy: 1 } }), at: 'actor' },
+  'editor.watch': {
+    pose: editorStand({ armFront: { part: 'arm-l-suit-watch' }, head: { part: 'editor-head', dy: 1 }, face: { eyes: 'squint' } }),
+    at: 'actor',
+  },
   'editor.glance': { pose: editorStand({ head: { part: 'editor-head', dx: -1 } }), at: 'actor' },
+  // the verdicts (part poses, the 0.12.0 plan's decision 5): the nod, the head two rows down into the collar; the
+  // sigh, the torso a row then two lower with the legs nudged up by as much (the feet on row 47, the torso over their
+  // tops), the eyes closed, the mouth down
+  'editor.nod': { pose: editorStand({ head: { part: 'editor-head', dy: 2 } }), at: 'actor' },
+  'editor.sigh-a': {
+    pose: editorStand({
+      torso: { part: 'editor-torso', x: 7, y: 22 }, legBack: { part: 'leg-r-stand', dy: -1 }, legFront: { part: 'leg-l-stand', dy: -1 },
+      face: { eyes: 'closed', mouth: 'frown' },
+    }),
+    at: 'actor',
+  },
+  'editor.sigh-b': {
+    pose: editorStand({
+      torso: { part: 'editor-torso', x: 7, y: 23 }, legBack: { part: 'leg-r-stand', dy: -2 }, legFront: { part: 'leg-l-stand', dy: -2 },
+      face: { eyes: 'closed', mouth: 'frown' },
+    }),
+    at: 'actor',
+  },
 }

@@ -465,8 +465,9 @@ the rig in the order its tasks drew it, then what every character shares. The ed
   `F`/`f` to the suit and the shoes to black); `editor.stand`, `editor.breath` (the head a row lower) and
   `editor.blink` (behind the lenses) make `editor-stand`, the mangaka's `stand` timing (500 ms steps, the breath before
   the 120 ms blink 380 ms). The other eight `editor-*` animations (walk, arrive, leave, glasses, watch, glance, nod,
-  sigh) are tabled with their final postures and looping and play one 500 ms step of `editor.stand` until tasks 8-10
-  draw them (task 8 drew the walk and the turns). The sheet's `editor-*` blocks draw in `EDITOR_PAL` beside the base's 0.10 `EDITOR_IDLE`/`EDITOR_WALK`
+  sigh) were tabled with their final postures and looping and played one 500 ms step of `editor.stand`
+  (`EDITOR_STAND_IN`) until tasks 8-10 drew them (task 8 the walk and the turns, task 9 the waiting moments, task 10
+  the verdicts, which retired the stand-in). The sheet's `editor-*` blocks draw in `EDITOR_PAL` beside the base's 0.10 `EDITOR_IDLE`/`EDITOR_WALK`
   (row F went; row H's editor strip is the rig's `editor-walk` above the base's `EDITOR_WALK`). The gate
   (`--only editor-` at 8x and 1x) read on the first drawing: the same man as row J in a navy suit, the collar and
   the red tie clear, the case in the far hand clear of the leg, the breath a soft sink, the blink behind the lenses.
@@ -491,7 +492,8 @@ the rig in the order its tasks drew it, then what every character shares. The ed
   fist under the chin at frame (11, 20)), `arm-l-suit-glasses` 6x14 (`arm-l-rub-a` in the suit, the fist over the left
   lens's outer rim at frame cols 8-11, rows 11-12) and `arm-l-suit-watch` 7x9 (`arm-l-hold` in the suit, the forearm
   across, the fist and beside it the watch face `W` two rows tall in its `w` strap). The poses: `editor.raise`,
-  `editor.glasses` (the eyes blinking behind the hand), `editor.watch` (the head bowed a row) and `editor.glance` (the
+  `editor.glasses` (the eyes blinking behind the hand), `editor.watch` (the head bowed a row, and since task 10 the
+  eyes squinting, the heavy lid over the low pupils, so the gaze goes down to the wrist) and `editor.glance` (the
   head a column toward the desk, the body unchanged), the case held through every one. The moments, which the driver's
   editor pool picks while he stands: `editor-glasses` (raise 200, at the rim 500, raise 200: 900 ms), `editor-watch`
   (raise 200, the watch 700, raise 200: 1100 ms) and `editor-glance` (700 ms). The visit's prop follows the front hand
@@ -500,6 +502,19 @@ the rig in the order its tasks drew it, then what every character shares. The ed
   anchor, the fist over the rim column where the bare head has `L`, its top outline across the lens. The gate
   (`--only editor-glasses`, `editor-watch`, `editor-glance`, 8x and 1x) read on the first drawing but the watch, whose
   one-cell face was lost at 1x: it became two rows tall.
+- **The editor's verdicts** (0.12.0, task 10): part poses over `editorStand`, no new parts (the plan's decision 5: a
+  key frame would lose the front hand's anchor, so the visit's prop stays in the hand through a verdict).
+  `editor.nod` is the head two rows lower, into the collar (the body unchanged, the eyes open); `editor.sigh-a` and
+  `editor.sigh-b` drop the torso one then two rows (to (7, 22), (7, 23)), the head with it, the legs nudged up by as
+  much so the feet stay on row 47 and the torso paints over their tops, the eyes closed and the mouth frowning
+  (`editor.sigh-b~closed.frown.none`); the front hand, and so the prop, drops with the shoulders to (8, 35).
+  `editor-nod` (an offer or a good poll) dips twice: nod 200, stand 150, nod 200, stand 250, 800 ms; `editor-sigh` (a
+  bad poll) is sigh-a 300 then sigh-b 900, 1200 ms, so the verdict hold on a bad poll is 1250 ms (pinned with the
+  release step, the 32nd at 41 ms steps, in `castPlay.test`). The gate (`--only editor-nod`, `editor-sigh`, 8x and
+  1x) read on the first drawing: the nod hides the collar under the chin, a clear dip at 1x; the sigh's closed eyes
+  and small frown read at 8x and the sink of the shoulders and the case at 1x. It also gave `editor.watch` its
+  downward face: the squint against closed eyes, side by side; closed read as eyes shut (asleep), the squint's low
+  pupils under the lid read as looking down at the wrist, at 8x and 1x.
 - **The visit's props** (0.12.0, task 7): `rig/props.ts` `VISIT_PROPS`, the four things the editor delivers, each a
   small cast frame in PAL keys (`prop.<id>`) with a `hand` anchor, drawn in the editor's palette after the body at the
   pose's front hand (the plan's decision 2: not the 0.10 `PROP_PAL`, which retires with his 0.10 frames): the

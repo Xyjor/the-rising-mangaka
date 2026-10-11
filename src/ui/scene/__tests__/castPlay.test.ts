@@ -381,6 +381,8 @@ describe('stepCast', () => {
     t.editor.holdMs = verdictHoldMs(cue.kind, t.editor)
     planActors(t, sceneSnapshot({ visitor: 'none', actors: t }))
     expect([t.editor.holdMs, t.editor.targetX, t.editor.targetY, t.editor.goal]).toEqual([hold, 250, 69, 'away'])
+    // the plan's literal timings, now the sigh is drawn (task 10): the sigh 300 + 900 ms, the hold 1200 + 50
+    expect([sigh, hold]).toEqual([1200, 1250])
     // the loop: the actors walk (and the hold counts down), then the driver steps, 41 ms apart
     let now = 0
     let steps = 0
@@ -398,6 +400,9 @@ describe('stepCast', () => {
     const release = Math.ceil(hold / 41) + 1
     expect([steps, now]).toEqual([release, release * 41])
     expect(now).toBeGreaterThan(41 + sigh)
+    // by hand: 31 steps of 41 ms (1271) cover the 1250 ms hold, so he walks on the 32nd (1312), after the sigh taken
+    // on the first step ended at 41 + 1200 = 1241
+    expect([steps, now, 41 + sigh]).toEqual([32, 1312, 1241])
     expect([t.editor.state, play.editor.player?.base.id, play.editor.player?.over?.anim.id]).toEqual(['walking', 'editor-walk', 'editor-leave'])
     expect(t.editor.x).toBeGreaterThan(205)
   })
