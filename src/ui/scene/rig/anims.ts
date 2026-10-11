@@ -1,8 +1,9 @@
 // The cast's animations (0.11.0): every step a pose and how long it shows. The ids, postures and looping are final,
 // and every one of the cast's 0.11 animations is drawn (the stand-in that played until each landed is gone since the
 // doze, task 18). The editor's (0.12.0): an editor animation whose art has not landed plays one step of `editor.stand`
-// (EDITOR_STAND_IN) until tasks 8-10 draw it.
+// (EDITOR_STAND_IN) until tasks 9-10 draw it (his walk and turns are drawn, task 8).
 import type { Anim, Posture, Step } from '../animation'
+import { WALK_PHASES } from './poses'
 import type { PoseId } from './poses'
 
 export type AnimId =
@@ -28,9 +29,9 @@ function anim(id: AnimId, posture: Posture, loop: boolean, steps: readonly Step<
 }
 
 /** The walk: contact, down, pass and up on each leg, 75 ms a step, 600 ms a cycle (24 px at 40 px/s, 1.5x the 0.10 stride). */
-const WALK_STEPS = ([
-  'walk.contact-l', 'walk.down-l', 'walk.pass-l', 'walk.up-l', 'walk.contact-r', 'walk.down-r', 'walk.pass-r', 'walk.up-r',
-] as const).map((pose) => ({ pose, ms: 75 }))
+const WALK_STEPS: readonly Step<PoseId>[] = WALK_PHASES.map((step) => ({ pose: `walk.${step}` as const, ms: 75 }))
+/** The editor's walk: the same eight steps on his suit body, 75 ms each (600 ms a cycle; 1650 ms door to spot is 2.75 cycles). */
+const EDITOR_WALK_STEPS: readonly Step<PoseId>[] = WALK_PHASES.map((step) => ({ pose: `editor.walk-${step}` as const, ms: 75 }))
 
 /** The pen across the page and back: left, middle, right, middle, 150 ms a step, 600 ms a stroke. */
 const DRAW_STEPS: readonly Step<PoseId>[] = [
@@ -99,7 +100,7 @@ const TEAR: readonly Step<PoseId>[] = [
 /** The assistants' doze at their desk: the head on the folded arms, then the breath (head and shoulders a row lower), 900 ms each, as the bed's sleep. */
 const DOZE: readonly Step<PoseId>[] = [{ pose: 'key.doze-0', ms: 900 }, { pose: 'key.doze-1', ms: 900 }]
 
-/** One step of the editor's standing pose, while an editor animation's art has not landed (0.12.0, tasks 8-10). */
+/** One step of the editor's standing pose, while an editor animation's art has not landed (0.12.0, tasks 9-10). */
 const EDITOR_STAND_IN: readonly Step<PoseId>[] = [{ pose: 'editor.stand', ms: 500 }]
 
 export const ANIMS: Readonly<Record<AnimId, Anim<PoseId>>> = {
@@ -137,15 +138,16 @@ export const ANIMS: Readonly<Record<AnimId, Anim<PoseId>>> = {
   'seat-slump': anim('seat-slump', 'seat', false, [{ pose: 'key.slump-seat-0', ms: 800 }, { pose: 'key.slump-seat-1', ms: 800 }]),
   'seat-panic': anim('seat-panic', 'seat', false, PANIC_STEPS),
   'seat-tear': anim('seat-tear', 'seat', false, TEAR),
-  // the editor (0.12.0): his standing loop on the mangaka's timing; the rest stand-ins until tasks 8-10 draw them
+  // the editor (0.12.0): his standing loop on the mangaka's timing; his walk and turns (task 8); the rest stand-ins until tasks 9-10 draw them
   'editor-stand': anim('editor-stand', 'stand', true, [
     { pose: 'editor.stand', ms: 500 }, { pose: 'editor.breath', ms: 500 }, { pose: 'editor.stand', ms: 500 },
     { pose: 'editor.breath', ms: 500 }, { pose: 'editor.stand', ms: 500 }, { pose: 'editor.breath', ms: 380 },
     { pose: 'editor.blink', ms: 120 },
   ]),
-  'editor-walk': anim('editor-walk', 'walk', true, EDITOR_STAND_IN),
-  'editor-arrive': anim('editor-arrive', 'stand', false, EDITOR_STAND_IN),
-  'editor-leave': anim('editor-leave', 'walk', false, EDITOR_STAND_IN),
+  'editor-walk': anim('editor-walk', 'walk', true, EDITOR_WALK_STEPS),
+  /** The turn at the spot, 160 ms: arriving, toward the desk; leaving, toward the door (the actor already walks, decision 1 of 0.11.0: the walk shows 6 px on). */
+  'editor-arrive': anim('editor-arrive', 'stand', false, [{ pose: 'editor.turn', ms: 160 }]),
+  'editor-leave': anim('editor-leave', 'walk', false, [{ pose: 'editor.turn-back', ms: 160 }]),
   'editor-glasses': anim('editor-glasses', 'stand', false, EDITOR_STAND_IN),
   'editor-watch': anim('editor-watch', 'stand', false, EDITOR_STAND_IN),
   'editor-glance': anim('editor-glance', 'stand', false, EDITOR_STAND_IN),

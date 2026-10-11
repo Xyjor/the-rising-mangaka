@@ -190,7 +190,8 @@ describe('the walk (task 11)', () => {
   })
 
   it('outlines each walk part all round but its top, and joins every step closed by itself', () => {
-    const walkParts = Object.keys(PARTS).filter((name) => /-(step|step-bend|plant-bend|lift|reach|swing-fwd|swing-back)$/.test(name))
+    // the mangaka's walk parts (the editor's suit sleeves, 0.12.0 task 8, are checked with his walk)
+    const walkParts = Object.keys(PARTS).filter((name) => /-(step|step-bend|plant-bend|lift|reach|swing-fwd|swing-back)$/.test(name) && !name.includes('-suit-'))
     expect(walkParts).toHaveLength(14)
     for (const name of walkParts) expect(openCells(PARTS[name].map).filter(({ y }) => y !== 0), name).toEqual([])
     for (const id of WALK) expect(openCells(rawFrame(id)), id).toEqual([])
@@ -554,5 +555,84 @@ describe('the editor\'s suit and standing loop (0.12.0, task 4)', () => {
   it('names the editor\'s neutral frame by its pose and face, the mark slot (cols 28-30, rows 0-4) clear', () => {
     expect(rigFrame('editor.stand', 'neutral', false).id).toBe('editor.stand~open.closed.none')
     for (let r = 0; r < 5; r++) expect(frame('editor.stand')[r].slice(28, 31)).toBe('...')
+  })
+})
+
+describe('the editor\'s walk and his turns (0.12.0, task 8)', () => {
+  const WALK: PoseId[] = [
+    'editor.walk-contact-l', 'editor.walk-down-l', 'editor.walk-pass-l', 'editor.walk-up-l',
+    'editor.walk-contact-r', 'editor.walk-down-r', 'editor.walk-pass-r', 'editor.walk-up-r',
+  ]
+  const MANGAKA: PoseId[] = ['walk.contact-l', 'walk.down-l', 'walk.pass-l', 'walk.up-l', 'walk.contact-r', 'walk.down-r', 'walk.pass-r', 'walk.up-r']
+  const CASE_ARMS = ['arm-r-suit-case', 'arm-r-suit-case-fwd', 'arm-r-suit-case-back']
+
+  it('catalogues the suit\'s swinging sleeves and the case sleeves', () => {
+    expectCatalogue({
+      'arm-l-suit-swing-fwd': [6, 10, { shoulderL: [4, 0], hand: [2, 9] }], 'arm-l-suit-swing-back': [5, 12, { shoulderL: [3, 0], hand: [1, 11] }],
+      'arm-r-suit-case-fwd': [8, 18, { shoulderR: [1, 0], hand: [3, 9] }], 'arm-r-suit-case-back': [6, 20, { shoulderR: [1, 0], hand: [3, 11] }],
+    })
+  })
+
+  it('walks in eight 75 ms steps on the mangaka\'s legs with his bob, the suit torso throughout', () => {
+    expect(ANIMS['editor-walk'].steps).toEqual(WALK.map((pose) => ({ pose, ms: 75 })))
+    WALK.forEach((id, i) => {
+      const e = part(id)
+      const m = part(MANGAKA[i])
+      expect([e.legFront?.part, e.legBack?.part], id).toEqual([m.legFront?.part, m.legBack?.part])
+      expect([e.torso.part, e.torso.y, at(id, 'head')?.y], id).toEqual(['editor-torso', m.torso.y, at(MANGAKA[i], 'head')?.y])
+    })
+  })
+
+  it('swings the sleeves against the legs, the case with the far hand: forward on the left contact, back on the right', () => {
+    const arms = (id: PoseId) => [part(id).armFront?.part, part(id).armBack?.part]
+    const hang = ['arm-l-suit-hang', 'arm-r-suit-case']
+    const leftLeads = ['arm-l-suit-swing-back', 'arm-r-suit-case-fwd']
+    const rightLeads = ['arm-l-suit-swing-fwd', 'arm-r-suit-case-back']
+    expect(WALK.map(arms)).toEqual([leftLeads, leftLeads, hang, hang, rightLeads, rightLeads, hang, hang])
+  })
+
+  it('keeps the case under the far fist in every case sleeve: a 6x8 L box of D/d from the row under the fist', () => {
+    for (const name of CASE_ARMS) {
+      const p = PARTS[name]
+      const hand = p.anchors.hand!
+      const rows = p.map.slice(hand.y + 1, hand.y + 9)
+      const col = rows[0].indexOf('LLLLLL')
+      expect(col, name).toBeGreaterThanOrEqual(0)
+      const box = rows.map((row) => row.slice(col, col + 6))
+      expect([box[0], box[7]], name).toEqual(['LLLLLL', 'LLLLLL'])
+      for (const row of box.slice(1, 6)) expect(row, name).toMatch(/^L[Dd]{4}L$/)
+      expect(box[6], name).toMatch(/^Ld{4}L$/)
+      expect(p.map.join(''), name).not.toMatch(/[JjKRYyFfOo]/)
+    }
+  })
+
+  it('keeps a foot on row 47 on every step, the passing foot lifted, and every editor frame clear of col 31', () => {
+    for (const id of WALK) expect(frame(id)[47], id).toMatch(/[^.]/)
+    const bottom = (id: PoseId, layer: 'legFront' | 'legBack') => at(id, layer)!.y + PARTS[part(id)[layer]!.part].map.length - 1
+    for (const [id, layer] of [['editor.walk-pass-l', 'legBack'], ['editor.walk-up-l', 'legBack'], ['editor.walk-pass-r', 'legFront'], ['editor.walk-up-r', 'legFront']] as const) {
+      expect(bottom(id, layer), id).toBeLessThan(47)
+    }
+    for (const [id, def] of Object.entries(POSES) as [PoseId, { pose: { kind: string } }][]) {
+      if (!id.startsWith('editor.') || def.pose.kind !== 'parts') continue
+      for (let r = 0; r < 48; r++) expect(frame(id)[r][31], `${id} row ${r}`).toBe('.')
+    }
+  })
+
+  it('outlines each suit sleeve all round but its top, and joins every walk step closed by itself', () => {
+    for (const name of ['arm-l-suit-swing-fwd', 'arm-l-suit-swing-back', ...CASE_ARMS]) {
+      expect(openCells(PARTS[name].map).filter(({ y }) => y !== 0), name).toEqual([])
+    }
+    for (const id of WALK) expect(openCells(rawFrame(id)), id).toEqual([])
+  })
+
+  it('turns at the spot in 160 ms: the head toward the desk arriving, toward the door leaving, both feet planted', () => {
+    expect(ANIMS['editor-arrive'].steps).toEqual([{ pose: 'editor.turn', ms: 160 }])
+    expect(ANIMS['editor-leave'].steps).toEqual([{ pose: 'editor.turn-back', ms: 160 }])
+    expect([at('editor.turn', 'head'), at('editor.turn-back', 'head')]).toEqual([{ x: 3, y: 0 }, { x: 5, y: 0 }])
+    for (const id of ['editor.turn', 'editor.turn-back'] as const) {
+      expect([part(id).legFront?.part, part(id).legBack?.part], id).toEqual(['leg-l-stand', 'leg-r-stand'])
+      expect(frame(id)[47], id).toMatch(/[^.]/)
+    }
+    expect([part('editor.turn').armFront?.part, part('editor.turn-back').armFront?.part]).toEqual(['arm-l-suit-swing-back', 'arm-l-suit-swing-fwd'])
   })
 })

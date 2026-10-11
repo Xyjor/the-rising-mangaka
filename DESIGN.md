@@ -454,7 +454,8 @@ the rig in the order its tasks drew it, then what every character shares. The ed
 - **The editor's suit** (0.12.0, task 4): three parts on the mangaka's sizes and anchors, in the suit's keys (never the
   mangaka's `J j K R Y y`): `editor-torso` 18x14 (`TORSO`'s construction: the white collar `W` beside the neck, its
   points narrowing to the tie's knot `N` at cols 8-9, the shirt `W` beside the tie on row 3, the tie `N` down col 9 to
-  row 11, the jacket `G` with its shade `g` down col 13, the lapel's edge `g` at col 5 to row 6, the hem `g`);
+  row 11, the jacket `G` with its shade `g` down col 13, the lapels' edges `g` at cols 5 and 12 to row 6 (the right one added
+  in task 8, the reference's symmetric V), the hem `g`);
   `arm-l-suit-hang` 5x12 (`ARM_L_HANG` with the sleeve `G`/`g`, lit from the left); `arm-r-suit-case` 7x19, the far
   sleeve with the briefcase baked under its fist (decision 1 of the 0.12.0 plan: the rig's prop layer joins the front
   hand only): the fist's closure and the case's top edge one row, the leather `D` with its shade `d` on the right, the
@@ -465,10 +466,26 @@ the rig in the order its tasks drew it, then what every character shares. The ed
   `editor.blink` (behind the lenses) make `editor-stand`, the mangaka's `stand` timing (500 ms steps, the breath before
   the 120 ms blink 380 ms). The other eight `editor-*` animations (walk, arrive, leave, glasses, watch, glance, nod,
   sigh) are tabled with their final postures and looping and play one 500 ms step of `editor.stand` until tasks 8-10
-  draw them. The sheet's `editor-*` blocks draw in `EDITOR_PAL` beside the base's 0.10 `EDITOR_IDLE`/`EDITOR_WALK`
+  draw them (task 8 drew the walk and the turns). The sheet's `editor-*` blocks draw in `EDITOR_PAL` beside the base's 0.10 `EDITOR_IDLE`/`EDITOR_WALK`
   (row F went; row H's editor strip is the rig's `editor-walk` above the base's `EDITOR_WALK`). The gate
   (`--only editor-` at 8x and 1x) read on the first drawing: the same man as row J in a navy suit, the collar and
   the red tie clear, the case in the far hand clear of the leg, the breath a soft sink, the blink behind the lenses.
+- **The editor's walk and turns** (0.12.0, task 8): four suit sleeves, each docblocked in `parts.ts`:
+  `arm-l-suit-swing-fwd` 6x10 and `arm-l-suit-swing-back` 5x12 (the mangaka's `ARM_L_SWING_FWD`/`_BACK` in the suit,
+  `G` with its shade `g` on the sleeve's right column), and the far case sleeves `arm-r-suit-case-fwd` 8x18 (the
+  `ARM_R_SWING_FWD` sleeve, then the case's 6x8 box from the row under the fist, at frame cols 23-28, rows 33-40, two
+  rows higher than standing) and `arm-r-suit-case-back` 6x20 (the `ARM_R_SWING_BACK` sleeve, the case at cols 21-26,
+  rows 35-42, where the stepping right leg passes in front of it, the `armBack` layer painting first). The eight
+  `editor.walk-<step>` poses (`editorWalk`: `editorStand` with the torso's one-row bob on the down steps, the mangaka's
+  legs step for step, the sleeves swinging against them, the case with the far hand: forward on the left contact and
+  down, back on the right, hanging on the pass and up steps) make `editor-walk`, 75 ms a step, 600 ms a cycle. The step
+  list is one shared `WALK_PHASES` (`poses.ts`): `PoseId` names `walk.<step>` and `editor.walk-<step>` from it and
+  `ANIMS` maps it into both walk loops. The turns at the spot, 160 ms each: `editor.turn` (`editor-arrive`, the head a
+  column toward the desk, the near arm still swung back) and `editor.turn-back` (`editor-leave`, a column toward the
+  door, the arm swung forward), both feet planted. The gate (`--only editor-walk`, `editor-arrive`, `editor-leave` and
+  `--walk`, at 8x and 1x, mirrored too) read on the first drawing: it steps rather than slides, the bob shows, the case
+  swings with the far hand and passes behind the stepping leg, the turns read as a head turned; the lapel's mirror
+  reads better at 8x (an open jacket rather than one edge) and is neutral at 1x, so it stays.
 - **The visit's props** (0.12.0, task 7): `rig/props.ts` `VISIT_PROPS`, the four things the editor delivers, each a
   small cast frame in PAL keys (`prop.<id>`) with a `hand` anchor, drawn in the editor's palette after the body at the
   pose's front hand (the plan's decision 2: not the 0.10 `PROP_PAL`, which retires with his 0.10 frames): the

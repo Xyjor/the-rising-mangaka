@@ -963,7 +963,8 @@ const ARM_L_RUB_B: Part = {
  * 11-13) either side of the neck. Row 2: the shoulder caps g (cols 0-2 and 15-17) over the sleeves, the seams L (cols 3
  * and 14), the collar's points W narrowing to the tie's knot N at cols 8-9. Row 3: the shirt W (cols 6-8 and 10-11)
  * beside the tie N (col 9), the lapels' shadow g (cols 5 and 12). Rows 4-11: the tie N down col 9, a one-wide red
- * line, the jacket G with its shade g down the right (col 13) and the lapel's edge g at col 5 to row 6. Row 12: the
+ * line, the jacket G with its shade g down the right (col 13) and the lapels' edges g at cols 5 and 12 to row 6 (the
+ * reference's symmetric V, 0.12.0 task 8). Row 12: the
  * hem g; row 13: the outline the hips sit on.
  */
 const EDITOR_TORSO: Part = {
@@ -972,9 +973,9 @@ const EDITOR_TORSO: Part = {
     'LgggWWWssssWWWgggL', // 1  the shoulders in shade; the collar either side of the neck
     'gggLgWWWNNWWWgLggg', // 2  the shoulder caps; the seams; the collar's points meeting at the tie's knot
     '...LGgWWWNWWggL...', // 3  the shirt beside the tie; the lapels' shadow
-    '...LGgGGGNGGGgL...', // 4  the lapel's edge to row 6
-    '...LGgGGGNGGGgL...', // 5
-    '...LGgGGGNGGGgL...', // 6
+    '...LGgGGGNGGggL...', // 4  the lapels' edges to row 6, either side (cols 5 and 12): a symmetric V
+    '...LGgGGGNGGggL...', // 5
+    '...LGgGGGNGGggL...', // 6
     '...LGGGGGNGGGgL...', // 7
     '...LGGGGGNGGGgL...', // 8
     '...LGGGGGNGGGgL...', // 9
@@ -1041,6 +1042,114 @@ const ARM_R_SUIT_CASE: Part = {
   anchors: { shoulderR: { x: 1, y: 0 }, hand: { x: 2, y: 10 } },
 }
 
+/**
+ * The editor's near (left) sleeve swung forward (0.12.0, task 8), 6 x 10: ARM_L_SWING_FWD's map in the suit, the
+ * sleeve G with its shade g on the right column (lit from the left, as ARM_L_SUIT_HANG): under the shoulder cap
+ * (rows 0-2, shoulderL (4, 0)), the forearm a column wider toward the viewer (rows 3-6), the fist S/s four wide two rows
+ * up (rows 7-8), closed on row 9 (hand (2, 9)).
+ */
+const ARM_L_SUIT_SWING_FWD: Part = {
+  map: [
+    '.LGGgL', // 0  under the shoulder cap
+    '.LGGgL', // 1
+    '.LGGgL', // 2
+    'LGGGgL', // 3  the forearm, swung toward the viewer
+    'LGGGgL', // 4
+    'LGGGgL', // 5
+    'LGGGgL', // 6
+    'LSSSsL', // 7  the fist, two rows higher than the hanging one
+    'LSSssL', // 8
+    '.LLLL.', // 9
+  ],
+  anchors: { shoulderL: { x: 4, y: 0 }, hand: { x: 2, y: 9 } },
+}
+
+/**
+ * The editor's near (left) sleeve swung back (0.12.0, task 8), 5 x 12: ARM_L_SWING_BACK in the suit, the sleeve to
+ * row 6 (shoulderL (3, 0)), the forearm two wide behind the hip (rows 7-8, G and its shade g), the fist two wide by the
+ * hip (rows 9-10), closed on row 11 (hand (1, 11)).
+ */
+const ARM_L_SUIT_SWING_BACK: Part = {
+  map: [
+    'LGGgL', // 0  under the shoulder cap
+    'LGGgL', // 1
+    'LGGgL', // 2
+    'LGGgL', // 3
+    'LGGgL', // 4
+    'LGGgL', // 5
+    'LGGgL', // 6
+    '.LGgL', // 7  the forearm, turned back behind the hip
+    '.LGgL', // 8
+    '.LSsL', // 9  the fist by the hip
+    '.LSsL', // 10
+    '.LLL.', // 11
+  ],
+  anchors: { shoulderL: { x: 3, y: 0 }, hand: { x: 1, y: 11 } },
+}
+
+/**
+ * The editor's far (right) sleeve swung forward with the briefcase (0.12.0, task 8; decision 1), 8 x 18: cols 0-5
+ * ARM_R_SWING_FWD in the suit (rows 0-9, shoulderR (1, 0), the fist on rows 7-8 and its closure on row 9, hand (3, 9)),
+ * then the case hanging from the fist, cols 2-7: row 10 its top edge, rows 11-15 the leather D with its shade d on the
+ * right, row 16 the underside d, row 17 the bottom edge. At (21, 23) the case lands at frame cols 23-28, rows 33-40,
+ * two rows higher than standing with the fist.
+ */
+const ARM_R_SUIT_CASE_FWD: Part = {
+  map: [
+    'LGGgL...', // 0  under the shoulder cap
+    'LGGgL...', // 1
+    'LGGgL...', // 2
+    'LGGGgL..', // 3  the forearm, swung toward the viewer
+    'LGGGgL..', // 4
+    'LGGGgL..', // 5
+    'LGGGgL..', // 6
+    'LSSSsL..', // 7  the fist on the handle
+    'LSSssL..', // 8
+    '.LLLL...', // 9  the fist's closure
+    '..LLLLLL', // 10 the case's top edge
+    '..LDDDdL', // 11 the leather
+    '..LDDDdL', // 12
+    '..LDDDdL', // 13
+    '..LDDDdL', // 14
+    '..LDDDdL', // 15
+    '..LddddL', // 16 the underside
+    '..LLLLLL', // 17
+  ],
+  anchors: { shoulderR: { x: 1, y: 0 }, hand: { x: 3, y: 9 } },
+}
+
+/**
+ * The editor's far (right) sleeve swung back with the briefcase (0.12.0, task 8; decision 1), 6 x 20: cols 0-4
+ * ARM_R_SWING_BACK in the suit (rows 0-11, shoulderR (1, 0), the fist by the hip on rows 9-10, its closure on row 11,
+ * hand (3, 11)), then the case from the fist, cols 0-5, rows 12-19 (the same box). At (21, 23) the case lands at frame
+ * cols 21-26, rows 35-42; the armBack layer paints first, so the stepping right leg passes in front of it.
+ */
+const ARM_R_SUIT_CASE_BACK: Part = {
+  map: [
+    'LGGgL.', // 0  under the shoulder cap
+    'LGGgL.', // 1
+    'LGGgL.', // 2
+    'LGGgL.', // 3
+    'LGGgL.', // 4
+    'LGGgL.', // 5
+    'LGGgL.', // 6
+    'LGgL..', // 7  the forearm, turned back behind the hip
+    'LGgL..', // 8
+    'LSsL..', // 9  the fist by the hip, on the handle
+    'LSsL..', // 10
+    '.LLL..', // 11 the fist's closure
+    'LLLLLL', // 12 the case's top edge
+    'LDDDdL', // 13 the leather
+    'LDDDdL', // 14
+    'LDDDdL', // 15
+    'LDDDdL', // 16
+    'LDDDdL', // 17
+    'LddddL', // 18 the underside
+    'LLLLLL', // 19
+  ],
+  anchors: { shoulderR: { x: 1, y: 0 }, hand: { x: 3, y: 11 } },
+}
+
 /** Every part a pose may name, by name. */
 export const PARTS: PartLib = {
   head: HEAD, 'editor-head': EDITOR_HEAD, torso: TORSO, 'arm-l-hang': ARM_L_HANG, 'arm-r-hang': ARM_R_HANG,
@@ -1060,4 +1169,6 @@ export const PARTS: PartLib = {
   'arm-l-flip-a': ARM_L_FLIP_A, 'arm-l-flip-b': ARM_L_FLIP_B, 'arm-l-flip-c': ARM_L_FLIP_C, page: PAGE,
   'arm-l-rub-a': ARM_L_RUB_A, 'arm-l-rub-b': ARM_L_RUB_B,
   'editor-torso': EDITOR_TORSO, 'arm-l-suit-hang': ARM_L_SUIT_HANG, 'arm-r-suit-case': ARM_R_SUIT_CASE,
+  'arm-l-suit-swing-fwd': ARM_L_SUIT_SWING_FWD, 'arm-l-suit-swing-back': ARM_L_SUIT_SWING_BACK,
+  'arm-r-suit-case-fwd': ARM_R_SUIT_CASE_FWD, 'arm-r-suit-case-back': ARM_R_SUIT_CASE_BACK,
 }
