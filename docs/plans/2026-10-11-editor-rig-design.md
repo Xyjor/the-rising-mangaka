@@ -49,7 +49,7 @@ retire.
 |---|---|---|
 | `editor-stand` | base loop | breath and blink, the mangaka's timing |
 | `editor-walk` | base loop | 8 steps with a bob and an arm swing, the briefcase swinging in the back hand |
-| `editor-arrive` | transition (walking to standing) | the turn from the door to face the desk (a key frame or two) |
+| `editor-arrive` | transition (walking to standing) | the turn from the door to face the desk (amended in the plan: a part pose, `editor.turn`, 160 ms; `editor-leave` its mirror, `editor.turn-back`) |
 | `editor-leave` | transition (standing to walking) | the turn back to the door |
 | `editor-glasses`, `editor-watch`, `editor-glance` | idle moments | push up the glasses, check the watch, glance at the manuscript pile |
 | `editor-nod`, `editor-sigh` | reactions | the verdicts (part poses, amended in the plan (decision 5): `editor.nod`, the head two rows lower, dipping twice; `editor.sigh-a`/`-b`, the torso one then two rows lower over the legs, the eyes closed, the mouth frowning, so the visit's prop stays at the front hand) |

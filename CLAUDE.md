@@ -168,8 +168,9 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   OffscreenCanvas (a `<canvas>` without one or when it gives no 2D context, a stand-in in node), keyed by frame id;
   `drawCast` is one `drawImage`, `drawCastTop` one 9-argument `drawImage` of a cached frame's top rows (render draws the
   seated rig mangaka's rows 0-39 again with it, after the page stack); `getCastCache`/`installCastCache` (tests install a recording one). Memory: at most
-  324 frames x 10 palettes x 2 facings x 6,144 B (a 32x48 RGBA surface), about 40 MB in theory; a realistic long career
-  builds about 900-1,000 surfaces, about 6 MB. `oldCast.ts` (0.11.0) the 0.10 maps as cast frames (`OLD_CAST`), drawn
+  485 rig frames (plus 4 prop frames and the cat's 7) x 10 palettes x 2 facings x 6,144 B (a 32x48 RGBA surface), about
+  60 MB in theory; about 340 reachable (the editor is drawn neutral only); a realistic long career builds about 900-1,000
+  surfaces, about 6 MB. `oldCast.ts` (0.11.0) the 0.10 maps as cast frames (`OLD_CAST`), drawn
   through the cache until each character's rig release (the mangaka's left at task 17, the assistants' at task 19,
   the editor's at 0.12.0 task 11: the cat's remain, until 0.13.0); `render`'s last argument is the cache (`getCastCache()` by default), each
   character one `drawImage`, no mood overlay (the rig frames bake the face). `animation.ts` (0.11.0)

@@ -102,7 +102,9 @@ export const VERDICT_HOLD_SLACK_MS = 50
 /**
  * How long the editor stays at the spot for a reaction cue (the 0.12.0 plan's decision 14): his verdict's length plus
  * the slack while he stands (the nod on an offer or a good poll, the sigh on a bad one), 0 when the cue is not his
- * or he is not standing. StudioScene sets `Actor.holdMs` from it before the plan sends him to the door.
+ * or he is not standing. StudioScene sets `Actor.holdMs` from it before the plan sends him to the door. It ignores a
+ * transition still playing: a cue inside the 160 ms `editor-arrive` queues behind the turn and the hold ends up to
+ * 110 ms before the verdict does (unreachable in play: the cue comes from a click on a card that mounts on arrival).
  */
 export function verdictHoldMs(kind: ReactionKind, editor: Actor): number {
   const r = reactionAnim(kind, 'editor', editor.state)

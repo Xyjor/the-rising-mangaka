@@ -3,8 +3,9 @@
 // an OffscreenCanvas, else a <canvas>, else (no canvas at all: node tests) a stand-in carrying its id and size, which
 // the recording test context names in `images`. A hit allocates nothing: two Map lookups by the frame's stored id and
 // a constant palette id.
-// Memory: at most 324 frames x 10 palettes x 2 facings x 6,144 B (a 32x48 RGBA surface), about 40 MB in theory; a
-// realistic long career builds about 900-1,000 surfaces, about 6 MB.
+// Memory: at most 485 rig frames (plus the 4 prop frames and the cat's 7) x 10 palettes x 2 facings x 6,144 B (a 32x48
+// RGBA surface), about 60 MB in theory; about 340 are reachable (the editor is drawn neutral only), and a realistic
+// long career builds about 900-1,000 surfaces, about 6 MB.
 import { ASSISTANT_PALS, EDITOR_PAL, OUTFIT_PALS, PAL, drawSprite, outfitOf } from './sprites'
 import type { CastFrame } from './rig/types'
 

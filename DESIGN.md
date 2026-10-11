@@ -776,8 +776,8 @@ maps").
   `spriteCache.ts`, painted once per palette and facing into its own surface; the 0.10 maps are `oldCast.ts`'s cast
   frames (`OLD_CAST`, each with the id the cache names it by) until each rig release replaces them: the mangaka's went
   at task 17 and the assistants' (the seated pair and the generated doze) at task 19, the editor's at 0.12.0 task 11,
-  so `OLD_CAST` holds the cat's only (until 0.13.0); the mood overlay over the people went with them (baked into the rig frames). The cache's memory: at most 324 frames x 10 palettes x 2 facings x 6,144 B (a 32x48 RGBA surface),
-  about 40 MB in theory; a realistic long career builds about 900-1,000 surfaces, about 6 MB. `render` takes the cache
+  so `OLD_CAST` holds the cat's only (until 0.13.0); the mood overlay over the people went with them (baked into the rig frames). The cache's memory: at most 485 rig frames (plus 4 prop frames and the cat's 7) x 10 palettes x 2 facings x
+  6,144 B (a 32x48 RGBA surface), about 60 MB in theory; about 340 reachable (the editor is drawn neutral only); a realistic long career builds about 900-1,000 surfaces, about 6 MB. `render` takes the cache
   as its last argument (the session's by default, `getCastCache()`), so a test hands it a recording one
   (`fakeSurface`) and reads each character as an entry in `images`, named `cast/<frame>/<palette>`, `/r` mirrored.
 - **The gate** (`scripts/spriteSheet.ts`, `npm run sprites -- <out.png> [--walk] [--base <ref>] [--only <prefix>]`):
