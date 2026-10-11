@@ -1,6 +1,9 @@
 // The cast's animations (0.11.0): every step a pose and how long it shows. The ids, postures and looping are final,
-// and every animation is drawn (the stand-in that played until each landed is gone since the doze, task 18).
+// and every one of the cast's 0.11 animations is drawn (the stand-in that played until each landed is gone since the
+// doze, task 18). The editor's (0.12.0) are all drawn too: his walk and turns (task 8), his waiting moments (task 9) and
+// his verdicts (task 10).
 import type { Anim, Posture, Step } from '../animation'
+import { WALK_PHASES } from './poses'
 import type { PoseId } from './poses'
 
 export type AnimId =
@@ -8,13 +11,17 @@ export type AnimId =
   | 'sit-down' | 'stand-up' | 'lie-down' | 'get-up'
   | 'stand-look' | 'stand-sip' | 'seat-stretch' | 'seat-sip' | 'seat-flip' | 'seat-rub'
   | 'stand-cheer' | 'seat-cheer' | 'stand-slump' | 'seat-slump' | 'seat-panic' | 'seat-tear'
+  | 'editor-stand' | 'editor-walk' | 'editor-arrive' | 'editor-leave' | 'editor-glasses' | 'editor-watch' | 'editor-glance'
+  | 'editor-nod' | 'editor-sigh'
 
-/** Every animation in the sheet's order: base loops, transitions, idle moments, reactions. */
+/** Every animation in the sheet's order: base loops, transitions, idle moments, reactions; then the editor's. */
 export const ANIM_IDS: readonly AnimId[] = [
   'stand', 'stand-ready', 'walk', 'seat-draw', 'seat-draw-late', 'seat-idle', 'sleep', 'doze',
   'sit-down', 'stand-up', 'lie-down', 'get-up',
   'stand-look', 'stand-sip', 'seat-stretch', 'seat-sip', 'seat-flip', 'seat-rub',
   'stand-cheer', 'seat-cheer', 'stand-slump', 'seat-slump', 'seat-panic', 'seat-tear',
+  'editor-stand', 'editor-walk', 'editor-arrive', 'editor-leave', 'editor-glasses', 'editor-watch', 'editor-glance',
+  'editor-nod', 'editor-sigh',
 ]
 
 function anim(id: AnimId, posture: Posture, loop: boolean, steps: readonly Step<PoseId>[]): Anim<PoseId> {
@@ -22,9 +29,9 @@ function anim(id: AnimId, posture: Posture, loop: boolean, steps: readonly Step<
 }
 
 /** The walk: contact, down, pass and up on each leg, 75 ms a step, 600 ms a cycle (24 px at 40 px/s, 1.5x the 0.10 stride). */
-const WALK_STEPS = ([
-  'walk.contact-l', 'walk.down-l', 'walk.pass-l', 'walk.up-l', 'walk.contact-r', 'walk.down-r', 'walk.pass-r', 'walk.up-r',
-] as const).map((pose) => ({ pose, ms: 75 }))
+const WALK_STEPS: readonly Step<PoseId>[] = WALK_PHASES.map((step) => ({ pose: `walk.${step}` as const, ms: 75 }))
+/** The editor's walk: the same eight steps on his suit body, 75 ms each (600 ms a cycle; 1650 ms door to spot is 2.75 cycles). */
+const EDITOR_WALK_STEPS: readonly Step<PoseId>[] = WALK_PHASES.map((step) => ({ pose: `editor.walk-${step}` as const, ms: 75 }))
 
 /** The pen across the page and back: left, middle, right, middle, 150 ms a step, 600 ms a stroke. */
 const DRAW_STEPS: readonly Step<PoseId>[] = [
@@ -93,6 +100,17 @@ const TEAR: readonly Step<PoseId>[] = [
 /** The assistants' doze at their desk: the head on the folded arms, then the breath (head and shoulders a row lower), 900 ms each, as the bed's sleep. */
 const DOZE: readonly Step<PoseId>[] = [{ pose: 'key.doze-0', ms: 900 }, { pose: 'key.doze-1', ms: 900 }]
 
+/** The editor's waiting moments: the glasses pushed up (the hand raised, at the rim, lowered), the watch checked, a glance at the pile. */
+const GLASSES: readonly Step<PoseId>[] = [{ pose: 'editor.raise', ms: 200 }, { pose: 'editor.glasses', ms: 500 }, { pose: 'editor.raise', ms: 200 }]
+const WATCH: readonly Step<PoseId>[] = [{ pose: 'editor.raise', ms: 200 }, { pose: 'editor.watch', ms: 700 }, { pose: 'editor.raise', ms: 200 }]
+const GLANCE: readonly Step<PoseId>[] = [{ pose: 'editor.glance', ms: 700 }]
+
+/** The editor's verdicts: a nod (the head dipping twice) on an offer or a good poll; a sigh (the shoulders dropping, the eyes closed) on a bad one. */
+const NOD: readonly Step<PoseId>[] = [
+  { pose: 'editor.nod', ms: 200 }, { pose: 'editor.stand', ms: 150 }, { pose: 'editor.nod', ms: 200 }, { pose: 'editor.stand', ms: 250 },
+]
+const SIGH: readonly Step<PoseId>[] = [{ pose: 'editor.sigh-a', ms: 300 }, { pose: 'editor.sigh-b', ms: 900 }]
+
 export const ANIMS: Readonly<Record<AnimId, Anim<PoseId>>> = {
   stand: anim('stand', 'stand', true, [
     { pose: 'stand.idle', ms: 500 }, { pose: 'stand.breath', ms: 500 }, { pose: 'stand.idle', ms: 500 },
@@ -128,4 +146,19 @@ export const ANIMS: Readonly<Record<AnimId, Anim<PoseId>>> = {
   'seat-slump': anim('seat-slump', 'seat', false, [{ pose: 'key.slump-seat-0', ms: 800 }, { pose: 'key.slump-seat-1', ms: 800 }]),
   'seat-panic': anim('seat-panic', 'seat', false, PANIC_STEPS),
   'seat-tear': anim('seat-tear', 'seat', false, TEAR),
+  // the editor (0.12.0): his standing loop on the mangaka's timing; his walk and turns (task 8); his waiting moments (task 9); his verdicts (task 10)
+  'editor-stand': anim('editor-stand', 'stand', true, [
+    { pose: 'editor.stand', ms: 500 }, { pose: 'editor.breath', ms: 500 }, { pose: 'editor.stand', ms: 500 },
+    { pose: 'editor.breath', ms: 500 }, { pose: 'editor.stand', ms: 500 }, { pose: 'editor.breath', ms: 380 },
+    { pose: 'editor.blink', ms: 120 },
+  ]),
+  'editor-walk': anim('editor-walk', 'walk', true, EDITOR_WALK_STEPS),
+  /** The turn at the spot, 160 ms: arriving, toward the desk; leaving, toward the door (the actor already walks, decision 1 of 0.11.0: the walk shows 6 px on). */
+  'editor-arrive': anim('editor-arrive', 'stand', false, [{ pose: 'editor.turn', ms: 160 }]),
+  'editor-leave': anim('editor-leave', 'walk', false, [{ pose: 'editor.turn-back', ms: 160 }]),
+  'editor-glasses': anim('editor-glasses', 'stand', false, GLASSES),
+  'editor-watch': anim('editor-watch', 'stand', false, WATCH),
+  'editor-glance': anim('editor-glance', 'stand', false, GLANCE),
+  'editor-nod': anim('editor-nod', 'stand', false, NOD),
+  'editor-sigh': anim('editor-sigh', 'stand', false, SIGH),
 }

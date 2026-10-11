@@ -53,7 +53,7 @@ const POSTER: Box = [116, 138, 50, 78]
 const FRONT: Box = [60, 260, 140, 179]
 const SEATED: Box = [124, 155, 58, 97]
 const STANDING: Box = [170, 201, 81, 128]
-const EDITOR: Box = [198, 221, 85, 116]
+const EDITOR: Box = [205, 235, 90, 137]
 
 describe('each tier\'s room', () => {
   it('covers the whole canvas, wall and floor, in at most 84 fills (the flat 83 since its wood-beam frame)', () => {

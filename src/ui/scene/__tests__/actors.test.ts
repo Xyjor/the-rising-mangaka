@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest'
 import { sceneSnapshot } from '../../../test/fakeCanvas'
 import type { Snapshot } from '../render'
 import {
-  ASSISTANT_SEAT_X, ASSISTANT_SEAT_Y, CAT_BED, EDITOR_SPOT, EDITOR_WALK_MS, MANGAKA_BED, MANGAKA_BED_FRAME, MANGAKA_DOOR,
-  MANGAKA_SEAT, MANGAKA_STAND, editorWalksIn, newActorTable, planActors, settleActors, stepActors,
+  ASSISTANT_SEAT_X, ASSISTANT_SEAT_Y, CAT_BED, DOOR_SPOT, EDITOR_SPOT, EDITOR_WALK_MS, MANGAKA_BED, MANGAKA_BED_FRAME,
+  MANGAKA_SEAT, MANGAKA_STAND, WALK_PX_PER_S, editorWalksIn, newActorTable, planActors, settleActors, stepActors,
 } from '../actors'
 import type { Actor, ActorTable } from '../actors'
 
@@ -22,10 +22,10 @@ function planned(over: Partial<Snapshot> = {}): ActorTable {
 }
 
 describe('the actor table', () => {
-  it('starts everyone hidden at the door; the editor walks in in 1400 ms', () => {
+  it('starts everyone hidden at the door; the editor walks in in 1650 ms', () => {
     const m = newActorTable().mangaka
-    expect([m.x, m.y, m.state, m.goal, m.facing, m.legs, m.anim]).toEqual([254, 85, 'hidden', 'hidden', -1, 'xy', 0])
-    expect(EDITOR_WALK_MS).toBe(1400)
+    expect([m.x, m.y, m.state, m.goal, m.facing, m.legs, m.anim]).toEqual([250, 69, 'hidden', 'hidden', -1, 'xy', 0])
+    expect(EDITOR_WALK_MS).toBe(1650)
   })
 
   it('walks x first then y at 40 px/s, and stands on arrival', () => {
@@ -82,28 +82,30 @@ describe('planActors', () => {
     const t = newActorTable()
     planActors(t, sceneSnapshot({ visitor: 'editor', actors: t }))
     const e = t.editor
-    expect([e.x, e.y, e.targetX, e.targetY, e.goal]).toEqual([254, 85, 198, 85, 'standing'])
+    expect([e.x, e.y, e.targetX, e.targetY, e.goal]).toEqual([250, 69, 205, 90, 'standing'])
     planActors(t, sceneSnapshot({ visitor: 'none', actors: t }))
-    expect([e.targetX, e.targetY, e.goal]).toEqual([254, 85, 'away'])
+    expect([e.targetX, e.targetY, e.goal]).toEqual([250, 69, 'away'])
     settleActors(t)
     expect(e.state).toBe('away')
   })
 
-  it('walks the editor to the spot in 1400 ms', () => {
+  it('walks the editor to the spot in 1650 ms', () => {
     const t = newActorTable()
     planActors(t, sceneSnapshot({ visitor: 'editor', actors: t }))
-    stepActors(t, 700, false)
-    stepActors(t, 700, false)
-    expect([t.editor.x, t.editor.y, t.editor.state]).toEqual([198, 85, 'standing'])
+    stepActors(t, 825, false)
+    stepActors(t, 825, false)
+    expect([t.editor.x, t.editor.y, t.editor.state]).toEqual([205, 90, 'standing'])
 
     const u = newActorTable()
     planActors(u, sceneSnapshot({ visitor: 'editor', actors: u }))
     stepActors(u, 1000, false)
-    stepActors(u, 399, false)
+    stepActors(u, 649, false)
     expect(u.editor.state).toBe('walking')
-    expect(u.editor.x).toBeCloseTo(198.04, 6)
+    // 21 px down took 525 ms; 1124 ms of the x leg walked 44.96 px
+    expect(u.editor.x).toBeCloseTo(205.04, 6)
+    expect(u.editor.y).toBe(90)
     stepActors(u, 1, false)
-    expect([u.editor.x, u.editor.state]).toEqual([198, 'standing'])
+    expect([u.editor.x, u.editor.state]).toEqual([205, 'standing'])
   })
 })
 
@@ -112,16 +114,16 @@ describe('editorWalksIn', () => {
     const t = newActorTable()
     planActors(t, sceneSnapshot({ visitor: 'editor', actors: t }))
     settleActors(t)
-    expect([t.editor.x, t.editor.y, t.editor.state]).toEqual([198, 85, 'standing'])
+    expect([t.editor.x, t.editor.y, t.editor.state]).toEqual([205, 90, 'standing'])
     editorWalksIn(t)
-    expect([t.editor.x, t.editor.y, t.editor.state]).toEqual([254, 85, 'hidden'])
+    expect([t.editor.x, t.editor.y, t.editor.state]).toEqual([250, 69, 'hidden'])
     stepActors(t, EDITOR_WALK_MS, false)
-    expect([t.editor.x, t.editor.y, t.editor.state]).toEqual([198, 85, 'standing'])
+    expect([t.editor.x, t.editor.y, t.editor.state]).toEqual([205, 90, 'standing'])
   })
 })
 
 describe('the 0.11 spots (task 9)', () => {
-  it('starts every actor unposed: the driver poses the rig cast, the editor and the cat keep their 0.10 frames', () => {
+  it('starts every actor unposed: the driver poses the rig cast, the cat keeps its 0.10 frames', () => {
     const t = newActorTable()
     expect([t.mangaka.pose, ...t.assistants.map((a) => a.pose), t.editor.pose, t.cat.pose]).toEqual(['', '', '', '', '', ''])
   })
@@ -130,7 +132,7 @@ describe('the 0.11 spots (task 9)', () => {
     const t = newActorTable()
     planActors(t, sceneSnapshot({ actors: t }))
     expect([t.mangaka.x, t.mangaka.y, t.mangaka.targetX, t.mangaka.targetY, t.mangaka.goal]).toEqual([250, 69, 124, 58, 'seated'])
-    expect(t.assistants.map((a) => [a.x, a.y, a.state])).toEqual([[21, 80, 'seated'], [254, 85, 'hidden'], [254, 85, 'hidden']])
+    expect(t.assistants.map((a) => [a.x, a.y, a.state])).toEqual([[21, 80, 'seated'], [250, 69, 'hidden'], [250, 69, 'hidden']])
     expect([t.cat.targetX, t.cat.targetY]).toEqual([202, 118])
     const plan = (over: Partial<Snapshot>) => {
       const u = newActorTable()
@@ -146,7 +148,7 @@ describe('the 0.11 spots (task 9)', () => {
   })
 
   it('fits the 0.11 spots around the furniture', () => {
-    expect([MANGAKA_SEAT, MANGAKA_STAND, MANGAKA_BED, MANGAKA_DOOR, CAT_BED]).toEqual([
+    expect([MANGAKA_SEAT, MANGAKA_STAND, MANGAKA_BED, DOOR_SPOT, CAT_BED]).toEqual([
       { x: 124, y: 58 }, { x: 170, y: 81 }, { x: 220, y: 90 }, { x: 250, y: 69 }, { x: 202, y: 118 },
     ])
     expect(MANGAKA_BED_FRAME).toEqual({ x: 201, y: 90 })
@@ -175,6 +177,58 @@ describe('the 0.11 spots (task 9)', () => {
     expect(cat.x).toBeGreaterThan(stand.x + 31)
     expect(cat.x + 11).toBeLessThan(MANGAKA_BED_FRAME.x + 23) // clear of the lying head
     expect(cat.x + 11).toBeLessThan(bed.x) // and of the standing frame at the bed
-    expect(cat.y).toBeGreaterThan(EDITOR_SPOT.y + 31)
+    expect(cat.x + 11).toBeLessThan(EDITOR_SPOT.x + 10) // the cat's bed ends left of the editor's legs (frame col 10); he stands in front of it (decision 8)
+  })
+})
+
+describe('the editor\'s rig spots (0.12.0, task 7)', () => {
+  it('fits the editor in front of the bed facing the desk, his feet on the floor, his door the mangaka\'s, a 1650 ms walk', () => {
+    expect([EDITOR_SPOT, DOOR_SPOT]).toEqual([{ x: 205, y: 90 }, { x: 250, y: 69 }])
+    expect(EDITOR_SPOT.y + 47).toBe(137) // the feet on the floor in front of the bed (its footprint ends at y 127)
+    expect(EDITOR_SPOT.x).toBeGreaterThan(MANGAKA_STAND.x + 31) // right of the standing mangaka's frame
+    expect(EDITOR_SPOT.x + 31).toBeLessThan(250) // left of the door (x 250-283)
+    const walk = Math.abs(DOOR_SPOT.x - EDITOR_SPOT.x) + Math.abs(DOOR_SPOT.y - EDITOR_SPOT.y)
+    expect([walk, walk / WALK_PX_PER_S * 1000]).toEqual([66, 1650])
+  })
+
+  it('walks him in from the door y first then along the floor, left at the spot; out along the floor first', () => {
+    const t = newActorTable()
+    planActors(t, sceneSnapshot({ visitor: 'editor', actors: t }))
+    const e = t.editor
+    expect([e.x, e.y, e.targetX, e.targetY, e.legs, e.goal]).toEqual([250, 69, 205, 90, 'yx', 'standing'])
+    stepActors(t, 525, false) // 21 px down, beside the door
+    expect([e.x, e.y, e.state]).toEqual([250, 90, 'walking'])
+    stepActors(t, 1125, false) // 45 px left along the floor
+    expect([e.x, e.y, e.state, e.facing]).toEqual([205, 90, 'standing', -1])
+    planActors(t, sceneSnapshot({ visitor: 'none', actors: t }))
+    expect([e.targetX, e.targetY, e.legs, e.goal]).toEqual([250, 69, 'xy', 'away'])
+    stepActors(t, 100, false)
+    expect([e.x, e.y, e.facing]).toEqual([209, 90, 1])
+    editorWalksIn(t)
+    expect([e.x, e.y, e.state]).toEqual([250, 69, 'hidden'])
+  })
+})
+
+describe('a held actor (0.12.0, task 7, decision 14)', () => {
+  it('starts every actor unheld, and holds one in place and in its state while holdMs runs, counting it down by dt', () => {
+    expect(newActorTable().editor.holdMs).toBe(0)
+    const t = walker({ holdMs: 150 })
+    const m = t.mangaka
+    stepActors(t, 100, false)
+    expect([m.x, m.y, m.state, m.anim, m.holdMs]).toEqual([100, 100, 'standing', 0, 50])
+    // the hold is still running at this step's start: held once more, and spent
+    stepActors(t, 100, false)
+    expect([m.x, m.state, m.holdMs]).toEqual([100, 'standing', 0])
+    stepActors(t, 100, false)
+    expect([m.x, m.state]).toEqual([104, 'walking'])
+  })
+
+  it('is cleared by reduced motion (the actor snaps) and by a settle', () => {
+    const snap = walker({ holdMs: 500 })
+    stepActors(snap, 1, true)
+    expect([snap.mangaka.x, snap.mangaka.y, snap.mangaka.state, snap.mangaka.holdMs]).toEqual([110, 105, 'standing', 0])
+    const settled = walker({ holdMs: 500 })
+    settleActors(settled)
+    expect([settled.mangaka.x, settled.mangaka.state, settled.mangaka.holdMs]).toEqual([110, 'standing', 0])
   })
 })

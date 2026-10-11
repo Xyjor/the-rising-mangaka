@@ -3,7 +3,7 @@
 // after art/raw/sprites/mangaka-front.png. Each part is outlined all round but where it joins another: the torso's neck
 // row under the head's jaw, its shoulder caps over the arms' tops, the legs' tops under its hem (closeSilhouette closes
 // them if a pose ever shows them). Sleeve and hand are separate runs, so OUTFIT_PALS' darker j darkens the sleeves.
-import { HEAD } from './head'
+import { EDITOR_HEAD, HEAD } from './head'
 import type { Part, PartLib } from './types'
 
 /**
@@ -956,9 +956,275 @@ const ARM_L_RUB_B: Part = {
   anchors: { shoulderL: { x: 2, y: 12 }, hand: { x: 3, y: 1 } },
 }
 
+/**
+ * The editor's suit jacket (0.12.0), 18 x 14, TORSO's construction and anchors in the suit's keys (never the
+ * mangaka's J j K R Y y), after art/raw/sprites/editor.png. Row 0: the shoulders' top outline, the collar W beside the
+ * jaw (cols 3-4 and 13-14), the neck s between. Row 1: the shoulders in the suit's shade g, the collar W (cols 4-6 and
+ * 11-13) either side of the neck. Row 2: the shoulder caps g (cols 0-2 and 15-17) over the sleeves, the seams L (cols 3
+ * and 14), the collar's points W narrowing to the tie's knot N at cols 8-9. Row 3: the shirt W (cols 6-8 and 10-11)
+ * beside the tie N (col 9), the lapels' shadow g (cols 5 and 12). Rows 4-11: the tie N down col 9, a one-wide red
+ * line, the jacket G with its shade g down the right (col 13) and the lapels' edges g at cols 5 and 12 to row 6 (the
+ * reference's symmetric V, 0.12.0 task 8). Row 12: the
+ * hem g; row 13: the outline the hips sit on.
+ */
+const EDITOR_TORSO: Part = {
+  map: [
+    '.LLWWssssssssWWLL.', // 0  the shoulders' top; the collar beside the jaw; the neck under the chin
+    'LgggWWWssssWWWgggL', // 1  the shoulders in shade; the collar either side of the neck
+    'gggLgWWWNNWWWgLggg', // 2  the shoulder caps; the seams; the collar's points meeting at the tie's knot
+    '...LGgWWWNWWggL...', // 3  the shirt beside the tie; the lapels' shadow
+    '...LGgGGGNGGggL...', // 4  the lapels' edges to row 6, either side (cols 5 and 12): a symmetric V
+    '...LGgGGGNGGggL...', // 5
+    '...LGgGGGNGGggL...', // 6
+    '...LGGGGGNGGGgL...', // 7
+    '...LGGGGGNGGGgL...', // 8
+    '...LGGGGGNGGGgL...', // 9
+    '...LGGGGGNGGGgL...', // 10
+    '...LGGGGGNGGGgL...', // 11 the tie's tip
+    '...LggggggggggL...', // 12 the hem
+    '...LLLLLLLLLLLL...', // 13 the outline the hips sit on
+  ],
+  anchors: { neck: { x: 9, y: 0 }, shoulderL: { x: 2, y: 2 }, shoulderR: { x: 15, y: 2 }, hipL: { x: 6, y: 13 }, hipR: { x: 11, y: 13 } },
+}
+
+/**
+ * The editor's near (left) sleeve hanging (0.12.0), 5 x 12: ARM_L_HANG's map in the suit, the sleeve G on cols 1-2
+ * and its shade g on col 3 (lit from the left), rows 0-8; the fist S/s rows 9-10 (hand (2, 10)), closed by L on row 11.
+ */
+const ARM_L_SUIT_HANG: Part = {
+  map: [
+    'LGGgL', // 0  under the shoulder cap
+    'LGGgL', // 1
+    'LGGgL', // 2
+    'LGGgL', // 3
+    'LGGgL', // 4
+    'LGGgL', // 5
+    'LGGgL', // 6
+    'LGGgL', // 7
+    'LGGgL', // 8
+    'LSSsL', // 9  the fist
+    'LSssL', // 10
+    '.LLL.', // 11
+  ],
+  anchors: { shoulderL: { x: 3, y: 0 }, hand: { x: 2, y: 10 } },
+}
+
+/**
+ * The editor's far (right) sleeve holding the briefcase (0.12.0, decision 1: the rig's prop layer joins the front
+ * hand only, so the case is baked into the back arm's sleeve), 7 x 19: cols 0-4 the sleeve and fist as
+ * ARM_L_SUIT_HANG (rows 0-10, shoulderR (1, 0), hand (2, 10)); row 11 the fist's closure and the case's top edge in
+ * one (cols 1-6); rows 12-16 the leather D with its shade d on the right, row 17 the underside d, row 18 the bottom
+ * edge. Standing (at (21, 23)) the case lands at frame cols 22-27, rows 34-41, right of the far shoe; the armBack
+ * layer paints first, so a stepping leg passes in front of it.
+ */
+const ARM_R_SUIT_CASE: Part = {
+  map: [
+    'LGGgL..', // 0  under the shoulder cap
+    'LGGgL..', // 1
+    'LGGgL..', // 2
+    'LGGgL..', // 3
+    'LGGgL..', // 4
+    'LGGgL..', // 5
+    'LGGgL..', // 6
+    'LGGgL..', // 7
+    'LGGgL..', // 8
+    'LSSsL..', // 9  the fist on the handle
+    'LSssL..', // 10
+    '.LLLLLL', // 11 the fist's closure and the case's top edge
+    '.LDDDdL', // 12 the leather
+    '.LDDDdL', // 13
+    '.LDDDdL', // 14
+    '.LDDDdL', // 15
+    '.LDDDdL', // 16
+    '.LddddL', // 17 the underside
+    '.LLLLLL', // 18
+  ],
+  anchors: { shoulderR: { x: 1, y: 0 }, hand: { x: 2, y: 10 } },
+}
+
+/**
+ * The editor's near (left) sleeve swung forward (0.12.0, task 8), 6 x 10: ARM_L_SWING_FWD's map in the suit, the
+ * sleeve G with its shade g on the right column (lit from the left, as ARM_L_SUIT_HANG): under the shoulder cap
+ * (rows 0-2, shoulderL (4, 0)), the forearm a column wider toward the viewer (rows 3-6), the fist S/s four wide two rows
+ * up (rows 7-8), closed on row 9 (hand (2, 9)).
+ */
+const ARM_L_SUIT_SWING_FWD: Part = {
+  map: [
+    '.LGGgL', // 0  under the shoulder cap
+    '.LGGgL', // 1
+    '.LGGgL', // 2
+    'LGGGgL', // 3  the forearm, swung toward the viewer
+    'LGGGgL', // 4
+    'LGGGgL', // 5
+    'LGGGgL', // 6
+    'LSSSsL', // 7  the fist, two rows higher than the hanging one
+    'LSSssL', // 8
+    '.LLLL.', // 9
+  ],
+  anchors: { shoulderL: { x: 4, y: 0 }, hand: { x: 2, y: 9 } },
+}
+
+/**
+ * The editor's near (left) sleeve swung back (0.12.0, task 8), 5 x 12: ARM_L_SWING_BACK in the suit, the sleeve to
+ * row 6 (shoulderL (3, 0)), the forearm two wide behind the hip (rows 7-8, G and its shade g), the fist two wide by the
+ * hip (rows 9-10), closed on row 11 (hand (1, 11)).
+ */
+const ARM_L_SUIT_SWING_BACK: Part = {
+  map: [
+    'LGGgL', // 0  under the shoulder cap
+    'LGGgL', // 1
+    'LGGgL', // 2
+    'LGGgL', // 3
+    'LGGgL', // 4
+    'LGGgL', // 5
+    'LGGgL', // 6
+    '.LGgL', // 7  the forearm, turned back behind the hip
+    '.LGgL', // 8
+    '.LSsL', // 9  the fist by the hip
+    '.LSsL', // 10
+    '.LLL.', // 11
+  ],
+  anchors: { shoulderL: { x: 3, y: 0 }, hand: { x: 1, y: 11 } },
+}
+
+/**
+ * The editor's far (right) sleeve swung forward with the briefcase (0.12.0, task 8; decision 1), 8 x 18: cols 0-5
+ * ARM_R_SWING_FWD in the suit (rows 0-9, shoulderR (1, 0), the fist on rows 7-8 and its closure on row 9, hand (3, 9)),
+ * then the case hanging from the fist, cols 2-7: row 10 its top edge, rows 11-15 the leather D with its shade d on the
+ * right, row 16 the underside d, row 17 the bottom edge. At (21, 23) the case lands at frame cols 23-28, rows 33-40,
+ * two rows higher than standing with the fist.
+ */
+const ARM_R_SUIT_CASE_FWD: Part = {
+  map: [
+    'LGGgL...', // 0  under the shoulder cap
+    'LGGgL...', // 1
+    'LGGgL...', // 2
+    'LGGGgL..', // 3  the forearm, swung toward the viewer
+    'LGGGgL..', // 4
+    'LGGGgL..', // 5
+    'LGGGgL..', // 6
+    'LSSSsL..', // 7  the fist on the handle
+    'LSSssL..', // 8
+    '.LLLL...', // 9  the fist's closure
+    '..LLLLLL', // 10 the case's top edge
+    '..LDDDdL', // 11 the leather
+    '..LDDDdL', // 12
+    '..LDDDdL', // 13
+    '..LDDDdL', // 14
+    '..LDDDdL', // 15
+    '..LddddL', // 16 the underside
+    '..LLLLLL', // 17
+  ],
+  anchors: { shoulderR: { x: 1, y: 0 }, hand: { x: 3, y: 9 } },
+}
+
+/**
+ * The editor's far (right) sleeve swung back with the briefcase (0.12.0, task 8; decision 1), 6 x 20: cols 0-4
+ * ARM_R_SWING_BACK in the suit (rows 0-11, shoulderR (1, 0), the fist by the hip on rows 9-10, its closure on row 11,
+ * hand (3, 11)), then the case from the fist, cols 0-5, rows 12-19 (the same box). At (21, 23) the case lands at frame
+ * cols 21-26, rows 35-42; the armBack layer paints first, so the stepping right leg passes in front of it.
+ */
+const ARM_R_SUIT_CASE_BACK: Part = {
+  map: [
+    'LGGgL.', // 0  under the shoulder cap
+    'LGGgL.', // 1
+    'LGGgL.', // 2
+    'LGGgL.', // 3
+    'LGGgL.', // 4
+    'LGGgL.', // 5
+    'LGGgL.', // 6
+    'LGgL..', // 7  the forearm, turned back behind the hip
+    'LGgL..', // 8
+    'LSsL..', // 9  the fist by the hip, on the handle
+    'LSsL..', // 10
+    '.LLL..', // 11 the fist's closure
+    'LLLLLL', // 12 the case's top edge
+    'LDDDdL', // 13 the leather
+    'LDDDdL', // 14
+    'LDDDdL', // 15
+    'LDDDdL', // 16
+    'LDDDdL', // 17
+    'LddddL', // 18 the underside
+    'LLLLLL', // 19
+  ],
+  anchors: { shoulderR: { x: 1, y: 0 }, hand: { x: 3, y: 11 } },
+}
+
+/**
+ * The editor's near (left) sleeve raised halfway, the fist at the chin (0.12.0, task 9), 6 x 9 (shoulderL (2, 4),
+ * standing top-left (7, 19)), as ARM_L_MUG_HALF in the suit with the upper arm drawn: the fist S/s on rows 1-2 (frame
+ * cols 9-11, rows 20-21, under the jaw), its top on row 0, the cuff G/g on row 3; the forearm and the upper arm
+ * foreshortened together toward the viewer from the shoulder (row 4) down to the elbow (rows 4-7), the sleeve's shade
+ * g down its right, closed by an L row under the elbow (row 8). The hand (4, 1), frame (11, 20), is the fist's right
+ * column. Drawn after the head, it closes its own outline against the jaw.
+ */
+const ARM_L_SUIT_RAISE: Part = {
+  map: [
+    '.LLLL.', // 0  the fist's top
+    '.LSSSL', // 1  the fist under the chin
+    '.LSssL', // 2
+    '.LGGgL', // 3  the cuff
+    'LGGGgL', // 4  the shoulder: the forearm in front of the upper arm
+    'LGGGgL', // 5
+    'LGGGgL', // 6
+    'LGGgL.', // 7  the elbow
+    'LLLL..', // 8  the elbow's underside
+  ],
+  anchors: { shoulderL: { x: 2, y: 4 }, hand: { x: 4, y: 1 } },
+}
+
+/**
+ * The editor's near (left) sleeve raised to the glasses (0.12.0, task 9), 6 x 14 (shoulderL (2, 13), standing
+ * top-left (7, 10)), ARM_L_RUB_A in the suit: the fist S/s four wide on rows 1-2 over the left lens's outer rim (frame
+ * cols 8-11, rows 11-12), its top on row 0 across the lens; the forearm G/g straight up in front of the cheek (rows
+ * 3-7), the upper arm a column out (rows 8-12), the underside an L row over the shoulder cap (row 13). The hand (3, 1),
+ * frame (10, 11), pushes the frame up; the eyes blink behind it.
+ */
+const ARM_L_SUIT_GLASSES: Part = {
+  map: [
+    '.LLLL.', // 0  the fist's top
+    'LSSSsL', // 1  the fist on the rim
+    'LSSssL', // 2
+    '.LGGgL', // 3  the forearm, up in front of the cheek
+    '.LGGgL', // 4
+    '.LGGgL', // 5
+    '.LGGgL', // 6
+    '.LGGgL', // 7
+    'LGGgL.', // 8  the upper arm, from the elbow down to the shoulder
+    'LGGgL.', // 9
+    'LGGgL.', // 10
+    'LGGgL.', // 11
+    'LGGgL.', // 12
+    'LLLLL.', // 13 the raised sleeve's underside over the shoulder cap
+  ],
+  anchors: { shoulderL: { x: 2, y: 13 }, hand: { x: 3, y: 1 } },
+}
+
+/**
+ * The editor's near (left) sleeve across the chest, the wrist turned up to read the watch (0.12.0, task 9), 7 x 9
+ * (shoulderL (5, 0), standing top-left (4, 23)), as ARM_L_HOLD in the suit: the sleeve G/g down from the shoulder cap
+ * (rows 0-3), the forearm coming forward and across to the left (rows 4-5), then on rows 6-7 the fist S/s (cols 1-2)
+ * and the watch on the wrist beside it: the face W two rows tall (col 4) in its strap w (cols 3 and 5), so it reads at 1x;
+ * the outline under it on row 8. The hand (2, 7), frame (6, 30), is the fist.
+ */
+const ARM_L_SUIT_WATCH: Part = {
+  map: [
+    '..LGGgL', // 0  under the shoulder cap
+    '..LGGgL', // 1
+    '..LGGgL', // 2
+    '..LGGgL', // 3
+    '.LGGGgL', // 4  the forearm comes forward
+    'LGGGGgL', // 5
+    'LSSwWwL', // 6  the fist; the watch face in its strap
+    'LSswWwL', // 7
+    '.LLLLL.', // 8
+  ],
+  anchors: { shoulderL: { x: 5, y: 0 }, hand: { x: 2, y: 7 } },
+}
+
 /** Every part a pose may name, by name. */
 export const PARTS: PartLib = {
-  head: HEAD, torso: TORSO, 'arm-l-hang': ARM_L_HANG, 'arm-r-hang': ARM_R_HANG,
+  head: HEAD, 'editor-head': EDITOR_HEAD, torso: TORSO, 'arm-l-hang': ARM_L_HANG, 'arm-r-hang': ARM_R_HANG,
   'leg-l-stand': LEG_L_STAND, 'leg-r-stand': LEG_R_STAND,
   'leg-l-step': LEG_L_STEP, 'leg-l-step-bend': LEG_L_STEP_BEND, 'leg-l-plant-bend': LEG_L_PLANT_BEND,
   'leg-l-lift': LEG_L_LIFT, 'leg-l-reach': LEG_L_REACH,
@@ -974,4 +1240,8 @@ export const PARTS: PartLib = {
   'arm-l-out': ARM_L_OUT, 'arm-r-out': ARM_R_OUT, 'arm-l-up': ARM_L_UP, 'arm-r-up': ARM_R_UP,
   'arm-l-flip-a': ARM_L_FLIP_A, 'arm-l-flip-b': ARM_L_FLIP_B, 'arm-l-flip-c': ARM_L_FLIP_C, page: PAGE,
   'arm-l-rub-a': ARM_L_RUB_A, 'arm-l-rub-b': ARM_L_RUB_B,
+  'editor-torso': EDITOR_TORSO, 'arm-l-suit-hang': ARM_L_SUIT_HANG, 'arm-r-suit-case': ARM_R_SUIT_CASE,
+  'arm-l-suit-swing-fwd': ARM_L_SUIT_SWING_FWD, 'arm-l-suit-swing-back': ARM_L_SUIT_SWING_BACK,
+  'arm-r-suit-case-fwd': ARM_R_SUIT_CASE_FWD, 'arm-r-suit-case-back': ARM_R_SUIT_CASE_BACK,
+  'arm-l-suit-raise': ARM_L_SUIT_RAISE, 'arm-l-suit-glasses': ARM_L_SUIT_GLASSES, 'arm-l-suit-watch': ARM_L_SUIT_WATCH,
 }

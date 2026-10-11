@@ -126,10 +126,13 @@ const FULL_ART_BASELINE = 173
  * day (neutral). Upgrade 0.11.0 Task 19 re-measured it the same way at 433 (-3): the three assistants' stools go (a
  * 32x48 seated rig body covers each), and their mood overlay took nothing out (all three neutral: stamina 80, no cheer;
  * the editor's visit never surprises an assistant), so `drawMood`'s removal is 0: 436 - 3 = 433; the loop's other
- * scenes are 409 (frame 0), 409 and 396 (by day), each -3. Every scene in the loop must stay under 1.5 times this
- * (649.5).
+ * scenes are 409 (frame 0), 409 and 396 (by day), each -3. Upgrade 0.12.0 Task 11 re-measured it the same way at 414
+ * (-19): the contract is a cast frame (rig/props.ts) drawn with one drawImage at the editor's front hand, so its 19
+ * runs (the 0.10 contract map's: 1, 3, 3, 3, 3, 5, 1 a row) leave the fill log; his contact shadow (1, now 20 wide
+ * under the rig frame's feet) and the ! (4, in the rig's mark slot) stay: 433 - 19 = 414; the loop's other scenes have
+ * no editor and keep 409, 409 and 396. Every scene in the loop must stay under 1.5 times this (621).
  */
-const VISIT_FULL_BASELINE = 433
+const VISIT_FULL_BASELINE = 414
 
 /**
  * fillRect calls for the same worst scene (the editor visiting, t 0.9, frame 100) with every generated image ready
@@ -143,10 +146,12 @@ const VISIT_FULL_BASELINE = 433
  * 0.11.0 Task 17 re-measured it the same way at 259 (-26), as the 436's (the surprised face 22 and mark 4 in the rig
  * frame): 285 - 26 = 259; the loop's other scenes are 235 (frame 0), 235 (-17 each, the sleepy overlay) and 221 (by
  * day). Upgrade 0.11.0 Task 19 re-measured it the same way at 256 (-3), as the 433's (the three stools; the assistants'
- * overlay 0): 259 - 3 = 256; the loop's other scenes are 232 (frame 0), 232 and 218 (by day). Every scene in the loop
- * must stay under 1.5 times this (384).
+ * overlay 0): 259 - 3 = 256; the loop's other scenes are 232 (frame 0), 232 and 218 (by day). Upgrade 0.12.0 Task 11
+ * re-measured it the same way at 237 (-19), as the 414's (the contract one drawImage at the rig editor's front hand,
+ * its 19 runs out of the fill log; the shadow 1 and the ! 4 stay): 256 - 19 = 237; the others keep 232, 232 and 218.
+ * Every scene in the loop must stay under 1.5 times this (355.5).
  */
-const VISIT_ART_BASELINE = 256
+const VISIT_ART_BASELINE = 237
 
 function paint(over: Partial<Snapshot> = {}, t = 0.3, frame = 100): FillCall[] {
   const { ctx, log } = fakeContext()
@@ -207,8 +212,11 @@ const PHONE_CROP: Box = [24, 296, 0, 179]
 /** The mangaka (the 32x48 rig) seated at the desk (down to the desk top's line, row 39), and standing beside it. */
 const SEATED: Box = [124, 155, 58, 97]
 const STANDING: Box = [170, 201, 81, 128]
-/** Where the editor stands on a visit (Task 2.3): the furniture keeps off it too. */
-const EDITOR_SPOT_BOX: Box = [198, 221, 85, 116]
+/**
+ * Where the editor stands on a visit: the rig editor's frame at (205, 90), its painted cols 0-30; col 31 is clear in
+ * every editor pose (rigPoses.test), so the loft's floor plant (x 236-248) clears it. The furniture keeps off it too.
+ */
+const EDITOR_SPOT_BOX: Box = [205, 235, 90, 137]
 const LAMP_GLOW = 'rgba(255,236,170,0.18)'
 const DOOR_LIGHT = '#f2d49b'
 
@@ -260,7 +268,7 @@ describe('the studio in the scene', () => {
     // the loop's worst scene, the editor visiting, has its own pin (VISIT_FULL_BASELINE), and the loop is held to 1.5
     // times that
     const budget = VISIT_FULL_BASELINE * 1.5
-    expect(budget).toBe(649.5)
+    expect(budget).toBe(621)
     let most = 0
     for (const [t, frame, visiting] of [[0.9, 100, 0], [0.9, 0, 0], [0.3, 100, 0], [0.9, 100, 1]]) {
       const log = paint(visiting ? { ...EVERYTHING, visitor: 'editor', visitorProp: 'contract' } : EVERYTHING, t, frame)
@@ -288,7 +296,7 @@ describe('the studio in the scene', () => {
     // the loop's worst scene, the editor visiting, has its own pin (VISIT_ART_BASELINE), and the loop is held to 1.5
     // times that
     const budget = VISIT_ART_BASELINE * 1.5
-    expect(budget).toBe(384)
+    expect(budget).toBe(355.5)
     let most = 0
     for (const [t, frame, visiting] of [[0.9, 100, 0], [0.9, 0, 0], [0.3, 100, 0], [0.9, 100, 1]]) {
       const { ctx, log, images } = fakeContext()

@@ -1,15 +1,16 @@
 // The cast driver: pure rules plus a table of tracks mutated in place, node environment. Assertions name animations
 // by id and poses through ANIMS, so they hold as each animation's art replaces its stand-in.
 import { describe, expect, it } from 'vitest'
-import { newActorTable } from '../actors'
+import { newActorTable, planActors, settleActors, stepActors } from '../actors'
 import { animLength } from '../animation'
 import {
-  IDLE_MOMENTS, PHASE_MS, baseAnimFor, headCentre, headTop, idlePool, newCastPlay, reactionAnim, resumeCast, settleCast,
-  stepCast, transitionFor,
+  EDITOR_SEAT, IDLE_MOMENTS, PHASE_MS, VERDICT_HOLD_SLACK_MS, baseAnimFor, headCentre, headTop, idlePool, newCastPlay, previewFits,
+  reactionAnim, resumeCast, settleCast, stepCast, transitionFor, verdictHoldMs,
 } from '../castPlay'
 import type { CastInput } from '../castPlay'
 import { nextIdle } from '../idleSchedule'
 import { ANIMS } from '../rig/anims'
+import { sceneSnapshot } from '../../../test/fakeCanvas'
 
 const input = (over: Partial<CastInput> = {}): CastInput => ({
   day: 12, working: true, late: false, ready: false, stamina: 100, assistants: [], reaction: null, preview: null, ...over,
@@ -29,19 +30,26 @@ describe('the driver\'s rules', () => {
     expect(baseAnimFor('assistant', 'seated', { ...c, late: true })).toBe('seat-draw')
     expect(baseAnimFor('assistant', 'sleeping', c)).toBe('doze')
     expect(baseAnimFor('assistant', 'hidden', c)).toBeNull()
+    expect(baseAnimFor('editor', 'standing', c)).toBe('editor-stand')
+    expect(baseAnimFor('editor', 'walking', c)).toBe('editor-walk')
+    for (const st of ['seated', 'sleeping', 'sitting', 'away', 'hidden'] as const) expect(baseAnimFor('editor', st, c), st).toBeNull()
   })
 
-  it('plays a transition between the states that have one', () => {
-    expect([transitionFor('walking', 'seated'), transitionFor('seated', 'walking'), transitionFor('walking', 'sleeping'), transitionFor('sleeping', 'walking')])
+  it('plays a transition between the states that have one, per character: the editor turns at the spot and at the door', () => {
+    expect([transitionFor('mangaka', 'walking', 'seated'), transitionFor('mangaka', 'seated', 'walking'), transitionFor('mangaka', 'walking', 'sleeping'), transitionFor('mangaka', 'sleeping', 'walking')])
       .toEqual(['sit-down', 'stand-up', 'lie-down', 'get-up'])
-    expect([transitionFor('standing', 'walking'), transitionFor('seated', 'sleeping')]).toEqual([null, null])
+    expect([transitionFor('mangaka', 'standing', 'walking'), transitionFor('mangaka', 'seated', 'sleeping')]).toEqual([null, null])
+    expect(transitionFor('assistant', 'walking', 'seated')).toBe('sit-down')
+    expect([transitionFor('editor', 'walking', 'standing'), transitionFor('editor', 'standing', 'walking')]).toEqual(['editor-arrive', 'editor-leave'])
+    expect([transitionFor('editor', 'walking', 'seated'), transitionFor('editor', 'standing', 'away')]).toEqual([null, null])
   })
 
   it('draws idle moments from the posture\'s pool, rubbing the eyes and sipping when tired', () => {
     expect(idlePool('stand', false)).toEqual(['stand-look', 'stand-sip'])
     expect(idlePool('seat-draw', false)).toEqual(['seat-stretch', 'seat-sip', 'seat-flip'])
     expect(idlePool('seat-idle', true)).toEqual(['seat-rub', 'seat-sip'])
-    for (const base of ['walk', 'sleep', 'doze', 'stand-ready', 'seat-draw-late'] as const) expect(idlePool(base, false)).toEqual([])
+    expect(idlePool('editor-stand', false)).toEqual(['editor-glasses', 'editor-watch', 'editor-glance'])
+    for (const base of ['walk', 'sleep', 'doze', 'stand-ready', 'seat-draw-late', 'editor-walk'] as const) expect(idlePool(base, false)).toEqual([])
   })
 
   it('maps each reaction to the character and its state (decision 7)', () => {
@@ -55,6 +63,11 @@ describe('the driver\'s rules', () => {
     expect(reactionAnim('good-poll', 'assistant', 'seated')).toBe('seat-cheer')
     expect(reactionAnim('level-up', 'assistant', 'seated')).toBeNull()
     expect(reactionAnim('good-poll', 'assistant', 'sleeping')).toBeNull()
+    expect(reactionAnim('offer', 'editor', 'standing')).toBe('editor-nod')
+    expect(reactionAnim('good-poll', 'editor', 'standing')).toBe('editor-nod')
+    expect(reactionAnim('bad-poll', 'editor', 'standing')).toBe('editor-sigh')
+    expect([reactionAnim('level-up', 'editor', 'standing'), reactionAnim('late', 'editor', 'standing'), reactionAnim('missed', 'editor', 'standing')]).toEqual([null, null, null])
+    expect([reactionAnim('offer', 'editor', 'walking'), reactionAnim('offer', 'mangaka', 'standing'), reactionAnim('offer', 'assistant', 'seated')]).toEqual([null, null, null])
   })
 
   it('puts the head\'s top 6 rows down seated and 8 in bed, its centre 16 columns in, in bed too (the actor stands on the lying head)', () => {
@@ -63,7 +76,13 @@ describe('the driver\'s rules', () => {
   })
 
   it('counts the idle pools\' animations as moments a reaction may cut short', () => {
-    expect([...IDLE_MOMENTS].sort()).toEqual(['seat-flip', 'seat-rub', 'seat-sip', 'seat-stretch', 'stand-look', 'stand-sip'])
+    expect([...IDLE_MOMENTS].sort()).toEqual(['editor-glance', 'editor-glasses', 'editor-watch', 'seat-flip', 'seat-rub', 'seat-sip', 'seat-stretch', 'stand-look', 'stand-sip'])
+  })
+
+  it('lets a dev preview play on its own character only: editor-* on the editor, everything else on everyone else', () => {
+    expect([previewFits('editor', ANIMS['editor-glasses']), previewFits('editor', ANIMS['stand-look'])]).toEqual([true, false])
+    expect([previewFits('mangaka', ANIMS['editor-glasses']), previewFits('assistant', ANIMS['seat-stretch'])]).toEqual([false, true])
+    expect(EDITOR_SEAT).toBe(4)
   })
 })
 
@@ -208,12 +227,13 @@ describe('stepCast', () => {
     const play = newCastPlay()
     t.mangaka.state = 'seated'
     t.assistants[0].state = 'seated'
+    t.editor.state = 'standing'
     const one = input({ assistants: [{ stamina: 80 }] })
     stepCast(play, t, one, 0, false)
-    const [m, a] = [play.mangaka.player, play.assistants[0].player]
+    const [m, a, e] = [play.mangaka.player, play.assistants[0].player, play.editor.player]
     // 24 fps up to just short of the shortest idle wait (6 s)
     for (let ms = 41; ms < 6000; ms += 41) stepCast(play, t, one, ms, false)
-    expect([play.mangaka.player === m, play.assistants[0].player === a]).toEqual([true, true])
+    expect([e !== null, play.mangaka.player === m, play.assistants[0].player === a, play.editor.player === e]).toEqual([true, true, true, true])
   })
 
   it('settles every track to its base from now, and resumes with everything played out', () => {
@@ -242,5 +262,145 @@ describe('stepCast', () => {
     const [a, b] = [play.assistants[0].player, play.assistants[1].player]
     expect([a?.over, b?.over, a?.baseAt, b?.baseAt]).toEqual([null, null, 900 - PHASE_MS, 900 - 2 * PHASE_MS])
     expect([play.mangaka.nextIdleAt, play.assistants[0].nextIdleAt, play.assistants[1].nextIdleAt]).toEqual([-1, -1, -1])
+  })
+
+  it('turns the editor at the spot on arriving and back toward the door on leaving, his loops at the fifth seat\'s phase', () => {
+    const t = newActorTable()
+    const play = newCastPlay()
+    t.editor.state = 'walking'
+    stepCast(play, t, input(), 1000, false)
+    expect([play.editor.player?.base.id, play.editor.player?.baseAt]).toEqual(['editor-walk', 1000 - EDITOR_SEAT * PHASE_MS])
+    t.editor.state = 'standing'
+    stepCast(play, t, input(), 1500, false)
+    const arrive = animLength(ANIMS['editor-arrive'])
+    expect([play.editor.player?.base.id, play.editor.player?.over?.anim.id, play.editor.player?.baseAt]).toEqual(['editor-stand', 'editor-arrive', 1500 + arrive])
+    expect(t.editor.pose).toBe(ANIMS['editor-arrive'].steps[0].pose)
+    stepCast(play, t, input(), 1500 + arrive, false)
+    expect([play.editor.player?.over, t.editor.pose]).toEqual([null, ANIMS['editor-stand'].steps[0].pose])
+    t.editor.state = 'walking'
+    stepCast(play, t, input(), 5000, false)
+    expect([play.editor.player?.base.id, play.editor.player?.over?.anim.id]).toEqual(['editor-walk', 'editor-leave'])
+    t.editor.state = 'away'
+    stepCast(play, t, input(), 7000, false)
+    expect([play.editor.player, t.editor.pose]).toEqual([null, ''])
+  })
+
+  it('fires the editor\'s first waiting moment after its seeded wait, from his own pool, at the fifth seat', () => {
+    const t = newActorTable()
+    const play = newCastPlay()
+    t.editor.state = 'standing'
+    stepCast(play, t, input(), 0, false)
+    // nextIdle(12, 4, 0) = { gapMs: 7617, pick: 58763 }: 58763 % 3 = 2, the pool's third
+    expect(play.editor.nextIdleAt).toBe(7617)
+    stepCast(play, t, input(), 7616, false)
+    expect(play.editor.player?.over).toBeNull()
+    stepCast(play, t, input(), 7617, false)
+    expect(play.editor.player?.over?.anim.id).toBe('editor-glance')
+    expect([play.editor.idleN, play.editor.nextIdleAt]).toEqual([1, 7617 + nextIdle(12, 4, 1).gapMs])
+    expect(nextIdle(12, 4, 1).gapMs).toBe(13451)
+  })
+
+  it('nods on an offer or a good poll and sighs on a bad poll, standing at the spot; the mangaka ignores the offer; walking, he drops it', () => {
+    const t = newActorTable()
+    const play = newCastPlay()
+    t.editor.state = 'standing'
+    t.mangaka.state = 'standing'
+    stepCast(play, t, input(), 0, false)
+    stepCast(play, t, input({ reaction: { id: 1, kind: 'offer' } }), 100, false)
+    expect([play.editor.player?.over?.anim.id, play.mangaka.player?.over, play.editor.cue, play.mangaka.cue]).toEqual(['editor-nod', null, 1, 1])
+    stepCast(play, t, input({ reaction: { id: 2, kind: 'bad-poll' } }), 100 + animLength(ANIMS['editor-nod']), false)
+    expect([play.editor.player?.over?.anim.id, play.mangaka.player?.over?.anim.id]).toEqual(['editor-sigh', 'stand-slump'])
+    const u = newActorTable()
+    const walking = newCastPlay()
+    u.editor.state = 'walking'
+    stepCast(walking, u, input(), 0, false)
+    stepCast(walking, u, input({ reaction: { id: 3, kind: 'offer' } }), 100, false)
+    expect([walking.editor.player?.over, walking.editor.cue]).toEqual([null, 3])
+  })
+
+  it('plays a dev preview on its own character only, and holds the editor\'s first step under reduced motion', () => {
+    const t = newActorTable()
+    const play = newCastPlay()
+    t.mangaka.state = 'standing'
+    t.editor.state = 'standing'
+    stepCast(play, t, input({ preview: 'editor-glasses' }), 0, false)
+    expect([play.editor.player?.over?.anim.id, play.mangaka.player?.over]).toEqual(['editor-glasses', null])
+    const u = newActorTable()
+    const other = newCastPlay()
+    u.mangaka.state = 'standing'
+    u.editor.state = 'standing'
+    stepCast(other, u, input({ preview: 'stand-look' }), 0, false)
+    expect([other.mangaka.player?.over?.anim.id, other.editor.player?.over]).toEqual(['stand-look', null])
+    const v = newActorTable()
+    const still = newCastPlay()
+    v.editor.state = 'walking'
+    stepCast(still, v, input(), 0, true)
+    v.editor.state = 'standing'
+    stepCast(still, v, input({ reaction: { id: 4, kind: 'offer' } }), 10, true)
+    expect([still.editor.player?.over, v.editor.pose, still.editor.cue]).toEqual([null, ANIMS['editor-stand'].steps[0].pose, 4])
+  })
+
+  it('settles the editor on his base from now and resumes him at the fifth seat\'s phase, his wait re-armed', () => {
+    const t = newActorTable()
+    const play = newCastPlay()
+    t.editor.state = 'standing'
+    settleCast(play, t, input(), 500)
+    expect([play.editor.player?.base.id, play.editor.player?.baseAt, t.editor.pose]).toEqual(['editor-stand', 500 - EDITOR_SEAT * PHASE_MS, ANIMS['editor-stand'].steps[0].pose])
+    stepCast(play, t, input({ preview: 'editor-watch' }), 600, false)
+    expect(play.editor.player?.over).not.toBeNull()
+    resumeCast(play, 900)
+    expect([play.editor.player?.over, play.editor.player?.baseAt, play.editor.nextIdleAt]).toEqual([null, 900 - EDITOR_SEAT * PHASE_MS, -1])
+  })
+
+  it('holds the editor for his verdict: the length of the nod or the sigh plus the slack, standing; nothing otherwise', () => {
+    const t = newActorTable()
+    t.editor.state = 'standing'
+    expect(verdictHoldMs('bad-poll', t.editor)).toBe(animLength(ANIMS['editor-sigh']) + VERDICT_HOLD_SLACK_MS)
+    expect(verdictHoldMs('good-poll', t.editor)).toBe(animLength(ANIMS['editor-nod']) + VERDICT_HOLD_SLACK_MS)
+    expect(verdictHoldMs('offer', t.editor)).toBe(animLength(ANIMS['editor-nod']) + VERDICT_HOLD_SLACK_MS)
+    expect([verdictHoldMs('level-up', t.editor), verdictHoldMs('late', t.editor), verdictHoldMs('missed', t.editor)]).toEqual([0, 0, 0])
+    t.editor.state = 'walking'
+    expect(verdictHoldMs('bad-poll', t.editor)).toBe(0)
+    expect(VERDICT_HOLD_SLACK_MS).toBe(50)
+  })
+
+  it('keeps the editor at the spot through his sigh when the dismissal sends him away, then lets him leave through the turn (the loop\'s real order)', () => {
+    const t = newActorTable()
+    planActors(t, sceneSnapshot({ visitor: 'editor', actors: t }))
+    settleActors(t)
+    const play = newCastPlay()
+    settleCast(play, t, input(), 0)
+    expect([t.editor.x, t.editor.y, t.editor.state]).toEqual([205, 90, 'standing'])
+    // the store change: the reaction subscription holds him first, then the plan effect sends him to the door
+    const cue = { id: 1, kind: 'bad-poll' } as const
+    const sigh = animLength(ANIMS['editor-sigh'])
+    const hold = sigh + VERDICT_HOLD_SLACK_MS
+    t.editor.holdMs = verdictHoldMs(cue.kind, t.editor)
+    planActors(t, sceneSnapshot({ visitor: 'none', actors: t }))
+    expect([t.editor.holdMs, t.editor.targetX, t.editor.targetY, t.editor.goal]).toEqual([hold, 250, 69, 'away'])
+    // the plan's literal timings, now the sigh is drawn (task 10): the sigh 300 + 900 ms, the hold 1200 + 50
+    expect([sigh, hold]).toEqual([1200, 1250])
+    // the loop: the actors walk (and the hold counts down), then the driver steps, 41 ms apart
+    let now = 0
+    let steps = 0
+    while (t.editor.state === 'standing' && steps < 60) {
+      stepActors(t, 41, false)
+      now += 41
+      stepCast(play, t, input({ reaction: cue }), now, false)
+      steps++
+      if (now <= 41 + sigh) {
+        // the sigh, taken on the first step at 41, plays out in place: he is at the spot with it over him
+        expect([t.editor.x, t.editor.y, play.editor.player?.over?.anim.id], `${now} ms`).toEqual([205, 90, 'editor-sigh'])
+      }
+    }
+    // the hold reaches 0 on the step whose 41 ms cover it, and he walks on the next, after the sigh (taken at 41) ended
+    const release = Math.ceil(hold / 41) + 1
+    expect([steps, now]).toEqual([release, release * 41])
+    expect(now).toBeGreaterThan(41 + sigh)
+    // by hand: 31 steps of 41 ms (1271) cover the 1250 ms hold, so he walks on the 32nd (1312), after the sigh taken
+    // on the first step ended at 41 + 1200 = 1241
+    expect([steps, now, 41 + sigh]).toEqual([32, 1312, 1241])
+    expect([t.editor.state, play.editor.player?.base.id, play.editor.player?.over?.anim.id]).toEqual(['walking', 'editor-walk', 'editor-leave'])
+    expect(t.editor.x).toBeGreaterThan(205)
   })
 })

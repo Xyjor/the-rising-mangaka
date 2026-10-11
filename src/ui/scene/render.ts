@@ -10,10 +10,11 @@ import { baseAnimFor } from './castPlay'
 import type { CastContext, CastWho } from './castPlay'
 import type { ReactionCue } from './reactions'
 import { ANIMS } from './rig/anims'
-import { rigFrame } from './rig/frames'
+import { frontHand, rigFrame } from './rig/frames'
 import { POSES } from './rig/poses'
+import { VISIT_PROPS } from './rig/props'
 import type { PoseDef, PoseId } from './rig/poses'
-import { PROP_CONTRACT, PROP_ENVELOPE, PROP_LETTER, PROP_PAL, PROP_TROPHY, drawSprite } from './sprites'
+import { drawSprite } from './sprites'
 import { OLD_CAST } from './oldCast'
 import { drawCast, drawCastTop, getCastCache, lookPalette, outfitPalette } from './spriteCache'
 import type { CastFrame, PaletteId, SpriteCache } from './spriteCache'
@@ -112,19 +113,6 @@ function moodFor(editorHere: boolean, cheer: boolean, stamina: number, lateNight
 
 const PROP_PAPER = '#fdfcf7'
 const PROP_LINE = '#b8b2a5'
-
-/** What the standing editor holds in the leading hand (row 22: the envelope at y + 20, the others at y + 18; sprites in
- * PROP_PAL), and the ! bobbing above them. */
-function drawVisitorProp(ctx: CanvasRenderingContext2D, prop: Snapshot['visitorProp'], x: number, y: number, frame: number) {
-  switch (prop) {
-    case 'envelope': drawSprite(ctx, PROP_ENVELOPE, x - 2, y + 20, 4, PROP_PAL); break
-    case 'letter': drawSprite(ctx, PROP_LETTER, x - 2, y + 18, 6, PROP_PAL); break
-    case 'contract': drawSprite(ctx, PROP_CONTRACT, x - 2, y + 18, 7, PROP_PAL); break
-    case 'trophy': drawSprite(ctx, PROP_TROPHY, x - 2, y + 18, 6, PROP_PAL); break
-    case 'none': return
-  }
-  glyph(ctx, '!', x + 11, y - 8 - (Math.floor(frame / 16) % 2), '#e5484d')
-}
 
 /** The scene is drawing: at the desk, with the clock running (render's `working`, shared with the cast driver). */
 export function workingOf(s: Snapshot): boolean {
@@ -227,6 +215,25 @@ function drawMangaka(
   if ((a.y >= 75) !== front) return
   const pose = poseOf(a, 'mangaka', s, working)
   if (pose) drawRigMangaka(ctx, cast, s, a, pose, frame, working, night)
+}
+
+/**
+ * The rig editor (0.12.0): the pose the cast driver set (or his base loop's first step), one drawImage of its neutral
+ * frame in the editor's palette, mirrored facing right, over a 20 px contact shadow; standing at the spot facing the
+ * desk with something to deliver, the visit's prop (rig/props.ts) at the pose's front hand (its hand cell on the
+ * hand's), drawn after the body, and the ! bobbing in the rig's mark slot.
+ */
+function drawRigEditor(ctx: CanvasRenderingContext2D, cast: SpriteCache, s: Snapshot, editor: Actor, frame: number, working: boolean) {
+  const pose = poseOf(editor, 'editor', s, working)
+  if (!pose) return
+  shadow(ctx, editor.x + 6, editor.y + 46, 20)
+  drawCast(ctx, cast, rigFrame(pose, 'neutral', false), 'editor', editor.x, editor.y, editor.facing === 1)
+  if (s.visitor !== 'editor' || editor.state !== 'standing' || editor.facing !== -1 || s.visitorProp === 'none') return
+  const hand = frontHand(pose)
+  const p = VISIT_PROPS[s.visitorProp]
+  const held = p.anchors.hand
+  if (hand && held) drawCast(ctx, cast, p.frame, 'editor', editor.x + hand.x - held.x, editor.y + hand.y - held.y, false)
+  glyph(ctx, '!', editor.x + RIG_MARK_X, editor.y - (Math.floor(frame / 16) % 2), '#e5484d')
 }
 
 // ---------- the props (each a generated sprite when one is ready, else these fills) ----------
@@ -471,7 +478,7 @@ export interface Snapshot extends StoryLook {
   trophies: number
   /** Who is visiting the studio (the editor walks in from the door). */
   visitor: 'none' | 'editor'
-  /** What the visitor carries (painted from Task 2.4). */
+  /** What the visitor carries (rig/props.ts, at the front hand). */
   visitorProp: 'none' | 'envelope' | 'letter' | 'contract' | 'trophy'
   /** The running serial's chapter cannot make its deadline (the seated mangaka panics now and then). */
   late: boolean
@@ -624,11 +631,7 @@ export function render(
     drawCast(ctx, cast, catCast, 'pal', cat.x, cat.y, catFlip)
   }
   const editor = s.actors.editor
-  const editorFlip = editor.facing === 1
-  if (editor.state !== 'hidden' && editor.state !== 'away') shadow(ctx, editor.x + 4, editor.y + 30, 16)
-  if (editor.state === 'walking') drawCast(ctx, cast, OLD_CAST.editorWalk[Math.floor(editor.anim / 100) % 4], 'pal', editor.x, editor.y, editorFlip)
-  else if (editor.state !== 'hidden' && editor.state !== 'away') drawCast(ctx, cast, OLD_CAST.editorIdle[Math.floor(frame / 16) % 2], 'pal', editor.x, editor.y, editorFlip)
-  if (s.visitor === 'editor' && editor.state === 'standing' && editor.facing === -1) drawVisitorProp(ctx, s.visitorProp, editor.x, editor.y, frame)
+  if (editor.state !== 'hidden' && editor.state !== 'away') drawRigEditor(ctx, cast, s, editor, frame, working)
 
   // the front row, in front of everyone
   TIER_FRONT[s.tier](ctx, s, frame, night, art)

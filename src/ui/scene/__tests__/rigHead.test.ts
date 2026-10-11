@@ -1,7 +1,8 @@
 // The rig's head (0.11.0): pure data and its rules, node environment.
 import { describe, expect, it } from 'vitest'
 import { headRules, stampFace } from '../rig/assemble'
-import { FACE_ART, FACE_BY_MOOD, HEAD, NEUTRAL_FACE, headWith } from '../rig/head'
+import { EDITOR_EYES, EDITOR_FACE_ART, EDITOR_HEAD, EYES, FACE_ART, FACE_BY_MOOD, HEAD, NEUTRAL_FACE, headWith } from '../rig/head'
+import { PARTS } from '../rig/parts'
 import { FACE_KEYS, MARK_KEYS, PAL, frameRules } from '../spriteCore'
 import type { EyesId, MouthId } from '../rig/types'
 
@@ -9,6 +10,13 @@ const EYE_IDS: EyesId[] = ['open', 'blink', 'closed', 'ring', 'squint', 'happy']
 const MOUTH_IDS: MouthId[] = ['closed', 'open', 'smile', 'frown', 'o']
 
 describe('the rig head', () => {
+  it('reports a slot that lies outside the head map, and nothing else for it', () => {
+    const wide = { ...HEAD, slots: { ...HEAD.slots, mark: { x: 25, y: 0, w: 3, h: 5 } } }
+    expect(headRules(wide, FACE_ART)).toEqual(['mark slot 25,0 3x5 lies outside the 27x22 head'])
+    const low = { ...HEAD, slots: { ...HEAD.slots, mouth: { x: 10, y: 21, w: 4, h: 2 } } }
+    expect(headRules(low, FACE_ART)).toEqual(['mouth slot 10,21 4x2 lies outside the 27x22 head'])
+  })
+
   it('is 27 wide and 22 tall, its outline closed, its slots where the face and the mark go', () => {
     expect(HEAD.map).toHaveLength(22)
     expect(HEAD.map.every((row) => row.length === 27)).toBe(true)
@@ -78,5 +86,70 @@ describe('the rig head', () => {
   it('adds the mark keys to PAL in the 0.10 marks\' colours, and W\'s shade for paper', () => {
     expect([PAL.A, PAL.X, PAL.w]).toEqual(['#8fd3ff', '#f5b700', '#b8b2a5'])
     expect([FACE_KEYS, MARK_KEYS]).toEqual(['SsEWMBL', 'LWAX'])
+  })
+})
+
+describe('the editor\'s head (0.12.0, task 3)', () => {
+  const RIMS = [0, 6, 9, 15]
+
+  it('is a 27x22 head with HEAD\'s slots and neck, its outline closed, the mark slot clear, in PARTS as editor-head', () => {
+    expect(EDITOR_HEAD.map).toHaveLength(22)
+    expect(EDITOR_HEAD.map.every((row) => row.length === 27)).toBe(true)
+    expect(frameRules(EDITOR_HEAD.map, 27, 22)).toEqual([])
+    expect(EDITOR_HEAD.slots).toEqual(HEAD.slots)
+    expect(EDITOR_HEAD.anchors).toEqual({ neck: { x: 12, y: 21 } })
+    for (const row of EDITOR_HEAD.map) expect(row.slice(24)).toBe('...')
+    expect(PARTS['editor-head']).toBe(EDITOR_HEAD)
+    expect(EDITOR_HEAD.map).not.toEqual(HEAD.map)
+  })
+
+  it('passes the head rules with its own eyes: the slot holds the editor\'s open eyes, the closed mouth', () => {
+    expect(headRules(EDITOR_HEAD, EDITOR_FACE_ART)).toEqual([])
+    expect(EDITOR_FACE_ART).toEqual({ eyes: EDITOR_EYES, mouths: FACE_ART.mouths, marks: FACE_ART.marks })
+    expect(stampFace(EDITOR_HEAD, EDITOR_FACE_ART, NEUTRAL_FACE)).toEqual(EDITOR_HEAD.map)
+  })
+
+  it('wears square glasses: the top and bottom edges on rows 9 and 14 either side of the bridge, the rims in every eyes drawing', () => {
+    for (const r of [9, 14]) {
+      expect(EDITOR_HEAD.map[r].slice(4, 11), `row ${r}`).toBe('LLLLLLL')
+      expect(EDITOR_HEAD.map[r].slice(13, 20), `row ${r}`).toBe('LLLLLLL')
+      expect(EDITOR_HEAD.map[r].slice(11, 13), `row ${r} between the lenses`).toBe('SS')
+    }
+    for (const id of EYE_IDS) {
+      const eyes = EDITOR_EYES[id]
+      eyes.forEach((row, r) => {
+        expect(row).toHaveLength(16)
+        for (const c of RIMS) expect(row[c], `${id} row ${r} col ${c}`).toBe('L')
+        expect(row.slice(7, 9), `${id} row ${r} bridge`).toBe(r === 1 ? 'LL' : 'SS')
+        // inside each lens the mangaka's drawing of the same id, but for open and squint, drawn for the lens
+        if (id === 'open' || id === 'squint') return
+        expect(row.slice(1, 6), `${id} row ${r} left lens`).toBe(EYES[id][r].slice(1, 6))
+        expect(row.slice(10, 15), `${id} row ${r} right lens`).toBe(EYES[id][r].slice(10, 15))
+      })
+    }
+    expect(EDITOR_EYES.open).toEqual(['LSSSSSLSSLSSSSSL', 'LSWESSLLLLSSWESL', 'LSEESSLSSLSSEESL', 'LSSSSSLSSLSSSSSL'])
+    expect(new Set(EYE_IDS.map((id) => EDITOR_EYES[id].join('/'))).size).toBe(6)
+  })
+
+  it('keeps the open and squint eyes clear of the glasses: skin beside every rim and on the top and bottom rows of each lens', () => {
+    for (const id of ['open', 'squint'] as const) {
+      EDITOR_EYES[id].forEach((row, r) => {
+        for (const c of [1, 5, 10, 14]) expect(row[c], `${id} row ${r} col ${c}`).toBe('S')
+        if (r === 0 || r === 3) expect(row, `${id} row ${r}`).toBe('LSSSSSLSSLSSSSSL')
+      })
+    }
+  })
+
+  it('parts the hair and keeps the forehead clear of it: hair on rows 1-8 only, a parting of shade down the crown', () => {
+    for (let r = 9; r < 22; r++) expect(EDITOR_HEAD.map[r].slice(4, 20), `row ${r}`).not.toMatch(/[Hh]/)
+    for (let r = 2; r <= 7; r++) expect(EDITOR_HEAD.map[r][10], `row ${r} parting`).toBe('h')
+    expect(EDITOR_HEAD.map.slice(1, 9).join('')).toContain('H')
+  })
+
+  it('stamps a face into the editor\'s head through headWith', () => {
+    expect(headWith(NEUTRAL_FACE, EDITOR_HEAD, EDITOR_FACE_ART)).toEqual(EDITOR_HEAD.map)
+    const blink = headWith({ eyes: 'blink', mouth: 'closed', mark: 'none' }, EDITOR_HEAD, EDITOR_FACE_ART)
+    expect(blink.slice(10, 14).map((row) => row.slice(4, 20))).toEqual(EDITOR_EYES.blink)
+    expect(headWith(NEUTRAL_FACE)).toEqual(HEAD.map)
   })
 })

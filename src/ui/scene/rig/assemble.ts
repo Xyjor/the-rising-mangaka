@@ -154,7 +154,8 @@ export function poseRules(
 }
 
 /**
- * What is wrong with the head and its face drawings, [] when nothing: the eye and mouth slots hold only face keys and
+ * What is wrong with the head and its face drawings, [] when nothing: every slot lies inside the head map (said first,
+ * alone); the eye and mouth slots hold only face keys and
  * already hold the open eyes and the closed mouth (the bare head is neutral); the mark slot is clear; every eyes and
  * mouth drawing fills its slot (its size, face keys only, no '.'); every mark is the mark slot's size in mark keys.
  */
@@ -162,6 +163,13 @@ export function headRules(head: HeadPart, art: FaceArt): string[] {
   const out: string[] = []
   const window = (s: Slot) => head.map.slice(s.y, s.y + s.h).map((row) => row.slice(s.x, s.x + s.w))
   const { eyes, mouth, mark } = head.slots
+  const w = head.map[0]?.length ?? 0
+  for (const [name, s] of [['eye', eyes], ['mouth', mouth], ['mark', mark]] as const) {
+    if (s.x < 0 || s.y < 0 || s.x + s.w > w || s.y + s.h > head.map.length) {
+      out.push(`${name} slot ${s.x},${s.y} ${s.w}x${s.h} lies outside the ${w}x${head.map.length} head`)
+    }
+  }
+  if (out.length) return out
   for (const [name, s] of [['eye', eyes], ['mouth', mouth]] as const) {
     window(s).forEach((row, r) => {
       for (let c = 0; c < row.length; c++) if (!FACE_KEYS.includes(row[c])) out.push(`${name} slot row ${s.y + r} col ${s.x + c} is ${row[c]}, not a face key`)

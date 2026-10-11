@@ -7,10 +7,17 @@ import {
 } from './keyFrames'
 import type { PartPose, Place, Pose } from './types'
 
+/**
+ * The walk's eight steps in order, contact, down, pass and up on each leg: one list the mangaka's walk poses and the
+ * editor's are both named from (`walk.<step>`, `editor.walk-<step>`), and `ANIMS` maps into both walk loops.
+ */
+export const WALK_PHASES = ['contact-l', 'down-l', 'pass-l', 'up-l', 'contact-r', 'down-r', 'pass-r', 'up-r'] as const
+export type WalkPhase = (typeof WALK_PHASES)[number]
+
 export type PoseId =
   | 'stand.idle' | 'stand.breath' | 'stand.blink'
   | 'ready.idle' | 'ready.breath' | 'ready.blink'
-  | 'walk.contact-l' | 'walk.down-l' | 'walk.pass-l' | 'walk.up-l' | 'walk.contact-r' | 'walk.down-r' | 'walk.pass-r' | 'walk.up-r'
+  | `walk.${WalkPhase}`
   | 'seat.rest' | 'seat.breath' | 'seat.blink' | 'seat.draw-a' | 'seat.draw-b' | 'seat.draw-c' | 'seat.half'
   | 'bed.lie-0' | 'bed.lie-1' | 'bed.sit'
   | 'stand.look-l' | 'stand.look-r' | 'stand.sip-raise' | 'stand.sip'
@@ -19,6 +26,10 @@ export type PoseId =
   | 'key.panic-0' | 'key.panic-1' | 'key.cheer-stand-0' | 'key.cheer-stand-1' | 'key.cheer-seat-0' | 'key.cheer-seat-1'
   | 'key.slump-stand-0' | 'key.slump-stand-1' | 'key.slump-seat-0' | 'key.slump-seat-1' | 'key.tear-0' | 'key.tear-1' | 'key.tear-2'
   | 'key.doze-0' | 'key.doze-1'
+  | 'editor.stand' | 'editor.breath' | 'editor.blink'
+  | `editor.walk-${WalkPhase}` | 'editor.turn' | 'editor.turn-back'
+  | 'editor.raise' | 'editor.glasses' | 'editor.watch' | 'editor.glance'
+  | 'editor.nod' | 'editor.sigh-a' | 'editor.sigh-b'
 
 export interface PoseDef { readonly pose: Pose; readonly at: 'actor' | 'seat' | 'bed' }
 
@@ -34,6 +45,25 @@ function stand(over: Over = {}): PartPose {
     armBack: { part: 'arm-r-hang' }, armFront: { part: 'arm-l-hang' },
     legBack: { part: 'leg-r-stand' }, legFront: { part: 'leg-l-stand' }, ...over,
   }
+}
+
+const EDITOR_HEAD_PLACE: Place = { part: 'editor-head' }
+
+/** The editor standing (0.12.0): the suit torso at (7, 21) under his own head, the near sleeve hanging, the far one holding the case, the mangaka's legs (recoloured by EDITOR_PAL). */
+function editorStand(over: Over = {}): PartPose {
+  return {
+    kind: 'parts', w: W, h: H, torso: { part: 'editor-torso', x: 7, y: 21 }, head: EDITOR_HEAD_PLACE,
+    armBack: { part: 'arm-r-suit-case' }, armFront: { part: 'arm-l-suit-hang' },
+    legBack: { part: 'leg-r-stand' }, legFront: { part: 'leg-l-stand' }, ...over,
+  }
+}
+
+/** An editor walk step: the standing suit body with the torso `bob` rows lower, the given legs (the mangaka's) and sleeves (the case ones on the far arm). */
+function editorWalk(bob: 0 | 1, legFront: string, legBack: string, armFront: string, armBack: string): PartPose {
+  return editorStand({
+    torso: { part: 'editor-torso', x: 7, y: 21 + bob },
+    legFront: { part: legFront }, legBack: { part: legBack }, armFront: { part: armFront }, armBack: { part: armBack },
+  })
 }
 
 /** The ready stance's near arm and the manuscript it holds at the chest, over the standing body. */
@@ -121,4 +151,48 @@ export const POSES: Readonly<Record<PoseId, PoseDef>> = {
   // the assistants' doze at the row's desk, the head down on the folded arms, and its breath
   'key.doze-0': { pose: { kind: 'key', map: DOZE_0 }, at: 'actor' },
   'key.doze-1': { pose: { kind: 'key', map: DOZE_1 }, at: 'actor' },
+  // the editor (0.12.0), every pose at the actor: standing with the case, his breath, his blink behind the lenses
+  'editor.stand': { pose: editorStand(), at: 'actor' },
+  'editor.breath': { pose: editorStand({ head: { part: 'editor-head', dy: 1 } }), at: 'actor' },
+  'editor.blink': { pose: editorStand({ face: { eyes: 'blink' } }), at: 'actor' },
+  // his walk (task 8): the mangaka's legs and bob, the suit sleeves swinging against them, the case with the far hand
+  'editor.walk-contact-l': { pose: editorWalk(0, 'leg-l-step', 'leg-r-stand', 'arm-l-suit-swing-back', 'arm-r-suit-case-fwd'), at: 'actor' },
+  'editor.walk-down-l': { pose: editorWalk(1, 'leg-l-step-bend', 'leg-r-plant-bend', 'arm-l-suit-swing-back', 'arm-r-suit-case-fwd'), at: 'actor' },
+  'editor.walk-pass-l': { pose: editorWalk(0, 'leg-l-stand', 'leg-r-lift', 'arm-l-suit-hang', 'arm-r-suit-case'), at: 'actor' },
+  'editor.walk-up-l': { pose: editorWalk(0, 'leg-l-stand', 'leg-r-reach', 'arm-l-suit-hang', 'arm-r-suit-case'), at: 'actor' },
+  'editor.walk-contact-r': { pose: editorWalk(0, 'leg-l-stand', 'leg-r-step', 'arm-l-suit-swing-fwd', 'arm-r-suit-case-back'), at: 'actor' },
+  'editor.walk-down-r': { pose: editorWalk(1, 'leg-l-plant-bend', 'leg-r-step-bend', 'arm-l-suit-swing-fwd', 'arm-r-suit-case-back'), at: 'actor' },
+  'editor.walk-pass-r': { pose: editorWalk(0, 'leg-l-lift', 'leg-r-stand', 'arm-l-suit-hang', 'arm-r-suit-case'), at: 'actor' },
+  'editor.walk-up-r': { pose: editorWalk(0, 'leg-l-reach', 'leg-r-stand', 'arm-l-suit-hang', 'arm-r-suit-case'), at: 'actor' },
+  // the turns at the spot: the head a column toward the desk with the near arm still swung back from the last step
+  // arriving; a column toward the door, the arm swung forward, leaving
+  'editor.turn': { pose: editorStand({ head: { part: 'editor-head', dx: -1 }, armFront: { part: 'arm-l-suit-swing-back' } }), at: 'actor' },
+  'editor.turn-back': { pose: editorStand({ head: { part: 'editor-head', dx: 1 }, armFront: { part: 'arm-l-suit-swing-fwd' } }), at: 'actor' },
+  // the waiting moments: the near hand raised to the chin, at the glasses (the eyes blinking behind it), the watch
+  // checked with the head bowed a row and the eyes squinting down at the wrist (task 10), a glance toward the desk
+  'editor.raise': { pose: editorStand({ armFront: { part: 'arm-l-suit-raise' } }), at: 'actor' },
+  'editor.glasses': { pose: editorStand({ armFront: { part: 'arm-l-suit-glasses' }, face: { eyes: 'blink' } }), at: 'actor' },
+  'editor.watch': {
+    pose: editorStand({ armFront: { part: 'arm-l-suit-watch' }, head: { part: 'editor-head', dy: 1 }, face: { eyes: 'squint' } }),
+    at: 'actor',
+  },
+  'editor.glance': { pose: editorStand({ head: { part: 'editor-head', dx: -1 } }), at: 'actor' },
+  // the verdicts (part poses, the 0.12.0 plan's decision 5): the nod, the head two rows down into the collar; the
+  // sigh, the torso a row then two lower with the legs nudged up by as much (the feet on row 47, the torso over their
+  // tops), the eyes closed, the mouth down
+  'editor.nod': { pose: editorStand({ head: { part: 'editor-head', dy: 2 } }), at: 'actor' },
+  'editor.sigh-a': {
+    pose: editorStand({
+      torso: { part: 'editor-torso', x: 7, y: 22 }, legBack: { part: 'leg-r-stand', dy: -1 }, legFront: { part: 'leg-l-stand', dy: -1 },
+      face: { eyes: 'closed', mouth: 'frown' },
+    }),
+    at: 'actor',
+  },
+  'editor.sigh-b': {
+    pose: editorStand({
+      torso: { part: 'editor-torso', x: 7, y: 23 }, legBack: { part: 'leg-r-stand', dy: -2 }, legFront: { part: 'leg-l-stand', dy: -2 },
+      face: { eyes: 'closed', mouth: 'frown' },
+    }),
+    at: 'actor',
+  },
 }

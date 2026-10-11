@@ -27,9 +27,14 @@ export interface Actor {
   anim: number
   /**
    * The rig pose showing now (castPlay.ts sets it each step); '' for an actor the driver has not posed (render then
-   * draws its base loop's first step) or that draws its 0.10 frames (the editor and the cat).
+   * draws its base loop's first step) or that draws its 0.10 frames (the cat, until 0.13.0).
    */
   pose: PoseId | ''
+  /**
+   * Milliseconds the actor stays put in its state whatever its target (a verdict playing, the 0.12.0 plan's decision
+   * 14): stepActors counts it down; 0 when free. Presentation only.
+   */
+  holdMs: number
 }
 
 export interface ActorTable { mangaka: Actor; assistants: readonly [Actor, Actor, Actor]; editor: Actor; cat: Actor }
@@ -41,21 +46,24 @@ export interface Spot { readonly x: number; readonly y: number }
  * actors.test): the seat (the waist, row 40, on the desk top y 98; the head under the corkboard; clear of the arm
  * lamp), the standing spot (the feet on row 47 at y 128), the bed (where the actor walks to and lies: its standing head,
  * cols 4-27 and rows 0-21, sits on the bed frames' lying and sitting-up head, so walking into or out of bed the head never
- * jumps; the frames themselves are drawn at `MANGAKA_BED_FRAME`) and its own door (the feet on the editor's door floor
- * line, y 116).
+ * jumps; the frames themselves are drawn at `MANGAKA_BED_FRAME`); its door is everyone's, `DOOR_SPOT`.
  */
 export const MANGAKA_SEAT: Spot = { x: 124, y: 58 }
 export const MANGAKA_STAND: Spot = { x: 170, y: 81 }
 export const MANGAKA_BED: Spot = { x: 220, y: 90 }
-export const MANGAKA_DOOR: Spot = { x: 250, y: 69 }
 /**
  * The bed key frames' origin (48x32, drawn here whatever the actor's position): the lying head at cols 23-46 (x
  * 224-247) over the pillow (x 232-245). The actor's bed spot is 19 px right of it, so its standing head sits on the
  * lying head.
  */
 export const MANGAKA_BED_FRAME: Spot = { x: 201, y: 90 }
-export const DOOR_SPOT: Spot = { x: 254, y: 85 }
-export const EDITOR_SPOT: Spot = { x: 198, y: 85 }
+/**
+ * The door, everyone's: the feet on the door's floor line, y 116, centred on the door; the mangaka's since 0.11.0, the
+ * editor's since 0.12.0.
+ */
+export const DOOR_SPOT: Spot = { x: 250, y: 69 }
+/** The editor's spot for the 32x48 rig (0.12.0): in front of the bed, his feet on the floor (y 137), facing the desk. */
+export const EDITOR_SPOT: Spot = { x: 205, y: 90 }
 /** The cat's bed on the blanket: clear of the standing frame at the stand (to x 201) and of the lying head (from x 224). */
 export const CAT_BED: Spot = { x: 202, y: 118 }
 export const CAT_KITCHEN: Spot = { x: 44, y: 150 }
@@ -66,8 +74,8 @@ export const CAT_KITCHEN: Spot = { x: 44, y: 150 }
  */
 export const ASSISTANT_SEAT_Y = 80
 export const ASSISTANT_SEAT_X: readonly number[] = [21, 55, 89]
-/** The editor's walk from the door to their spot: 56 + 0 px at 40 px/s, 1400 ms. */
-export const EDITOR_WALK_MS = ((DOOR_SPOT.x - EDITOR_SPOT.x) + (DOOR_SPOT.y - EDITOR_SPOT.y)) / WALK_PX_PER_S * 1000
+/** The editor's walk from the door to his spot: 45 + 21 px at 40 px/s, 1650 ms. */
+export const EDITOR_WALK_MS = (Math.abs(DOOR_SPOT.x - EDITOR_SPOT.x) + Math.abs(DOOR_SPOT.y - EDITOR_SPOT.y)) / WALK_PX_PER_S * 1000
 
 /** What the plan reads from the scene's snapshot. */
 export interface ActorPlanInput {
@@ -82,7 +90,7 @@ export interface ActorPlanInput {
 function newActor(): Actor {
   return {
     x: DOOR_SPOT.x, y: DOOR_SPOT.y, targetX: DOOR_SPOT.x, targetY: DOOR_SPOT.y,
-    facing: -1, state: 'hidden', goal: 'hidden', legs: 'xy', anim: 0, pose: '',
+    facing: -1, state: 'hidden', goal: 'hidden', legs: 'xy', anim: 0, pose: '', holdMs: 0,
   }
 }
 
@@ -113,10 +121,10 @@ export function planActors(table: ActorTable, snap: ActorPlanInput): void {
   const resting = !absent && !busy && snap.phase !== 'idle' && snap.phase !== 'ready'
 
   const m = table.mangaka
-  if (busy) send(m, MANGAKA_SEAT, 'seated', MANGAKA_DOOR)
-  else if (resting) send(m, MANGAKA_BED, 'sleeping', MANGAKA_DOOR)
-  else if (absent) send(m, MANGAKA_DOOR, 'away', MANGAKA_DOOR)
-  else send(m, MANGAKA_STAND, 'standing', MANGAKA_DOOR)
+  if (busy) send(m, MANGAKA_SEAT, 'seated')
+  else if (resting) send(m, MANGAKA_BED, 'sleeping')
+  else if (absent) send(m, DOOR_SPOT, 'away')
+  else send(m, MANGAKA_STAND, 'standing')
 
   const n = Math.min(3, snap.assistants.length)
   for (let i = 0; i < 3; i++) {
@@ -128,9 +136,10 @@ export function planActors(table: ActorTable, snap: ActorPlanInput): void {
   }
 
   const e = table.editor
-  if (snap.visitor !== 'none') send(e, EDITOR_SPOT, 'standing')
+  // in: down from the door, then along the floor (y first), so the frame crosses the bed in front of it; out: the way back
+  if (snap.visitor !== 'none') { send(e, EDITOR_SPOT, 'standing'); e.legs = 'yx' }
   // once the editor has been in, they leave through the door; before that they stay hidden
-  else if (e.goal !== 'hidden') send(e, DOOR_SPOT, 'away')
+  else if (e.goal !== 'hidden') { send(e, DOOR_SPOT, 'away'); e.legs = 'xy' }
 
   const c = table.cat
   if (resting) { send(c, CAT_KITCHEN, 'sitting'); c.legs = 'yx' }
@@ -138,6 +147,11 @@ export function planActors(table: ActorTable, snap: ActorPlanInput): void {
 }
 
 function stepActor(a: Actor, dtMs: number, reduced: boolean) {
+  // held: where it is, in its state, the hold counting down; reduced motion (which snaps) clears it instead
+  if (a.holdMs > 0) {
+    if (!reduced) { a.holdMs = Math.max(0, a.holdMs - dtMs); a.anim = 0; return }
+    a.holdMs = 0
+  }
   if (a.x === a.targetX && a.y === a.targetY) { a.state = a.goal; a.anim = 0; return }
   if (reduced) { a.x = a.targetX; a.y = a.targetY; a.state = a.goal; a.anim = 0; return }
   let budget = dtMs * WALK_PX_PER_S / 1000
@@ -165,7 +179,7 @@ export function stepActors(table: ActorTable, dtMs: number, reduced: boolean): v
   stepActor(table.cat, dtMs, reduced)
 }
 
-function settle(a: Actor) { a.x = a.targetX; a.y = a.targetY; a.state = a.goal; a.anim = 0 }
+function settle(a: Actor) { a.x = a.targetX; a.y = a.targetY; a.state = a.goal; a.anim = 0; a.holdMs = 0 }
 
 /** Everyone in place at once: nobody walks in on a mount or a loaded save. */
 export function settleActors(table: ActorTable): void {

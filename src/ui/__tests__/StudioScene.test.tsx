@@ -14,6 +14,9 @@ import type { GameState } from '../../sim'
 import { useClock } from '../../state/clock'
 import { useStore } from '../../state/store'
 import { StudioScene } from '../scene/StudioScene'
+import { animLength } from '../scene/animation'
+import { VERDICT_HOLD_SLACK_MS } from '../scene/castPlay'
+import { ANIMS } from '../scene/rig/anims'
 import { createSpriteCache, installCastCache } from '../scene/spriteCache'
 
 const PETAL = '#f7b6c8'
@@ -145,7 +148,7 @@ describe('StudioScene', () => {
 
   describe('the editor visits', () => {
     let sound: FakeSound
-    const editorHere = () => fake.images.some((i) => i.id.startsWith('cast/editor.') && i.x === 198 && i.y === 85)
+    const editorHere = () => fake.images.some((i) => i.id.startsWith('cast/editor.') && i.x === 205 && i.y === 90)
     beforeEach(() => { sound = createFakeSound(); installSound(sound) })
     afterEach(() => { installSound(nullEngine) })
 
@@ -159,6 +162,49 @@ describe('StudioScene', () => {
       expect(editorHere()).toBe(true)
       act(() => useStore.setState({ game: { ...pending, day: pending.day } }))
       expect(sound.plays).toEqual(['knock'])
+    })
+
+    it('draws the editor from the rig at the spot with the envelope, knocking once', () => {
+      render(<StudioScene running={false} />)
+      act(() => useStore.setState({ game: withPendingResult() }))
+      expect(sound.plays).toEqual(['knock'])
+      expect(fake.images.some((i) => i.id.startsWith('cast/editor.stand') && i.x === 205 && i.y === 90)).toBe(true)
+      expect(fake.images.some((i) => i.id === 'cast/prop.envelope/editor')).toBe(true)
+    })
+
+    it('sighs at a bad result when it is dismissed, staying at the spot while it plays (the hold, decision 14)', () => {
+      restoreMotion()
+      restoreMotion = stubReducedMotion(false)
+      vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame', 'performance'] })
+      // the editor's frames are his (the cat's and the props' are not); where each was drawn
+      const editorAt = () => fake.images.filter((i) => i.id.startsWith('cast/editor.')).map((i) => [i.x, i.y])
+      // the editor's frame ids drawn (`cast/<frame id>/<palette>`): the pose and its face
+      const drawnPoses = () => fake.images.filter((i) => i.id.startsWith('cast/editor.')).map((i) => i.id.split('/')[1])
+      const sigh = animLength(ANIMS['editor-sigh'])
+      try {
+        const pending = withPendingResult()
+        // rank 9 of 12: the bottom third (9 x 3 > 12 x 2), the corkboard's 'low'
+        const bad: GameState = { ...pending, pendingResult: { ...pending.pendingResult!, rank: 9, entrants: 12 } }
+        useStore.setState({ game: bad })
+        render(<StudioScene running={false} />)
+        vi.advanceTimersByTime(3000) // the editor walks in; everyone settles
+        fake.images.length = 0
+        act(() => useStore.setState({ game: { ...bad, pendingResult: null } }))
+        vi.advanceTimersByTime(sigh - 100)
+        // the sigh plays at the spot although the plan sent him to the door: he never stepped off it
+        expect(editorAt().length).toBeGreaterThan(0)
+        expect(editorAt().every(([x, y]) => x === 205 && y === 90)).toBe(true)
+        // the sigh's two drawn poses (task 10): the shoulders a row down, then two, the eyes closed, the mouth down
+        expect(sigh).toBe(1200)
+        expect(drawnPoses()).toEqual(expect.arrayContaining(['editor.sigh-a~closed.frown.none', 'editor.sigh-b~closed.frown.none']))
+        fake.images.length = 0
+        vi.advanceTimersByTime(VERDICT_HOLD_SLACK_MS + 500)
+        // the hold ran out: the turn toward the door, then the walk, off the spot
+        expect(editorAt().some(([x]) => x > 205)).toBe(true)
+        expect(drawnPoses().some((id) => id.startsWith('editor.turn-back~'))).toBe(true)
+      } finally {
+        vi.useRealTimers()
+      }
     })
 
     it('never knocks in a read-only tab', () => {

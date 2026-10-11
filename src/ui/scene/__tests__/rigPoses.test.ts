@@ -5,7 +5,8 @@ import { MANGAKA_SEAT } from '../actors'
 import { placeLayers } from '../rig/assemble'
 import { ANIMS } from '../rig/anims'
 import type { AnimId } from '../rig/anims'
-import { rigFrame } from '../rig/frames'
+import { frontHand, rigFrame } from '../rig/frames'
+import { EDITOR_EYES } from '../rig/head'
 import { PARTS } from '../rig/parts'
 import { POSES } from '../rig/poses'
 import type { PoseId } from '../rig/poses'
@@ -189,7 +190,8 @@ describe('the walk (task 11)', () => {
   })
 
   it('outlines each walk part all round but its top, and joins every step closed by itself', () => {
-    const walkParts = Object.keys(PARTS).filter((name) => /-(step|step-bend|plant-bend|lift|reach|swing-fwd|swing-back)$/.test(name))
+    // the mangaka's walk parts (the editor's suit sleeves, 0.12.0 task 8, are checked with his walk)
+    const walkParts = Object.keys(PARTS).filter((name) => /-(step|step-bend|plant-bend|lift|reach|swing-fwd|swing-back)$/.test(name) && !name.includes('-suit-'))
     expect(walkParts).toHaveLength(14)
     for (const name of walkParts) expect(openCells(PARTS[name].map).filter(({ y }) => y !== 0), name).toEqual([])
     for (const id of WALK) expect(openCells(rawFrame(id)), id).toEqual([])
@@ -493,5 +495,229 @@ describe('the doze (task 18)', () => {
     for (const id of ['key.doze-0', 'key.doze-1'] as const) {
       for (let r = 11; r <= 15; r++) expect(key(id)[r].slice(25, 28), `${id} row ${r}`).toBe('...')
     }
+  })
+})
+
+describe('the editor\'s suit and standing loop (0.12.0, task 4)', () => {
+  it('catalogues the suit torso, the hanging sleeve and the case sleeve', () => {
+    expectCatalogue({
+      'editor-torso': [18, 14, { neck: [9, 0], shoulderL: [2, 2], shoulderR: [15, 2], hipL: [6, 13], hipR: [11, 13] }],
+      'arm-l-suit-hang': [5, 12, { shoulderL: [3, 0], hand: [2, 10] }],
+      'arm-r-suit-case': [7, 19, { shoulderR: [1, 0], hand: [2, 10] }],
+    })
+  })
+
+  it('stands the editor as the mangaka stands: the head (4, 0), the torso (7, 21), the legs from row 34, the feet on row 47, the front hand at (8, 33)', () => {
+    expect([at('editor.stand', 'head'), at('editor.stand', 'torso'), at('editor.stand', 'legFront'), at('editor.stand', 'legBack'), at('editor.stand', 'armBack')])
+      .toEqual([{ x: 4, y: 0 }, { x: 7, y: 21 }, { x: 10, y: 34 }, { x: 16, y: 34 }, { x: 21, y: 23 }])
+    expect(frontHand('editor.stand')).toEqual({ x: 8, y: 33 })
+    expect(frame('editor.stand')[47]).toMatch(/[^.]/)
+    expect(part('editor.stand').head.part).toBe('editor-head')
+    expect([part('editor.stand').legFront?.part, part('editor.stand').legBack?.part]).toEqual(['leg-l-stand', 'leg-r-stand'])
+  })
+
+  it('dresses the editor: the suit G/g, the collar W, the tie N down col 9 of the torso, the case D/d; none of the mangaka\'s keys', () => {
+    const torso = PARTS['editor-torso'].map
+    for (let r = 3; r <= 11; r++) expect(torso[r][9], `torso row ${r}`).toBe('N')
+    expect(torso[0].slice(3, 15)).toMatch(/^WWs+WW$/)
+    for (const name of ['editor-torso', 'arm-l-suit-hang', 'arm-r-suit-case']) {
+      expect(PARTS[name].map.join(''), name).toMatch(/G/)
+      expect(PARTS[name].map.join(''), name).not.toMatch(/[JjKRYyFfOo]/)
+    }
+    const all = frame('editor.stand').join('')
+    for (const k of 'GgWNDdSs') expect(all, k).toContain(k)
+  })
+
+  it('hangs the 6x7 briefcase under the far fist: an L box of D/d at the sleeve\'s cols 1-6, rows 11-18, in the frame at cols 22-27', () => {
+    const box = PARTS['arm-r-suit-case'].map.slice(11, 19).map((row) => row.slice(1, 7))
+    expect(box[0]).toBe('LLLLLL')
+    expect(box[7]).toBe('LLLLLL')
+    for (const row of box.slice(1, 6)) expect(row).toMatch(/^L[Dd]{4}L$/)
+    expect(box[6]).toMatch(/^Ld{4}L$/)
+    // in the frame the case sits at cols 22-27, rows 34-41, right of the far leg's shoe (to col 21); col 31 stays clear
+    const m = frame('editor.stand')
+    for (let r = 34; r <= 41; r++) expect(m[r].slice(22, 28), `row ${r}`).toMatch(/^L[LDd]{4}L$/)
+    for (let r = 0; r < 48; r++) expect(m[r][31], `row ${r} col 31`).toBe('.')
+  })
+
+  it('breathes and blinks on the mangaka\'s timing, the blink behind the lenses', () => {
+    expect(ANIMS['editor-stand'].steps).toEqual([
+      { pose: 'editor.stand', ms: 500 }, { pose: 'editor.breath', ms: 500 }, { pose: 'editor.stand', ms: 500 },
+      { pose: 'editor.breath', ms: 500 }, { pose: 'editor.stand', ms: 500 }, { pose: 'editor.breath', ms: 380 },
+      { pose: 'editor.blink', ms: 120 },
+    ])
+    expect(at('editor.breath', 'head')).toEqual({ x: 4, y: 1 })
+    expect(frame('editor.breath').slice(23)).toEqual(frame('editor.stand').slice(23))
+    expect(frame('editor.blink').slice(10, 14).map((row) => row.slice(8, 24))).toEqual(EDITOR_EYES.blink)
+    expect(frame('editor.stand').slice(10, 14).map((row) => row.slice(8, 24))).toEqual(EDITOR_EYES.open)
+  })
+
+  it('names the editor\'s neutral frame by its pose and face, the mark slot (cols 28-30, rows 0-4) clear', () => {
+    expect(rigFrame('editor.stand', 'neutral', false).id).toBe('editor.stand~open.closed.none')
+    for (let r = 0; r < 5; r++) expect(frame('editor.stand')[r].slice(28, 31)).toBe('...')
+  })
+})
+
+describe('the editor\'s walk and his turns (0.12.0, task 8)', () => {
+  const WALK: PoseId[] = [
+    'editor.walk-contact-l', 'editor.walk-down-l', 'editor.walk-pass-l', 'editor.walk-up-l',
+    'editor.walk-contact-r', 'editor.walk-down-r', 'editor.walk-pass-r', 'editor.walk-up-r',
+  ]
+  const MANGAKA: PoseId[] = ['walk.contact-l', 'walk.down-l', 'walk.pass-l', 'walk.up-l', 'walk.contact-r', 'walk.down-r', 'walk.pass-r', 'walk.up-r']
+  const CASE_ARMS = ['arm-r-suit-case', 'arm-r-suit-case-fwd', 'arm-r-suit-case-back']
+
+  it('catalogues the suit\'s swinging sleeves and the case sleeves', () => {
+    expectCatalogue({
+      'arm-l-suit-swing-fwd': [6, 10, { shoulderL: [4, 0], hand: [2, 9] }], 'arm-l-suit-swing-back': [5, 12, { shoulderL: [3, 0], hand: [1, 11] }],
+      'arm-r-suit-case-fwd': [8, 18, { shoulderR: [1, 0], hand: [3, 9] }], 'arm-r-suit-case-back': [6, 20, { shoulderR: [1, 0], hand: [3, 11] }],
+    })
+  })
+
+  it('walks in eight 75 ms steps on the mangaka\'s legs with his bob, the suit torso throughout', () => {
+    expect(ANIMS['editor-walk'].steps).toEqual(WALK.map((pose) => ({ pose, ms: 75 })))
+    WALK.forEach((id, i) => {
+      const e = part(id)
+      const m = part(MANGAKA[i])
+      expect([e.legFront?.part, e.legBack?.part], id).toEqual([m.legFront?.part, m.legBack?.part])
+      expect([e.torso.part, e.torso.y, at(id, 'head')?.y], id).toEqual(['editor-torso', m.torso.y, at(MANGAKA[i], 'head')?.y])
+    })
+  })
+
+  it('swings the sleeves against the legs, the case with the far hand: forward on the left contact, back on the right', () => {
+    const arms = (id: PoseId) => [part(id).armFront?.part, part(id).armBack?.part]
+    const hang = ['arm-l-suit-hang', 'arm-r-suit-case']
+    const leftLeads = ['arm-l-suit-swing-back', 'arm-r-suit-case-fwd']
+    const rightLeads = ['arm-l-suit-swing-fwd', 'arm-r-suit-case-back']
+    expect(WALK.map(arms)).toEqual([leftLeads, leftLeads, hang, hang, rightLeads, rightLeads, hang, hang])
+  })
+
+  it('keeps the case under the far fist in every case sleeve: a 6x8 L box of D/d from the row under the fist', () => {
+    for (const name of CASE_ARMS) {
+      const p = PARTS[name]
+      const hand = p.anchors.hand!
+      const rows = p.map.slice(hand.y + 1, hand.y + 9)
+      const col = rows[0].indexOf('LLLLLL')
+      expect(col, name).toBeGreaterThanOrEqual(0)
+      const box = rows.map((row) => row.slice(col, col + 6))
+      expect([box[0], box[7]], name).toEqual(['LLLLLL', 'LLLLLL'])
+      for (const row of box.slice(1, 6)) expect(row, name).toMatch(/^L[Dd]{4}L$/)
+      expect(box[6], name).toMatch(/^Ld{4}L$/)
+      expect(p.map.join(''), name).not.toMatch(/[JjKRYyFfOo]/)
+    }
+  })
+
+  it('keeps a foot on row 47 on every step, the passing foot lifted, and every editor frame clear of col 31', () => {
+    for (const id of WALK) expect(frame(id)[47], id).toMatch(/[^.]/)
+    const bottom = (id: PoseId, layer: 'legFront' | 'legBack') => at(id, layer)!.y + PARTS[part(id)[layer]!.part].map.length - 1
+    for (const [id, layer] of [['editor.walk-pass-l', 'legBack'], ['editor.walk-up-l', 'legBack'], ['editor.walk-pass-r', 'legFront'], ['editor.walk-up-r', 'legFront']] as const) {
+      expect(bottom(id, layer), id).toBeLessThan(47)
+    }
+    for (const [id, def] of Object.entries(POSES) as [PoseId, { pose: { kind: string } }][]) {
+      if (!id.startsWith('editor.') || def.pose.kind !== 'parts') continue
+      for (let r = 0; r < 48; r++) expect(frame(id)[r][31], `${id} row ${r}`).toBe('.')
+    }
+  })
+
+  it('outlines each suit sleeve all round but its top, and joins every walk step closed by itself', () => {
+    for (const name of ['arm-l-suit-swing-fwd', 'arm-l-suit-swing-back', ...CASE_ARMS]) {
+      expect(openCells(PARTS[name].map).filter(({ y }) => y !== 0), name).toEqual([])
+    }
+    for (const id of WALK) expect(openCells(rawFrame(id)), id).toEqual([])
+  })
+
+  it('turns at the spot in 160 ms: the head toward the desk arriving, toward the door leaving, both feet planted', () => {
+    expect(ANIMS['editor-arrive'].steps).toEqual([{ pose: 'editor.turn', ms: 160 }])
+    expect(ANIMS['editor-leave'].steps).toEqual([{ pose: 'editor.turn-back', ms: 160 }])
+    expect([at('editor.turn', 'head'), at('editor.turn-back', 'head')]).toEqual([{ x: 3, y: 0 }, { x: 5, y: 0 }])
+    for (const id of ['editor.turn', 'editor.turn-back'] as const) {
+      expect([part(id).legFront?.part, part(id).legBack?.part], id).toEqual(['leg-l-stand', 'leg-r-stand'])
+      expect(frame(id)[47], id).toMatch(/[^.]/)
+    }
+    expect([part('editor.turn').armFront?.part, part('editor.turn-back').armFront?.part]).toEqual(['arm-l-suit-swing-back', 'arm-l-suit-swing-fwd'])
+  })
+})
+
+describe('the editor\'s waiting moments (0.12.0, task 9)', () => {
+  it('catalogues the raised, glasses and watch sleeves', () => {
+    expectCatalogue({
+      'arm-l-suit-raise': [6, 9, { shoulderL: [2, 4], hand: [4, 1] }],
+      'arm-l-suit-glasses': [6, 14, { shoulderL: [2, 13], hand: [3, 1] }],
+      'arm-l-suit-watch': [7, 9, { shoulderL: [5, 0], hand: [2, 7] }],
+    })
+  })
+
+  it('times the moments: the glasses pushed up 900 ms, the watch checked 1100 ms, a glance at the pile 700 ms', () => {
+    expect(ANIMS['editor-glasses'].steps).toEqual([{ pose: 'editor.raise', ms: 200 }, { pose: 'editor.glasses', ms: 500 }, { pose: 'editor.raise', ms: 200 }])
+    expect(ANIMS['editor-watch'].steps).toEqual([{ pose: 'editor.raise', ms: 200 }, { pose: 'editor.watch', ms: 700 }, { pose: 'editor.raise', ms: 200 }])
+    expect(ANIMS['editor-glance'].steps).toEqual([{ pose: 'editor.glance', ms: 700 }])
+  })
+
+  it('raises the near hand to the chin, then to the left lens\'s rim with the eyes blinking behind it', () => {
+    expect([at('editor.raise', 'armFront'), frontHand('editor.raise')]).toEqual([{ x: 7, y: 19 }, { x: 11, y: 20 }])
+    expect([at('editor.glasses', 'armFront'), frontHand('editor.glasses')]).toEqual([{ x: 7, y: 10 }, { x: 10, y: 11 }])
+    expect(part('editor.glasses').face).toEqual({ eyes: 'blink' })
+    // the fist, not the lens (ruling D1: the lens interior is S, so an S over the lens's columns proves nothing): an S
+    // where the hand's anchor lands, the fist's cells over the left lens's outer rim (frame col 8, rows 11-12), where
+    // the bare head has the rim L, and the fist's top outline across the lens on row 10 (cols 8-11), where it has skin
+    const m = frame('editor.glasses')
+    const bare = frame('editor.blink')
+    expect(m[11][10]).toBe('S')
+    expect([bare[11][8], bare[12][8]]).toEqual(['L', 'L'])
+    expect([m[11][8], m[12][8]]).toEqual(['S', 'S'])
+    expect(bare[10].slice(9, 12)).toBe('SSS')
+    expect(m[10].slice(8, 12)).toBe('LLLL')
+  })
+
+  it('checks the watch with the head bowed, the watch face on the wrist', () => {
+    expect([at('editor.watch', 'armFront'), frontHand('editor.watch'), at('editor.watch', 'head')]).toEqual([{ x: 4, y: 23 }, { x: 6, y: 30 }, { x: 4, y: 1 }])
+    expect(PARTS['arm-l-suit-watch'].map.join('')).toContain('W')
+    // the gaze goes down to the wrist (task 10): the heavy lid over the low pupils, the squint (closed read as asleep)
+    expect(part('editor.watch').face).toEqual({ eyes: 'squint' })
+    expect(rigFrame('editor.watch', 'neutral', false).id).toBe('editor.watch~squint.closed.none')
+  })
+
+  it('glances toward the manuscript pile: the head a column toward the desk, the body unchanged', () => {
+    expect(at('editor.glance', 'head')).toEqual({ x: 3, y: 0 })
+    expect(frame('editor.glance').slice(23)).toEqual(frame('editor.stand').slice(23))
+  })
+
+  it('keeps the suit keys and the case through every moment', () => {
+    for (const id of ['editor.raise', 'editor.glasses', 'editor.watch', 'editor.glance'] as const) {
+      expect(part(id).armBack?.part, id).toBe('arm-r-suit-case')
+      expect(frame(id).join(''), id).not.toMatch(/[JjKRYy]/)
+    }
+  })
+})
+
+describe('the editor\'s verdicts (0.12.0, task 10)', () => {
+  it('nods twice in 800 ms and sighs for 1200 ms', () => {
+    expect(ANIMS['editor-nod'].steps).toEqual([
+      { pose: 'editor.nod', ms: 200 }, { pose: 'editor.stand', ms: 150 }, { pose: 'editor.nod', ms: 200 }, { pose: 'editor.stand', ms: 250 },
+    ])
+    expect(ANIMS['editor-sigh'].steps).toEqual([{ pose: 'editor.sigh-a', ms: 300 }, { pose: 'editor.sigh-b', ms: 900 }])
+  })
+
+  it('nods with the head two rows lower into the collar, the body unchanged, the eyes open', () => {
+    expect(at('editor.nod', 'head')).toEqual({ x: 4, y: 2 })
+    expect(crown(frame('editor.nod'))).toBe(crown(frame('editor.stand')) + 2)
+    expect(frame('editor.nod').slice(24)).toEqual(frame('editor.stand').slice(24))
+    expect(part('editor.nod').face).toBeUndefined()
+    // the head nods, the hand (and the prop in it) stays where it stands
+    expect(frontHand('editor.nod')).toEqual({ x: 8, y: 33 })
+  })
+
+  it('sighs with the shoulders dropping a row then two, the feet still on row 47, the eyes closed and the mouth down', () => {
+    expect([at('editor.sigh-a', 'torso'), at('editor.sigh-b', 'torso')]).toEqual([{ x: 7, y: 22 }, { x: 7, y: 23 }])
+    expect([at('editor.sigh-a', 'head'), at('editor.sigh-b', 'head')]).toEqual([{ x: 4, y: 1 }, { x: 4, y: 2 }])
+    for (const id of ['editor.sigh-a', 'editor.sigh-b'] as const) {
+      expect(at(id, 'legFront'), id).toEqual({ x: 10, y: 34 })
+      expect(at(id, 'legBack'), id).toEqual({ x: 16, y: 34 })
+      expect(frame(id)[47], id).toMatch(/[^.]/)
+      expect(part(id).face, id).toEqual({ eyes: 'closed', mouth: 'frown' })
+      expect(frame(id).join(''), id).not.toContain('E')
+    }
+    expect(rigFrame('editor.sigh-b', 'neutral', false).id).toBe('editor.sigh-b~closed.frown.none')
+    // the hand, and so the prop, drops with the shoulders: a row, then two
+    expect([frontHand('editor.sigh-a'), frontHand('editor.sigh-b')]).toEqual([{ x: 8, y: 34 }, { x: 8, y: 35 }])
   })
 })
