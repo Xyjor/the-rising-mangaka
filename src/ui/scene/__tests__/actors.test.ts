@@ -123,7 +123,7 @@ describe('editorWalksIn', () => {
 })
 
 describe('the 0.11 spots (task 9)', () => {
-  it('starts every actor unposed: the driver poses the rig cast, the editor and the cat keep their 0.10 frames', () => {
+  it('starts every actor unposed: the driver poses the rig cast, the cat keeps its 0.10 frames', () => {
     const t = newActorTable()
     expect([t.mangaka.pose, ...t.assistants.map((a) => a.pose), t.editor.pose, t.cat.pose]).toEqual(['', '', '', '', '', ''])
   })

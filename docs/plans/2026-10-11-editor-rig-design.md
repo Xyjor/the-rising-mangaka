@@ -52,7 +52,7 @@ retire.
 | `editor-arrive` | transition (walking to standing) | the turn from the door to face the desk (a key frame or two) |
 | `editor-leave` | transition (standing to walking) | the turn back to the door |
 | `editor-glasses`, `editor-watch`, `editor-glance` | idle moments | push up the glasses, check the watch, glance at the manuscript pile |
-| `editor-nod`, `editor-sigh` | reactions | the verdicts (key frames: the head dipping twice; the shoulders dropping with the eyes closed) |
+| `editor-nod`, `editor-sigh` | reactions | the verdicts (part poses, amended in the plan (decision 5): `editor.nod`, the head two rows lower, dipping twice; `editor.sigh-a`/`-b`, the torso one then two rows lower over the legs, the eyes closed, the mouth frowning, so the visit's prop stays at the front hand) |
 
 **Rules** (tested, as 0.11.0's): sizes, palette keys, closed outlines where exposed, feet on row 47, the head rules,
 one torso per animation, every step at least 41 ms.
@@ -75,14 +75,17 @@ standing, `editor-walk` while walking, none while hidden or away. Transitions be
 (`transitionFor(who, from, to)`): the editor's walking to standing plays `editor-arrive`, standing to walking
 `editor-leave`; the mangaka's are unchanged. Idle moments come from the editor's pool while standing.
 
-**Verdicts.** `ReactionKind` gains `offer`, fired when `pendingOffer` goes from null to set (with `popsFor`'s guards).
+**Verdicts.** `ReactionKind` gains `offer`, fired when the offer comes into view (amended in the plan (decision 6): `offerShown`, `pendingOffer` set with no `pendingResult` in front of it, going from false to true; the sim sets both in one tick) (with `popsFor`'s guards).
 The editor plays them only while standing at the spot: `offer` and `good-poll` play `editor-nod`, `bad-poll` plays
 `editor-sigh`; a reaction cuts an idle moment short and waits behind a transition, as the mangaka's do. The mangaka
 does not react to `offer`. A one-shot poll reacts when dismissed (the 0.11.0 rule), while the editor is still standing
-there with the results' envelope.
+there with the results' envelope. Amended in the plan (decision 14): dismissing the result would send him straight to
+the door, so `StudioScene`'s reaction subscription, synchronously on the store change, sets `Actor.holdMs` to
+`verdictHoldMs(kind, editor)` (the verdict's length plus `VERDICT_HOLD_SLACK_MS` 50 while he stands, else 0);
+`stepActors` keeps a held actor in place until it runs out, then he leaves through `editor-leave`.
 
 **Drawing.** The editor is one `drawImage` of `rigFrame(pose, 'neutral', false)` in the editor's palette (the face
-neutral but in the verdict key frames), mirrored when facing right, then the visit's prop frame at the front hand when
+neutral but in the verdicts' poses, which set their own; amended in the plan (decision 5)), mirrored when facing right, then the visit's prop frame at the front hand when
 standing with a prop. The bubble and the pops sit over the editor's head through the same `headTop`/`headCentre`
 rule. Reduced motion holds the base loop's first step.
 

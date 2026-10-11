@@ -775,9 +775,9 @@ maps").
 - **Drawing through the cache** (0.11.0, task 6). Every character is one `drawImage` of its frame from
   `spriteCache.ts`, painted once per palette and facing into its own surface; the 0.10 maps are `oldCast.ts`'s cast
   frames (`OLD_CAST`, each with the id the cache names it by) until each rig release replaces them: the mangaka's went
-  at task 17 and the assistants' (the seated pair and the generated doze) at task 19, so `OLD_CAST` holds the editor's
-  and the cat's; the mood overlay over the people went with them (baked into the rig frames). The cache's memory: at most 324 frames x 10 palettes x 2 facings x 6,144 B (a 32x48 RGBA surface),
-  about 36 MB in theory; a realistic long career builds about 900-1,000 surfaces, about 6 MB. `render` takes the cache
+  at task 17 and the assistants' (the seated pair and the generated doze) at task 19, the editor's at 0.12.0 task 11,
+  so `OLD_CAST` holds the cat's only (until 0.13.0); the mood overlay over the people went with them (baked into the rig frames). The cache's memory: at most 324 frames x 10 palettes x 2 facings x 6,144 B (a 32x48 RGBA surface),
+  about 40 MB in theory; a realistic long career builds about 900-1,000 surfaces, about 6 MB. `render` takes the cache
   as its last argument (the session's by default, `getCastCache()`), so a test hands it a recording one
   (`fakeSurface`) and reads each character as an entry in `images`, named `cast/<frame>/<palette>`, `/r` mirrored.
 - **The gate** (`scripts/spriteSheet.ts`, `npm run sprites -- <out.png> [--walk] [--base <ref>] [--only <prefix>]`):
@@ -785,12 +785,14 @@ maps").
   whose id starts with it): its steps' frames in order in `PAL` (neutral, ready in `stand-ready`) beside the 0.10
   frames it replaces at a base ref (`--base`, default `main`, where the 0.10 frames stay until the merge; a file the
   ref lacks is skipped with a note, and a base that cannot load leaves every base cell empty), the same strip in the
-  cardigan and the blazer under it and, for the assistants' animations, in each of the six assistant looks; the blocks
-  sit on shelves (`shelve`, top-aligned, no wider than the sheet's widest other row), which keeps the sheet under
-  sharp's input pixel limit. Then a mood row (the standing, seated and walking poses in the five moods), row F the
-  editor and row G the cat beside the base, row H the walk strips (the rig's walk three times over the base's
-  `MANGAKA_WALK`, then the editor's and the cat's; `--walk` writes only those) and row I the rig head with every face
-  (see "The rig head"). A palette missing on either side, or a frame or file missing at the base, is an empty cell and
+  cardigan and the blazer under it and, for the assistants' animations, in each of the six assistant looks; an
+  editor animation (`editor-*`, 0.12.0) draws its strip in `EDITOR_PAL` only, beside the base's 0.10 `EDITOR_IDLE`/
+  `EDITOR_WALK`; the blocks sit on shelves (`shelve`, top-aligned, no wider than the sheet's widest other row), which
+  keeps the sheet under sharp's input pixel limit. Then a mood row (the standing, seated and walking poses in the five
+  moods), row G the cat beside the base (row F, the 0.10 editor, went at 0.12.0 task 4), row H the walk strips (the
+  rig's walk three times over the base's `MANGAKA_WALK`, the rig editor's `editor-walk` in `EDITOR_PAL` three times
+  over the base's `EDITOR_WALK`, then the cat's; `--walk` writes only those), row I the rig head with every face (see
+  "The rig head") and row J the editor's head with every eyes (`EDITOR_EYES`, the mouth closed). A palette missing on either side, or a frame or file missing at the base, is an empty cell and
   a note on stdout. Since 0.11.0 task 8 the 0.10 mangaka's rows (A to E) are gone, each replaced by its animation's
   block.
 
@@ -901,7 +903,7 @@ viewBox adds a blank row above and below, 24x24, so the backdrop fills the 48x48
 | `CAT_KITCHEN` | (44, 150) |
 | `ASSISTANT_SEAT_X` / `_Y` | [21, 55, 89] / 80 (0.10: [66, 86, 106] / 89) |
 
-Actors whose frame top is at canvas y 75 or below (standing, walking, in bed, the editor and the cat) are drawn in the front pass, after the desk; the seated mangaka (y 58) and the mangaka at its door (y 69) are drawn before it. The assistants' row comes between: after the whole desk group, before the mangaka's front pass (the plan's
+Actors whose frame top is at canvas y 75 or below (standing, walking, in bed, and the cat) are drawn in the front pass, after the desk; the seated mangaka (y 58) and the mangaka at its door (y 69) are drawn before it. The editor is always drawn in his own block after the cat, whatever his y: he walks out of the same (250, 69) door as the mangaka, where the mangaka is drawn before the desk, while the editor at the door is drawn over it (only the front row, `TIER_FRONT`, goes after him). The assistants' row comes between: after the whole desk group, before the mangaka's front pass (the plan's
 decision 3, its depth in front of the main desk): each assistant from the rig, then their own desk (canvas x 19, width
 36 + 34(n - 1) for n assistants shown, at most 3, y 120-131), drawn after them so only head and shoulders show, then
 each working assistant's page on its top, with one ink line per third of progress.

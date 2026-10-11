@@ -28,10 +28,11 @@ export const PAL: Record<string, string> = {
 }
 
 /**
- * The hand-drawn anchor head (rows 0-15 of the original standing frame): the 0.10 frames' head (the editor's is built
- * on it), and the `--sprite` pipeline grafts it onto a generated frame whose own head fails `faceRules` (manifest
- * `graft: "anchor-head"`), so up to 0.11.0 the 0.10 FACES overlay and its mark landed where they were drawn for. The
- * staff portrait draws the rig's head since 0.11.0 (`rig/head.ts`).
+ * The hand-drawn anchor head (rows 0-15 of the original standing frame): the 0.10 frames' head, nothing in the game is
+ * built on it now (the 0.10 editor went at 0.12.0). It is kept for `scripts/pixelate.ts`'s `--sprite` graft only: the
+ * pipeline grafts it onto a generated frame whose own head fails `faceRules` (manifest `graft: "anchor-head"`), so up
+ * to 0.11.0 the 0.10 FACES overlay and its mark landed where they were drawn for. The staff portrait draws the rig's
+ * head since 0.11.0 (`rig/head.ts`).
  */
 export const ANCHOR_HEAD: SpriteMap = [
   '......LLLLLLLLLL........', // 0

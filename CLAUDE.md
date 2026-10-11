@@ -151,8 +151,9 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   frown, o), `MARK_ART` (sweat, sparkle, bang, zee in `PAL.A`/`PAL.X`), `FACE_ART`, `NEUTRAL_FACE`, `FACE_BY_MOOD`,
   `headWith(face, head?, art?)`; the editor's head (0.12.0) `EDITOR_HEAD` on the same slots, hair parted at col 10 and square glasses, `EDITOR_EYES` (the six eyes inside the lens rims, `L` at head cols 4, 10, 13 and 19, the bridge on row 11; open and squint drawn for the lens, the others copied from `EYES`), `EDITOR_FACE_ART`), `parts.ts` (`PARTS`: every torso, arm, leg and prop (the pen, the manuscript, the mug, the page) by name with its anchors, each outlined but where it
   joins another; the 32x48 frame standing has the head at (4, 0), the torso at (7, 21), the feet on row 47; the
-  editor's suit (0.12.0) `editor-torso`, `arm-l-suit-hang` and `arm-r-suit-case`, the briefcase baked under the far
-  fist),
+  editor's suit (0.12.0) `editor-torso`, the near sleeves `arm-l-suit-hang`, `-swing-fwd`, `-swing-back`, `-raise`,
+  `-glasses` and `-watch`, and the far sleeves `arm-r-suit-case`, `-case-fwd` and `-case-back`, the briefcase baked
+  under the far fist),
   `keyFrames.ts` (the poses the parts cannot make, hand-drawn whole with their face baked in: the bed's 48x32
   `BED_LIE_0`, `BED_LIE_1` and `BED_SIT`, drawn at the bed; the reactions' 32x48 panic, cheer, slump and torn page; the assistants' 32x48 doze, `DOZE_0`/`DOZE_1`), `poses.ts`
   (`PoseId`, `POSES`: each a part pose or a key frame and where it is drawn, `at` the actor, the seat or the bed; the
@@ -167,7 +168,7 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   OffscreenCanvas (a `<canvas>` without one or when it gives no 2D context, a stand-in in node), keyed by frame id;
   `drawCast` is one `drawImage`, `drawCastTop` one 9-argument `drawImage` of a cached frame's top rows (render draws the
   seated rig mangaka's rows 0-39 again with it, after the page stack); `getCastCache`/`installCastCache` (tests install a recording one). Memory: at most
-  324 frames x 10 palettes x 2 facings x 6,144 B (a 32x48 RGBA surface), about 36 MB in theory; a realistic long career
+  324 frames x 10 palettes x 2 facings x 6,144 B (a 32x48 RGBA surface), about 40 MB in theory; a realistic long career
   builds about 900-1,000 surfaces, about 6 MB. `oldCast.ts` (0.11.0) the 0.10 maps as cast frames (`OLD_CAST`), drawn
   through the cache until each character's rig release (the mangaka's left at task 17, the assistants' at task 19,
   the editor's at 0.12.0 task 11: the cat's remain, until 0.13.0); `render`'s last argument is the cache (`getCastCache()` by default), each
