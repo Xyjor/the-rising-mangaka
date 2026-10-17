@@ -18,7 +18,7 @@ export interface Chain {
   wobble: AudioParam
   /**
    * Glides every part level, the reverb send and the tone cutoff towards `l` with time constant `tau`, from `at`
-   * (context time; now when left out).
+   * (context time; now when left out). Any glide scheduled from `at` on is cancelled first, so the latest call wins.
    */
   setLevels(l: MixLevels, tau: number, at?: number): void
 }
@@ -117,9 +117,13 @@ export function buildChain(ctx: BaseAudioContext, dest: AudioNode, seed: number,
     wobble: delay.delayTime,
     setLevels(next, tau, at) {
       const t = at ?? ctx.currentTime
-      for (const inst of INSTS) input[inst].gain.setTargetAtTime(next.parts[PART_OF[inst]], t, tau)
-      send.gain.setTargetAtTime(next.space, t, tau)
-      tone.frequency.setTargetAtTime(next.tone, t, tau)
+      const glide = (param: AudioParam, value: number) => {
+        param.cancelScheduledValues(t)
+        param.setTargetAtTime(value, t, tau)
+      }
+      for (const inst of INSTS) glide(input[inst].gain, next.parts[PART_OF[inst]])
+      glide(send.gain, next.space)
+      glide(tone.frequency, next.tone)
     },
   }
 }

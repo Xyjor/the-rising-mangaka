@@ -147,6 +147,21 @@ function setup(o: { state?: AudioContextState; scene?: MusicScene } = {}) {
 }
 
 /**
+ * The value a param is gliding to at context time `t`, as Web Audio reads its automation: a cancel drops every event
+ * at or after its time, and among the events left at or before `t` the latest wins (the later written on a tie).
+ */
+function targetAt(p: FakeParam, t: number): number {
+  let live: { time: number; value: number }[] = []
+  for (const e of p.events) {
+    if (e.kind === 'cancelScheduledValues') live = live.filter((x) => x.time < e.time)
+    else if (e.kind === 'cancelAndHoldAtTime') live = live.filter((x) => x.time <= e.time)
+    else if ('time' in e && 'value' in e) live.push({ time: e.time, value: e.value })
+  }
+  const due = live.filter((x) => x.time <= t + 1e-9)
+  return due.reduce((a, b) => (b.time >= a.time ? b : a)).value
+}
+
+/**
  * The tracks heard: events split where 2 s pass with none (a track's own gaps are at most 1.75 s, every break at
  * least 2 s), each named by its opening bass note.
  */
@@ -236,6 +251,7 @@ describe('music player: start and the look-ahead', () => {
     // Built at every part 1 (no track), then the opening track's bass level with tau 0.4.
     expect(bassBus.gain.events).toEqual([
       { kind: 'value', value: 1 },
+      { kind: 'cancelScheduledValues', time: 0 },
       { kind: 'setTargetAtTime', value: BASS_MIX[ID_OF_PC[bass.e.midi % 12]], time: 0, timeConstant: 0.4 },
     ])
   })
@@ -642,8 +658,57 @@ describe('music player: calm', () => {
     const second = SECONDS + breakSeconds(SEED, 1)
     advanceTo(second - 0.1) // the look-ahead has created the second track's segment
     player.setScene({ ...STUDIO, calm: true })
-    const atStart = bus('kick').gain.events.filter((e) => e.kind === 'setTargetAtTime' && r(e.time) === r(second))
-    expect(atStart.at(-1)).toMatchObject({ value: 0 })
+    expect(targetAt(bus('kick').gain, second)).toBe(0)
+    expect(targetAt(bus('kick').gain, second + 1)).toBe(0)
+  })
+})
+
+describe('music player: a change just before a queued track', () => {
+  it('glides to the new track on a crossfade, never the queued one, at and after its start', () => {
+    const { fake, player, advanceTo, tone, bus } = setup()
+    player.start()
+    const second = SECONDS + breakSeconds(SEED, 1)
+    advanceTo(second - 0.1) // the old Loop has chained into its next title track, its glide pending at `second`
+    expect(fake.currentTime).toBeLessThan(second)
+    player.setScene(WINTER)
+    // The studio's d: tone 2400 and bass 1, not the title's 2000 and a or b's bass.
+    for (const t of [second, second + 2]) {
+      expect(targetAt(tone().frequency, t)).toBe(2400)
+      expect(targetAt(bus('bass').gain, t)).toBe(1)
+    }
+  })
+
+  it('glides to the new track on a start during a stop fade, never the queued one', () => {
+    const { player, advanceTo, advance, tone, bus } = setup()
+    player.start()
+    const second = SECONDS + breakSeconds(SEED, 1)
+    advanceTo(second - 0.15)
+    player.stop()
+    player.setScene(WINTER)
+    advance(50)
+    player.start()
+    for (const t of [second, second + 2]) {
+      expect(targetAt(tone().frequency, t)).toBe(2400)
+      expect(targetAt(bus('bass').gain, t)).toBe(1)
+    }
+  })
+
+  it('drops the notes a fading Loop queued for a segment that starts after its fade began', () => {
+    const { fake, player, played, advance, advanceTo, loopOf } = setup()
+    player.start()
+    const second = SECONDS + breakSeconds(SEED, 1)
+    advanceTo(second - 0.1)
+    const queued = played.filter((p) => p.e.at >= second - 1e-9)
+    expect(queued.length).toBeGreaterThan(0) // the old Loop's next track opens inside the look-ahead
+    const flip = played.length
+    const now = fake.currentTime
+    player.setScene(WINTER)
+    advance(2000)
+    for (const p of queued) {
+      expect(loopOf(p)).toBe(0)
+      expect(p.stopped).toEqual([now])
+    }
+    for (const p of played.slice(flip)) expect(loopOf(p)).toBe(1)
   })
 })
 
@@ -654,11 +719,15 @@ describe('music player: the pin', () => {
     advance(1000)
     player.pin('d')
     for (const f of loops()[1]) expect(trace(f.gain).at(-1)).toEqual(['linearRampToValueAtTime', 1, 2.5])
+    // Pinning the same track again changes nothing.
+    advance(1000)
+    player.pin('d')
+    expect(loops()).toHaveLength(2)
     // A mood change while pinned does not crossfade.
     player.setScene(TITLE)
     player.setScene(STUDIO)
     expect(loops()).toHaveLength(2)
-    advance(16_000)
+    advance(15_000)
     const pinnedLoop = () => played.filter((p) => loopOf(p) === 1)
     expect(heard(pinnedLoop()).map((t) => [t.id, t.origin])).toEqual([['d', 1], ['d', 7], ['d', 13]])
     player.pin(null)

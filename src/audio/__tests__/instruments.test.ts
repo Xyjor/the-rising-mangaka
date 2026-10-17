@@ -368,6 +368,17 @@ describe('buildChain', () => {
     expect(last(tone.frequency)).toEqual({ kind: 'setTargetAtTime', value: 1300, time: 3, timeConstant: 0.8 })
   })
 
+  it('cancels whatever was scheduled from its start on, so the latest glide wins', () => {
+    const { fake, chain, input } = chainOn()
+    fake.currentTime = 3
+    chain.setLevels({ tone: 2000, space: 0.2, parts: { keys: 1, bass: 0.8, lead: 1, drums: 1 } }, 0.4, 3.2)
+    chain.setLevels({ tone: 2400, space: 0.2, parts: { keys: 1, bass: 0.5, lead: 1, drums: 1 } }, 0.4)
+    expect(input.bass.gain.events.slice(-2)).toEqual([
+      { kind: 'cancelScheduledValues', time: 3 },
+      { kind: 'setTargetAtTime', value: 0.5, time: 3, timeConstant: 0.4 },
+    ])
+  })
+
   it('glides from a later start time when given one', () => {
     const { fake, chain, input, made } = chainOn()
     fake.currentTime = 3

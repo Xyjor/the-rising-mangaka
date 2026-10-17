@@ -66,6 +66,12 @@ interface Segment {
   end: number
 }
 
+/** A queued voice and the context time it starts. */
+interface Queued {
+  voice: Voice
+  at: number
+}
+
 /** One start of the music: its fades, the segment it is on, and the voices it has queued. */
 interface Loop {
   fades: Record<Inst, GainNode>
@@ -74,7 +80,7 @@ interface Loop {
   scheduledUntil: number
   /** When its fade-out reaches 0; Infinity while it plays. */
   endsAt: number
-  voices: Voice[]
+  voices: Queued[]
   /** Context time it was opened. */
   born: number
 }
@@ -160,7 +166,8 @@ export function createMusicPlayer(ctx: BaseAudioContext, dest: AudioNode, timers
     const quiet = scene.calm && now - calmSince > CALM_SETTLE
     for (const e of eventsInWindow(t, seg.pass, seed, a - seg.origin, b - seg.origin)) {
       if (quiet && PART_OF[e.inst] === 'drums') continue
-      loop.voices.push(voice(ctx, loop.fades[e.inst], { ...e, at: seg.origin + e.at }, t.lead))
+      const at = seg.origin + e.at
+      loop.voices.push({ voice: voice(ctx, loop.fades[e.inst], { ...e, at }, t.lead), at })
     }
   }
 
@@ -183,12 +190,12 @@ export function createMusicPlayer(ctx: BaseAudioContext, dest: AudioNode, timers
       }
       loop.scheduledUntil = to
     }
-    loop.voices = loop.voices.filter((v) => v.end > now)
+    loop.voices = loop.voices.filter((q) => q.voice.end > now)
   }
 
   /** Silences a faded Loop for good: stops the voices still sounding and unhooks its fades. */
   function finish(loop: Loop, now: number) {
-    for (const v of loop.voices) if (v.end > now) v.stop(now)
+    for (const { voice: v } of loop.voices) if (v.end > now) v.stop(now)
     loop.voices = []
     for (const inst of INSTS) loop.fades[inst].disconnect()
   }
@@ -234,6 +241,20 @@ export function createMusicPlayer(ctx: BaseAudioContext, dest: AudioNode, timers
     loop.endsAt = end
   }
 
+  /**
+   * Moves the playing Loop to the fading ones. A segment it chained into ahead of the clock, not yet begun, is dropped
+   * with the notes queued for it: a fading Loop plays out only what it was on.
+   */
+  function retire(loop: Loop, now: number) {
+    const seg = loop.seg
+    if (seg.origin > now) {
+      for (const q of loop.voices) if (q.at >= seg.origin) q.voice.stop(now)
+      loop.voices = loop.voices.filter((q) => q.at < seg.origin)
+      loop.seg = { kind: 'break', pass: seg.pass, origin: seg.origin, end: Number.POSITIVE_INFINITY }
+    }
+    fading.push(loop)
+  }
+
   /** Cuts the oldest fading Loops short until at most `MAX_FADING` still have a full fade to run. */
   function capFading(now: number) {
     const long = fading.filter((loop) => loop.endsAt > now + CUT)
@@ -261,7 +282,7 @@ export function createMusicPlayer(ctx: BaseAudioContext, dest: AudioNode, timers
   function crossfade(c: Chain, old: Loop) {
     const now = ctx.currentTime
     fadeOut(old, now, now + (now - old.born < YOUNG ? CUT : XFADE))
-    fading.push(old)
+    retire(old, now)
     playing = openLoop(c, now, XFADE)
     advance(playing, now)
     capFading(now)
@@ -292,7 +313,7 @@ export function createMusicPlayer(ctx: BaseAudioContext, dest: AudioNode, timers
       const end = now + FADE_OUT
       for (const loop of [playing, ...fading]) fadeOut(loop, now, end)
       rampFrom(chain.gate.gain, now, 0, end)
-      fading.push(playing)
+      retire(playing, now)
       playing = null
       capFading(now)
     },
@@ -309,6 +330,7 @@ export function createMusicPlayer(ctx: BaseAudioContext, dest: AudioNode, timers
         crossfade(chain, playing)
         return
       }
+      // A mood and calm change at once took the crossfade above, whose new track glides at WAKE_TAU.
       const tau = s.calm && !prev.calm ? CALM_TAU : WAKE_TAU
       const l = levelsFor(s, currentTrack())
       chain.setLevels(l, tau)
@@ -318,6 +340,7 @@ export function createMusicPlayer(ctx: BaseAudioContext, dest: AudioNode, timers
     },
 
     pin(id) {
+      if (id === pinned) return
       pinned = id
       if (id !== null && playing && chain) crossfade(chain, playing)
     },
