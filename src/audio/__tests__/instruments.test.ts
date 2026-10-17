@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  AMPLITUDE, buildChain, crackleBuffers, impulseBuffer, NODES_PER_NOTE, openSession, PEAK, playVoice,
+  AMPLITUDE, buildChain, crackleBuffers, impulseBuffer, levelAt, NODES_PER_NOTE, openSession, PEAK, playVoice,
 } from '../music/instruments'
 import type { MixLevels } from '../music/levels'
 import type { Inst, LeadVoice, MusicEvent } from '../music/types'
@@ -115,17 +115,18 @@ describe('playVoice', () => {
     expect(Math.max(...counts)).toBe(NODES_PER_NOTE.lead)
   })
 
-  it('reaches the design peaks', () => {
+  it('reaches the design peaks scaled by 0.84 (-1.5 dB, the loudness ruling)', () => {
     const top = (inst: Inst, lead: LeadVoice = 'bell') =>
       Math.max(...play(ev({ inst, vel: 1 }), lead).envs.flatMap((env) => scheduledValues(env.gain)))
-    expect(top('keys')).toBeCloseTo(0.035, 12)
-    expect(top('bass')).toBeCloseTo(0.08, 12)
-    expect(top('kick')).toBeCloseTo(0.12, 12)
-    expect(top('snare')).toBeCloseTo(0.05, 12)
-    expect(top('hat')).toBeCloseTo(0.025, 12)
-    expect(top('shaker')).toBeCloseTo(0.015, 12)
-    expect(top('lead', 'bell')).toBeCloseTo(0.05, 12)
-    expect(top('lead', 'soft')).toBeCloseTo(0.05, 12)
+    expect(top('keys')).toBeCloseTo(0.0294, 12)
+    expect(top('bass')).toBeCloseTo(0.0672, 12)
+    expect(top('kick')).toBeCloseTo(0.1008, 12)
+    expect(top('snare')).toBeCloseTo(0.042, 12)
+    expect(top('hat')).toBeCloseTo(0.021, 12)
+    expect(top('shaker')).toBeCloseTo(0.0126, 12)
+    expect(top('lead', 'bell')).toBeCloseTo(0.042, 12)
+    expect(top('lead', 'soft')).toBeCloseTo(0.042, 12)
+    expect(top('lead', 'glock')).toBeCloseTo(0.042, 12)
   })
 
   it('sweeps the kick from 110 to 45 Hz over 0.12 s', () => {
@@ -192,10 +193,45 @@ describe('playVoice', () => {
   })
 
   it('gives each voice its real peak amplitude: the bass its sine plus its triangle at 0.3, the rest their peak', () => {
-    expect(AMPLITUDE.bass).toBeCloseTo(0.104, 12)
+    expect(AMPLITUDE.bass).toBeCloseTo(0.08736, 12)
     for (const v of ['keys', 'lead', 'kick', 'snare', 'hat', 'shaker', 'bell', 'glock', 'soft'] as const) {
       expect(AMPLITUDE[v]).toBe(PEAK[v])
     }
+  })
+
+  describe('levelAt, the share of its peak a voice still sounds at t seconds after its start', () => {
+    it('holds every voice at its peak through its attack', () => {
+      for (const inst of INSTS) for (const lead of LEADS) expect(levelAt(inst, lead, 0)).toBe(1)
+    })
+
+    it('decays the keys exponentially to 0.35 over 1.4 s after their 6 ms attack, then holds', () => {
+      expect(levelAt('keys', 'bell', 0.006)).toBeCloseTo(1, 12)
+      expect(levelAt('keys', 'bell', 0.706)).toBeCloseTo(Math.sqrt(0.35), 9)
+      expect(levelAt('keys', 'bell', 1.406)).toBeCloseTo(0.35, 9)
+      expect(levelAt('keys', 'bell', 5)).toBeCloseTo(0.35, 9)
+    })
+
+    it('rings the bell and the glock down to silence over their decay, and nothing after it', () => {
+      // Halfway through the bell's 0.8 s decay it is at the square root of 0.0001 / 0.042, its silence over its peak.
+      expect(levelAt('lead', 'bell', 0.404)).toBeCloseTo(Math.sqrt(0.0001 / 0.042), 9)
+      expect(levelAt('lead', 'bell', 0.81)).toBe(0)
+      expect(levelAt('lead', 'glock', 0.604)).toBeCloseTo(Math.sqrt(0.0001 / 0.042), 9)
+      expect(levelAt('lead', 'glock', 1.21)).toBe(0)
+    })
+
+    it('settles the soft lead at 0.7 and holds the bass at its peak', () => {
+      expect(levelAt('lead', 'soft', 0.34)).toBeCloseTo(0.7, 9)
+      expect(levelAt('lead', 'soft', 3)).toBeCloseTo(0.7, 9)
+      expect(levelAt('bass', 'bell', 3)).toBe(1)
+    })
+
+    it('counts the kick for its 0.12 s body only, and the noise drums for their own length', () => {
+      expect([levelAt('kick', 'bell', 0.11), levelAt('kick', 'bell', 0.13)]).toEqual([1, 0])
+      expect([levelAt('snare', 'bell', 0.13), levelAt('snare', 'bell', 0.15)]).toEqual([1, 0])
+      expect([levelAt('hat', 'bell', 0.03), levelAt('hat', 'bell', 0.04)]).toEqual([1, 0])
+      expect([levelAt('hat', 'bell', 0.17, true), levelAt('hat', 'bell', 0.19, true)]).toEqual([1, 0])
+      expect([levelAt('shaker', 'bell', 0.045), levelAt('shaker', 'bell', 0.055)]).toEqual([1, 0])
+    })
   })
 
   it("plays a strummed chord's notes at their own times, 12 ms apart", () => {

@@ -12,10 +12,14 @@ import type { Inst, LeadVoice, MusicEvent, Voice, VoiceFn } from './types'
 export { buildChain, crackleBuffers, impulseBuffer, openSession } from './chain'
 export type { Chain, Session } from './chain'
 
-/** Each instrument's (and lead timbre's) envelope peak at velocity 1; the lead's entry is its loudest timbre. */
+/**
+ * Each instrument's (and lead timbre's) envelope peak at velocity 1; the lead's entry is its loudest timbre. These are
+ * the design's starting values x 0.84 (-1.5 dB), the Task 12 loudness ruling: keys 0.035, bass 0.08, the leads and the
+ * snare 0.05, kick 0.12, hat 0.025, shaker 0.015.
+ */
 export const PEAK: Record<Inst | LeadVoice, number> = {
-  keys: 0.035, bass: 0.08, lead: 0.05, kick: 0.12, snare: 0.05, hat: 0.025, shaker: 0.015,
-  bell: 0.05, glock: 0.05, soft: 0.05,
+  keys: 0.0294, bass: 0.0672, lead: 0.042, kick: 0.1008, snare: 0.042, hat: 0.021, shaker: 0.0126,
+  bell: 0.042, glock: 0.042, soft: 0.042,
 }
 
 /** The bass's triangle sits at this level under its sine. */
@@ -24,7 +28,7 @@ const BASS_TRIANGLE = 0.3
 /**
  * Each instrument's (and lead timbre's) real peak amplitude at velocity 1, for the summed-peak budget: its envelope
  * peak times the sum of the source levels under it, so the bass's sine and its triangle at 0.3 count 1.3 x its peak;
- * every other voice has one source at full level.
+ * every other voice has one source at full level. `levelAt` gives the share of it still sounding later in a note.
  */
 export const AMPLITUDE: Record<Inst | LeadVoice, number> = { ...PEAK, bass: PEAK.bass * (1 + BASS_TRIANGLE) }
 
@@ -63,8 +67,9 @@ const BELL_INDEX = { start: 1.5, floor: 0.1, time: 0.4 }
 const BELL_RATIO = 3.5
 const GLOCK_RATIO = 5
 /**
- * The glock's modulator runs at 10x the note, so above about A3 index 1.5 would swing it past 6000 Hz and alias
- * into a harsh fizz; its starting deviation (index x modulator Hz) is capped here, the floor kept below it.
+ * The glock's modulator runs at 10x the written note, so from about G4 (392 Hz) up index 1.5 would swing it to
+ * 6000 Hz and beyond and alias into a harsh fizz; its starting deviation (index x modulator Hz) is capped at 5800 Hz
+ * here, the floor kept below it. Most winter melody notes sit at G4 or above, so most play capped.
  */
 const GLOCK_MAX_DEVIATION = 5800
 /** The kick sweeps 110 to 45 Hz over 0.12 s, easing to this share of its peak, then tails to silence by 0.44 s. */
@@ -73,6 +78,34 @@ const KICK = { from: 110, to: 45, sweep: 0.12, body: 0.6, end: 0.44 }
 const SNARE = { noise: 0.14 }
 const HAT = { closed: 0.035, open: 0.18 }
 const SHAKER = { len: 0.05, attack: 0.008 }
+
+/**
+ * The share of its peak a voice of `inst` (the lead in timbre `lead`) still sounds `t` seconds after it starts, while
+ * held, for the summed-peak budget: 1 through the attack, then the envelope's exponential decay towards its sustain
+ * (the bell and the glock to silence, nothing after their decay); the kick counts for its 0.12 s body only, the snare,
+ * hat (`open` for an open one) and shaker for their own length. Pure; times its peak by `AMPLITUDE` x velocity.
+ */
+export function levelAt(inst: Inst, lead: LeadVoice, t: number, open = false): number {
+  const voice = inst === 'lead' ? lead : inst
+  const decayed = (s: Shape): number => {
+    if (t <= s.attack) return 1
+    const floor = Math.max(s.sustain, SILENT / PEAK[voice])
+    if (t - s.attack >= s.decay) return s.sustain
+    return floor ** ((t - s.attack) / s.decay)
+  }
+  const within = (len: number): number => (t < len ? 1 : 0)
+  switch (voice) {
+    case 'keys': return decayed(KEYS)
+    case 'bell': return decayed(BELL)
+    case 'glock': return decayed(GLOCK)
+    case 'soft': return decayed(SOFT)
+    case 'bass': return decayed(BASS)
+    case 'kick': return within(KICK.sweep)
+    case 'snare': return within(SNARE.noise)
+    case 'hat': return within(open ? HAT.open : HAT.closed)
+    case 'shaker': return within(SHAKER.len)
+  }
+}
 
 /** What one voice made: every node (to disconnect), its envelopes (to cut) and its sources with their stop times. */
 interface Kit {
