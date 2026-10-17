@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { barEvents, leadPhrase } from '../music/arrange'
-import { NODES_PER_NOTE } from '../music/instruments'
+import { AMPLITUDE, NODES_PER_NOTE } from '../music/instruments'
 import { compileTrack } from '../music/score'
 import type { CompiledTrack } from '../music/score'
 import { isAvoid } from '../music/theory'
@@ -9,10 +9,13 @@ import type { TrackId } from '../music/tracks'
 import type { Inst, MusicEvent } from '../music/types'
 
 const NODE_BUDGET = 140
+/** The most the overlapping voices' peaks may sum to before the buses (the design's "Budgets and loudness"). */
+const PEAK_BUDGET = 0.45
 const PASSES = [0, 1, 2, 3]
 const SEEDS = [1, 2, 3]
 const KEY_NAMES = ['C major', 'A minor', 'F major', 'D minor', 'G major', 'E minor']
 const DRUMS: readonly Inst[] = ['kick', 'snare', 'hat', 'shaker']
+const PITCHED: readonly Inst[] = ['keys', 'bass', 'lead']
 const ALL_IDS = [
   'blank-page', 'slow-ink', 'sakura-margins', 'screentone', 'cold-ramune', 'rain-on-the-sill', 'tea-break',
   'first-snow', 'kotatsu',
@@ -30,12 +33,32 @@ function everyBar(t: CompiledTrack, visit: (events: MusicEvent[], bar: number) =
   }
 }
 
+/** Every event of one pass under one seed, the whole form, in start order. */
+function passEvents(t: CompiledTrack, pass: number, seed: number): MusicEvent[] {
+  const out: MusicEvent[] = []
+  for (let bar = 0; bar < t.bars; bar++) out.push(...barEvents(t, bar, pass, seed))
+  return out
+}
+
 /** The section names in the order the form first plays them. */
 const sectionsInOrder = (t: CompiledTrack) => [...new Set(t.plan.map((b) => b.section))]
 
 describe('the defined tracks', () => {
-  it('include the title track and the spring track', () => {
-    expect(Object.keys(TRACKS).sort()).toEqual(['blank-page', 'slow-ink'])
+  it('are all nine, each id once, each with its own title', () => {
+    expect(new Set(ALL_IDS).size).toBe(9)
+    expect(Object.keys(TRACKS).sort()).toEqual([...ALL_IDS].sort())
+    expect(new Set(Object.values(TRACKS).map((spec) => spec.title)).size).toBe(9)
+  })
+
+  it('share no motif: each tune belongs to one track', () => {
+    const owner = new Map<string, string>()
+    for (const [id, spec] of Object.entries(TRACKS)) {
+      for (const motif of Object.values(spec.motifs)) {
+        const tune = motif.trim().split(/\s+/).join(' ')
+        expect(owner.get(tune) ?? id).toBe(id)
+        owner.set(tune, id)
+      }
+    }
   })
 
   for (const [id, t] of defined) {
@@ -45,14 +68,21 @@ describe('the defined tracks', () => {
       })
 
       it('plays only diatonic notes', () => {
+        let pitched = 0
         let off = 0
         everyBar(t, (events) => {
-          for (const e of events) if (e.midi !== 0 && !t.key.scale.includes(pc(e.midi))) off++
+          for (const e of events) {
+            if (!PITCHED.includes(e.inst)) continue
+            pitched++
+            if (!t.key.scale.includes(pc(e.midi))) off++
+          }
         })
+        expect(pitched).toBeGreaterThan(0)
         expect(off).toBe(0)
       })
 
-      it('uses no iii or vii chords in a G-collection key', () => {
+      // In G major that rules out iii and vii, in E minor v and ii: their B and F# sit a semitone from a cue's C or G.
+      it('has no chords rooted on B or F# in a G-collection key', () => {
         if (t.key.name !== 'G major' && t.key.name !== 'E minor') return
         const roots = t.plan.flatMap((b) => b.slots.map((s) => s.chord.root))
         expect(roots).not.toContain(11)
@@ -106,6 +136,7 @@ describe('the defined tracks', () => {
         expect(sectionsInOrder(t).length).toBeGreaterThanOrEqual(2)
       })
 
+      // The budget counts the nodes of the events starting in each bar, as the player schedules them bar by bar.
       it(`stays within ${NODE_BUDGET} audio nodes per bar`, () => {
         let worst = 0
         everyBar(t, (events) => {
@@ -113,6 +144,36 @@ describe('the defined tracks', () => {
         })
         expect(worst).toBeLessThanOrEqual(NODE_BUDGET)
       })
+
+      // Swept at every event's start (where a sum can only rise), counting each voice sounding then, from any bar.
+      it(`keeps the summed peak of the voices sounding together within ${PEAK_BUDGET}`, () => {
+        let worst = 0
+        for (const pass of PASSES) {
+          for (const seed of SEEDS) {
+            let sounding: MusicEvent[] = []
+            for (const e of passEvents(t, pass, seed)) {
+              sounding = sounding.filter((o) => o.at + o.dur > e.at)
+              sounding.push(e)
+              const sum = sounding.reduce((a, o) => a + AMPLITUDE[o.inst === 'lead' ? t.lead : o.inst] * o.vel, 0)
+              worst = Math.max(worst, sum)
+            }
+          }
+        }
+        expect(worst).toBeGreaterThan(0)
+        expect(worst).toBeLessThanOrEqual(PEAK_BUDGET)
+      })
+    })
+  }
+})
+
+describe('the summer tracks', () => {
+  for (const id of SEASON_TRACKS.summer) {
+    it(`${id} plays the shaker`, () => {
+      let shakes = 0
+      everyBar(CATALOG.compiled(id), (events) => {
+        shakes += events.filter((e) => e.inst === 'shaker').length
+      })
+      expect(shakes).toBeGreaterThan(0)
     })
   }
 })
@@ -125,6 +186,8 @@ describe('the title track', () => {
     expect([t.key.name, t.bpm, t.lead]).toEqual(['C major', 72, 'bell'])
   })
 
+  // The design's title row: keys and bell alone while the title screen settles, so its first two sections have no
+  // bass and no drums, and the light beat arrives with the third.
   it('plays keys and bell only in its first two sections, and drums from its third', () => {
     const [first, second, third] = sectionsInOrder(t)
     let early = 0
@@ -158,14 +221,21 @@ describe('the catalogue', () => {
     expect(CATALOG.poolFor({ mood: 'title', season: 'summer', calm: false })).toEqual(['blank-page'])
   })
 
-  it("pools the season's defined tracks in the studio", () => {
-    expect(CATALOG.poolFor({ mood: 'studio', season: 'spring', calm: false })).toEqual(['slow-ink'])
-    expect(CATALOG.poolFor({ mood: 'studio', season: 'spring', calm: true })).toEqual(['slow-ink'])
+  it("gives each season two different written tracks, none of them another season's", () => {
+    const seasonal = Object.values(SEASON_TRACKS).flat()
+    expect(new Set(seasonal).size).toBe(8)
+    for (const id of seasonal) expect(TRACKS[id]).toBeDefined()
   })
 
-  it('falls back to slow-ink for a season with no track written yet', () => {
-    for (const season of ['summer', 'autumn', 'winter'] as const) {
-      expect(CATALOG.poolFor({ mood: 'studio', season, calm: false })).toEqual(['slow-ink'])
+  it('keeps the title track out of every season', () => {
+    for (const pair of Object.values(SEASON_TRACKS)) expect(pair).not.toContain(TITLE_TRACK)
+  })
+
+  it("pools the season's two tracks in the studio, calm or not", () => {
+    for (const season of ['spring', 'summer', 'autumn', 'winter'] as const) {
+      for (const calm of [false, true]) {
+        expect(CATALOG.poolFor({ mood: 'studio', season, calm })).toEqual(SEASON_TRACKS[season])
+      }
     }
   })
 
@@ -175,9 +245,13 @@ describe('the catalogue', () => {
     expect(CATALOG.compiled('slow-ink')).toBe(t)
   })
 
-  it('throws for a track not written yet or not a track at all', () => {
-    expect(() => CATALOG.compiled('kotatsu')).toThrow(/kotatsu/)
+  it('compiles every track', () => {
+    for (const id of ALL_IDS) expect(CATALOG.compiled(id).id).toBe(id)
+  })
+
+  it('throws for an id that is not a track', () => {
     expect(() => CATALOG.compiled('nope')).toThrow(/nope/)
+    expect(() => CATALOG.compiled('toString')).toThrow(/toString/)
   })
 
   it('knows the nine track ids and nothing else', () => {
