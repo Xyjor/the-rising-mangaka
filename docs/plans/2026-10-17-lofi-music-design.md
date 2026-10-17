@@ -7,8 +7,8 @@ The binding spec for `docs/plans/2026-10-17-lofi-music-0.13.0.md`. Owner decisio
 
 - **Keys contain the C major pentatonic.** Only the C, F and G collections qualify: C major, A minor, F major, D
   minor, G major, E minor. Every chord and melody note is diatonic to its track's key, so the cues (all C pentatonic,
-  `cues.ts`) never clash. G-collection tracks use no iii or vii chords: their B and F# would sit a semitone from a
-  cue's C or G.
+  `cues.ts`) never clash. G-collection tracks use no chord rooted on B or F# (G major's iii and vii, E minor's
+  v and ii): those roots would sit a semitone from a cue's C or G.
 - **Chords are roman numerals in the track's mode**, stacked in scale thirds, so they are diatonic by construction.
   - Major mode: I ii iii IV V vi vii. Minor (aeolian): i ii III iv v VI VII.
   - The suffix `maj7`/`maj9` is required exactly where the diatonic 7th is major, and `7`/`9` everywhere else. `ø7`
@@ -107,8 +107,8 @@ The binding spec for `docs/plans/2026-10-17-lofi-music-0.13.0.md`. Owner decisio
 | Title | `blank-page` | C major | 72 | bell | Keys and bell only. Light drums from its B section. |
 | Spring | `slow-ink` | F major | 74 | soft | The example above. |
 | Spring | `sakura-margins` | F major | 80 | bell | Bright, light hats. |
-| Summer | `screentone` | G major | 84 | bell | Crisp hats plus shaker. No iii or vii chords. |
-| Summer | `cold-ramune` | E minor | 80 | soft | Summer evening, shaker. No iii or vii chords. |
+| Summer | `screentone` | G major | 84 | bell | Crisp hats plus shaker. No chords rooted on B or F#. |
+| Summer | `cold-ramune` | E minor | 80 | soft | Summer evening, shaker. No chords rooted on B or F#. |
 | Autumn | `rain-on-the-sill` | D minor | 72 | soft | Warm, `tone` 2200. |
 | Autumn | `tea-break` | A minor | 76 | soft | Warm, `tone` 2300. |
 | Winter | `first-snow` | C major | 68 | glock | Sparse drums (`tick`/`half`), `space` 0.35. |
@@ -117,22 +117,28 @@ The binding spec for `docs/plans/2026-10-17-lofi-music-0.13.0.md`. Owner decisio
 Each track is 24-40 bars, 60-150 s, and has at least 2 distinct sections. The title track has no drums in its first
 two sections.
 
-### Sound palette (`instruments.ts`; starting values, tuned in Task 12 inside the loudness gate)
+### Sound palette (`instruments.ts`; the shipped values, after the Task 12 loudness gate)
+
+Every peak below is the starting value x 0.84 (-1.5 dB), the Task 12 ruling that brought the studio tracks inside
+the gate (`PEAK`; the starting values were keys 0.035, bass 0.08, the leads and the snare 0.05, kick 0.12, hat 0.025,
+shaker 0.015).
 
 - **keys:** FM electric piano. A sine carrier and a sine modulator at 1:1, the modulator through a mod gain into
   `carrier.frequency`. The index runs from I0·f (I0 = 1.2 + 1.3·vel, at most 3) on an exponential ramp to 0.25·f over
   0.6 s. Envelope: attack 6 ms, exponential decay to 0.35 over 1.4 s, then a 0.25 s release tail. Chords strum low to
-  high, 12 ms apart. Peak 0.035 per note.
-- **bell:** FM at 3.5:1, index 1.5 falling to 0.1 over 0.4 s. Attack 4 ms, decay 0.8 s, release 0.4 s. Peak 0.05.
-- **glock:** the bell at 5:1 and an octave up, decay 1.2 s.
-- **soft:** a triangle. Attack 40 ms, sustain 0.7, release 0.15 s. Peak 0.05.
+  high, 12 ms apart. Peak 0.0294 per note.
+- **bell:** FM at 3.5:1, index 1.5 falling to 0.1 over 0.4 s. Attack 4 ms, decay 0.8 s, release 0.4 s. Peak 0.042.
+- **glock:** the bell at 5:1 and an octave up, decay 1.2 s. Its starting FM deviation (index x modulator Hz) is capped
+  at 5800 Hz, so high notes (from about G4) do not alias. Peak 0.042.
+- **soft:** a triangle. Attack 40 ms, sustain 0.7, release 0.15 s. Peak 0.042.
 - **bass:** a sine plus a triangle at 0.3, through the bass bus lowpass at 700 Hz. Attack 12 ms, release 80 ms. Peak
-  0.08.
-- **kick:** a sine sweeping 110 to 45 Hz over 0.12 s, then an exponential tail to silence over 0.32 s. Peak 0.12.
-- **snare:** noise from `synth.ts`'s shared `noiseBuffer` (exported) at a hashed offset, 0.14 s, into the snare bus
-  bandpass (1800 Hz, Q 0.8), plus a 190 Hz triangle body of 0.06 s. Peak 0.05.
-- **hat:** noise for 35 ms (an open hat lasts 0.18 s) into the hat bus bandpass (6500 Hz, Q 0.9). Peak 0.025.
-- **shaker:** noise for 50 ms with a soft 8 ms attack into a bandpass at 5200 Hz. Peak 0.015.
+  0.0672 (its real amplitude 1.3 x that, `AMPLITUDE`).
+- **kick:** a sine sweeping 110 to 45 Hz over 0.12 s, then an exponential tail to silence over 0.32 s. Peak 0.1008.
+- **snare:** noise alone from `synth.ts`'s shared `noiseBuffer` (exported) at a hashed offset, 0.14 s, into the snare
+  bus bandpass (1800 Hz, Q 0.8). The 190 Hz triangle body was dropped in Task 12 (about -17 dB through that
+  bandpass, so near inaudible); the snare counts 2 nodes. Peak 0.042.
+- **hat:** noise for 35 ms (an open hat lasts 0.18 s) into the hat bus bandpass (6500 Hz, Q 0.9). Peak 0.021.
+- **shaker:** noise for 50 ms with a soft 8 ms attack into a bandpass at 5200 Hz. Peak 0.0126.
 - **Per-note nodes** are only sources plus an envelope (and a mod gain for FM). The fixed filters live on the
   persistent buses. Each voice returns `{ end, stop(t) }`. One `onended`, on the source that stops last, disconnects
   every node the voice made.
@@ -244,8 +250,10 @@ fade), `CALM_SETTLE` 3 s, `PIN_BREAK` 2 s, `YOUNG` 0.5 s.
 
 ### Budgets and loudness
 
-- **Nodes:** at most 140 created per bar. The summed peaks of overlapping voices are at most 0.45 before the buses.
-  Both are tested on every real bar.
+- **Nodes:** at most 140 created per bar. The summed peaks of overlapping voices are at most 0.45 before the buses,
+  decay-aware (the Task 12 ruling): each sounding voice counts its real amplitude (`AMPLITUDE`) x velocity x its
+  envelope's level at the sweep instant (`levelAt`), the kick for its 0.12 s body only. Both are tested on every real
+  bar.
 - **Loudness gate** (in the browser, `measure.ts`, OfflineAudioContext):
   - Measurement is K-weighted: a highpass at 38 Hz plus a high shelf of +4 dB at 1500 Hz.
   - The studio tracks' K-weighted RMS, in the studio mood and not calm, must be within ±3 dB of the old loop's,
