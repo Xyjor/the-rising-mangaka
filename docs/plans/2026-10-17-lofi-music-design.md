@@ -24,8 +24,8 @@ The binding spec for `docs/plans/2026-10-17-lofi-music-0.13.0.md`. Owner decisio
   voicings never depend on `pass`.
   - **Drums.**
     - Ghost snares: chance `feel.ghost`, at velocity 0.25, on an odd step with no snare hit next to it.
-    - Hat velocities: 1 on the beat, 0.7 on off-beat 8ths, 0.45 on 16ths. Any hat off the downbeat is dropped 8% of
-      the time.
+    - Hat velocities: 1 on the beat, 0.7 on off-beat 8ths, 0.45 on 16ths. Any hat off the quarter notes is dropped 8% of
+      the time (quarter-note hats are never dropped).
     - Fills: on each phrase's 4th bar, chance `feel.fill`, one of three (skip, roll, open hat) over steps 12-15.
     - Before a new section: a drop (steps 12-15 silent) or a fill, half and half.
     - Kick anticipation on step 15: 10%.
@@ -186,7 +186,7 @@ its segment.
 
 ```ts
 interface MusicScene { mood: 'title' | 'studio'; season: Season; calm: boolean }
-interface MusicPlayer { start(): void; stop(): void; setScene(s: MusicScene): void; pin(id: TrackId | null): void; dispose(): void }
+interface MusicPlayer { start(): void; stop(): void; setScene(s: MusicScene): void; pin(id: TrackId | null): void; nudge(): void; dispose(): void }
 interface PlayerOptions { seed: number; scene?: MusicScene; catalog?: Catalog; voice?: VoiceFn }
 function createMusicPlayer(ctx: BaseAudioContext, dest: AudioNode, timers: Timers, o: PlayerOptions): MusicPlayer
 ```
@@ -194,19 +194,20 @@ function createMusicPlayer(ctx: BaseAudioContext, dest: AudioNode, timers: Timer
 Segments are `{ kind: 'track' | 'break', track?, pass, origin, end }`, chained on the audio clock. `advance(loop)`
 splits a look-ahead window at segment boundaries, at most 8 iterations per tick. Only the playing Loop chains to a
 next segment; fading Loops never do. After a stall, a new segment starts at `max(prev.end, from)`. Constants: `FADE_IN`
-2, `FADE_OUT` 0.4, `XFADE` 1.5, `LOOK_AHEAD` 0.2, a 50 ms tick, `MAX_FADING` 2 (an extra fading Loop is cut to a 50 ms
+2, `FADE_OUT` 0.4, `XFADE` 1.5, `LOOK_AHEAD` 0.4 (a stall under about 350 ms loses no note; a longer one skips the missed notes), a 50 ms tick, `MAX_FADING` 2 (an extra fading Loop is cut to a 50 ms
 fade), `CALM_SETTLE` 3 s, `PIN_BREAK` 2 s, `YOUNG` 0.5 s.
 
 | Change | While playing (a track or a break) | While stopped |
 |---|---|---|
 | `start` | No-op. | A track now, 2 s fade-in, the crackle gate opens. |
 | `stop` | Every live Loop reaches 0 by now + 0.4 (crossfade-outs are shortened). Voices, session and timer are released on the first tick after. | No-op. |
-| mood (title or studio) | Crossfade now (1.5 s) to a pick from the new pool, cutting a break short. If the playing Loop is under `YOUNG`, it is replaced with a 50 ms fade instead. Ignored while pinned. | Stored. |
+| mood (title or studio) | Crossfade now (1.5 s) to a pick from the new pool, cutting a break short. If the playing Loop is under `YOUNG`, it is replaced with a 50 ms fade instead. Ignored while pinned. | Stored; once the chain exists it glides (tau 0.4) to the scene's between-tracks levels. |
 | season | Read at the next pick (break to track). | Stored. |
-| calm | Bus levels and tone glide now. Drums stop being scheduled after `CALM_SETTLE` and resume on the next tick after calm ends. | Stored; the chain is built at those levels. |
-| `pin(id)` | Crossfade now. After that every track is `id`, with 2 s breaks. | Stored. |
+| calm | Bus levels and tone glide now. Drums stop being scheduled after `CALM_SETTLE` and resume on the next tick after calm ends. | Stored; the chain is built at those levels, or, once built, glides to them (tau 0.4). |
+| `pin(id)` | Crossfade now. After that every track is `id`, with 2 s breaks. An unknown id throws before anything changes. | Stored (an unknown id throws, nothing stored). |
 | `pin(null)` | The next pick comes from the pool. | Stored. |
 | suspended context | Fading Loops finish on the next tick. The playing Loop holds while the clock is frozen. | — |
+| `nudge()` | One scheduling tick now, as the timer would (the engine calls it once `resume()` has woken the context, since a window shown again may still have a throttled timer). | No-op (nothing playing or fading). |
 
 `pick()` returns `pinned ?? pickTrack(poolFor(scene), recent, seed, ++counter)`, keeping the last 2 picks in
 `recent`.

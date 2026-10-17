@@ -115,7 +115,7 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   `NODES_PER_NOTE` for the 140-a-bar node budget); `chain.ts` the persistent mixer (`buildChain`: the tonal sum through
   the tape wobble and tone lowpass with a reverb send, the drum buses dry; `setLevels(l, tau, at)` cancels any later
   glide first) and the session (`openSession`: the wobble LFOs and the crackle into its gate); `player.ts`
-  `createMusicPlayer`, the look-ahead scheduler (50 ms tick, 200 ms ahead) chaining tracks and crackle breaks, calm
+  `createMusicPlayer`, the look-ahead scheduler (50 ms tick, 400 ms ahead; `nudge` runs one tick now, called by the engine once a `resume()` or later unlock has woken the context) chaining tracks and crackle breaks, calm
   glides, 1.5 s crossfades on a mood change or pin (`pin` of the same id a no-op), the season read at the next pick;
   and `measure.ts` the DEV loudness meter (`measurePlayer`, offline through the real mixer), imported by nothing. In a
   dev build `main.tsx` reads `?music=<id>` (`isTrackId`) to pin a track. `Modal` plays `open`/`close`/`tab` itself

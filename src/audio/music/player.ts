@@ -1,5 +1,5 @@
 // The music player (0.13.0): plays the catalogue's tracks into the music bus, one after another with a crackle break
-// between, chained on the audio clock by a look-ahead scheduler (a 50 ms timer queues the next 200 ms). It owns three
+// between, chained on the audio clock by a look-ahead scheduler (a 50 ms timer queues the next 400 ms). It owns three
 // lifetimes: the chain (the mixer, built at the first start and kept), the session (the wobble LFOs and the crackle,
 // opened at a start and released on the tick the timer goes) and the Loop (one per start: seven fade gains, one per
 // instrument, and the segments it plays). Only the playing Loop chains to its next segment; a stopped Loop fades out
@@ -30,8 +30,11 @@ export const FADE_IN = 2
 export const FADE_OUT = 0.4
 /** A crossfade between two Loops, in seconds. */
 export const XFADE = 1.5
-/** How far ahead of the clock each tick queues notes, in seconds. */
-export const LOOK_AHEAD = 0.2
+/**
+ * How far ahead of the clock each tick queues notes, in seconds: a main-thread stall shorter than this (less a tick)
+ * loses no note; a longer one skips the missed notes.
+ */
+export const LOOK_AHEAD = 0.4
 /** The scheduler's period in ms. */
 export const TICK_MS = 50
 /** The most Loops fading out at once; an extra one is cut short. */
@@ -96,14 +99,21 @@ export interface MusicPlayer {
   stop(): void
   /**
    * Sets the scene. While playing: a mood change crossfades to the new pool (unless pinned), calm glides the mix and
-   * stops the drums once settled, and a season change is read at the next pick. While stopped it is only stored.
+   * stops the drums once settled, and a season change is read at the next pick. While stopped it is stored and, once
+   * the chain exists, the chain glides to its between-tracks levels, so the next start fades in at them.
    */
   setScene(s: MusicScene): void
   /**
    * Sets a track every pick plays (with 2 s breaks), crossfading to it now while playing, or null to pick from the
-   * scene's pool again at the next pick.
+   * scene's pool again at the next pick. An id the catalogue does not know throws before anything changes: the pin
+   * and the playing Loop stay as they were.
    */
   pin(id: string | null): void
+  /**
+   * Runs one scheduling tick now, as the timer would: for a window shown again, whose throttled timer may not fire for
+   * a while. A no-op when nothing is playing or fading.
+   */
+  nudge(): void
   /** Stops the timer. The context's owner closes the context, which silences every node. */
   dispose(): void
 }
@@ -324,8 +334,13 @@ export function createMusicPlayer(ctx: BaseAudioContext, dest: AudioNode, timers
       scene = s
       const now = ctx.currentTime
       if (s.calm && !prev.calm) calmSince = now
+      // Stopped (or fading out after a stop): the chain glides to the new scene between tracks, ready for a start.
+      if (!playing) {
+        chain?.setLevels(levelsFor(s, null), WAKE_TAU)
+        return
+      }
       // A season change waits for the next pick; it moves no level.
-      if (!playing || !chain || (s.mood === prev.mood && s.calm === prev.calm)) return
+      if (!chain || (s.mood === prev.mood && s.calm === prev.calm)) return
       if (s.mood !== prev.mood && pinned === null) {
         crossfade(chain, playing)
         return
@@ -341,8 +356,14 @@ export function createMusicPlayer(ctx: BaseAudioContext, dest: AudioNode, timers
 
     pin(id) {
       if (id === pinned) return
+      // Rethrows an unknown id before any state changes, so a bad pin leaves the playing Loop as it was.
+      if (id !== null) catalog.compiled(id)
       pinned = id
       if (id !== null && playing && chain) crossfade(chain, playing)
+    },
+
+    nudge() {
+      if (playing || fading.length > 0) tick()
     },
 
     dispose() {

@@ -203,7 +203,7 @@ describe('music player: start and the look-ahead', () => {
       expect(f.connections).toHaveLength(1)
     }
     expect(new Set(fades().map((f) => f.connections[0])).size).toBe(7)
-    // The first window (0 to 0.2 s) holds the opening kick and bass note, each into its own fade.
+    // The first window (0 to 0.4 s) holds the opening kick and bass note, each into its own fade.
     expect(played.map((p) => [p.e.inst, p.e.at])).toEqual([['kick', 0], ['bass', 0]])
     const [kick, bass] = played
     expect(fades()).toContain(kick.out)
@@ -224,10 +224,10 @@ describe('music player: start and the look-ahead', () => {
     expect(lfos()).toHaveLength(1)
   })
 
-  it('looks 200 ms ahead on each 50 ms tick', () => {
+  it('looks 400 ms ahead on each 50 ms tick', () => {
     const { player, played, advance } = setup()
     player.start()
-    advance(300) // the tick at 0.3 s schedules up to 0.5 s, half-open; the second kick is at 0.5
+    advance(100) // the tick at 0.1 s schedules up to 0.5 s, half-open; the second kick is at 0.5
     expect(played).toHaveLength(2)
     advance(50)
     expect(played).toHaveLength(3)
@@ -237,9 +237,9 @@ describe('music player: start and the look-ahead', () => {
   it('skips ahead after a stall instead of playing the missed notes in a burst', () => {
     const { fake, timers, player, played } = setup()
     player.start()
-    fake.currentTime = 1.4
+    fake.currentTime = 1.3
     timers.fire()
-    // Only the kick at 1.5 falls in 1.4 to 1.6; the kicks at 0.5 and 1 are skipped.
+    // Only the kick at 1.5 falls in 1.3 to 1.7; the kicks at 0.5 and 1 are skipped.
     expect(played.slice(2).map((p) => [p.e.inst, p.e.at])).toEqual([['kick', 1.5]])
   })
 
@@ -287,7 +287,7 @@ describe('music player: segments', () => {
     const breakEnd = SECONDS + breakSeconds(SEED, 1)
     let ms = 0
     // Tick up to the last tick whose window ends short of the break's end...
-    while ((ms + 50) / 1000 + 0.2 < breakEnd) {
+    while ((ms + 50) / 1000 + 0.4 < breakEnd) {
       ms += 50
       fake.currentTime = ms / 1000
       timers.fire()
@@ -482,7 +482,7 @@ describe('music player: segments, the edge cases', () => {
       timers.fire()
     }
     // Nothing between the first window and the next track: the skipped end of the first is not played late.
-    expect(played.filter((p) => p.e.at >= 0.2 && p.e.at < breakEnd - 1e-9)).toEqual([])
+    expect(played.filter((p) => p.e.at >= 0.4 && p.e.at < breakEnd - 1e-9)).toEqual([])
     expect(r(heard(played)[1].origin)).toBe(r(breakEnd))
   })
 
@@ -637,7 +637,7 @@ describe('music player: calm', () => {
     advance(1000)
     player.setScene({ ...STUDIO, calm: true })
     const second = SECONDS + breakSeconds(SEED, 1)
-    advanceTo(second + 1.3)
+    advanceTo(second + 1.1)
     const kicks = played.filter((p) => p.e.inst === 'kick').map((p) => p.e.at)
     // The first track's kicks (its second bar opens on its last, at 2) were queued inside the settle; the second
     // track has none, though its bass plays.
@@ -736,5 +736,71 @@ describe('music player: the pin', () => {
     const later = heard(pinnedLoop()).slice(3)
     expect(later[0].origin).toBe(19) // the break already under way stays a pinned one
     expect(later[0].id).not.toBe('d')
+  })
+})
+
+describe('music player: stalls, nudges, a stopped scene and a bad pin', () => {
+  it('keeps every note through a 350 ms main-thread stall', () => {
+    const { fake, timers, player, played, advance } = setup()
+    player.start()
+    advance(150)
+    // No tick from 0.15 s to 0.55 s: the kick at 0.5 must already be queued by the tick at 0.15.
+    fake.currentTime = 0.55
+    timers.fire()
+    expect(played.filter((p) => p.e.inst === 'kick').map((p) => p.e.at)).toEqual([0, 0.5])
+  })
+
+  it('nudge schedules the next window at once, without the timer firing', () => {
+    const { fake, player, played, advance } = setup()
+    player.start()
+    advance(100) // queued up to 0.5 s, half-open: the kick at 0.5 is not yet queued
+    expect(played.map((p) => p.e.at)).toEqual([0, 0])
+    fake.currentTime = 0.3
+    player.nudge()
+    expect(played.slice(2).map((p) => [p.e.inst, p.e.at])).toEqual([['kick', 0.5]])
+  })
+
+  it('nudge does nothing before a start or once a stop has released everything', () => {
+    const { fake, player, timers, advance, gate } = setup()
+    player.nudge()
+    expect(fake.nodes).toHaveLength(1)
+    expect(timers.live).toEqual([])
+    player.start()
+    advance(500)
+    player.stop()
+    advance(500)
+    const gateEvents = gate()!.gain.events.length
+    const made = fake.nodes.length
+    player.nudge()
+    expect(gate()!.gain.events).toHaveLength(gateEvents)
+    expect(fake.nodes).toHaveLength(made)
+    expect(timers.live).toEqual([])
+  })
+
+  it('glides the chain to the new scene while stopped, so the next start fades in at its levels', () => {
+    const { fake, player, advance, tone, bus } = setup()
+    player.start()
+    advance(1000)
+    player.stop()
+    advance(500)
+    player.setScene(WINTER)
+    // The studio between tracks: tone 2600, every part at 1, from now with tau 0.4.
+    const glide = (value: number) => ({ kind: 'setTargetAtTime', value, time: fake.currentTime, timeConstant: 0.4 })
+    expect(tone().frequency.events.at(-1)).toEqual(glide(2600))
+    expect(bus('bass').gain.events.at(-1)).toEqual(glide(1))
+  })
+
+  it('throws on a pin of an unknown track before touching anything, the playing Loop carrying on', () => {
+    const { player, played, advance, loops } = setup({ scene: STUDIO })
+    player.start()
+    advance(1000)
+    expect(() => player.pin('nope')).toThrow('No track "nope"')
+    expect(loops()).toHaveLength(1)
+    for (const f of loops()[0]) expect(trace(f.gain).at(-1)).toEqual(['linearRampToValueAtTime', 1, 2])
+    advance(1000)
+    // Scheduled once per tick: each kick of the first track once, none twice.
+    expect(played.filter((p) => p.e.inst === 'kick').map((p) => p.e.at)).toEqual([0, 0.5, 1, 1.5, 2])
+    // The pin was not kept: the next pick still comes from the pool, not a throw.
+    expect(() => advance(30_000)).not.toThrow()
   })
 })

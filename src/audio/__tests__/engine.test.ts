@@ -70,6 +70,7 @@ function recorded(o: { seed: number }) {
         stop: () => log.push('stop'),
         setScene: (s) => log.push(`scene ${s.mood} ${s.season}${s.calm ? ' calm' : ''}`),
         pin: (id) => log.push(`pin ${id}`),
+        nudge: () => log.push('nudge'),
         dispose: () => log.push('dispose'),
       }
       return player
@@ -385,6 +386,31 @@ describe('sound engine', () => {
     engine.pinMusicTrack(null)
     engine.stopMusic()
     expect(log).toEqual(['create', 'start', 'scene studio spring calm', 'pin first-snow', 'pin null', 'stop'])
+  })
+
+  it('nudges the player once resume() has woken the context, so it schedules before its timer fires', async () => {
+    const { engine, log, fake } = recorded({ seed: 1 })
+    engine.unlock()
+    engine.startMusic()
+    fake.state = 'suspended'
+    engine.resume()
+    await Promise.resolve()
+    expect(log).toEqual(['create', 'start', 'nudge'])
+  })
+
+  it('nudges the player when a later unlock wakes a suspended context, and never while muted', async () => {
+    const { engine, log, fake } = recorded({ seed: 1 })
+    engine.unlock()
+    await Promise.resolve()
+    expect(log).toEqual(['create'])
+    fake.state = 'suspended'
+    engine.unlock()
+    await Promise.resolve()
+    expect(log).toEqual(['create', 'nudge'])
+    engine.setPrefs(MUTED)
+    engine.resume()
+    await Promise.resolve()
+    expect(log).toEqual(['create', 'nudge'])
   })
 
   it('disposes the player, then closes the context', () => {

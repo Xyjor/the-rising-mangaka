@@ -1684,7 +1684,7 @@ sim's `mix`, so each pass varies its ghost snares, fills, hat drops (never a qua
 added 9ths, answer runs, bass approaches and motif changes, while the harmony and the voicings never change; swing,
 humanise (at most 0.03 s) and strum only ever delay a note.
 
-The player (`player.ts`) chains the tracks on the audio clock, a 50 ms timer queuing 200 ms ahead, with a crackle
+The player (`player.ts`) chains the tracks on the audio clock, a 50 ms timer queuing 400 ms ahead (so a main-thread stall under about 350 ms drops no note; a longer one skips the missed notes rather than playing them late), and nudged to schedule at once when the window shows again, with a crackle
 break of 8 to 20 s between two (`playlist.ts`; a season's pair alternates); a season change waits for the next track.
 While the clock is effectively stopped (`src/state/clockRuns.ts` false: paused, a menu open, or a result or offer
 waiting) the music turns calm (`levels.ts`): the tone darkens to 1,300 Hz, the lead drops to 0.6 and the drums stop,

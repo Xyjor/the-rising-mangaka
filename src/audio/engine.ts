@@ -46,6 +46,7 @@ export interface SoundEngine {
   /** Lowers the music bus to `level` (0..1) of its normal level; duck(1) restores it. */
   duck(level: number): void
   suspend(): void
+  /** Resumes the context unless muted, then nudges the music player to schedule at once (MusicPlayer.nudge). */
   resume(): void
   dispose(): void
 }
@@ -142,11 +143,14 @@ export function createSoundEngine(o: SoundEngineOptions): SoundEngine {
     if (ctx) param.setTargetAtTime(value, ctx.currentTime, timeConstant)
   }
 
-  /** Resumes the context and starts the grace, so a cue played right away is scheduled while resume() is pending. */
+  /**
+   * Resumes the context and starts the grace, so a cue played right away is scheduled while resume() is pending. Once
+   * it runs, the music player schedules a tick at once: a window shown again may still have a throttled timer.
+   */
   const wake = () => {
     if (!ctx) return
     wokeAt = now()
-    void ctx.resume().catch(noop)
+    void ctx.resume().then(() => music?.nudge()).catch(noop)
   }
 
   /** The peak of live voices plus `add`, from `t` on. Forgets plays that have ended or were stopped. */
