@@ -285,12 +285,18 @@ function resolveRefs(
   }
   const out = Array.from({ length: bars }, (_, i) => refs[i % refs.length])
   const end = out[bars - 1]
-  if (end && end.half === 0 && lengthOf(end.name) === 2) fail(`the section ends inside the two-bar pattern "${end.name}"`)
+  if (end && end.half === 0 && lengthOf(end.name) === 2) {
+    fail(`the section ends inside the two-bar pattern "${end.name}"`)
+  }
   return out
 }
 
 /** A section's chords: per bar, the chords with their start steps. */
-function parseChords(fail: (why: string) => never, text: string | undefined, key: Key): { step: number; chord: Chord }[][] {
+function parseChords(
+  fail: (why: string) => never,
+  text: string | undefined,
+  key: Key,
+): { step: number; chord: Chord }[][] {
   if (text === undefined || text.trim() === '') fail('no chords')
   return (text as string).split('|').map((bar, i) => {
     const numerals = words(bar)

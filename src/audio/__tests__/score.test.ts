@@ -317,7 +317,8 @@ describe('compileTrack: chords and voicings', () => {
       expect(s.voicing, s.chord.symbol).toEqual(voiceChord(s.chord, prev, [50, 74]))
       prev = s.voicing
     }
-    const restarted = p.flatMap((b) => b.slots).filter((s) => s.voicing.join() !== voiceChord(s.chord, null, [50, 74]).join())
+    const fresh = (s: (typeof p)[number]['slots'][number]) => voiceChord(s.chord, null, [50, 74]).join()
+    const restarted = p.flatMap((b) => b.slots).filter((s) => s.voicing.join() !== fresh(s))
     expect(restarted.length).toBeGreaterThan(0)
   })
 
