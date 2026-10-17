@@ -8,7 +8,7 @@ import {
   hireAssistant, magazineById, previewCombo, previewSubmission, projectArtQuality, serialFatigue, setActivity,
   spendSkillPoint, stalenessCount, startProject, startTrip, submitProject, themeAudienceKey, tick, tickMany,
   volumeCopies, PLACES, GENRES, THEMES, MAGAZINES, MAX_STAMINA_CAP, placeById, genreThemeKey, biggestLoss,
-  pointsLost,
+  pointsLost, seasonOf, mix, hashString,
 } from '../index'
 import type {
   Assistant, AssistantTrait, ChapterResult, GameState, LogEntry, MagazineId, PendingChapter, Rating,
@@ -152,6 +152,18 @@ describe('core loop', () => {
     expect(describeDate(7)).toEqual({ year: 1, month: 1, week: 2, day: 1 })
     expect(describeDate(28)).toEqual({ year: 1, month: 2, week: 1, day: 1 })
     expect(describeDate(336)).toEqual({ year: 2, month: 1, week: 1, day: 1 })
+  })
+
+  it('shares the scene hash and the string hash through the sim index', () => {
+    expect([mix(0, 0, 0), mix(1, 0, 0), mix(0, 1, 0), mix(0, 0, 1)]).toEqual([2409258929, 3753189852, 2503628413, 2510855047])
+    expect(hashString('')).toBe(0x811c9dc5)
+  })
+
+  it('names the season by the calendar month, every year opening in spring', () => {
+    const days = [0, 83, 84, 167, 168, 251, 252, 335, 336]
+    expect(days.map(seasonOf)).toEqual([
+      'spring', 'spring', 'summer', 'summer', 'autumn', 'autumn', 'winter', 'winter', 'spring',
+    ])
   })
 })
 

@@ -3,16 +3,12 @@
 // drifts at y 44 on the frame's bottom border. Particles are 1 px (leaves 2 px wide) and move by a pure function of
 // (index, frame) over module-level seed tables, wrapping inside the pane; with frame 0 (reduced motion) they hold
 // still. Nothing here allocates per frame. Raw hex is deliberate: sprite colours, not UI tokens.
-import { describeDate } from '../../sim'
+import type { Season } from '../../sim'
 import { BAR_X, PANE_H, PANE_W, PANE_X, PANE_Y, rect } from './paint'
 
-export type Season = 'spring' | 'summer' | 'autumn' | 'winter'
-
-/** The sim's calendar month: 1-3 spring, 4-6 summer, 7-9 autumn, 10-12 winter, so every year opens in spring. */
-export function seasonOf(day: number): Season {
-  const month = describeDate(day).month
-  return month <= 3 ? 'spring' : month <= 6 ? 'summer' : month <= 9 ? 'autumn' : 'winter'
-}
+// `Season` and `seasonOf` live in the sim (0.13.0, shared with the music); re-exported for the scene's importers.
+export { seasonOf } from '../../sim'
+export type { Season }
 
 // ---------- the pane and its particles ----------
 
