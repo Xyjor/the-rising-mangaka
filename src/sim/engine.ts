@@ -23,7 +23,7 @@ import { forecastPoll } from './forecast'
 import type { Forecast } from './forecast'
 import type {
   Activity, Assistant, AssistantTrait, AudienceId, EditorRel, Focus, GameState, GenreId, Magazine,
-  MagazineId, PendingChapter, Phase, Player, Project, ProjectDraft, Rating, Serial, StatId, ThemeId,
+  MagazineId, PendingChapter, Phase, Player, Project, ProjectDraft, Rating, Season, Serial, StatId, ThemeId,
 } from './types'
 import { awardBadges } from './badges'
 import { pendingMilestones } from './milestones'
@@ -113,6 +113,12 @@ export function describeDate(day: number): DateParts {
     week: (Math.floor(day / 7) % 4) + 1,
     day: (day % 7) + 1,
   }
+}
+
+/** The sim's calendar month: 1-3 spring, 4-6 summer, 7-9 autumn, 10-12 winter, so every year opens in spring. */
+export function seasonOf(day: number): Season {
+  const month = describeDate(day).month
+  return month <= 3 ? 'spring' : month <= 6 ? 'summer' : month <= 9 ? 'autumn' : 'winter'
 }
 
 /** Prose date for logs and tables: 'Month 4', 'Month 4, week 4, day 4', 'Year 2, month 1'. The year is only named after the first one. */

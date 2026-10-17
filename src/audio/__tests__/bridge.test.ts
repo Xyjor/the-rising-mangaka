@@ -1,14 +1,15 @@
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createGame, getPhase, startProject, tick } from '../../sim'
-import type { GameState } from '../../sim'
+import type { GameState, Season } from '../../sim'
 import { parseSave, serializeSave } from '../../state/saveFile'
 import type { Speed } from '../../state/store'
 import { installFakeStorage } from '../../test/fakeStorage'
 import { createFakeSound } from '../../test/fakeSound'
 import type { FakeSound } from '../../test/fakeSound'
-import { DRAFT } from '../../test/fixtures'
+import { DRAFT, KIDS_OFFER, withPendingResult } from '../../test/fixtures'
 import { connectSound } from '../bridge'
 import type { SoundEngine } from '../engine'
+import type { MusicScene } from '../music/types'
 import { installSound, nullEngine } from '../instance'
 import { cuesForTransition } from '../triggers'
 import { DEFAULT_SOUND } from '../types'
@@ -55,6 +56,19 @@ const gestureListeners = (win: ReturnType<typeof fakeTarget>) =>
   ['pointerdown', 'pointerup', 'keydown'].map((type) => win.listeners(type))
 const ONE = { capture: 1, bubble: 0 }
 const NONE = { capture: 0, bubble: 0 }
+
+/** The title screen's scene. */
+const TITLE: MusicScene = { mood: 'title', season: 'spring', calm: false }
+
+/** `engine` with its prefs, scene and music calls also logged, in order, into `log`. */
+function recording(engine: SoundEngine, log: string[]): SoundEngine {
+  return Object.assign(Object.create(engine) as SoundEngine, {
+    setPrefs: (p: Parameters<SoundEngine['setPrefs']>[0]) => (log.push('prefs'), engine.setPrefs(p)),
+    setMusicScene: (x: MusicScene) => (log.push('scene'), engine.setMusicScene(x)),
+    startMusic: () => (log.push('start'), engine.startMusic()),
+    stopMusic: () => (log.push('stop'), engine.stopMusic()),
+  })
+}
 
 let sound: FakeSound
 let disconnect: () => void = () => {}
@@ -240,11 +254,86 @@ describe('connectSound: prefs and music', () => {
     expect(sound.music).toEqual(['start', 'stop', 'start', 'stop'])
   })
 
-  it('stops the music, silently, when the player goes back to the title screen', () => {
+  it('keeps playing and switches to the title scene when the player goes back to the title screen', () => {
     start(createGame('Rin', 42), 1)
     st().backToTitle()
-    expect(sound.music).toEqual(['start', 'stop'])
+    expect(sound.music).toEqual(['start'])
+    expect(sound.scenes.at(-1)).toEqual(TITLE)
     expect(sound.plays).toEqual([])
+  })
+})
+
+describe('connectSound: the music scene', () => {
+  /** The studio scene in `season`, calm or not. */
+  const studio = (season: Season, calm: boolean): MusicScene => ({ mood: 'studio', season, calm })
+
+  it('starts the music on the title screen with the title scene', () => {
+    start(null)
+    expect(sound.scenes).toEqual([TITLE])
+    expect(sound.music).toEqual(['start'])
+  })
+
+  it('a new game switches to the studio scene in its season, with no second start', () => {
+    start(null)
+    st().newGame('Rin')
+    expect(st().speed).toBe(0)
+    expect(sound.scenes).toEqual([TITLE, studio('spring', true)])
+    expect(sound.music).toEqual(['start'])
+  })
+
+  it('calm follows the speed, a modal, a pending result or offer, and read-only', () => {
+    const g = createGame('Rin', 42)
+    start(g, 1)
+    expect(sound.scenes).toEqual([studio('spring', false)])
+    useStore.setState({ speed: 0 })
+    useStore.setState({ speed: 2 })
+    useStore.setState({ modal: 'settings' })
+    useStore.setState({ modal: 'none' })
+    useStore.setState({ game: withPendingResult() })
+    useStore.setState({ game: g })
+    useStore.setState({ game: { ...g, pendingOffer: KIDS_OFFER } })
+    useStore.setState({ game: g })
+    useStore.setState({ readOnly: true })
+    expect(sound.scenes.map((x) => x.calm)).toEqual([false, true, false, true, false, true, false, true, false, true])
+  })
+
+  it('the season follows the game day across a boundary', () => {
+    const g = createGame('Rin', 42)
+    // Month 3 ends on day 83: spring; day 84 opens month 4, summer.
+    start({ ...g, day: 83 }, 1)
+    useStore.setState({ game: { ...g, day: 84 } })
+    expect(sound.scenes).toEqual([studio('spring', false), studio('summer', false)])
+  })
+
+  it('a plain tick makes no scene call', () => {
+    start(startProject(createGame('Rin', 42), DRAFT), 1)
+    const before = sound.scenes.length
+    st().tick()
+    st().tick()
+    expect(st().game!.day).toBe(2)
+    expect(sound.scenes).toHaveLength(before)
+  })
+
+  it('sets the prefs, then the scene, then starts the music on connect', () => {
+    const log: string[] = []
+    sound = createFakeSound()
+    disconnect = connectSound(useStore, recording(sound, log), null)
+    expect(log).toEqual(['prefs', 'scene', 'start'])
+  })
+
+  it('within one update stops the music before the scene, and sets the scene before starting it', () => {
+    useStore.setState({ sound: { ...DEFAULT_SOUND, muted: true } })
+    const log: string[] = []
+    sound = createFakeSound()
+    disconnect = connectSound(useStore, recording(sound, log), null)
+    log.length = 0
+    // Unmuting and opening a game in one update: the studio scene goes in before the music starts.
+    useStore.setState({ sound: DEFAULT_SOUND, game: createGame('Rin', 42) })
+    expect(log).toEqual(['prefs', 'scene', 'start'])
+    log.length = 0
+    // Muting and closing the game in one update: the music stops before the title scene goes in.
+    useStore.setState({ sound: { ...DEFAULT_SOUND, muted: true }, game: null })
+    expect(log).toEqual(['prefs', 'stop', 'scene'])
   })
 })
 

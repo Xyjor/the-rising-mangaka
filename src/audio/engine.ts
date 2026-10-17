@@ -1,9 +1,14 @@
 // The sound engine: owns the AudioContext (created lazily on the first user gesture), the mixer, mute and volume,
-// the guards that keep cues from piling up, and whether the music loop is wanted. Framework-free; time comes from the
-// injected `now()` in ms, and the music scheduler's timer from the injected `timers`.
+// the guards that keep cues from piling up, and the music player (music/player.ts) with what it is asked for: whether
+// the music is wanted, the scene and the pinned track, each recorded before unlock and handed over when the player is
+// created. Framework-free; time comes from the injected `now()` in ms, and the music scheduler's timer from the
+// injected `timers`.
 import { CUES } from './cues'
 import { createLimiter } from './limiter'
-import { createMusicPlayer, type MusicPlayer, type Timers } from './music'
+import { createMusicPlayer } from './music/player'
+import type { MusicPlayer, PlayerOptions, Timers } from './music/player'
+import type { TrackId } from './music/tracks'
+import type { MusicScene } from './music/types'
 import { buildGraph, playVoices, type Graph } from './synth'
 import { DEFAULT_SOUND, clamp01, levelToGain, type CueId, type SoundPrefs } from './types'
 
@@ -18,19 +23,30 @@ export interface SoundEngine {
   setPrefs(p: SoundPrefs): void
   levels(): { master: number; fx: number; music: number }
   /**
-   * Asks for the music loop. Before unlock() this only records the wish, and the loop starts when unlock() builds the
-   * mixer. A no-op while the loop plays; while it fades out after stopMusic(), a fresh loop starts from its first step.
+   * Asks for the music. Before unlock() this only records the wish, and the music starts when unlock() builds the
+   * mixer. A no-op while it plays; while it fades out after stopMusic(), a fresh track starts from its top.
    */
   startMusic(): void
   /**
-   * Withdraws the wish and fades the loop out over 0.4 s. A no-op when the loop is not playing. In a suspended context
+   * Withdraws the wish and fades the music out over 0.4 s. A no-op when it is not playing. In a suspended context
    * (the window hidden) the fade finishes at once at the next tick instead of over 0.4 s, since a frozen clock would
    * never reach it.
    */
   stopMusic(): void
+  /**
+   * Sets the music's scene: the title or the studio, the season, and whether the studio is calm. Before unlock() it is
+   * only recorded, and the player starts in it; the title screen in spring, out of calm, until it is set.
+   */
+  setMusicScene(scene: MusicScene): void
+  /**
+   * Pins a track that every pick plays, or null to pick from the scene's pool again. Before unlock() it is only
+   * recorded, and handed to the player when it is created.
+   */
+  pinMusicTrack(id: TrackId | null): void
   /** Lowers the music bus to `level` (0..1) of its normal level; duck(1) restores it. */
   duck(level: number): void
   suspend(): void
+  /** Resumes the context unless muted, then nudges the music player to schedule at once (MusicPlayer.nudge). */
   resume(): void
   dispose(): void
 }
@@ -41,6 +57,10 @@ export interface SoundEngineOptions {
   now?: () => number
   /** The music scheduler's timer. Defaults to the global setInterval and clearInterval. */
   timers?: Timers
+  /** The music's seed: which tracks it picks and how each play varies. Defaults to Date.now(). */
+  seed?: number
+  /** Makes the music player. Defaults to createMusicPlayer; tests pass a recorder. */
+  createMusic?: (ctx: BaseAudioContext, dest: AudioNode, timers: Timers, o: PlayerOptions) => MusicPlayer
 }
 
 /** Most voices that may sound at the same moment. */
@@ -97,6 +117,8 @@ function peakOverlap(spans: readonly Span[], t: number): number {
 export function createSoundEngine(o: SoundEngineOptions): SoundEngine {
   const now = o.now ?? (() => performance.now())
   const timers = o.timers ?? globalTimers
+  const seed = o.seed ?? Date.now()
+  const createMusic = o.createMusic ?? createMusicPlayer
   const limiter = createLimiter(GAPS)
   const turns = new Map<CueId, number>()
   let prefs: SoundPrefs = { ...DEFAULT_SOUND }
@@ -104,8 +126,11 @@ export function createSoundEngine(o: SoundEngineOptions): SoundEngine {
   let ctx: AudioContext | null = null
   let graph: Graph | null = null
   let music: MusicPlayer | null = null
-  /** Whether the loop should play: set by startMusic, even before unlock, and cleared by stopMusic. */
+  /** Whether the music should play: set by startMusic, even before unlock, and cleared by stopMusic. */
   let musicWanted = false
+  /** The scene and the pin last asked for, kept for the player made at unlock. */
+  let scene: MusicScene = { mood: 'title', season: 'spring', calm: false }
+  let pinned: TrackId | null = null
   let created = false
   let disposed = false
   /** When the context was last asked to resume: the start of the grace. */
@@ -118,11 +143,14 @@ export function createSoundEngine(o: SoundEngineOptions): SoundEngine {
     if (ctx) param.setTargetAtTime(value, ctx.currentTime, timeConstant)
   }
 
-  /** Resumes the context and starts the grace, so a cue played right away is scheduled while resume() is pending. */
+  /**
+   * Resumes the context and starts the grace, so a cue played right away is scheduled while resume() is pending. Once
+   * it runs, the music player schedules a tick at once: a window shown again may still have a throttled timer.
+   */
   const wake = () => {
     if (!ctx) return
     wokeAt = now()
-    void ctx.resume().catch(noop)
+    void ctx.resume().then(() => music?.nudge()).catch(noop)
   }
 
   /** The peak of live voices plus `add`, from `t` on. Forgets plays that have ended or were stopped. */
@@ -148,7 +176,8 @@ export function createSoundEngine(o: SoundEngineOptions): SoundEngine {
         ctx = o.createContext()
         if (ctx) {
           graph = buildGraph(ctx, { ...levels(), music: musicLevel() })
-          music = createMusicPlayer(ctx, graph.music, timers)
+          music = createMusic(ctx, graph.music, timers, { seed, scene })
+          if (pinned !== null) music.pin(pinned)
           if (musicWanted) music.start()
         }
       }
@@ -207,6 +236,16 @@ export function createSoundEngine(o: SoundEngineOptions): SoundEngine {
       music?.stop()
     },
 
+    setMusicScene(s) {
+      scene = { ...s }
+      music?.setScene(scene)
+    },
+
+    pinMusicTrack(id) {
+      pinned = id
+      music?.pin(id)
+    },
+
     duck(level) {
       duckLevel = clamp01(level)
       if (graph) glide(graph.music.gain, musicLevel(), DUCK_GLIDE)
@@ -222,6 +261,7 @@ export function createSoundEngine(o: SoundEngineOptions): SoundEngine {
 
     dispose() {
       disposed = true
+      // The player only lets its timer go; closing the context after it silences the nodes it leaves.
       music?.dispose()
       music = null
       if (ctx) void ctx.close().catch(noop)

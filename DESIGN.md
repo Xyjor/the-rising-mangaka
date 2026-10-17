@@ -164,8 +164,8 @@ Forecast calibration is a balance band: over year one the offer chances quoted a
 
 ### Seasons
 The studio window follows the calendar (`describeDate`'s month, floor((day mod 336) / 28) + 1): months 1-3 spring,
-4-6 summer, 7-9 autumn and 10-12 winter, so every year opens in spring (`seasonOf`). The season is decoration only; it
-changes no rule.
+4-6 summer, 7-9 autumn and 10-12 winter, so every year opens in spring (`seasonOf`, in the sim since 0.13.0). The
+season is decoration and music only (each season has its own two tracks, see Sound); it changes no rule.
 - **Spring**: a cherry branch in blossom and 12 petals blowing down and across the pane; the branch spills past the
   frame onto the wall with four blossom clusters (`drawSeasonWall`, canvas x 171-181, y 42-48, after the window bars,
   clear of the calendar and the corkboard), so the tree reads as bigger than the window.
@@ -299,7 +299,7 @@ editor since 0.12.0 task 11; the switches that staged them (0.11.0's `liveSpots`
 switch and `editorSpots()`) are gone. `planActors(table, snap)` sends the mangaka to its 0.11 spots and the editor to
 `EDITOR_SPOT` (205, 90), both through `DOOR_SPOT` (250, 69), the cat to `CAT_BED` and seats the assistants at
 `ASSISTANT_SEAT_X` [21, 55, 89], `ASSISTANT_SEAT_Y` 80; the driver poses all five every step and render draws them
-from the rig, the cat alone from its 0.10 maps (`oldCast.ts`) until 0.13.0.
+from the rig, the cat alone from its 0.10 maps (`oldCast.ts`) until 0.14.0.
 
 **The cast driver** (`castPlay.ts`, 0.11.0) poses every rig-drawn actor each loop step (`stepCast`): it writes the
 pose showing now on the actor (`Actor.pose`) from an animation player (`animation.ts`) per character. The base loop
@@ -413,7 +413,7 @@ driver (`castPlay.ts`, above) picks the pose. Every map is in `PAL` keys: an upp
 (light from the top left, so the shade sits on the right and underneath), `L` the outline; `ASSISTANT_PALS[look]`
 swaps the hair and shirt for the six assistant looks, `OUTFIT_PALS` the mangaka's outfit. The bullets below describe
 the rig in the order its tasks drew it, then what every character shares. The editor joined the rig at 0.12.0; the
-cat alone is still a 0.10 string map (until 0.13.0), described with its history after the rig ("The 0.10 string
+cat alone is still a 0.10 string map (until 0.14.0), described with its history after the rig ("The 0.10 string
 maps").
 
 - **The rig head** (0.11.0, task 7). `rig/head.ts` `HEAD` is a new hand-drawn chibi head, 27 wide x 22 tall, after
@@ -776,7 +776,7 @@ maps").
   `spriteCache.ts`, painted once per palette and facing into its own surface; the 0.10 maps are `oldCast.ts`'s cast
   frames (`OLD_CAST`, each with the id the cache names it by) until each rig release replaces them: the mangaka's went
   at task 17 and the assistants' (the seated pair and the generated doze) at task 19, the editor's at 0.12.0 task 11,
-  so `OLD_CAST` holds the cat's only (until 0.13.0); the mood overlay over the people went with them (baked into the rig frames). The cache's memory: at most 485 rig frames (plus 4 prop frames and the cat's 7) x 10 palettes x 2 facings x
+  so `OLD_CAST` holds the cat's only (until 0.14.0); the mood overlay over the people went with them (baked into the rig frames). The cache's memory: at most 485 rig frames (plus 4 prop frames and the cat's 7) x 10 palettes x 2 facings x
   6,144 B (a 32x48 RGBA surface), about 60 MB in theory; about 340 reachable (the editor is drawn neutral only); a realistic long career builds about 900-1,000 surfaces, about 6 MB. `render` takes the cache
   as its last argument (the session's by default, `getCastCache()`), so a test hands it a recording one
   (`fakeSurface`) and reads each character as an entry in `images`, named `cast/<frame>/<palette>`, `/r` mirrored.
@@ -796,7 +796,7 @@ maps").
   a note on stdout. Since 0.11.0 task 8 the 0.10 mangaka's rows (A to E) are gone, each replaced by its animation's
   block.
 
-**The 0.10 string maps** (history; the cat is still drawn from them, until 0.13.0). `sprites.ts`'s string maps are
+**The 0.10 string maps** (history; the cat is still drawn from them, until 0.14.0). `sprites.ts`'s string maps are
 one character per pixel, drawn by `drawSprite`, which merges each horizontal run of one key into one fillRect and
 mirrors a frame to face right; since 0.11.0 each is a cast frame (`oldCast.ts`) painted once into the sprite cache
 like the rig's. People were 24x32 frames facing left, in chibi proportions (upgrade 0.4.0): the head rows 0-15 (18 px
@@ -1665,12 +1665,56 @@ The results reveal takes its own, deeper hold at 30% for as long as it is mounte
 60% hold, so the Results modal ducks to 30% while the reveal runs and only back to full when the modal closes (both
 holds release together).
 
-A light music loop (`music.ts`) plays under play: two parts (lead and bass), scheduled a look-ahead's worth of
-notes at a time from the audio clock's own time, fading in over 2 s when it starts and out over 0.4 s when it
-stops. The context is created lazily and only from a real user gesture — a browser refuses to start audio before
-one. Until the first gesture the loop is only wished for and every cue is silently skipped; `bridge.ts` listens for
-that gesture (a mouse's pointerdown, touch or pen's pointerup, or any keydown, matching the platform's own
-user-activation rules) and unlocks the context, then stops listening once it is running.
+The music (0.13.0, `src/audio/music/`; the spec is `docs/plans/2026-10-17-lofi-music-design.md`) is nine
+synthesised cosy lo-fi tracks in place of 0.1.0's one two-part loop (`music.ts`, deleted): a title piece
+(`blank-page`, C major) on the title screen, and in the studio a pool of two per season, the season read from
+`seasonOf(game.day)`: spring `slow-ink` and `sakura-margins` (both F major; bright and light), summer `screentone`
+(G major) and `cold-ramune` (E minor; crisp hats and a shaker, no chord rooted on B or F#), autumn
+`rain-on-the-sill` (D minor) and `tea-break` (A minor; warm, a lower tone), winter `first-snow` (C major) and
+`kotatsu` (A minor; sparse ticking drums, a glock, more room). The ids are working titles, never shown. Every key is
+in the C, F or G collection, so its scale holds the C major pentatonic every cue plays on and the music never clashes
+with a cue; `theory.ts` holds each chord to its key (the numeral's case, `maj` exactly where the 7th is major, no
+flat 9th, 11ths on minor chords only, a perfect 4th under `sus`, `ø7` only where diatonic), so a misspelt track fails
+to compile rather than sound wrong. A track is compact data (`tracks.ts`, in `score.ts`'s format): drum, comp and
+bass grids of 16 cells a bar, motifs as scale degrees (`motifs`), sections of roman-numeral chords, and a form; 28 to
+36 bars at 68 to 84 bpm (`MIN_BPM` 66), about 84 to 120 s each. `score.ts` compiles a track once, voice-leading the
+keys across the whole form. The arranger (`arrange.ts`, the pitched parts in `arrangeParts.ts`) plays it bar by bar
+with seeded variation: every choice hashes the seed, the track, the pass, the bar, a lane and a step through the
+sim's `mix`, so each pass varies its ghost snares, fills, hat drops (never a quarter-note hat), keys alternates and
+added 9ths, answer runs, bass approaches and motif changes, while the harmony and the voicings never change; swing,
+humanise (at most 0.03 s) and strum only ever delay a note.
+
+The player (`player.ts`) chains the tracks on the audio clock, a 50 ms timer queuing 400 ms ahead (so a main-thread stall under about 350 ms drops no note; a longer one skips the missed notes rather than playing them late), and nudged to schedule at once when the window shows again, with a crackle
+break of 8 to 20 s between two (`playlist.ts`; a season's pair alternates); a season change waits for the next track.
+While the clock is effectively stopped (`src/state/clockRuns.ts` false: paused, a menu open, or a result or offer
+waiting) the music turns calm (`levels.ts`): the tone darkens to 1,300 Hz, the lead drops to 0.6 and the drums stop,
+no longer queued once 3 s have passed, gliding in with a time constant of 0.8 s and out with 0.4 s. Opening or leaving
+a career crossfades between the title piece and the studio's pool over 1.5 s. The lo-fi texture is a vinyl crackle
+(two click layers of unequal length and a hiss loop, synthesised per seed) through a gate that opens while music
+plays, a tape wobble (a delay swung 1.5 ms at 0.45 Hz plus a 6 Hz flutter) and one convolver reverb. The mixer
+(`chain.ts`): the keys, bass and lead buses sum through the wobble and a tone lowpass (per track 2,200 to 3,000 Hz,
+the title screen 2,000), with a reverb send per track, while the drum buses (the snare, hat and shaker each on a
+bandpass) go dry past the tone filter, so the hats stay audible; everything then meets the music bus's
+`MUSIC_LOWPASS_HZ` ceiling, raised from 1,800 to 6,000 Hz. The instruments (`instruments.ts`) are an FM electric
+piano, a bell, glock or soft-triangle lead, a sine-and-triangle bass, a swept-sine kick and noise drums (the snare is
+noise alone; the glock's FM deviation is capped at 5,800 Hz against aliasing); each note builds only sources and an
+envelope and frees itself.
+
+Budgets, tested on every bar of every track: at most 140 nodes created a bar, and a summed peak of overlapping voices
+of at most 0.45, each voice counted at its envelope's level at that instant (`levelAt`, the bass's triangle included
+through `AMPLITUDE`). The loudness gate (`measure.ts`, a dev-only meter imported by nothing, rendering offline
+through the real mixer) holds each studio track's K-weighted RMS within 3 dB of the 0.12.0 loop's (-33.48 dB) and its
+peak under -12 dBFS, comparing them as heard: the baseline was measured through the old 1,800 Hz ceiling and the new
+tracks through the 6,000 Hz one. With every envelope peak trimmed by 0.84 (-1.5 dB) the studio tracks measure -32.6 to -31.1 dB,
+their peaks below -15 dB. In a dev build `?music=<id>` pins one track (its passes separated by 2 s breaks); a
+production build never reads it.
+
+The context is created lazily and only from a real user gesture — a browser refuses to start audio before one.
+Until the first gesture the music is only wished for (its scene and any pin recorded, and handed to the player when
+unlock creates it) and every cue is silently skipped; `bridge.ts` listens for that gesture (a mouse's pointerdown,
+touch or pen's pointerup, or any keydown, matching the platform's own user-activation rules) and unlocks the
+context, then stops listening once it is running. The music fades in over 2 s when it starts and out over 0.4 s when
+it stops. The ducking, the hidden-window suspend and the read-only and save-load silence below are unchanged.
 
 Settings has Sound and Music rows: a mute button, one volume slider (its gain the slider's square, so equal steps
 sound like equal loudness steps), and a Music on/off toggle independent of mute. Other systems can duck the music
@@ -1868,6 +1912,10 @@ there for the tutorial who gets a real reason (a letter, a ready manuscript) say
    the animated poll-result reveal (see The results reveal), the responsive phone layout, and a Windows desktop app
    with save export and import (see The desktop app and save files). Save slots and achievements beyond the existing
    milestones ladder are not built.
+5. Seasonal music. Shipped in 0.13.0: the music loop replaced by nine synthesised cosy lo-fi tracks, a title piece
+   and two per season, with seeded variation, crackle breaks, a calm mix while the clock stops and crossfades between
+   the title screen and the studio (see Sound). Next, 0.14.0: the cat joins the rig, the last character still drawn
+   from its 0.10 string maps (`oldCast.ts`).
 
 ### Milestones
 A visible ladder of 18 career goals. The next unreached goal sits at the top of the desk ("Next goal") and the

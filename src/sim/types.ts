@@ -10,6 +10,9 @@ export type ThemeId =
   | 'school' | 'pirates' | 'ninja' | 'cooking' | 'music' | 'robots'
   | 'vampires' | 'detective' | 'space' | 'idols' | 'samurai' | 'magic'
 
+/** The four seasons of the sim's calendar (`seasonOf`): the window's season layer and the music's pools. */
+export type Season = 'spring' | 'summer' | 'autumn' | 'winter'
+
 export type AudienceId = 'kids' | 'teens' | 'young-adults' | 'adults'
 
 export type MagazineId = 'weekly-bolt' | 'monthly-petal' | 'ultra-seinen' | 'kids-comic'

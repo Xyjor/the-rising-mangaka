@@ -42,9 +42,11 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
 ## Architecture
 
 - `src/sim/` — **pure TypeScript simulation**. No React, no DOM, no Date/Math.random. Deterministic given a seed
-  (`src/sim/rng.ts`). Every state change is a pure function `(state, input) => state` that returns a new object.
+  (`src/sim/rng.ts`, which also holds `hashString` and `mix`, the stateless hash the scene's idle schedule and the
+  music share). Every state change is a pure function `(state, input) => state` that returns a new object.
   - `types.ts` all domain types. `data.ts` content (genres, themes, audiences, magazines, places, constants).
-  - `compat.ts` hidden compatibility ratings. `scoring.ts` poll scoring. `engine.ts` commands + `tick()`.
+  - `compat.ts` hidden compatibility ratings. `scoring.ts` poll scoring. `engine.ts` commands + `tick()`, and
+    `seasonOf(day)` beside `describeDate` (`Season` in `types.ts`; 0.13.0, shared by the window and the music).
   - `core.ts` state helpers shared by the engine and its tick hooks (`addLog`, `grantXp`, `xpToNext`, `startTrip`,
     and `num`/`yen`, locale-free thousands commas for log lines).
     `events.ts` random events (the weekly roll on its own `eventSeed`, the answers). `editors.ts` the editor
@@ -61,6 +63,9 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   `src/sim/migrate.ts` `upgradeSave`; bump `SAVE_VERSION` only for shape changes that cannot be defaulted).
   `profile.ts` is the cross-save badge profile (`rising-mangaka-profile`: the first time each badge was earned in any
   career), written after a tick or command that grew `game.badges`, by the tab that owns the save only.
+  `clockRuns.ts` (0.13.0) is the one predicate for whether the game clock runs (a game open, speed above 0, no modal,
+  no pending result or offer, not read-only), pure with no store import, shared by `App.tsx`'s `useGameClock` and the
+  sound bridge (the music's calm).
   `clock.ts` is a separate, never-persisted presentation-time store: `t` (the week-long light cycle position),
   `isNight`, `logSeenId` (the studio log's read marker) and `guideVisible` (the tutorial guide is on screen).
   `saveFile.ts` owns `SAVE_VERSION`, the saved log length and the save file (`serializeSave`; `parseSave`, strict,
@@ -89,14 +94,32 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   the page's `visibilitychange` and the desktop shell's minimise) stops the clock and suspends the sound; the
   non-persisted `windowHidden` flag keeps that pause silent. `flushSave` writes the debounced save at once. The tab
   lock (`tabLock.ts`) runs in a browser only; the desktop app calls `disableTabLock()` (one window, single instance).
-- `src/audio/` — Web Audio sound, framework-free, no files. `engine.ts` synthesises the cues and owns the AudioContext,
-  `music.ts` is the music loop (its score and look-ahead scheduler; the engine starts it on unlock when asked for
-  before, and each start plays through its own fade gain), `triggers.ts` maps a state change to cues, `instance.ts`
-  holds the one shared engine (`getSound`/`installSound`), and `bridge.ts` `connectSound` (wired in `main.tsx`) makes
-  it follow the store: prefs, music, cues (never in a read-only tab, never for a loaded save, via the store's
-  `saveLoads`, and never while the window is hidden, via `windowHidden`), and the gestures that unlock it, until the
-  context runs. `Modal` plays `open`/`close`/`tab` itself via `getSound()` (never in a read-only tab); the scene
-  plays `knock` (the editor arriving) and `pop` (money/fans/xp rising). `instance.ts`'s `holdDuck` is the only way
+- `src/audio/` — Web Audio sound, framework-free, no files. `engine.ts` synthesises the cues and owns the AudioContext
+  and the music player (`startMusic`/`stopMusic`, `setMusicScene`, `pinMusicTrack`, each recorded before unlock and
+  handed to the player unlock creates; `seed` defaults to `Date.now()`), `triggers.ts` maps a state change to cues,
+  `instance.ts` holds the one shared engine (`getSound`/`installSound`), and `bridge.ts` `connectSound` (wired in
+  `main.tsx`) makes it follow the store: prefs, music (wanted on the title screen too, unless muted, off or read-only;
+  its scene `musicScene`: the title with no game, else the studio in `seasonOf(game.day)`, calm while
+  `!clockRuns`; stop, then a changed scene, then start, within one update), cues (never in a read-only tab, never for
+  a loaded save, via the store's `saveLoads`, and never while the window is hidden, via `windowHidden`), and the
+  gestures that unlock it, until the context runs. `music/` (0.13.0) is the nine lo-fi tracks: `types.ts` the
+  instruments, parts (`PART_OF`), `MusicEvent`, `MusicScene` and `Voice`; `theory.ts` keys (the C, F and G collections
+  only), roman-numeral chords held to the key, voicings, degrees, avoid notes and swing; `score.ts` `compileTrack`, a
+  `TrackSpec` (grids, `motifs`, sections, a form) checked and voice-led once into a memoised `CompiledTrack`
+  (`MIN_BPM` 66, humanise at most 0.03 s); `arrange.ts` `barEvents`/`eventsInWindow`, one bar's timed events with the
+  drums and seeded per-pass variation (harmony fixed, `MAX_LATE`), and `arrangeParts.ts` its keys, bass and lead and
+  the dice (`LANE`, `mix`); `playlist.ts` `pickTrack` (no repeat of the last one or two) and `breakSeconds` (8-20 s);
+  `levels.ts` `levelsFor(scene, track)`, the tone, room and part levels (calm: tone 1300, drums 0, lead x0.6);
+  `tracks.ts` the nine `TRACKS`, `TITLE_TRACK`, `SEASON_TRACKS` (two per season) and `CATALOG`; `instruments.ts` the
+  voices (`playVoice`, `PEAK` the design's x0.84, `AMPLITUDE`, `levelAt` for the decay-aware 0.45 peak budget,
+  `NODES_PER_NOTE` for the 140-a-bar node budget); `chain.ts` the persistent mixer (`buildChain`: the tonal sum through
+  the tape wobble and tone lowpass with a reverb send, the drum buses dry; `setLevels(l, tau, at)` cancels any later
+  glide first) and the session (`openSession`: the wobble LFOs and the crackle into its gate); `player.ts`
+  `createMusicPlayer`, the look-ahead scheduler (50 ms tick, 400 ms ahead; `nudge` runs one tick now, called by the engine once a `resume()` or later unlock has woken the context) chaining tracks and crackle breaks, calm
+  glides, 1.5 s crossfades on a mood change or pin (`pin` of the same id a no-op), the season read at the next pick;
+  and `measure.ts` the DEV loudness meter (`measurePlayer`, offline through the real mixer), imported by nothing. In a
+  dev build `main.tsx` reads `?music=<id>` (`isTrackId`) to pin a track. `Modal` plays `open`/`close`/`tab` itself
+  via `getSound()` (never in a read-only tab); the scene plays `knock` (the editor arriving) and `pop` (money/fans/xp rising). `instance.ts`'s `holdDuck` is the only way
   UI code ducks the music: a stack of duck-level holds, the deepest wins, released in full once the last one drops
   (Modal holds 60% for as long as it is open; the results reveal stacks its own 30% under that).
 - `src/ui/` — React 19 components. `App.tsx` (shell, clock, hotkeys), `hud/` (the corner overlays and rail:
@@ -123,7 +146,7 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   the registry's `ROOM_ART`/`SCENE_PROP_ART` (render.ts never imports the registry; `ROOM_ART` lists every tier, the
   flat `null`, so a new tier fails `tsc` until its wall is decided) and `StudioScene` repaints on a
   load; `sprites.ts` the
-  palette (uppercase base, lowercase shade, `L` outline), the string-map frames left, the 12x8 cat's (until 0.13.0),
+  palette (uppercase base, lowercase shade, `L` outline), the string-map frames left, the 12x8 cat's (until 0.14.0),
   `EDITOR_PAL` (the rig editor's palette), the run-length `drawSprite`, `frameRules` (closed outline, feet on the last
   row, every key in the palette; re-exported with `PAL` and `SpriteMap`), `RUN_CAPS` (sprites.test.ts: the cat's
   frames, each run count capped at 1.3x its pre-redraw count, never raised); `faceRules` (the 0.10 face window rows 9-12
@@ -172,14 +195,14 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   60 MB in theory; about 340 reachable (the editor is drawn neutral only); a realistic long career builds about 900-1,000
   surfaces, about 6 MB. `oldCast.ts` (0.11.0) the 0.10 maps as cast frames (`OLD_CAST`), drawn
   through the cache until each character's rig release (the mangaka's left at task 17, the assistants' at task 19,
-  the editor's at 0.12.0 task 11: the cat's remain, until 0.13.0); `render`'s last argument is the cache (`getCastCache()` by default), each
+  the editor's at 0.12.0 task 11: the cat's remain, until 0.14.0); `render`'s last argument is the cache (`getCastCache()` by default), each
   character one `drawImage`, no mood overlay (the rig frames bake the face). `animation.ts` (0.11.0)
   the pure animation player: `Anim` (steps of a pose and ms, a loop or a one-shot, a `Posture`), `PlayerState` (the base
   loop and its start, the one-shot over it, a queue of at most `QUEUE_MAX` 2), `switchBase` (a transition first; a moment
   survives a base change within its posture), `enqueue`, `interrupt` (a one-shot that replaces the one playing),
   `advance`, `poseAt`, `settle` (everything played out: the window shown again, a settle). `idleSchedule.ts` (0.11.0)
-  `nextIdle(day, who, n)`: the n-th idle moment's wait (6-14 s) and pick for a character, hashed (`mix`) from the day,
-  the character and the count; no RNG state. `reactions.ts` (0.11.0) `reactionFor(prev, next)`: the cast's reaction to a
+  `nextIdle(day, who, n)`: the n-th idle moment's wait (6-14 s) and pick for a character, hashed (`mix`, from
+  `src/sim/rng.ts`, re-exported) from the day, the character and the count; no RNG state. `reactions.ts` (0.11.0) `reactionFor(prev, next)`: the cast's reaction to a
   store change (a missed issue, a bad or good poll by the corkboard's `rankToneOf` (`story.ts`), the offer coming into view, a level-up, the chapter
   turning late), with `popsFor`'s guards; a one-shot result reacts when dismissed, never as it arrives. `castPlay.ts` (0.11.0) the cast driver: per actor a `Track` (the mangaka, the
   assistants and, since 0.12.0, the editor at the fifth seat, `EDITOR_SEAT` 4; each the player, the state last seen, the last cue taken, the idle schedule); `stepCast` picks the base loop
@@ -189,7 +212,7 @@ game states from `src/test/fixtures.ts` rather than re-deriving sim call sequenc
   the snapshot's reaction cue (`reactionAnim`: it cuts an idle moment short, waits behind a transition; his verdicts, a
   nod on `offer` or `good-poll`, a sigh on `bad-poll`, standing only), and writes `Actor.pose`; `previewFits` (a dev
   preview on its own character only); `verdictHoldMs(kind, editor)` (0.12.0, decision 14: his verdict's length plus
-  `VERDICT_HOLD_SLACK_MS` 50 while he stands, else 0); `settleCast`, `resumeCast`; `headTop`/`headCentre` for the bubbles and pops. `season.ts` has `seasonOf(day)` and the window's season layer; `roomArt.ts` each tier's walls and floor (`TIER_ROOM` is `TIER_WALL` then `TIER_FLOOR`:
+  `VERDICT_HOLD_SLACK_MS` 50 while he stands, else 0); `settleCast`, `resumeCast`; `headTop`/`headCentre` for the bubbles and pops. `season.ts` the window's season layer (`seasonOf` and `Season` re-exported from the sim); `roomArt.ts` each tier's walls and floor (`TIER_ROOM` is `TIER_WALL` then `TIER_FLOOR`:
 tatami, planks, concrete), the front row of floor props (`TIER_FRONT`, drawn after the actors), the story props (corkboard,
 calendar, cups, the serial's cover, fan letters, bin) and `drawAmbient` (daylight shaft, lamp pool, vignette), all in
 canvas space; `story.ts` `storyLook`, the story props' five snapshot inputs read from the game; `studioArt.ts` the

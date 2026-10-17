@@ -1,7 +1,10 @@
-// Connects the store to the sound engine: the player's prefs, the music loop, the cues a change of state makes, and
-// the gestures that unlock audio. It never imports the store: the app passes useStore in as `source`.
+// Connects the store to the sound engine: the player's prefs, the music and its scene, the cues a change of state
+// makes, and the gestures that unlock audio. It never imports the store: the app passes useStore in as `source`.
+import { seasonOf } from '../sim'
 import type { GameState } from '../sim'
+import { clockRuns } from '../state/clockRuns'
 import type { SoundEngine } from './engine'
+import type { MusicScene } from './music/types'
 import { cuesForTransition, speedCue } from './triggers'
 import type { SoundPrefs } from './types'
 
@@ -9,6 +12,8 @@ import type { SoundPrefs } from './types'
 export interface SoundState {
   game: GameState | null
   speed: number
+  /** The open menu or dialog, 'none' when there is none. */
+  modal: string
   sound: SoundPrefs
   readOnly: boolean
   /** Rises in the update that loads a save (startup, takeover, read-only refresh). */
@@ -48,10 +53,21 @@ function pageEnv(): SoundEnv | null {
   return typeof window !== 'undefined' ? { window } : null
 }
 
-/** The music loop plays while a game is open in the tab that owns it, unless the player turned it off. */
+/** The music plays in the tab that owns the save, on the title screen too, unless the player turned it off. */
 function musicWanted(s: SoundState): boolean {
-  return s.sound.music && !s.sound.muted && !!s.game && !s.readOnly
+  return s.sound.music && !s.sound.muted && !s.readOnly
 }
+
+/**
+ * What the music plays for: the title scene with no game open, else the studio in the game's season, calm while the
+ * clock is stopped (paused, a menu open, a decision waiting, or a read-only tab).
+ */
+export function musicScene(s: SoundState): MusicScene {
+  if (!s.game) return { mood: 'title', season: 'spring', calm: false }
+  return { mood: 'studio', season: seasonOf(s.game.day), calm: !clockRuns(s) }
+}
+
+const sameScene = (a: MusicScene, b: MusicScene) => a.mood === b.mood && a.season === b.season && a.calm === b.calm
 
 /**
  * Unlocks the engine on every gesture until its context runs, then stops listening. A gesture may not count as
@@ -80,17 +96,23 @@ function unlockOnGesture(engine: SoundEngine, target: Listenable): () => void {
 export function connectSound(source: SoundSource, engine: SoundEngine, env: SoundEnv | null = pageEnv()): () => void {
   const first = source.getState()
   engine.setPrefs(first.sound)
+  let scene = musicScene(first)
+  engine.setMusicScene(scene)
   let music = musicWanted(first)
   if (music) engine.startMusic()
 
   const unsubscribe = source.subscribe((next, prev) => {
     if (next.sound !== prev.sound) engine.setPrefs(next.sound)
+    // Within one update: stop, then the scene (only when it changed), then start, so a starting track fits the scene.
     const want = musicWanted(next)
-    if (want !== music) {
-      music = want
-      if (want) engine.startMusic()
-      else engine.stopMusic()
+    if (music && !want) engine.stopMusic()
+    const nextScene = musicScene(next)
+    if (!sameScene(scene, nextScene)) {
+      scene = nextScene
+      engine.setMusicScene(scene)
     }
+    if (!music && want) engine.startMusic()
+    music = want
     // A read-only tab mirrors another tab's play, so it makes no sound, nor does the update that turns it on or off.
     // A loaded save is not a step of play either, even one of the same world on the same day. Hiding the window stops
     // the clock silently (a 'pause' would sound on return), and nothing sounds while it is hidden or as it shows.

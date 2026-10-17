@@ -2,7 +2,7 @@
  * A manual stand-in for setInterval and clearInterval: nothing runs on its own. A test calls `fire()` to run every
  * live interval once, as if its period had passed, and reads `live` to see which intervals are still set.
  */
-import type { Timers } from '../music'
+import type { Timers } from '../music/player'
 
 export class FakeTimers implements Timers {
   readonly #live = new Map<number, { fn: () => void; ms: number }>()

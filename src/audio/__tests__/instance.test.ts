@@ -17,11 +17,25 @@ describe('shared sound engine', () => {
     nullEngine.setPrefs({ muted: true, volume: 1, music: false })
     nullEngine.startMusic()
     nullEngine.stopMusic()
+    nullEngine.setMusicScene({ mood: 'studio', season: 'winter', calm: true })
+    nullEngine.pinMusicTrack('kotatsu')
+    nullEngine.pinMusicTrack(null)
     nullEngine.duck(0.2)
     nullEngine.suspend()
     nullEngine.resume()
     nullEngine.dispose()
     expect(nullEngine.levels()).toEqual({ master: 0, fx: 0, music: 0 })
+  })
+
+  it('a fake sound records each music scene and pin it is given, in order', () => {
+    const fake = createFakeSound()
+    const scene = { mood: 'studio', season: 'autumn', calm: false } as const
+    fake.setMusicScene(scene)
+    fake.pinMusicTrack('screentone')
+    fake.pinMusicTrack(null)
+    expect(fake.scenes).toEqual([{ mood: 'studio', season: 'autumn', calm: false }])
+    expect(fake.scenes[0]).not.toBe(scene)
+    expect(fake.pins).toEqual(['screentone', null])
   })
 
   it('returns the installed engine', () => {
