@@ -251,5 +251,8 @@ fade), `CALM_SETTLE` 3 s, `PIN_BREAK` 2 s, `YOUNG` 0.5 s.
   - The studio tracks' K-weighted RMS, in the studio mood and not calm, must be within ±3 dB of the old loop's,
     which is measured in Task 1 *before* `music.ts` is deleted.
   - The music's peak at volume 1 must stay under 0.25 (−12 dBFS, the master compressor's threshold).
+  - **Baseline (Task 1, the 0.12.0 loop, 46 s, `measurePlayer`):** `kRmsDb` −33.48, `rmsDb` −31.13, `peakDb` −21.74.
+    The plain pass runs through the master compressor, whose automatic make-up gain lifts it above the pre-compressor
+    K pass; compare like with like (`kRmsDb` to `kRmsDb`).
 
 ---
