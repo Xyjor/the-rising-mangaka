@@ -63,8 +63,7 @@ export interface TrackSpec {
   /** Bass grids by name: `R` root, `3` third, `5` fifth, `O` octave, `A` approach, `-` hold, `.` rest. */
   bass: Record<string, string>
   /**
-   * Lead motifs by name (the design's example calls this table `lead`, a duplicate of the voice's key): tokens
-   * `deg:len` (deg 1-7, then `'` up or `,` down an octave each), `_:len` a rest, `|` a bar line.
+   * Lead motifs by name (`motifs`, apart from the lead voice's `lead` key): tokens `deg:len` (deg 1-7, then `'` up or `,` down an octave each), `_:len` a rest, `|` a bar line.
    */
   motifs: Record<string, string>
   sections: Record<string, SectionSpec>

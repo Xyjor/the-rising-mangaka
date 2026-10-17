@@ -9,7 +9,6 @@ export { mix }
 export const IDLE_MIN_MS = 6000
 export const IDLE_SPAN_MS = 8000
 
-
 /**
  * The n-th idle moment of the day for character `who` (0 the mangaka, 1-3 the assistants' seats): the wait before it,
  * IDLE_MIN_MS to IDLE_MIN_MS + IDLE_SPAN_MS - 1, and a pick the caller takes modulo its pool's length.

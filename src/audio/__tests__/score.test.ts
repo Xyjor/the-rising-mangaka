@@ -4,8 +4,8 @@ import type { TrackSpec } from '../music/score'
 import { parseKey, voiceChord } from '../music/theory'
 
 /**
- * The design's example track (docs/plans/2026-10-17-lofi-music-design.md, "Track data format"), copied verbatim but
- * for one key: the motif table is `motifs`, since a second `lead` beside the lead voice is a duplicate key.
+ * The design's example track (docs/plans/2026-10-17-lofi-music-design.md, "Track data format"), copied verbatim, its
+ * motif table under `motifs` as in the design.
  */
 const SLOW_INK: TrackSpec = {
   title: 'Slow Ink', key: 'F major', bpm: 74, lead: 'soft', leadTonic: 65,
