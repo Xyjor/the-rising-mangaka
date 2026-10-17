@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "src/styles/tutorial.css"
+        ],
+        "createdAt": "2026-10-02T04:04:59.545Z",
+        "reason": "controller: the two-side 3px borders on .tutorial-bubble::after are the speech tail's outer edges (a rotated 10px square), not a card accent"
+      }
+    ]
+  }
+}
