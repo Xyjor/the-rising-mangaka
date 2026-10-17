@@ -10,17 +10,17 @@ import type { Chord, Key, KeyName } from './theory'
 
 /** How a track plays: swing (0.5 straight to 0.68), and the chances (0-1) behind the arranger's variations. */
 export interface Feel {
-  swing: number
-  /** The most a note is delayed at random, in seconds. */
-  humanise: number
+  readonly swing: number
+  /** The most a note is delayed at random, in seconds (0-0.03). */
+  readonly humanise: number
   /** The chance of a drum fill on a phrase's 4th bar. */
-  fill: number
+  readonly fill: number
   /** The chance of a ghost snare on an eligible step. */
-  ghost: number
+  readonly ghost: number
   /** The chance a motif occurrence gets one change. */
-  vary: number
+  readonly vary: number
   /** The chance of a keys answer run in a bar where the lead rests. */
-  answer: number
+  readonly answer: number
 }
 
 /** The drum lanes: kick, snare, hat and shaker. */
@@ -77,73 +77,87 @@ export type CompCell = 'X' | 'x' | '-' | '.'
 export type BassCell = 'R' | '3' | '5' | 'O' | 'A' | '-' | '.'
 
 /** A parsed drum pattern: every lane it names, each `bars * 16` cells long. */
-export interface DrumPattern { bars: 1 | 2; lanes: Partial<Record<DrumLane, readonly DrumCell[]>> }
+export interface DrumPattern {
+  readonly bars: 1 | 2
+  readonly lanes: Readonly<Partial<Record<DrumLane, readonly DrumCell[]>>>
+}
 
 /** A parsed comp or bass grid, `bars * 16` cells long. */
-export interface Grid<C extends string> { bars: 1 | 2; cells: readonly C[] }
+export interface Grid<C extends string> { readonly bars: 1 | 2; readonly cells: readonly C[] }
 
 /** One motif note, or a rest (`degree` null): its start and length in 16ths from the motif's start. */
-export interface MotifNote { degree: number | null; octave: number; at: number; len: number }
+export interface MotifNote {
+  readonly degree: number | null
+  readonly octave: number
+  readonly at: number
+  readonly len: number
+}
 
 /** A parsed motif: its notes and rests fill `bars * 16` sixteenths exactly. */
-export interface Motif { bars: 1 | 2; notes: readonly MotifNote[] }
+export interface Motif { readonly bars: 1 | 2; readonly notes: readonly MotifNote[] }
 
 /** A bar's pattern: its name, and which bar of it plays (1 only for the second bar of a two-bar pattern). */
-export interface PatternRef { name: string; half: 0 | 1 }
+export interface PatternRef { readonly name: string; readonly half: 0 | 1 }
 
 /** A bar's comp: the pattern, and the alternate the arranger may play instead (the same length), or null. */
-export interface CompRef extends PatternRef { alt: string | null }
+export interface CompRef extends PatternRef { readonly alt: string | null }
 
 /** One chord in a bar: the step (0-15) it starts on, and its keys voicing in MIDI notes, ascending. */
-export interface ChordSlot { step: number; chord: Chord; voicing: readonly number[] }
+export interface ChordSlot { readonly step: number; readonly chord: Chord; readonly voicing: readonly number[] }
 
 /** One bar of the form, everything the arranger needs that never depends on the pass. */
 export interface BarPlan {
-  section: string
+  readonly section: string
   /** The bar's index within its section. */
-  sectionBar: number
-  sectionStart: boolean
-  sectionEnd: boolean
+  readonly sectionBar: number
+  readonly sectionStart: boolean
+  readonly sectionEnd: boolean
   /** The 4th bar of a 4-bar phrase (`sectionBar % 4 === 3`), where fills go. */
-  phraseEnd: boolean
+  readonly phraseEnd: boolean
   /** 1, 2 or 4 chords starting on steps 0, 0/8 or 0/4/8/12. */
-  slots: readonly ChordSlot[]
+  readonly slots: readonly ChordSlot[]
   /** Each part's pattern for this bar, or null for silence. */
-  comp: CompRef | null
-  bass: PatternRef | null
-  drums: PatternRef | null
-  lead: PatternRef | null
+  readonly comp: CompRef | null
+  readonly bass: PatternRef | null
+  readonly drums: PatternRef | null
+  readonly lead: PatternRef | null
   /** The first chord of the next bar (the form's first chord after its last bar), for the bass's approach notes. */
-  next: Chord
+  readonly next: Chord
 }
 
 /** A compiled track: its settings, the per-bar plan and the parsed patterns, keyed by the names the plan uses. */
 export interface CompiledTrack {
-  id: string
-  title: string
-  key: Key
-  bpm: number
+  readonly id: string
+  readonly title: string
+  readonly key: Key
+  readonly bpm: number
   /** Seconds per 16th: 60 / bpm / 4. */
-  sixteenth: number
+  readonly sixteenth: number
   /** Seconds per bar: 16 sixteenths. */
-  barSeconds: number
-  bars: number
+  readonly barSeconds: number
+  readonly bars: number
   /** The whole form's length: bars * barSeconds. */
-  seconds: number
-  lead: LeadVoice
-  leadTonic: number
-  feel: Feel
-  mix: Record<Part, number>
-  tone: number
-  space: number
+  readonly seconds: number
+  readonly lead: LeadVoice
+  readonly leadTonic: number
+  readonly feel: Feel
+  readonly mix: Readonly<Record<Part, number>>
+  readonly tone: number
+  readonly space: number
   /** One entry per bar of the form, in order. */
-  plan: readonly BarPlan[]
-  drums: Readonly<Record<string, DrumPattern>>
-  comp: Readonly<Record<string, Grid<CompCell>>>
-  bass: Readonly<Record<string, Grid<BassCell>>>
-  motifs: Readonly<Record<string, Motif>>
+  readonly plan: readonly BarPlan[]
+  readonly drums: Readonly<Record<string, DrumPattern>>
+  readonly comp: Readonly<Record<string, Grid<CompCell>>>
+  readonly bass: Readonly<Record<string, Grid<BassCell>>>
+  readonly motifs: Readonly<Record<string, Motif>>
 }
 
+/** The slowest tempo a track may take; the arranger's `MAX_LATE` is worked out at it. */
+export const MIN_BPM = 66
+/** The most swing a track may take (0.5 is straight); the arranger's `MAX_LATE` counts it. */
+export const MAX_SWING = 0.68
+/** The most `feel.humanise` may delay a note, in seconds; the arranger's `MAX_LATE` counts it. */
+export const MAX_HUMANISE = 0.03
 /** The keys' voicing range, MIDI inclusive. */
 const KEYS_RANGE = [50, 74] as const
 const DEFAULT_TONE = 2600
@@ -315,12 +329,13 @@ function parseChords(
 function compile(id: string, spec: TrackSpec): CompiledTrack {
   const field = (f: string) => failer(id, `field ${f}`)
   const key = parseKey(spec.key)
-  if (!(spec.bpm > 0)) field('bpm')(`${spec.bpm} is not a positive tempo`)
+  if (!(spec.bpm >= MIN_BPM)) field('bpm')(`${spec.bpm} is below ${MIN_BPM} BPM, the slowest tempo MAX_LATE allows`)
   if (((spec.leadTonic % 12) + 12) % 12 !== key.tonic) {
     field('leadTonic')(`MIDI ${spec.leadTonic} is not the tonic of ${spec.key}`)
   }
-  checkRange(field('feel.swing'), spec.feel.swing, 0.5, 0.68)
-  for (const k of ['humanise', 'fill', 'ghost', 'vary', 'answer'] as const) {
+  checkRange(field('feel.swing'), spec.feel.swing, 0.5, MAX_SWING)
+  checkRange(field('feel.humanise'), spec.feel.humanise, 0, MAX_HUMANISE)
+  for (const k of ['fill', 'ghost', 'vary', 'answer'] as const) {
     checkRange(field(`feel.${k}`), spec.feel[k], 0, 1)
   }
 

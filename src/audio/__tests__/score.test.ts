@@ -39,7 +39,7 @@ const SLOW_INK: TrackSpec = {
 /** A small C major track: one section of four bars, each part one pattern, no tone or space given. */
 function tiny(over: Partial<TrackSpec> = {}): TrackSpec {
   return {
-    title: 'Tiny', key: 'C major', bpm: 60, lead: 'bell', leadTonic: 72,
+    title: 'Tiny', key: 'C major', bpm: 72, lead: 'bell', leadTonic: 72,
     feel: { swing: 0.5, humanise: 0, fill: 0, ghost: 0, vary: 0, answer: 0 },
     mix: { keys: 1, bass: 1, lead: 1, drums: 1 },
     drums: { a: { k: 'X...............' }, b: { h: 'x.x.x.x.x.x.x.x.' } },
@@ -100,6 +100,15 @@ describe('compileTrack: timing and form', () => {
     expect(() => compileTrack('t', tiny({ feel: { ...feel, ghost: 1.5 } }))).toThrow('t: field feel.ghost')
     expect(() => compileTrack('t', tiny({ bpm: 0 }))).toThrow('t: field bpm')
     expect(() => compileTrack('t', tiny({ leadTonic: 74 }))).toThrow('t: field leadTonic')
+  })
+
+  it('holds humanise to 0-0.03 s and the tempo to 66 BPM or more, the bounds MAX_LATE is worked from', () => {
+    const feel = tiny().feel
+    expect(() => compileTrack('t', tiny({ feel: { ...feel, humanise: 0.031 } }))).toThrow('t: field feel.humanise')
+    expect(() => compileTrack('t', tiny({ feel: { ...feel, humanise: -0.001 } }))).toThrow('t: field feel.humanise')
+    expect(compileTrack('t', tiny({ feel: { ...feel, humanise: 0.03 } })).feel.humanise).toBe(0.03)
+    expect(() => compileTrack('t', tiny({ bpm: 65 }))).toThrow('t: field bpm')
+    expect(compileTrack('t', tiny({ bpm: 66 })).bpm).toBe(66)
   })
 })
 
