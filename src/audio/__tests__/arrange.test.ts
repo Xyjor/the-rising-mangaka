@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { MAX_LATE, barEvents, eventsInWindow, leadPhrase } from '../music/arrange'
+import { bassRegister } from '../music/arrangeParts'
 import { compileTrack } from '../music/score'
 import type { CompiledTrack, TrackSpec } from '../music/score'
 import { isAvoid } from '../music/theory'
@@ -48,8 +49,33 @@ const STRAIGHT: TrackSpec = {
   form: 'S S',
 }
 
+/**
+ * EDGES: C major, the bass at its range's edges and the keys answering every lead-less bar. Bar 1's written approach
+ * leads from C2 (36) to C, so its usual side (B1, 35) is out of range; bars 3-4 play an octave over vi7, whose A has
+ * one placement in 36-55 (45), with a hold on step 14 for the pop; bar 5 holds four chords and no lead. The motif
+ * opens on a short note before a rest, closes on one after a rest, and has two short notes side by side. The form E E
+ * is 16 bars, 51.2 s.
+ */
+const EDGES: TrackSpec = {
+  title: 'Edges', key: 'C major', bpm: 75, lead: 'glock', leadTonic: 72,
+  feel: { swing: 0.55, humanise: 0.01, fill: 0, ghost: 0, vary: 1, answer: 1 },
+  mix: { keys: 1, bass: 1, lead: 1, drums: 1 },
+  drums: { t: { h: 'x...x...x...x...' } },
+  comp: { main: 'X-------x-------' },
+  bass: { one: 'R---------------', appr: 'R--------------A', oct: 'R---O---R-------' },
+  motifs: { m: '1:2 _:2 3:2 4:2 5:8 | 6:4 5:4 _:6 2:2' },
+  sections: {
+    E: {
+      chords: 'ii7 | Imaj7 | Imaj7 | vi7 | vi7 | ii7 V7 Imaj7 vi7 | IVmaj7 | V7',
+      comp: 'main', bass: 'one appr one oct oct one one one', drums: 't', lead: '. . . . . . m -',
+    },
+  },
+  form: 'E E',
+}
+
 const loop = compileTrack('loop', LOOP)
 const straight = compileTrack('straight', STRAIGHT)
+const edges = compileTrack('edges', EDGES)
 const SIXTEENTH = 0.2
 const DRUMS: readonly Inst[] = ['kick', 'snare', 'hat', 'shaker']
 const isDrum = (e: MusicEvent) => DRUMS.includes(e.inst)
@@ -128,11 +154,12 @@ describe('arranger: timing and windows', () => {
         const { step, offset } = slot(e)
         expect(offset).toBeCloseTo(step % 2 === 1 ? 0.04 : 0, 9)
       }
-      // Bar 1's 3rd 16th, when its hat is not dropped: 3.2 + 3 x 0.2 + 0.04 = 3.84 s.
-      const hat = all.find((e) => e.inst === 'hat' && Math.abs(e.at - 3.84) < 0.01)
-      if (hat) expect(hat.at).toBeCloseTo(3.84, 9)
       expect(unstrummed.filter((e) => e.inst === 'hat' && slot(e).step % 2 === 1).length).toBeGreaterThan(40)
     }
+    // Bar 1's 3rd 16th (its hat plays in pass 0, seed 2): 3.2 + 3 x 0.2 + 0.04 = 3.84 s.
+    const hat = barEvents(straight, 1, 0, 2).find((e) => e.inst === 'hat' && Math.abs(e.at - 3.84) < 0.01)
+    expect(hat).toBeDefined()
+    expect(hat?.at).toBeCloseTo(3.84, 9)
     const chord = barEvents(straight, 0, 0, 1).filter((e) => e.inst === 'keys')
     expect(chord.length).toBeGreaterThanOrEqual(3)
     chord.forEach((e, i) => expect(e.at).toBeCloseTo(0.012 * i, 9))
@@ -171,9 +198,9 @@ describe('arranger: harmony and ranges', () => {
   })
 
   it('plays only diatonic notes, keys in 50-74, bass in 36-55, the lead in leadTonic-7 to leadTonic+19', () => {
-    for (const t of [loop, straight]) {
-      for (const pass of PASSES) {
-        for (const e of whole(t, pass, 3)) {
+    for (const t of [loop, straight, edges]) {
+      for (const pass of [...PASSES, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29]) {
+        for (const e of SEEDS.flatMap((seed) => whole(t, pass, seed))) {
           if (isDrum(e)) {
             expect(e.midi).toBe(0)
             continue
@@ -236,20 +263,17 @@ describe('arranger: durations and re-strikes', () => {
     const inBar = (bar: number) => all.filter((e) => slot(e).bar === bar)
     expect(inBar(1).length).toBeGreaterThanOrEqual(3)
     expect(inBar(1).every((e) => slot(e).step === 0)).toBe(true)
-    // The pad struck at 0 s lasts until the re-strike at 3.2 s, less a 10% gap: a note struck at a lasts
-    // 0.9 x (3.2 - a), so it ends at 2.88 + 0.1 a, between 2.88 and 2.884 s.
-    for (const e of inBar(0)) {
-      expect(e.at + e.dur).toBeGreaterThan(2.879)
-      expect(e.at + e.dur).toBeLessThan(2.885)
-    }
+    // The pad struck at 0 s lasts until the re-strike at 3.2 s, less a 10% gap measured from the strike: every note
+    // of the chord, strummed or not, releases together at 0.9 x 3.2 = 2.88 s.
+    for (const e of inBar(0)) expect(e.at + e.dur).toBeCloseTo(2.88, 9)
     // Bars 2 and 3 are both VImaj7: struck at 6.4 s and held through bar 3 to the next strike at 12.8 s, less the
-    // gap: it ends at 6.4 + 0.9 x 6.4 = 12.16 s (less a strum step or so).
+    // gap: 6.4 + 0.9 x 6.4 = 12.16 s.
     expect(inBar(3)).toEqual([])
-    for (const e of inBar(2)) expect(e.at + e.dur).toBeGreaterThan(12.1)
+    for (const e of inBar(2)) expect(e.at + e.dur).toBeCloseTo(12.16, 9)
   })
 
   it('never lets a note overlap the next strike of its part', () => {
-    for (const t of [loop, straight]) {
+    for (const t of [loop, straight, edges]) {
       for (const pass of PASSES) {
         const all = whole(t, pass, 1)
         for (const part of ['keys', 'bass', 'lead'] as const) {
@@ -317,6 +341,19 @@ describe('arranger: drums', () => {
     expect(ghosts).toBeGreaterThan(0)
   })
 
+  it('drops hats only off the quarter notes', () => {
+    let dropped = 0
+    for (let pass = 0; pass < 40; pass++) {
+      // Bars 3 and 7 end a section, so their steps 12-15 drop out or fill.
+      for (const bar of [0, 1, 2, 4, 5, 6]) {
+        const steps = barEvents(straight, bar, pass, 1).filter((e) => e.inst === 'hat').map((e) => slot(e).step)
+        for (const q of [0, 4, 8, 12]) expect(steps).toContain(q)
+        dropped += 16 - steps.length
+      }
+    }
+    expect(dropped).toBeGreaterThan(0)
+  })
+
   it('plays no drums after step 0 in the track\'s last bar', () => {
     for (const t of [loop, straight]) {
       for (const pass of PASSES) {
@@ -365,9 +402,12 @@ describe('arranger: the lead', () => {
           expect(n.midi).toBeGreaterThanOrEqual(65)
           expect(n.midi).toBeLessThanOrEqual(91)
           if (n.len >= 4) {
-            const plan = loop.plan[start + Math.floor(n.at / 16)]
-            const chord = [...plan.slots].reverse().find((s) => s.step <= n.at % 16)!.chord
-            expect(isAvoid(n.midi, chord)).toBe(false)
+            // Every chord slot the note covers, 16th by 16th.
+            for (let q = n.at; q < n.at + n.len; q++) {
+              const { slots } = loop.plan[start + Math.floor(q / 16)]
+              const covering = slots.filter((s) => s.step <= q % 16)
+              expect(isAvoid(n.midi, covering[covering.length - 1].chord)).toBe(false)
+            }
           }
         }
       }
@@ -375,10 +415,93 @@ describe('arranger: the lead', () => {
     expect(varied).toBeGreaterThan(20)
   })
 
+  it('merges a short note only into a pitched neighbour, so the motif\'s rests never change', () => {
+    const plain = compileTrack('plain-edges', { ...EDGES, feel: { ...EDGES.feel, vary: 0 } })
+    const rests = (notes: readonly { midi: number | null; at: number; len: number }[]) =>
+      notes.filter((n) => n.midi === null).map((n) => `${n.at}:${n.len}`)
+    let merged = 0
+    for (let pass = 0; pass < 200; pass++) {
+      for (const start of [6, 14]) {
+        const notes = leadPhrase(edges, start, pass, 1)
+        const base = leadPhrase(plain, start, pass, 1)
+        expect(rests(notes)).toEqual(rests(base))
+        if (notes.length < base.length) merged++
+      }
+    }
+    expect(merged).toBeGreaterThan(0)
+  })
+
   it('plays the phrase\'s notes as lead events from the motif\'s first bar on', () => {
     const notes = leadPhrase(loop, 0, 2, 1).filter((n) => n.midi !== null)
     const events = [...barEvents(loop, 0, 2, 1), ...barEvents(loop, 1, 2, 1)].filter((e) => e.inst === 'lead')
     expect(events.map((e) => e.midi)).toEqual(notes.map((n) => n.midi))
     expect(events.map((e) => slot(e).bar * 16 + slot(e).step)).toEqual(notes.map((n) => n.at))
+  })
+})
+
+describe('arranger: the edges of the ranges', () => {
+  /** The pitch class's note in 36-55 nearest `prev`, ties lower. */
+  function nearestBass(p: number, prev: number): number {
+    let best = -1
+    for (let n = 36; n <= 55; n++) if (pc(n) === p && (best < 0 || Math.abs(n - prev) < Math.abs(best - prev))) best = n
+    return best
+  }
+
+  it('keeps an octave over a root with one placement in 36-55 on the root itself, and never pops it', () => {
+    // vi7's A sits only at 45: neither 57 nor 33 fits, so the written O (step 4) plays 45 and no pop comes on 14
+    // (bar 4 may still approach ii7 on 15).
+    for (const seed of SEEDS) {
+      for (let pass = 0; pass < 40; pass++) {
+        for (const bar of [3, 4, 11, 12]) {
+          const bass = barEvents(edges, bar, pass, seed).filter((e) => e.inst === 'bass' && slot(e).step < 15)
+          expect(bass.map((e) => e.midi)).toEqual([45, 45, 45])
+          expect(bass.map((e) => slot(e).step)).toEqual([0, 4, 8])
+        }
+      }
+    }
+  })
+
+  it('approaches from the other side when the usual one leaves the range', () => {
+    // Bar 1 plays C at 36 (nearest the D at 38 before it); its written A leads to C at 36 again, and B1 (35) is out of
+    // range, so it approaches from D2 (38). (Passes with an octave pop on 14 approach from that C3 instead.)
+    let plain = 0
+    for (let pass = 0; pass < 20; pass++) {
+      const bass = barEvents(edges, 1, pass, 1).filter((e) => e.inst === 'bass')
+      if (bass.length === 3) continue
+      plain++
+      expect(bass.map((e) => e.midi)).toEqual([36, 38])
+      expect(bass.map((e) => slot(e).step)).toEqual([0, 15])
+    }
+    expect(plain).toBeGreaterThan(10)
+  })
+
+  it('works the bass register once per track, the same for every pass', () => {
+    const anchors = bassRegister(edges)
+    expect(anchors).toHaveLength(edges.bars)
+    // Bar 0's D sits nearest 43 at 38, so bar 1 starts from 38.
+    expect(anchors[1]).toBe(38)
+    for (const seed of SEEDS) {
+      for (let pass = 0; pass < 20; pass++) {
+        for (let bar = 0; bar < edges.bars; bar++) {
+          const first = barEvents(edges, bar, pass, seed).find((e) => e.inst === 'bass' && slot(e).step === 0)
+          expect(first?.midi).toBe(nearestBass(edges.plan[bar].slots[0].chord.root, anchors[bar]))
+        }
+      }
+    }
+  })
+
+  it('clears the held chord when an answer run starts, even where a new chord starts on step 12', () => {
+    // Bar 5 holds four chords and no lead, and EDGES always answers: one note on each of 12, 13 and 14, no chord.
+    for (let pass = 0; pass < 20; pass++) {
+      const keys = barEvents(edges, 5, pass, 1).filter((e) => e.inst === 'keys')
+      for (const step of [12, 13, 14]) expect(keys.filter((e) => slot(e).step === step)).toHaveLength(1)
+      expect(keys.filter((e) => slot(e).step === 15)).toEqual([])
+    }
+  })
+
+  it('freezes the events it keeps in the window cache', () => {
+    const events = eventsInWindow(edges, 2, 3, 0, 6.4)
+    expect(events.length).toBeGreaterThan(0)
+    expect(events.every((e) => Object.isFrozen(e))).toBe(true)
   })
 })

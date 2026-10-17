@@ -43,11 +43,11 @@ type Fill = (typeof FILLS)[number]
 const hatScale = (step: number): number => (step % 4 === 0 ? 1 : step % 2 === 0 ? 0.7 : 0.45)
 
 /**
- * The bar's drums. Hats are scaled by position and, off the downbeat, dropped 8% of the time. Before a new section,
- * steps 12-15 drop out or fill, half and half; on a phrase's 4th bar they fill with chance `feel.fill`. A fill is a
- * skip (kick and snare out, snares on 13 and 15), a roll (snares on 12-15, rising, no hats) or an open hat on 14. A
- * kick lands on step 15 10% of the time; ghost snares (chance `feel.ghost`, velocity 0.25) go on odd steps with no
- * snare beside them. The track's last bar keeps step 0 only.
+ * The bar's drums. Hats are scaled by position and, off the quarter notes, dropped 8% of the time. Before a new
+ * section, steps 12-15 drop out or fill, half and half; on a phrase's 4th bar they fill with chance `feel.fill`. A
+ * fill is a skip (kick and snare out, snares on 13 and 15), a roll (snares on 12-15, rising, no hats) or an open hat
+ * on 14. A kick lands on step 15 10% of the time; ghost snares (chance `feel.ghost`, velocity 0.25) go on odd steps
+ * with no snare beside them. The track's last bar keeps step 0 only.
  */
 function drumEvents(t: CompiledTrack, bar: number, dice: Dice, out: MusicEvent[]): void {
   const plan = t.plan[bar]
@@ -61,7 +61,7 @@ function drumEvents(t: CompiledTrack, bar: number, dice: Dice, out: MusicEvent[]
   }
   const { kick, snare, hat } = hits
   for (let s = 0; s < 16; s++) {
-    if (hat[s] > 0) hat[s] = s !== 0 && dice(bar, LANE.hatDrop, s) < 0.08 ? 0 : hat[s] * hatScale(s)
+    if (hat[s] > 0) hat[s] = s % 4 !== 0 && dice(bar, LANE.hatDrop, s) < 0.08 ? 0 : hat[s] * hatScale(s)
   }
   const last = bar === t.bars - 1
   let drop = false
@@ -134,7 +134,7 @@ function cachedBar(t: CompiledTrack, bar: number, pass: number, seed: number): r
   const key = `${pass}:${seed}:${bar}`
   let events = bars.get(key)
   if (events) bars.delete(key)
-  else events = barEvents(t, bar, pass, seed)
+  else events = barEvents(t, bar, pass, seed).map((e) => Object.freeze(e))
   bars.set(key, events)
   if (bars.size > CACHE_BARS) bars.delete(bars.keys().next().value as string)
   return events
@@ -142,7 +142,7 @@ function cachedBar(t: CompiledTrack, bar: number, pass: number, seed: number): r
 
 /**
  * The events starting in the half-open window [from, to) seconds of a pass, sorted as `barEvents` sorts them. Bars
- * are kept in a small cache, so the player can call this every tick. Callers must not mutate the events.
+ * are kept in a small cache, so the player can call this every tick; the events are frozen, shared with the cache.
  */
 export function eventsInWindow(t: CompiledTrack, pass: number, seed: number, from: number, to: number): MusicEvent[] {
   if (!(to > from)) return []

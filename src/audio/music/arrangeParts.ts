@@ -26,7 +26,7 @@ export const LANE = {
   velocityPitched: 3,
   /** A ghost snare on an odd step. */
   ghost: 4,
-  /** A hat dropped off the downbeat. */
+  /** A hat dropped off the quarter notes. */
   hatDrop: 5,
   /** Slot 0 a phrase-end fill, 1 its kind; slot 2 a section end's drop or fill, 3 that fill's kind. */
   fill: 6,
@@ -90,7 +90,9 @@ export function emit(out: MusicEvent[], t: CompiledTrack, e: MusicEvent): void {
 }
 
 /** A note from `at` to the grid time `end` of the next strike or release of its part, less the gap. */
-const lengthTo = (at: number, end: number): number => Math.max((1 - GAP) * (end - at), 0.005)
+const lengthTo = (at: number, end: number): number => Math.max((1 - GAP) * (end - at), MIN_DUR)
+/** The shortest note written; reached only at tempos far above any track's. */
+const MIN_DUR = 0.005
 
 /** The slot sounding at a step: the last one starting at or before it. */
 export function slotAt(plan: BarPlan, step: number): ChordSlot {
@@ -168,7 +170,10 @@ function ninthOf(t: CompiledTrack, slot: ChordSlot): number | null {
   return fits.find((n) => n > top) ?? fits[fits.length - 1] ?? null
 }
 
-/** The bar's keys: comp strikes (strummed low to high), re-strikes at a chord change while held, and the answer run. */
+/**
+ * The bar's keys: comp strikes (strummed low to high, every note released together), re-strikes at a chord change
+ * while held, and the answer run.
+ */
 export function keysEvents(t: CompiledTrack, bar: number, dice: Dice, out: MusicEvent[]): void {
   const plan = t.plan[bar]
   const kb = keysBar(t, bar, dice)
@@ -180,10 +185,11 @@ export function keysEvents(t: CompiledTrack, bar: number, dice: Dice, out: Music
     const notes = ninth === null ? [...slot.voicing] : [...slot.voicing, ninth].sort((a, b) => a - b)
     const delay = dice(bar, LANE.humanisePitched, step) * t.feel.humanise
     const v = vel * jitter(dice(bar, LANE.velocityPitched, step))
-    const end = keysEnd(t, bar, step, slot.voicing, dice)
+    const base = strikeTime(t, bar, step, delay)
+    const release = base + lengthTo(base, keysEnd(t, bar, step, slot.voicing, dice))
     notes.forEach((midi, i) => {
-      const at = strikeTime(t, bar, step, delay + i * STRUM)
-      emit(out, t, { inst: 'keys', midi, at, dur: lengthTo(at, end), vel: v })
+      const at = base + i * STRUM
+      emit(out, t, { inst: 'keys', midi, at, dur: Math.max(release - at, MIN_DUR), vel: v })
     })
     held = slot.voicing
   }
@@ -231,23 +237,30 @@ function nearest(p: number, prev: number): number {
   return best
 }
 
-const foldBass = (n: number): number => (n < BASS_RANGE[0] ? n + 12 : n > BASS_RANGE[1] ? n - 12 : n)
+/** Whether a pitch class has two placings in the bass range (C to G do; G# to B sit only at 44-47). */
+const hasOctave = (p: number): boolean => pc(p - BASS_RANGE[0]) + 12 <= BASS_RANGE[1] - BASS_RANGE[0]
+const inBass = (n: number): boolean => n >= BASS_RANGE[0] && n <= BASS_RANGE[1]
 
-/** A bass cell's note: the chord's root, 3rd, 5th, the root's octave, or a scale step toward the next chord's root. */
+/**
+ * A bass cell's note: the chord's root, 3rd or 5th; the root's other octave (the root itself when it has one placing
+ * in range); or the scale step next to the next chord's root on the previous note's side (the other side when that
+ * one leaves the range).
+ */
 function bassPitch(t: CompiledTrack, plan: BarPlan, step: number, cell: BassPlay | 'restrike', prev: number): number {
   const chord = slotAt(plan, step).chord
   if (cell === '3') return nearest(chord.third, prev)
   if (cell === '5') return nearest(chord.tones[2], prev)
   if (cell === 'O' || cell === 'P') {
     const root = nearest(chord.root, prev)
-    return root + 12 <= BASS_RANGE[1] ? root + 12 : root - 12
+    return inBass(root + 12) ? root + 12 : inBass(root - 12) ? root - 12 : root
   }
   if (cell === 'A') {
     const next: Chord = plan.slots.find((s) => s.step > step)?.chord ?? plan.next
     const target = nearest(next.root, prev)
     const i = t.key.scale.indexOf(pc(target))
-    if (prev <= target) return foldBass(target - pc(target - t.key.scale[(i + 6) % 7]))
-    return foldBass(target + pc(t.key.scale[(i + 1) % 7] - target))
+    const below = target - pc(target - t.key.scale[(i + 6) % 7])
+    const above = target + pc(t.key.scale[(i + 1) % 7] - target)
+    return (prev <= target && inBass(below)) || !inBass(above) ? below : above
   }
   return nearest(chord.root, prev)
 }
@@ -259,16 +272,18 @@ function bassBase(t: CompiledTrack, bar: number): readonly BassPlay[] {
 }
 
 /**
- * A bar's bass as played: the base cells, an octave pop on step 14 in 10% of bars and, before a change of root (never
- * in the last bar), an approach note on step 15 in 35%, each only on a hold or a rest and never beside a written `A`.
+ * A bar's bass as played: the base cells, an octave pop on step 14 in 10% of bars (where the root has an octave) and,
+ * before a change of root (never in the last bar), an approach note on step 15 in 35%, each only on a hold or a rest
+ * and never beside a written `A`.
  */
 function bassBar(t: CompiledTrack, bar: number, dice: Dice): readonly BassPlay[] {
   const base = bassBase(t, bar)
   if (base === SILENT_BASS) return base
   const cells = [...base]
   const open = (c: BassPlay) => c === '-' || c === '.'
-  if (open(cells[14]) && dice(bar, LANE.bassPop, 14) < 0.1) cells[14] = 'P'
   const plan = t.plan[bar]
+  const pop = hasOctave(slotAt(plan, 14).chord.root)
+  if (pop && open(cells[14]) && dice(bar, LANE.bassPop, 14) < 0.1) cells[14] = 'P'
   const change = bar < t.bars - 1 && plan.next.root !== lastSlot(plan).chord.root
   if (change && open(cells[15]) && cells[14] !== 'A' && dice(bar, LANE.bassApproach, 15) < 0.35) cells[15] = 'A'
   return cells
@@ -303,7 +318,7 @@ const registers = new WeakMap<CompiledTrack, readonly number[]>()
  * The bass note before each bar, worked once per track from the base cells alone (no pass's additions), so every
  * note sits in the octave nearest the one before it and a bar's register never depends on the pass.
  */
-function bassRegister(t: CompiledTrack): readonly number[] {
+export function bassRegister(t: CompiledTrack): readonly number[] {
   let anchors = registers.get(t)
   if (!anchors) {
     const out: number[] = []
@@ -367,7 +382,10 @@ function stepDegree(n: Draft, dir: 1 | -1): void {
   n.degree = (((d % 7) + 7) % 7) + 1
 }
 
-/** One change to a motif occurrence, picked by the dice: an inner note moved, the end resolved, a merge, an octave. */
+/**
+ * One change to a motif occurrence, picked by the dice: an inner note moved, the end resolved, a short note merged
+ * into a pitched neighbour (no change when it has none), an octave up.
+ */
 function vary(t: CompiledTrack, notes: Draft[], start: number, dice: Dice): Draft[] {
   const kind = dice(start, LANE.leadVary, 1)
   const which = dice(start, LANE.leadVary, 2)
@@ -387,10 +405,13 @@ function vary(t: CompiledTrack, notes: Draft[], start: number, dice: Dice): Draf
     const short = pitched.filter((i) => notes[i].len <= 2)
     if (short.length) {
       const i = short[Math.floor(which * short.length)]
-      const into = i > 0 && (notes[i - 1].degree !== null || notes[i + 1] === undefined) ? i - 1 : i + 1
-      if (into < i) notes[into].len += notes[i].len
-      else notes[into] = { ...notes[into], at: notes[i].at, len: notes[into].len + notes[i].len }
-      notes.splice(i, 1)
+      const pitchedAt = (j: number) => notes[j] !== undefined && notes[j].degree !== null
+      const into = pitchedAt(i - 1) ? i - 1 : pitchedAt(i + 1) ? i + 1 : -1
+      if (into >= 0) {
+        if (into < i) notes[into].len += notes[i].len
+        else notes[into] = { ...notes[into], at: notes[i].at, len: notes[into].len + notes[i].len }
+        notes.splice(i, 1)
+      }
     }
   } else {
     for (const i of pitched) notes[i].octave += 1
@@ -398,19 +419,36 @@ function vary(t: CompiledTrack, notes: Draft[], start: number, dice: Dice): Draf
   return notes
 }
 
-/** The nearest chord tone to a note, ties lower. */
-function snap(midi: number, chord: Chord): number {
-  for (let d = 1; ; d++) {
-    if (chord.tones.includes(pc(midi - d))) return midi - d
-    if (chord.tones.includes(pc(midi + d))) return midi + d
+/** The chords a note covers, from its start: every slot sounding in [at, at + len) 16ths from bar `start`. */
+function covered(t: CompiledTrack, start: number, at: number, len: number): Chord[] {
+  const chords: Chord[] = []
+  for (let q = at; q < at + len; q++) {
+    const chord = slotAt(t.plan[Math.min(start + Math.floor(q / 16), t.bars - 1)], q % 16).chord
+    if (!chords.includes(chord)) chords.push(chord)
   }
+  return chords
+}
+
+/**
+ * The nearest note (ties lower) that is an avoid note over none of `chords`: a tone of the first chord when one lies
+ * within an octave, else any scale note.
+ */
+function snap(t: CompiledTrack, midi: number, chords: readonly Chord[]): number {
+  const clear = (m: number) => t.key.scale.includes(pc(m)) && chords.every((c) => !isAvoid(m, c))
+  const wants = [(m: number) => chords[0].tones.includes(pc(m)), () => true]
+  for (const want of wants) {
+    for (let d = 1; d <= 12; d++) {
+      for (const m of [midi - d, midi + d]) if (clear(m) && want(m)) return m
+    }
+  }
+  return midi
 }
 
 /**
  * The lead for the motif occurrence starting at bar `start` (its first bar; empty when no motif starts there): with
- * chance `feel.vary` one change, then each long note (4 or more 16ths) that is an avoid note over the chord at its
- * start snapped to the nearest chord tone, then every note folded into leadTonic-7..leadTonic+19. The occurrence keeps
- * its length.
+ * chance `feel.vary` one change, then each long note (4 or more 16ths) that is an avoid note over any chord it covers
+ * snapped to the nearest note that is none (a chord tone where one is near), then every note folded into
+ * leadTonic-7..leadTonic+19. The occurrence keeps its length.
  */
 export function leadPhrase(t: CompiledTrack, start: number, pass: number, seed: number): readonly LeadNote[] {
   return phrase(t, start, diceFor(t, pass, seed))
@@ -425,8 +463,8 @@ function phrase(t: CompiledTrack, start: number, dice: Dice): readonly LeadNote[
   return notes.map(({ degree, octave, at, len }) => {
     if (degree === null) return { midi: null, at, len }
     let midi = degreeToMidi(t.key, t.leadTonic, degree, octave)
-    const chord = slotAt(t.plan[Math.min(start + Math.floor(at / 16), t.bars - 1)], at % 16).chord
-    if (len >= 4 && isAvoid(midi, chord)) midi = snap(midi, chord)
+    const chords = len >= 4 ? covered(t, start, at, len) : []
+    if (chords.some((c) => isAvoid(midi, c))) midi = snap(t, midi, chords)
     while (midi > hi) midi -= 12
     while (midi < lo) midi += 12
     return { midi, at, len }
