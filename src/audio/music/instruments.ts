@@ -18,12 +18,22 @@ export const PEAK: Record<Inst | LeadVoice, number> = {
   bell: 0.05, glock: 0.05, soft: 0.05,
 }
 
+/** The bass's triangle sits at this level under its sine. */
+const BASS_TRIANGLE = 0.3
+
+/**
+ * Each instrument's (and lead timbre's) real peak amplitude at velocity 1, for the summed-peak budget: its envelope
+ * peak times the sum of the source levels under it, so the bass's sine and its triangle at 0.3 count 1.3 x its peak;
+ * every other voice has one source at full level.
+ */
+export const AMPLITUDE: Record<Inst | LeadVoice, number> = { ...PEAK, bass: PEAK.bass * (1 + BASS_TRIANGLE) }
+
 /**
  * The audio nodes one event of each instrument builds, the lead at its costliest timbre (the FM bell and glock): FM
  * is two oscillators, a mod gain and an envelope; the bass a sine, a triangle, the triangle's level and an envelope;
- * the snare a noise and a body, each with its envelope. The node budget tests count with it.
+ * the snare, like the hat and the shaker, a noise and its envelope. The node budget tests count with it.
  */
-export const NODES_PER_NOTE: Record<Inst, number> = { keys: 4, bass: 4, lead: 4, kick: 2, snare: 4, hat: 2, shaker: 2 }
+export const NODES_PER_NOTE: Record<Inst, number> = { keys: 4, bass: 4, lead: 4, kick: 2, snare: 2, hat: 2, shaker: 2 }
 
 /** Exponential ramps cannot reach 0; this is inaudible. */
 const SILENT = 0.0001
@@ -52,12 +62,15 @@ const KEYS_INDEX = { base: 1.2, perVel: 1.3, max: 3, floor: 0.25, time: 0.6, rat
 const BELL_INDEX = { start: 1.5, floor: 0.1, time: 0.4 }
 const BELL_RATIO = 3.5
 const GLOCK_RATIO = 5
-/** The bass's triangle sits at this level under its sine. */
-const BASS_TRIANGLE = 0.3
+/**
+ * The glock's modulator runs at 10x the note, so above about A3 index 1.5 would swing it past 6000 Hz and alias
+ * into a harsh fizz; its starting deviation (index x modulator Hz) is capped here, the floor kept below it.
+ */
+const GLOCK_MAX_DEVIATION = 5800
 /** The kick sweeps 110 to 45 Hz over 0.12 s, easing to this share of its peak, then tails to silence by 0.44 s. */
 const KICK = { from: 110, to: 45, sweep: 0.12, body: 0.6, end: 0.44 }
-/** The snare: 0.14 s of noise and a 190 Hz triangle body of 0.06 s at this share of the peak. */
-const SNARE = { noise: 0.14, bodyHz: 190, body: 0.06, bodyLevel: 0.7 }
+/** The snare: 0.14 s of noise alone (the 190 Hz triangle body went in 0.13.0, Task 12). */
+const SNARE = { noise: 0.14 }
 const HAT = { closed: 0.035, open: 0.18 }
 const SHAKER = { len: 0.05, attack: 0.008 }
 
@@ -172,7 +185,10 @@ export const playVoice: VoiceFn = (ctx, out, e, lead) => {
       const s = bell ? BELL : GLOCK
       const end = shape(env.gain, e.at, peak, s, Math.min(off, e.at + s.attack + s.decay))
       const i = BELL_INDEX
-      fm(k, env, bell ? hz : hz * 2, bell ? BELL_RATIO : GLOCK_RATIO, i.start, i.floor, i.time, end)
+      const carrier = bell ? hz : hz * 2
+      const ratio = bell ? BELL_RATIO : GLOCK_RATIO
+      const start = bell ? i.start : Math.min(i.start, GLOCK_MAX_DEVIATION / (carrier * ratio))
+      fm(k, env, carrier, ratio, start, Math.min(i.floor, start / 2), i.time, end)
       break
     }
     case 'soft':
@@ -198,8 +214,6 @@ export const playVoice: VoiceFn = (ctx, out, e, lead) => {
     }
     case 'snare': {
       noise(k, e, env, hit(env.gain, e.at, peak, HIT_ATTACK, SNARE.noise))
-      const body = envelope(k, out)
-      osc(k, 'triangle', SNARE.bodyHz, body, hit(body.gain, e.at, peak * SNARE.bodyLevel, HIT_ATTACK, SNARE.body))
       break
     }
     case 'hat':

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  buildChain, crackleBuffers, impulseBuffer, NODES_PER_NOTE, openSession, PEAK, playVoice,
+  AMPLITUDE, buildChain, crackleBuffers, impulseBuffer, NODES_PER_NOTE, openSession, PEAK, playVoice,
 } from '../music/instruments'
 import type { MixLevels } from '../music/levels'
 import type { Inst, LeadVoice, MusicEvent } from '../music/types'
@@ -159,8 +159,8 @@ describe('playVoice', () => {
   })
 
   it('rings the bell at 3.5:1 and the glock an octave up at 5:1', () => {
-    for (const [lead, carrierHz, modHz] of [['bell', 440, 1540], ['glock', 880, 4400]] as const) {
-      const { made } = play(ev({ inst: 'lead', midi: 69, at: 1 }), lead)
+    for (const [lead, midi, carrierHz, modHz] of [['bell', 69, 440, 1540], ['glock', 57, 440, 2200]] as const) {
+      const { made } = play(ev({ inst: 'lead', midi, at: 1 }), lead)
       const mod = made.find((n): n is FakeGain => n instanceof FakeGain && n.paramConnections.length > 0)!
       const carrier = made.find((n): n is FakeOscillator => n instanceof FakeOscillator && n.frequency === mod.paramConnections[0])!
       const modulator = made.find((n): n is FakeOscillator => n instanceof FakeOscillator && n.connections.includes(mod))!
@@ -170,6 +170,31 @@ describe('playVoice', () => {
         { kind: 'setValueAtTime', value: expect.closeTo(1.5 * modHz, 9), time: 1 },
         { kind: 'exponentialRampToValueAtTime', value: expect.closeTo(0.1 * modHz, 9), time: expect.closeTo(1.4, 9) },
       ])
+    }
+  })
+
+  it("caps the glock's peak deviation under 6000 Hz, high notes ringing at a lower index", () => {
+    // A5 (880 Hz): the carrier at 1760 Hz, the modulator at 8800 Hz; index 1.5 would deviate by 13,200 Hz.
+    for (let midi = 55; midi <= 100; midi++) {
+      const { made } = play(ev({ inst: 'lead', midi, at: 1 }), 'glock')
+      const mod = made.find((n): n is FakeGain => n instanceof FakeGain && n.paramConnections.length > 0)!
+      const values = mod.gain.events.map((x) => ('value' in x ? x.value : 0))
+      expect(Math.max(...values)).toBeLessThan(6000)
+      // The index still falls: the ramp ends below where it starts.
+      expect(values[1]).toBeLessThan(values[0])
+    }
+  })
+
+  it('plays the snare as noise alone, with no pitched body', () => {
+    const { sources, made } = play(ev({ inst: 'snare', at: 1 }))
+    expect(sources.map((s) => s instanceof FakeBufferSource)).toEqual([true])
+    expect(made.filter((n) => n instanceof FakeOscillator)).toEqual([])
+  })
+
+  it('gives each voice its real peak amplitude: the bass its sine plus its triangle at 0.3, the rest their peak', () => {
+    expect(AMPLITUDE.bass).toBeCloseTo(0.104, 12)
+    for (const v of ['keys', 'lead', 'kick', 'snare', 'hat', 'shaker', 'bell', 'glock', 'soft'] as const) {
+      expect(AMPLITUDE[v]).toBe(PEAK[v])
     }
   })
 
