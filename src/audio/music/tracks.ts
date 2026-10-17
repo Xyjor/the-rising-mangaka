@@ -40,9 +40,9 @@ export const TRACKS: Record<TrackId, TrackSpec> = {
     mix: { keys: 1, bass: 0.9, lead: 0.85, drums: 0.7 }, tone: 2400, space: 0.28,
     drums: {
       tick: { h: 'x...x...x...x...' },
-      half: { k: 'x.........x.....', s: '........x.......', h: 'x...x...x...x...' },
+      half: { k: 'X.........x.....', s: '........x.......', h: 'x...x...x...x...' },
     },
-    comp: { pad: 'X---------------', push: 'x------.x------.', lift: 'x-----x---.x----' },
+    comp: { pad: 'X---------------', push: 'X------.x------.', lift: 'X-----x---.x----' },
     bass: { hold: 'R---------------', walk: 'R-----5-R---..A-', two: 'R------.R-----A-' },
     motifs: {
       // The intro's pickup: G A C', rising into the first bar of A.
@@ -51,8 +51,8 @@ export const TRACKS: Record<TrackId, TrackSpec> = {
       m1: "_:4 5:2 6:2 5:4 3:4 | 2:2 3:2 5:8 _:4",
       // The response: down from C' to G, settling on E.
       m2: "_:4 1':2 7:2 6:4 5:4 | 5:2 3:6 _:2 2:2 3:4",
-      // The question that closes A: a breath, up to a held C', then down to G, left open over the dominant.
-      m3: "_:2 6:2 5:2 6:2 1':8 | 7:2 6:2 5:4 _:8",
+      // The question that closes A: up to a held C', then down to G, left open over the dominant.
+      m3: "6:4 5:2 6:2 1':8 | 7:2 6:2 5:4 _:8",
       // B's high call: E' D' C' to a held A, then G and a climb to B.
       m4: "3':4 2':2 1':2 6:8 | 5:4 _:4 3:2 5:2 7:4",
       // B's answer: the same opening, turning back down to A.
@@ -85,16 +85,16 @@ export const TRACKS: Record<TrackId, TrackSpec> = {
     feel: { swing: 0.6, humanise: 0.008, fill: 0.6, ghost: 0.15, vary: 0.4, answer: 0.3 },
     mix: { keys: 1, bass: 1, lead: 0.8, drums: 0.85 }, tone: 2600, space: 0.22,
     drums: {
-      main: { k: 'x......x..x.....', s: '....X.......X...', h: 'x.x.x.x.x.x.x.x.' },
-      half: { k: 'x.........x.....', s: '........x.......', h: 'x...x...x...x...' },
+      main: { k: 'X......x..x.....', s: '....X.......X...', h: 'x.x.x.x.x.x.x.x.' },
+      half: { k: 'X.........x.....', s: '........x.......', h: 'x...x...x...x...' },
       tick: { h: 'x...x...x...x...' },
     },
-    comp: { pad: 'X---------------', push: 'x------.x------.', lift: 'x-----x---.x----' },
+    comp: { pad: 'X---------------', push: 'X------.x------.', lift: 'X-----x---.x----' },
     bass: { hold: 'R---------------', walk: 'R-----5-R---..A-', two: 'R------.R-----A-' },
     motifs: {
       m1: "_:2 5:2 6:2 1':4 6:2 5:4 | 3:8 _:8",
       m2: '_:2 3:2 5:2 6:4 5:2 3:2 2:2 | 3:6 _:10',
-      m3: "_:2 1':2 2':4 1':2 6:2 5:4 | 3:4 5:2 3:2 1:8",
+      m3: "6:2 1':2 2':4 1':2 6:2 5:4 | 3:4 5:2 3:2 1:8",
     },
     sections: {
       // IV to I: the plagal sway the whole track leans on.
@@ -118,17 +118,17 @@ export const TRACKS: Record<TrackId, TrackSpec> = {
     feel: { swing: 0.56, humanise: 0.006, fill: 0.35, ghost: 0.1, vary: 0.35, answer: 0.45 },
     mix: { keys: 0.95, bass: 0.9, lead: 0.85, drums: 0.75 }, tone: 2800, space: 0.24,
     drums: {
-      skip: { k: 'x.....x...x.....', s: '....x.......x...', h: 'x.x.x.x.x.x.x.xx' },
+      skip: { k: 'X.....x...x.....', s: '....x.......x...', h: 'x.x.x.x.x.x.x.xx' },
       float: { k: 'x.........x.....', s: '............x...', h: '..x...x...x...x.' },
       tick: { h: '..x...x...x...x.' },
     },
-    comp: { bloom: 'X---------------', lilt: '..x-----..x-----', skip: 'x-----x---x-----' },
+    comp: { bloom: 'X---------------', lilt: '..x-----..x-----', skip: 'X-----x---x-----' },
     bass: { root: 'R-------5-------', bounce: 'R-----R.5-----A-' },
     motifs: {
       // The call: A C D, then C and A held, then G A and a held C.
       s1: '_:2 3:2 5:2 6:2 5:4 3:4 | 2:2 3:2 5:4 _:8',
-      // The response: up to F', down through D and C to G, then home to F.
-      s2: "_:2 6:2 1':2 6:2 5:4 3:2 2:2 | 1:8 _:8",
+      // The response: up to F', down through D and C to G, then E held open over the dominant.
+      s2: "_:2 6:2 1':2 6:2 5:4 3:2 2:2 | 7,:8 _:8",
       // B's call, up in the light: D F' G' F' D, then C and A.
       s3: "_:2 6:2 1':4 2':2 1':2 6:4 | 5:4 3:4 _:8",
       // B's answer: A' G' F' to D, then C held, a D, and C again.
@@ -163,11 +163,11 @@ export const TRACKS: Record<TrackId, TrackSpec> = {
     feel: { swing: 0.54, humanise: 0.005, fill: 0.5, ghost: 0.18, vary: 0.4, answer: 0.35 },
     mix: { keys: 0.9, bass: 1, lead: 0.8, drums: 0.9 }, tone: 3000, space: 0.18,
     drums: {
-      groove: { k: 'x......x.x......', s: '....x.......x...', h: 'x.x.x.x.x.xxx.x.', sh: '...x...x...x...x' },
+      groove: { k: 'X......x.x......', s: '....x.......x...', h: 'x.x.x.x.x.xxx.x.', sh: '...x...x...x...x' },
       break: { k: 'x.........x.....', s: '....x.......x...', h: 'x...x...x...x...', sh: 'x.x.x.x.x.x.x.x.' },
       shake: { sh: 'x.x.x.x.x.x.x.x.' },
     },
-    comp: { sun: 'X-------X-------', pop: 'x-----x---x-----', drift: '..x-----..x-----' },
+    comp: { sun: 'X-------X-------', pop: 'X-----x---x-----', drift: '..x-----..x-----' },
     bass: { pump: 'R-----R-5-----A-', skip: 'R--.R--.5-----O-' },
     motifs: {
       // One-bar calls and answers, short and bright: D E D, B and a held D.
@@ -210,7 +210,7 @@ export const TRACKS: Record<TrackId, TrackSpec> = {
     feel: { swing: 0.6, humanise: 0.009, fill: 0.4, ghost: 0.12, vary: 0.35, answer: 0.35 },
     mix: { keys: 1, bass: 1, lead: 0.85, drums: 0.8 }, tone: 2500, space: 0.26,
     drums: {
-      dusk: { k: 'x......x.x......', s: '....x.......x...', h: 'x...x...x...x...', sh: '.x.x.x.x.x.x.x.x' },
+      dusk: { k: 'X......x.x......', s: '....x.......x...', h: 'x...x...x...x...', sh: '.x.x.x.x.x.x.x.x' },
       glow: {
         k: 'x.........x.....x.....x.........',
         s: '....x.......x.......x.......x.x.',
@@ -218,17 +218,17 @@ export const TRACKS: Record<TrackId, TrackSpec> = {
       },
       shake: { sh: '.x.x.x.x.x.x.x.x' },
     },
-    comp: { pad: 'X---------------', halves: 'x-------x-------', late: '...x------..x---' },
+    comp: { pad: 'X---------------', halves: 'X-------x-------', late: '...x------..x---' },
     bass: { slow: 'R-------------A-', octave: 'R-----O-R-----5-' },
     motifs: {
-      // The call: B G B C, then B G F# and a long E.
-      r1: '_:4 5:2 3:2 5:4 6:4 | 5:2 3:2 2:2 1:4 _:6',
-      // The response: E' D C, B G, settling on G.
-      r2: "_:4 1':2 7:2 6:4 5:2 3:2 | 3:8 _:8",
-      // B's call, higher: G' F#' E' D, B, then C B G.
-      r3: "_:2 3':2 2':2 1':2 7:4 5:4 | 6:2 5:2 3:4 _:8",
-      // B's answer: climbing B C D to E', then D B and a long C.
-      r4: "_:6 5:2 6:2 7:2 1':4 | 7:2 5:2 6:12",
+      // The call: B G, a held B and D, then B G F# and a long E.
+      r1: '_:4 5:2 3:2 5:4 7:4 | 5:2 3:2 2:2 1:4 _:6',
+      // The response: E' D, a held B, G B, settling on G.
+      r2: "_:4 1':2 7:2 5:4 3:2 5:2 | 3:8 _:8",
+      // B's call, higher: G' F#' E' D, B, then C B and a held A.
+      r3: "_:2 3':2 2':2 1':2 7:4 5:4 | 6:2 5:2 4:4 _:8",
+      // B's answer: climbing B C D to E', then D C and a long B.
+      r4: "_:6 5:2 6:2 7:2 1':4 | 7:2 6:2 5:12",
       // The last word: B G F# E.
       r5: '_:2 5:2 3:2 2:2 1:8',
     },
@@ -259,20 +259,20 @@ export const TRACKS: Record<TrackId, TrackSpec> = {
     feel: { swing: 0.62, humanise: 0.012, fill: 0.25, ghost: 0.2, vary: 0.35, answer: 0.4 },
     mix: { keys: 1, bass: 1, lead: 0.75, drums: 0.75 }, tone: 2200, space: 0.26,
     drums: {
-      drizzle: { k: 'x.........x..x..', s: '....x.......x...', h: 'x.x.x.x.x.x.x.x.' },
+      drizzle: { k: 'X.........x..x..', s: '....x.......x...', h: 'x.x.x.x.x.x.x.x.' },
       patter: { k: 'x...............', s: '........x.......', h: 'x..x..x.x..x..x.' },
     },
-    comp: { pad: 'X---------------', warm: 'x---------x-----', rain: '..x---x-----x---' },
+    comp: { pad: 'X---------------', warm: 'X---------x-----', rain: '..x---x-----x---' },
     bass: { lean: 'R-------R-----A-', step: 'R---5---R---3---' },
     motifs: {
-      // The call: A F E D, then F E D and a low C.
-      d1: '_:4 5:4 3:2 2:2 1:4 | 3:4 2:2 1:2 7,:8',
+      // The call: A F E D, then E F E and a low C.
+      d1: '_:4 5:4 3:2 2:2 1:4 | 2:4 3:2 2:2 7,:8',
       // The response: A Bb A F, then G F and a long E.
       d2: '_:4 5:2 6:2 5:4 3:4 | 4:6 3:2 2:8',
-      // B's call: D' C Bb and a held A, then F G A Bb A.
-      d3: "_:2 1':2 7:2 6:2 5:8 | _:2 3:2 4:2 5:2 6:4 5:4",
-      // B's answer, highest: F' E' D' C Bb, then a long A.
-      d4: "_:2 3':2 2':2 1':2 7:4 6:4 | 5:12 _:4",
+      // B's call: D' C Bb and a held A, then F G A, C and A.
+      d3: "_:2 1':2 7:2 6:2 5:8 | _:2 3:2 4:2 5:2 7:4 5:4",
+      // B's answer, highest: F' E' F', then D' and C held, then a long A.
+      d4: "_:2 3':2 2':2 3':2 1':4 7:4 | 5:12 _:4",
       // The last word: E F and D.
       d5: '_:4 2:2 3:2 1:8',
     },
@@ -303,10 +303,10 @@ export const TRACKS: Record<TrackId, TrackSpec> = {
     feel: { swing: 0.58, humanise: 0.01, fill: 0.45, ghost: 0.15, vary: 0.4, answer: 0.35 },
     mix: { keys: 1, bass: 0.95, lead: 0.8, drums: 0.8 }, tone: 2300, space: 0.24,
     drums: {
-      brew: { k: 'x.....xx..x.....', s: '....x.......x...', h: 'x.x.x.x.x.x.x.x.' },
+      brew: { k: 'X.....xx..x.....', s: '....x.......x...', h: 'x.x.x.x.x.x.x.x.' },
       half: { k: 'x.......x.......', s: '............x...', h: 'x...x...x...x...' },
     },
-    comp: { pad: 'X---------------', cup: 'x-----.-x-----.-', chop: 'x--x----..x-----' },
+    comp: { pad: 'X---------------', cup: 'X-----.-x-----.-', chop: 'x--x----..x-----' },
     bass: { brew: 'R-----5.R-----3-', sit: 'R-------R-------' },
     motifs: {
       // The call: A C E C, B A, then a low G and A.
@@ -358,8 +358,8 @@ export const TRACKS: Record<TrackId, TrackSpec> = {
       f3: '_:4 6:2 5:2 3:8 | _:4 2:2 3:2 5:8',
       // B's answer: C' B A, then a long G.
       f4: "_:8 1':2 7:2 6:4 | 5:12 _:4",
-      // The last word: E D C.
-      f5: '_:4 3:4 2:4 1:4',
+      // The last word: G, A G, and C.
+      f5: '_:4 5:4 6:2 5:2 1:4',
     },
     sections: {
       // I with its sixth, then IV: the first flakes.
@@ -400,8 +400,8 @@ export const TRACKS: Record<TrackId, TrackSpec> = {
       k3: "_:2 1':4 7:2 5:4 4:4",
       // B2's one-bar answer: C D and a long E.
       k4: '_:4 3:2 4:2 5:8',
-      // The last word: B, a low G, and A.
-      k5: '_:4 2:2 7,:2 1:8',
+      // The last word: E D, a held C and A.
+      k5: '_:4 5:2 4:2 3:4 1:4',
     },
     sections: {
       // VI to i: the blanket over the knees.

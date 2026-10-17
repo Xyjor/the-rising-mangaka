@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { barEvents, leadPhrase } from '../music/arrange'
-import { AMPLITUDE, NODES_PER_NOTE } from '../music/instruments'
+import { AMPLITUDE, levelAt, NODES_PER_NOTE } from '../music/instruments'
 import { compileTrack } from '../music/score'
 import type { CompiledTrack } from '../music/score'
-import { isAvoid } from '../music/theory'
+import { degreeToMidi, isAvoid } from '../music/theory'
 import { CATALOG, isTrackId, SEASON_TRACKS, TITLE_TRACK, TRACKS } from '../music/tracks'
 import type { TrackId } from '../music/tracks'
 import type { Inst, MusicEvent } from '../music/types'
@@ -111,6 +111,28 @@ describe('the defined tracks', () => {
         expect(long).toBeGreaterThan(0)
       })
 
+      it('writes every long lead note as no avoid note over the chords it covers, needing no snap', () => {
+        // The motifs as written: with no variation, every long note (4 or more 16ths) must already clear each chord
+        // under it, in every section the motif is placed in.
+        const plain = compileTrack(id, { ...TRACKS[id as TrackId], feel: { ...t.feel, vary: 0 } })
+        const snapped: string[] = []
+        plain.plan.forEach((b, start) => {
+          if (!b.lead || b.lead.half !== 0) return
+          for (const n of plain.motifs[b.lead.name].notes) {
+            if (n.degree === null || n.len < 4) continue
+            const midi = degreeToMidi(plain.key, plain.leadTonic, n.degree, n.octave)
+            for (let q = n.at; q < n.at + n.len; q++) {
+              const { slots, section } = plain.plan[Math.min(start + Math.floor(q / 16), plain.bars - 1)]
+              const covering = slots.filter((s) => s.step <= q % 16)
+              const chord = covering[covering.length - 1].chord
+              if (!isAvoid(midi, chord)) continue
+              snapped.push(`${section} ${b.lead.name} degree ${n.degree} over ${chord.symbol}`)
+            }
+          }
+        })
+        expect([...new Set(snapped)]).toEqual([])
+      })
+
       it('keeps every part in its range', () => {
         const [lo, hi] = [t.leadTonic - 7, t.leadTonic + 19]
         let out = 0
@@ -145,7 +167,8 @@ describe('the defined tracks', () => {
         expect(worst).toBeLessThanOrEqual(NODE_BUDGET)
       })
 
-      // Swept at every event's start (where a sum can only rise), counting each voice sounding then, from any bar.
+      // Swept at every event's start (where a sum can only rise), counting each voice still held then, from any bar, at
+      // its envelope's level at that instant (`levelAt`): a decayed chord or a kick past its body counts for less.
       it(`keeps the summed peak of the voices sounding together within ${PEAK_BUDGET}`, () => {
         let worst = 0
         for (const pass of PASSES) {
@@ -154,7 +177,10 @@ describe('the defined tracks', () => {
             for (const e of passEvents(t, pass, seed)) {
               sounding = sounding.filter((o) => o.at + o.dur > e.at)
               sounding.push(e)
-              const sum = sounding.reduce((a, o) => a + AMPLITUDE[o.inst === 'lead' ? t.lead : o.inst] * o.vel, 0)
+              const sum = sounding.reduce((a, o) => {
+                const level = levelAt(o.inst, t.lead, e.at - o.at, o.open ?? false)
+                return a + AMPLITUDE[o.inst === 'lead' ? t.lead : o.inst] * o.vel * level
+              }, 0)
               worst = Math.max(worst, sum)
             }
           }
