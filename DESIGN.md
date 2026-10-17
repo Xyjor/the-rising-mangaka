@@ -1704,7 +1704,8 @@ Budgets, tested on every bar of every track: at most 140 nodes created a bar, an
 of at most 0.45, each voice counted at its envelope's level at that instant (`levelAt`, the bass's triangle included
 through `AMPLITUDE`). The loudness gate (`measure.ts`, a dev-only meter imported by nothing, rendering offline
 through the real mixer) holds each studio track's K-weighted RMS within 3 dB of the 0.12.0 loop's (-33.48 dB) and its
-peak under -12 dBFS: with every envelope peak trimmed by 0.84 (-1.5 dB) the studio tracks measure -32.6 to -31.1 dB,
+peak under -12 dBFS, comparing them as heard: the baseline was measured through the old 1,800 Hz ceiling and the new
+tracks through the 6,000 Hz one. With every envelope peak trimmed by 0.84 (-1.5 dB) the studio tracks measure -32.6 to -31.1 dB,
 their peaks below -15 dB. In a dev build `?music=<id>` pins one track (its passes separated by 2 s breaks); a
 production build never reads it.
 

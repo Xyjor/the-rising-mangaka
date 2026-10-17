@@ -19,7 +19,7 @@ chibi look and the game's pixel style; keep the pillars (never interrupt, show t
 | Animations | All four: smoother cycles, transitions, idle life, reactions |
 | Cast | Everyone: the mangaka, the assistants (the mangaka's frames in their own palettes), the editor, the cat |
 | Method | A part rig with hand-drawn parts, plus hand-drawn key frames for poses the parts cannot make |
-| Releases | 0.11.0 the engine with the mangaka and assistants; 0.12.0 the editor; 0.13.0 the cat |
+| Releases | 0.11.0 the engine with the mangaka and assistants; 0.12.0 the editor; 0.14.0 the cat |
 
 ## 1. The rig and the art
 
@@ -107,7 +107,7 @@ checked by eye in both themes and at 375x667.
    reactions, panic, the bed pose) and the assistants (seated drawing, doze, idle moments, the cheer). The editor and
    the cat keep their 0.10 frames, drawn through the cache at their old sizes until their releases.
 2. **0.12.0, the editor.** His head with glasses, suit, briefcase; walk, arrival, the turn at the door, the verdicts.
-3. **0.13.0, the cat.** 18x12: walk, sit, sleep, yawn, groom, pad-about, the stretch.
+3. **0.14.0, the cat.** 18x12: walk, sit, sleep, yawn, groom, pad-about, the stretch.
 
 Each release: a plan in `docs/plans/`, subagent-driven tasks with TDD and a review per task, a final whole-branch
 review; merging, pushing and the version bump wait for the owner's word.
