@@ -44,9 +44,9 @@ export function containsCPentatonic(scale: readonly number[]): boolean {
 }
 
 /**
- * A roman numeral in the key's mode (major I-vii, minor i-VII) with an optional suffix: '' a triad, '6' an added 6th,
- * '7', 'maj7', '9', 'maj9', '11' (minor chords only), 'ø7' (half-diminished, only on the diminished degree), and 'sus'
- * after a 7th or 9th. Throws an Error naming the numeral and the key when any rule is broken.
+ * A roman numeral in the key's mode (major I-vii, minor i-VII) with an optional suffix: '' a triad, '6' an added 6th
+ * (only where it is a major sixth), '7', 'maj7', '9', 'maj9', '11' (minor chords only), 'ø7' (half-diminished, only on
+ * the diminished degree), and 'sus' after a 7th or 9th. Throws an Error naming the numeral and the key when any rule is broken.
  */
 export function parseChord(numeral: string, key: Key): Chord {
   const fail = (why: string): never => {
@@ -73,6 +73,7 @@ export function parseChord(numeral: string, key: Key): Chord {
   const third = sus ? at(3) : at(2)
   if (sus && above(3) !== 5) fail("'sus' needs a perfect 4th above the root")
   if (suffix === '') return { symbol: numeral, root, tones: [root, third, at(4)], third, seventh: null }
+  if (suffix === '6' && above(5) !== 9) fail('the added 6th must be a major sixth above the root')
   if (suffix === '6') return { symbol: numeral, root, tones: [root, third, at(4), at(5)], third, seventh: at(5) }
   const majorSeventh = above(6) === 11
   if (suffix.startsWith('maj') !== majorSeventh) {
@@ -92,15 +93,15 @@ export function parseChord(numeral: string, key: Key): Chord {
 
 /**
  * The pitch classes a voicing plays: a chord of 4 or more tones goes rootless, keeping the 3rd and the 7th (or 6th)
- * and then the 9th, the 5th and the 11th, up to 4 notes; a triad keeps all three.
+ * and then the 9th, the 11th and the 5th, up to 4 notes; a triad keeps all three.
  */
 function voicedTones(chord: Chord): number[] {
   if (chord.tones.length < 4) return [...chord.tones]
   const rest = chord.tones.slice(1)
   if (rest.length <= 4) return rest
-  // root, 3rd, 5th, 7th, 9th, 11th: keep the 3rd and 7th, then the 9th, the 5th and the 11th.
+  // root, 3rd, 5th, 7th, 9th, 11th: keep the 3rd and 7th, then the 9th and the 11th, so the 5th gives way.
   const [, third, fifth, seventh, ninth, eleventh] = chord.tones
-  return [third, seventh, ninth, fifth, eleventh].slice(0, 4)
+  return [third, seventh, ninth, eleventh, fifth].slice(0, 4)
 }
 
 /** How far a candidate moves from the last voicing: note by note when the sizes match, else to each nearest note. */

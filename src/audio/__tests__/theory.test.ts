@@ -90,6 +90,15 @@ describe('parseChord', () => {
     expect(() => parseChord('I13', C)).toThrow(/I13.*C major/)
   })
 
+  it('rejects a 6 chord whose diatonic 6th is not a major sixth', () => {
+    // A to F and E to C are minor sixths (8 semitones); D to B and A minor's D to B are major sixths (9).
+    expect(() => parseChord('vi6', C)).toThrow(/vi6.*C major/)
+    expect(() => parseChord('iii6', C)).toThrow(/iii6.*C major/)
+    expect(() => parseChord('i6', parseKey('A minor'))).toThrow(/i6.*A minor/)
+    expect(parseChord('ii6', C).tones).toEqual([2, 5, 9, 11])
+    expect(parseChord('iv6', parseKey('A minor')).tones).toEqual([2, 5, 9, 11])
+  })
+
   it('keeps every accepted chord inside its key', () => {
     for (const name of KEYS) {
       const scale = parseKey(name).scale
@@ -119,9 +128,10 @@ describe('voiceChord', () => {
     expect(voiceChord(parseChord('I', C), [62, 65, 70], RANGE)).toEqual([60, 64, 67])
   })
 
-  it('keeps the 3rd, the 7th, the 9th and the 5th of an 11th chord', () => {
+  it('keeps the 3rd, the 7th, the 9th and the 11th of an 11th chord, dropping the 5th', () => {
+    // ii11 is D F A C E G: the 3rd F, the 7th C, the 9th E and the 11th G sound; the root D and the 5th A do not.
     const v = voiceChord(parseChord('ii11', C), null, RANGE)
-    expect(v.map((m) => m % 12).sort((a, b) => a - b)).toEqual([0, 4, 5, 9])
+    expect(v.map((m) => m % 12).sort((a, b) => a - b)).toEqual([0, 4, 5, 7])
   })
 
   it('stays in range, rootless with the 3rd and 7th from 4 tones, the lowest interval 3 or more, deterministic', () => {
