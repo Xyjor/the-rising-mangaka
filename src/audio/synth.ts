@@ -56,7 +56,7 @@ export function buildGraph(ctx: BaseAudioContext, levels: { master: number; fx: 
 const noiseBuffers = new WeakMap<BaseAudioContext, AudioBuffer>()
 
 /** One second of white noise from a fixed-seed LCG, made once per context and shared by every noise voice. */
-function noiseBuffer(ctx: BaseAudioContext): AudioBuffer {
+export function noiseBuffer(ctx: BaseAudioContext): AudioBuffer {
   const cached = noiseBuffers.get(ctx)
   if (cached) return cached
   const buffer = ctx.createBuffer(1, Math.round(ctx.sampleRate * NOISE_SECONDS), ctx.sampleRate)

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { barEvents, leadPhrase } from '../music/arrange'
+import { NODES_PER_NOTE } from '../music/instruments'
 import { compileTrack } from '../music/score'
 import type { CompiledTrack } from '../music/score'
 import { isAvoid } from '../music/theory'
@@ -7,11 +8,6 @@ import { CATALOG, isTrackId, SEASON_TRACKS, TITLE_TRACK, TRACKS } from '../music
 import type { TrackId } from '../music/tracks'
 import type { Inst, MusicEvent } from '../music/types'
 
-/**
- * The audio nodes one event of each instrument builds. Task 7 replaces this table with `NODES_PER_NOTE` from
- * `music/instruments.ts`.
- */
-const NODES_PER_NOTE: Record<Inst, number> = { keys: 4, lead: 4, bass: 3, kick: 2, snare: 4, hat: 2, shaker: 2 }
 const NODE_BUDGET = 140
 const PASSES = [0, 1, 2, 3]
 const SEEDS = [1, 2, 3]

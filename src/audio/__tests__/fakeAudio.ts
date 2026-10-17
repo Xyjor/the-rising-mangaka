@@ -12,6 +12,8 @@ export type ParamEvent =
 
 export class FakeParam {
   readonly events: ParamEvent[] = []
+  /** Every node connected into this param (a modulator), in order. */
+  readonly inputs: FakeNode[] = []
   #value: number
   /** Present by default; a context made with `cancelAndHold: false` removes it (as in Firefox). */
   cancelAndHoldAtTime: ((time: number) => FakeParam) | undefined = (time) => {
@@ -73,19 +75,32 @@ export class FakeNode {
   readonly kind: string
   /** Every node this one was connected to, in order. */
   readonly connections: FakeNode[] = []
+  /** Every param this one was connected to (it modulates them), in order. */
+  readonly paramConnections: FakeParam[] = []
+  /** True once `disconnect()` was called with no target. */
   disconnected = false
+  /** Every `disconnect` call's argument, in order (undefined for the no-target form). */
+  readonly disconnects: (FakeNode | FakeParam | undefined)[] = []
 
   constructor(kind: string) {
     this.kind = kind
   }
 
-  connect<T extends FakeNode>(to: T): T {
+  connect(to: FakeParam): void
+  connect<T extends FakeNode>(to: T): T
+  connect(to: FakeNode | FakeParam): FakeNode | void {
+    if (to instanceof FakeParam) {
+      this.paramConnections.push(to)
+      to.inputs.push(this)
+      return
+    }
     this.connections.push(to)
     return to
   }
 
-  disconnect(): void {
-    this.disconnected = true
+  disconnect(target?: FakeNode | FakeParam): void {
+    this.disconnects.push(target)
+    if (target === undefined) this.disconnected = true
   }
 }
 
@@ -102,6 +117,34 @@ export class FakeBiquad extends FakeNode {
   readonly Q = new FakeParam(1)
   constructor() {
     super('biquad')
+  }
+}
+
+export class FakeDelay extends FakeNode {
+  readonly delayTime = new FakeParam(0)
+  readonly maxDelayTime: number
+  constructor(maxDelayTime: number) {
+    super('delay')
+    this.maxDelayTime = maxDelayTime
+  }
+}
+
+export class FakeConvolver extends FakeNode {
+  normalize = true
+  /** `normalize` as it stood when `buffer` was last set (the real node reads it then). */
+  normalizeAtBuffer: boolean | null = null
+  #buffer: FakeBuffer | null = null
+  constructor() {
+    super('convolver')
+  }
+
+  get buffer(): FakeBuffer | null {
+    return this.#buffer
+  }
+
+  set buffer(buffer: FakeBuffer | null) {
+    this.normalizeAtBuffer = this.normalize
+    this.#buffer = buffer
   }
 }
 
@@ -204,6 +247,14 @@ export class FakeAudioContext {
 
   createDynamicsCompressor(): FakeCompressor {
     return this.#track(new FakeCompressor())
+  }
+
+  createDelay(maxDelayTime = 1): FakeDelay {
+    return this.#track(new FakeDelay(maxDelayTime))
+  }
+
+  createConvolver(): FakeConvolver {
+    return this.#track(new FakeConvolver())
   }
 
   createOscillator(): FakeOscillator {
