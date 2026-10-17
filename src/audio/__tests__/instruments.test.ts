@@ -367,6 +367,18 @@ describe('buildChain', () => {
     const tone = made.find((n): n is FakeBiquad => n instanceof FakeBiquad && n.frequency.value === 2400)!
     expect(last(tone.frequency)).toEqual({ kind: 'setTargetAtTime', value: 1300, time: 3, timeConstant: 0.8 })
   })
+
+  it('glides from a later start time when given one', () => {
+    const { fake, chain, input, made } = chainOn()
+    fake.currentTime = 3
+    chain.setLevels({ tone: 1300, space: 0.1, parts: { keys: 1, bass: 0.6, lead: 0.4, drums: 0 } }, 0.4, 3.2)
+    const last = (p: FakeParam) => p.events[p.events.length - 1]
+    for (const i of INSTS) expect(last(input[i].gain)).toMatchObject({ kind: 'setTargetAtTime', time: 3.2, timeConstant: 0.4 })
+    const send = made.find((n): n is FakeGain => n instanceof FakeGain && n.connections.some((c) => c instanceof FakeConvolver))!
+    expect(last(send.gain)).toEqual({ kind: 'setTargetAtTime', value: 0.1, time: 3.2, timeConstant: 0.4 })
+    const tone = made.find((n): n is FakeBiquad => n instanceof FakeBiquad && n.frequency.value === 2400)!
+    expect(last(tone.frequency)).toEqual({ kind: 'setTargetAtTime', value: 1300, time: 3.2, timeConstant: 0.4 })
+  })
 })
 
 describe('openSession', () => {

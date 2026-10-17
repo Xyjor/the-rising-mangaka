@@ -3,9 +3,9 @@
 // lifetimes: the chain (the mixer, built at the first start and kept), the session (the wobble LFOs and the crackle,
 // opened at a start and released on the tick the timer goes) and the Loop (one per start: seven fade gains, one per
 // instrument, and the segments it plays). Only the playing Loop chains to its next segment; a stopped Loop fades out
-// on whatever it was playing. Every time comes from `ctx.currentTime`, every timer from the injected `Timers`. The
-// scene and the pin are stored here and read at each pick; their live changes (the mood crossfade, calm, the pin's
-// crossfade) come later.
+// on whatever it was playing. Every time comes from `ctx.currentTime`, every timer from the injected `Timers`. A mood
+// change or a pin crossfades to a fresh Loop (the old one fading out, at most two at once); a calm moment glides the
+// mix and, once settled, stops queuing drums; a season change waits for the next pick.
 import { holdAt } from '../synth'
 import { eventsInWindow } from './arrange'
 import { buildChain, openSession, playVoice } from './instruments'
@@ -43,10 +43,15 @@ export const PIN_BREAK = 2
 /** A Loop younger than this, in seconds, is replaced with a short fade rather than crossfaded. */
 export const YOUNG = 0.5
 
+/** The time constant of the glide into calm, in seconds. */
+export const CALM_TAU = 0.8
+/** The time constant of the glide out of calm, and of every other level change, in seconds. */
+export const WAKE_TAU = 0.4
+
 /** Every segment chain in one tick stops after this many, so a degenerate catalogue cannot spin. */
 const MAX_SEGMENTS_PER_TICK = 8
-/** How fast the chain glides to a track's levels as its segment starts. */
-const LEVELS_TAU = 0.4
+/** A Loop cut short (too young to crossfade, or one fading too many) reaches 0 over this, in seconds. */
+const CUT = 0.05
 
 const INSTS = Object.keys(PART_OF) as Inst[]
 
@@ -70,6 +75,8 @@ interface Loop {
   /** When its fade-out reaches 0; Infinity while it plays. */
   endsAt: number
   voices: Voice[]
+  /** Context time it was opened. */
+  born: number
 }
 
 /** What the music does. */
@@ -81,9 +88,15 @@ export interface MusicPlayer {
    * A no-op while stopped. In a suspended context (its clock frozen) the fade finishes at once at the next tick.
    */
   stop(): void
-  /** Stores the scene the next pick reads. */
+  /**
+   * Sets the scene. While playing: a mood change crossfades to the new pool (unless pinned), calm glides the mix and
+   * stops the drums once settled, and a season change is read at the next pick. While stopped it is only stored.
+   */
   setScene(s: MusicScene): void
-  /** Stores a track every pick plays (with 2 s breaks), or null to pick from the scene's pool again. */
+  /**
+   * Sets a track every pick plays (with 2 s breaks), crossfading to it now while playing, or null to pick from the
+   * scene's pool again at the next pick.
+   */
   pin(id: string | null): void
   /** Stops the timer. The context's owner closes the context, which silences every node. */
   dispose(): void
@@ -109,6 +122,8 @@ export function createMusicPlayer(ctx: BaseAudioContext, dest: AudioNode, timers
   let pinned: string | null = null
   let counter = 0
   let recent: string[] = []
+  /** When calm last turned on. */
+  let calmSince = 0
 
   let chain: Chain | null = null
   let session: Session | null = null
@@ -124,11 +139,11 @@ export function createMusicPlayer(ctx: BaseAudioContext, dest: AudioNode, timers
     return id
   }
 
-  /** A track segment from `origin`, gliding the chain to its levels. */
+  /** A track segment from `origin`, gliding the chain to its levels as it starts. */
   function trackSegment(origin: number): Segment {
     const id = pick()
     const t = catalog.compiled(id)
-    chain?.setLevels(levelsFor(scene, t), LEVELS_TAU)
+    chain?.setLevels(levelsFor(scene, t), WAKE_TAU, origin)
     return { kind: 'track', track: id, pass: counter, origin, end: origin + t.seconds }
   }
 
@@ -140,8 +155,11 @@ export function createMusicPlayer(ctx: BaseAudioContext, dest: AudioNode, timers
     return { kind: 'break', pass: counter, origin, end: origin + gap }
   }
 
-  function queue(loop: Loop, t: CompiledTrack, seg: Segment, a: number, b: number) {
+  function queue(loop: Loop, t: CompiledTrack, seg: Segment, a: number, b: number, now: number) {
+    // A settled calm moment queues no drums (their buses are at 0 by then anyway).
+    const quiet = scene.calm && now - calmSince > CALM_SETTLE
     for (const e of eventsInWindow(t, seg.pass, seed, a - seg.origin, b - seg.origin)) {
+      if (quiet && PART_OF[e.inst] === 'drums') continue
       loop.voices.push(voice(ctx, loop.fades[e.inst], { ...e, at: seg.origin + e.at }, t.lead))
     }
   }
@@ -159,7 +177,7 @@ export function createMusicPlayer(ctx: BaseAudioContext, dest: AudioNode, timers
         const seg = loop.seg
         const a = Math.max(from, seg.origin)
         const b = Math.min(to, seg.end)
-        if (seg.kind === 'track' && seg.track !== undefined && b > a) queue(loop, catalog.compiled(seg.track), seg, a, b)
+        if (seg.kind === 'track' && seg.track !== undefined && b > a) queue(loop, catalog.compiled(seg.track), seg, a, b, now)
         if (to < seg.end || loop !== playing) break
         loop.seg = nextSegment(seg, from)
       }
@@ -209,6 +227,52 @@ export function createMusicPlayer(ctx: BaseAudioContext, dest: AudioNode, timers
     param.linearRampToValueAtTime(value, end)
   }
 
+  /** Brings a Loop's fade-out forward to reach 0 by `end`; one already ending sooner is left alone. */
+  function fadeOut(loop: Loop, now: number, end: number) {
+    if (loop.endsAt <= end) return
+    for (const inst of INSTS) rampFrom(loop.fades[inst].gain, now, 0, end)
+    loop.endsAt = end
+  }
+
+  /** Cuts the oldest fading Loops short until at most `MAX_FADING` still have a full fade to run. */
+  function capFading(now: number) {
+    const long = fading.filter((loop) => loop.endsAt > now + CUT)
+    for (let i = 0; i < long.length - MAX_FADING; i++) fadeOut(long[i], now, now + CUT)
+  }
+
+  /** A new playing Loop: seven fades rising 0 to 1 over `fadeIn`, on a track from now. */
+  function openLoop(c: Chain, now: number, fadeIn: number): Loop {
+    const fades = {} as Record<Inst, GainNode>
+    for (const inst of INSTS) {
+      const g = ctx.createGain()
+      g.gain.value = 0
+      g.gain.setValueAtTime(0, now)
+      g.gain.linearRampToValueAtTime(1, now + fadeIn)
+      g.connect(c.input[inst])
+      fades[inst] = g
+    }
+    return { fades, seg: trackSegment(now), scheduledUntil: now, endsAt: Number.POSITIVE_INFINITY, voices: [], born: now }
+  }
+
+  /**
+   * Replaces the playing Loop with a fresh one on the next pick, fading in over `XFADE` as the old fades out over it
+   * (or over 50 ms when the old is under `YOUNG`), cutting a break short.
+   */
+  function crossfade(c: Chain, old: Loop) {
+    const now = ctx.currentTime
+    fadeOut(old, now, now + (now - old.born < YOUNG ? CUT : XFADE))
+    fading.push(old)
+    playing = openLoop(c, now, XFADE)
+    advance(playing, now)
+    capFading(now)
+  }
+
+  /** The track the playing Loop is on, or null in a break (or stopped). */
+  function currentTrack(): CompiledTrack | null {
+    const seg = playing?.seg
+    return seg?.kind === 'track' && seg.track !== undefined ? catalog.compiled(seg.track) : null
+  }
+
   return {
     start() {
       if (playing) return
@@ -217,16 +281,7 @@ export function createMusicPlayer(ctx: BaseAudioContext, dest: AudioNode, timers
       // A start during a stop's fade keeps the session it would have released: a second would double the wobble.
       session ??= openSession(ctx, chain, seed, now)
       rampFrom(chain.gate.gain, now, 1, now + FADE_IN)
-      const fades = {} as Record<Inst, GainNode>
-      for (const inst of INSTS) {
-        const g = ctx.createGain()
-        g.gain.value = 0
-        g.gain.setValueAtTime(0, now)
-        g.gain.linearRampToValueAtTime(1, now + FADE_IN)
-        g.connect(chain.input[inst])
-        fades[inst] = g
-      }
-      playing = { fades, seg: trackSegment(now), scheduledUntil: now, endsAt: Number.POSITIVE_INFINITY, voices: [] }
+      playing = openLoop(chain, now, FADE_IN)
       advance(playing, now)
       timer ??= { id: timers.setInterval(tick, TICK_MS) }
     },
@@ -235,22 +290,36 @@ export function createMusicPlayer(ctx: BaseAudioContext, dest: AudioNode, timers
       if (!playing || !chain) return
       const now = ctx.currentTime
       const end = now + FADE_OUT
-      for (const loop of [playing, ...fading]) {
-        if (loop.endsAt <= end) continue
-        for (const inst of INSTS) rampFrom(loop.fades[inst].gain, now, 0, end)
-        loop.endsAt = end
-      }
+      for (const loop of [playing, ...fading]) fadeOut(loop, now, end)
       rampFrom(chain.gate.gain, now, 0, end)
       fading.push(playing)
       playing = null
+      capFading(now)
     },
 
     setScene(s) {
+      const prev = scene
+      if (s.mood === prev.mood && s.season === prev.season && s.calm === prev.calm) return
       scene = s
+      const now = ctx.currentTime
+      if (s.calm && !prev.calm) calmSince = now
+      // A season change waits for the next pick; it moves no level.
+      if (!playing || !chain || (s.mood === prev.mood && s.calm === prev.calm)) return
+      if (s.mood !== prev.mood && pinned === null) {
+        crossfade(chain, playing)
+        return
+      }
+      const tau = s.calm && !prev.calm ? CALM_TAU : WAKE_TAU
+      const l = levelsFor(s, currentTrack())
+      chain.setLevels(l, tau)
+      // A track queued ahead but not yet begun glides at its start: that glide must carry the new scene too.
+      const seg = playing.seg
+      if (seg.kind === 'track' && seg.origin > now) chain.setLevels(l, tau, seg.origin)
     },
 
     pin(id) {
       pinned = id
+      if (id !== null && playing && chain) crossfade(chain, playing)
     },
 
     dispose() {

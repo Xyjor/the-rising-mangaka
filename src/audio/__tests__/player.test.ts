@@ -6,7 +6,7 @@ import type { TrackSpec } from '../music/score'
 import type { KeyName } from '../music/theory'
 import type { Catalog } from '../music/tracks'
 import type { LeadVoice, MusicEvent, MusicScene, VoiceFn } from '../music/types'
-import { FakeAudioContext, FakeBufferSource, FakeConvolver, FakeGain, FakeOscillator, FakeParam, asContext } from './fakeAudio'
+import { FakeAudioContext, FakeBiquad, FakeBufferSource, FakeConvolver, FakeGain, FakeOscillator, FakeParam, asContext } from './fakeAudio'
 import { FakeTimers } from './fakeTimers'
 
 const r = (x: number) => Math.round(x * 1e6) / 1e6
@@ -42,7 +42,7 @@ const ID_OF_PC: Record<number, string> = { 0: 'a', 5: 'b', 7: 'c', 2: 'd' }
 const BASS_MIX: Record<string, number> = { a: 0.8, b: 0.7, c: 0.9, d: 1 }
 const SECONDS = 4
 
-/** The title pool is a and b; the studio's is all four, but summer's is c alone. */
+/** The title pool is a and b; the studio's is all four, but summer's is c alone and winter's d alone. */
 const CATALOG: Catalog = {
   compiled(id) {
     const t = TRACKS[id as keyof typeof TRACKS]
@@ -51,12 +51,17 @@ const CATALOG: Catalog = {
   },
   poolFor(scene) {
     if (scene.mood === 'title') return ['a', 'b']
-    return scene.season === 'summer' ? ['c'] : ['a', 'b', 'c', 'd']
+    if (scene.season === 'summer') return ['c']
+    return scene.season === 'winter' ? ['d'] : ['a', 'b', 'c', 'd']
   },
 }
 
 const SEED = 7
 const STUDIO: MusicScene = { mood: 'studio', season: 'spring', calm: false }
+const TITLE: MusicScene = { mood: 'title', season: 'spring', calm: false }
+const WINTER: MusicScene = { mood: 'studio', season: 'winter', calm: false }
+/** Each instrument's place in a Loop's seven fades (the order of `PART_OF`). */
+const INST_INDEX = { keys: 0, bass: 1, lead: 2, kick: 3, snare: 4, hat: 5, shaker: 6 } as const
 
 /** One scheduled event as the recording voice saw it: its absolute time, the gain it played into, its timbre. */
 interface Played {
@@ -113,6 +118,21 @@ function setup(o: { state?: AudioContextState; scene?: MusicScene } = {}) {
         n.gain.events[2]?.kind === 'linearRampToValueAtTime' &&
         n.gain.events[2].value === 1,
     )
+  /** The fades grouped by Loop, oldest first. */
+  const loops = () => {
+    const all = fades()
+    return Array.from({ length: all.length / 7 }, (_, i) => all.slice(i * 7, i * 7 + 7))
+  }
+  /** The Loop (by its place in `loops()`) a played note went into. */
+  const loopOf = (p: Played) => Math.floor(fades().indexOf(p.out) / 7)
+  /** An instrument's bus input on the chain. */
+  const bus = (inst: keyof typeof INST_INDEX) => fades()[INST_INDEX[inst]].connections[0] as FakeGain
+  /** The chain's tone lowpass (the bass's own lowpass feeds the sum, not the dest). */
+  const tone = () =>
+    fake.nodes.find((n): n is FakeBiquad => n instanceof FakeBiquad && n.type === 'lowpass' && n.connections.includes(dest))!
+  /** The reverb send. */
+  const send = () =>
+    fake.nodes.find((n): n is FakeGain => n instanceof FakeGain && n.connections.some((c) => c instanceof FakeConvolver))!
   /** The crackle gate: the gain the session's buffer sources play into. */
   const gate = () => {
     const src = fake.nodes.find((n): n is FakeBufferSource => n instanceof FakeBufferSource)
@@ -121,7 +141,9 @@ function setup(o: { state?: AudioContextState; scene?: MusicScene } = {}) {
   /** The session's slow wobble LFOs (0.45 Hz): one per open session. */
   const lfos = () =>
     fake.nodes.filter((n): n is FakeOscillator => n instanceof FakeOscillator && n.frequency.target === 0.45)
-  return { fake, timers, dest, player, played, advance, fades, gate, lfos }
+  /** Ticks on to the last tick at or before `t` seconds. */
+  const advanceTo = (t: number) => advance(Math.floor((t * 1000 - ms) / 50) * 50)
+  return { fake, timers, dest, player, played, advance, advanceTo, fades, loops, loopOf, bus, tone, send, gate, lfos }
 }
 
 /**
@@ -238,7 +260,9 @@ describe('music player: segments', () => {
     const bassBus = played[1].out.connections[0] as FakeGain
     const glides = bassBus.gain.events.filter((e) => e.kind === 'setTargetAtTime')
     expect(glides).toHaveLength(2)
+    // At the segment's start, not when the look-ahead first reached it.
     expect(glides[1]).toMatchObject({ value: BASS_MIX[second.id], timeConstant: 0.4 })
+    expect(r((glides[1] as { time: number }).time)).toBe(r(SECONDS + gap))
   })
 
   it('schedules a boundary inside one window in the same tick', () => {
@@ -287,15 +311,15 @@ describe('music player: segments', () => {
     for (const p of held) expect(p.e.at + p.e.dur).toBeGreaterThan(300)
   })
 
-  it('reads a scene change at the next pick, leaving the playing track alone', () => {
-    const { player, played, advance, fades } = setup()
+  it('reads a season change at the next pick, leaving the playing track alone', () => {
+    const { player, played, advance, fades } = setup({ scene: STUDIO })
     player.start()
     advance(1000)
-    player.setScene({ mood: 'studio', season: 'summer', calm: false })
+    player.setScene({ ...STUDIO, season: 'summer' })
     expect(fades()).toHaveLength(7)
     advance(29_000)
     const [first, second] = heard(played)
-    expect(['a', 'b']).toContain(first.id)
+    expect(first.origin).toBe(0)
     // The first track plays to its end and its break runs in full before the new pool's track.
     expect(r(second.origin)).toBe(r(SECONDS + breakSeconds(SEED, 1)))
     expect(second.id).toBe('c')
@@ -427,5 +451,221 @@ describe('music player: stop, restart and the session', () => {
     player.start()
     player.dispose()
     expect(timers.live).toEqual([])
+  })
+})
+
+describe('music player: segments, the edge cases', () => {
+  it('starts the break at the jumped-to time after a stall across a track end', () => {
+    const { fake, timers, player, played } = setup()
+    player.start()
+    fake.currentTime = 4.1
+    timers.fire()
+    const breakEnd = 4.1 + breakSeconds(SEED, 1)
+    for (let ms = 4150; ms / 1000 < breakEnd + 1; ms += 50) {
+      fake.currentTime = ms / 1000
+      timers.fire()
+    }
+    // Nothing between the first window and the next track: the skipped end of the first is not played late.
+    expect(played.filter((p) => p.e.at >= 0.2 && p.e.at < breakEnd - 1e-9)).toEqual([])
+    expect(r(heard(played)[1].origin)).toBe(r(breakEnd))
+  })
+
+  it('never chains a fading Loop into its next segment', () => {
+    const { player, played, advance, advanceTo, loopOf } = setup()
+    player.start()
+    const breakEnd = SECONDS + breakSeconds(SEED, 1)
+    advanceTo(breakEnd - 0.5)
+    const flip = played.length
+    player.setScene(WINTER)
+    advance(3000)
+    // The old Loop was in its break: had it chained, it would have opened a track at the break's end.
+    const after = played.slice(flip)
+    expect(after.length).toBeGreaterThan(0)
+    for (const p of after) expect(loopOf(p)).toBe(1)
+  })
+})
+
+describe('music player: the mood crossfade', () => {
+  it('crossfades on a mood change: the old fades reach 0 at now + 1.5, the new rise 0 to 1', () => {
+    const { player, played, advance, loops, loopOf } = setup()
+    player.start()
+    advance(1000)
+    player.setScene(WINTER)
+    const [old, fresh] = loops()
+    expect(fresh).toHaveLength(7)
+    for (const f of old) {
+      expect(trace(f.gain).slice(-2)).toEqual([
+        ['cancelAndHoldAtTime', null, 1],
+        ['linearRampToValueAtTime', 0, 2.5],
+      ])
+    }
+    for (const f of fresh) {
+      expect(trace(f.gain)).toEqual([
+        ['value', 0, null],
+        ['setValueAtTime', 0, 1],
+        ['linearRampToValueAtTime', 1, 2.5],
+      ])
+    }
+    // The new pool's track (winter: d) opens at once in the new Loop.
+    const opening = played.filter((p) => loopOf(p) === 1)
+    expect(opening.map((p) => [p.e.inst, p.e.at])).toEqual([['kick', 1], ['bass', 1]])
+    expect(ID_OF_PC[opening[1].e.midi % 12]).toBe('d')
+    advance(1500)
+    for (const f of old) expect(f.disconnected).toBe(true)
+    for (const f of fresh) expect(f.disconnected).toBe(false)
+  })
+
+  it('cuts a break short on a mood change', () => {
+    const { player, played, advance, loopOf } = setup()
+    player.start()
+    advance(6000) // in the first break (4 s to at least 12 s)
+    player.setScene(WINTER)
+    const opening = played.filter((p) => loopOf(p) === 1)
+    expect(opening.map((p) => [p.e.inst, p.e.at])).toEqual([['kick', 6], ['bass', 6]])
+  })
+
+  it('replaces a Loop younger than 0.5 s with a 50 ms fade', () => {
+    const { player, advance, loops } = setup()
+    player.start()
+    advance(200)
+    player.setScene(WINTER)
+    const [old, fresh] = loops()
+    for (const f of old) {
+      expect(trace(f.gain).slice(-2)).toEqual([
+        ['cancelAndHoldAtTime', null, 0.2],
+        ['linearRampToValueAtTime', 0, 0.25],
+      ])
+    }
+    for (const f of fresh) expect(trace(f.gain).at(-1)).toEqual(['linearRampToValueAtTime', 1, 1.7])
+    advance(50)
+    for (const f of old) expect(f.disconnected).toBe(true)
+  })
+
+  it('creates no nodes on a mood change while stopped', () => {
+    const { fake, player, advance } = setup()
+    player.setScene(WINTER)
+    expect(fake.nodes).toHaveLength(1)
+    player.start()
+    advance(1000)
+    player.stop()
+    advance(500)
+    const made = fake.nodes.length
+    player.setScene(TITLE)
+    player.setScene({ ...WINTER, calm: true })
+    expect(fake.nodes).toHaveLength(made)
+  })
+
+  it('shortens crossfade-outs on stop', () => {
+    const { player, advance, loops } = setup()
+    player.start()
+    advance(1000)
+    player.setScene(WINTER)
+    advance(100)
+    player.stop()
+    const [old, fresh] = loops()
+    for (const f of old) {
+      expect(trace(f.gain).slice(-4)).toEqual([
+        ['cancelAndHoldAtTime', null, 1],
+        ['linearRampToValueAtTime', 0, 2.5],
+        ['cancelAndHoldAtTime', null, 1.1],
+        ['linearRampToValueAtTime', 0, 1.5],
+      ])
+    }
+    for (const f of fresh) expect(trace(f.gain).at(-1)).toEqual(['linearRampToValueAtTime', 0, 1.5])
+  })
+
+  it('keeps at most 2 Loops fading, cutting the oldest to a 50 ms fade', () => {
+    const { player, advance, loops } = setup()
+    player.start()
+    advance(600)
+    player.setScene(WINTER)
+    advance(600)
+    player.setScene(TITLE)
+    advance(600)
+    // Loops 0 (to 2.1) and 1 (to 2.7) are fading; a third flip would make three.
+    player.setScene(WINTER)
+    const [l0, l1, l2] = loops()
+    for (const f of l0) {
+      expect(trace(f.gain).slice(-2)).toEqual([
+        ['cancelAndHoldAtTime', null, 1.8],
+        ['linearRampToValueAtTime', 0, 1.85],
+      ])
+    }
+    for (const f of l1) expect(trace(f.gain).at(-1)).toEqual(['linearRampToValueAtTime', 0, 2.7])
+    for (const f of l2) expect(trace(f.gain).at(-1)).toEqual(['linearRampToValueAtTime', 0, 3.3])
+    advance(50)
+    for (const f of l0) expect(f.disconnected).toBe(true)
+    for (const f of l1) expect(f.disconnected).toBe(false)
+  })
+})
+
+describe('music player: calm', () => {
+  it('glides the buses and tone into calm with tau 0.8, leaving the room and the Loop alone', () => {
+    const { player, advance, fades, bus, tone, send } = setup({ scene: STUDIO })
+    player.start()
+    advance(1000)
+    player.setScene({ ...STUDIO, calm: true })
+    expect(fades()).toHaveLength(7)
+    const glide = (value: number) => ({ kind: 'setTargetAtTime', value, time: 1, timeConstant: 0.8 })
+    expect(bus('kick').gain.events.at(-1)).toEqual(glide(0))
+    expect(bus('shaker').gain.events.at(-1)).toEqual(glide(0))
+    expect(bus('lead').gain.events.at(-1)).toEqual(glide(0.6))
+    expect(bus('keys').gain.events.at(-1)).toEqual(glide(1))
+    expect(tone().frequency.events.at(-1)).toEqual(glide(1300))
+    expect(send().gain.target).toBe(0.3)
+  })
+
+  it('skips drum events 3 s into calm, and resumes them on the tick after calm ends with tau 0.4', () => {
+    const { fake, player, played, advance, advanceTo, bus } = setup({ scene: STUDIO })
+    player.start()
+    advance(1000)
+    player.setScene({ ...STUDIO, calm: true })
+    const second = SECONDS + breakSeconds(SEED, 1)
+    advanceTo(second + 1.3)
+    const kicks = played.filter((p) => p.e.inst === 'kick').map((p) => p.e.at)
+    // The first track's kicks (its second bar opens on its last, at 2) were queued inside the settle; the second
+    // track has none, though its bass plays.
+    expect(kicks).toEqual([0, 0.5, 1, 1.5, 2])
+    expect(played.some((p) => p.e.inst === 'bass' && p.e.at >= second - 1e-9)).toBe(true)
+    const off = fake.currentTime
+    player.setScene(STUDIO)
+    expect(bus('kick').gain.events.at(-1)).toEqual({ kind: 'setTargetAtTime', value: 0.6, time: off, timeConstant: 0.4 })
+    // The next tick's window reaches the kick at 1.5 s into the track.
+    advance(50)
+    const resumed = played.filter((p) => p.e.inst === 'kick' && p.e.at > second)
+    expect(resumed.map((p) => r(p.e.at))).toEqual([r(second + 1.5)])
+  })
+
+  it('carries a calm change into the glide of a track already queued but not yet started', () => {
+    const { player, advanceTo, bus } = setup({ scene: STUDIO })
+    player.start()
+    const second = SECONDS + breakSeconds(SEED, 1)
+    advanceTo(second - 0.1) // the look-ahead has created the second track's segment
+    player.setScene({ ...STUDIO, calm: true })
+    const atStart = bus('kick').gain.events.filter((e) => e.kind === 'setTargetAtTime' && r(e.time) === r(second))
+    expect(atStart.at(-1)).toMatchObject({ value: 0 })
+  })
+})
+
+describe('music player: the pin', () => {
+  it('crossfades to a pinned track now, repeats it with 2 s breaks, and returns to the pool once unpinned', () => {
+    const { player, played, advance, loops, loopOf } = setup({ scene: STUDIO })
+    player.start()
+    advance(1000)
+    player.pin('d')
+    for (const f of loops()[1]) expect(trace(f.gain).at(-1)).toEqual(['linearRampToValueAtTime', 1, 2.5])
+    // A mood change while pinned does not crossfade.
+    player.setScene(TITLE)
+    player.setScene(STUDIO)
+    expect(loops()).toHaveLength(2)
+    advance(16_000)
+    const pinnedLoop = () => played.filter((p) => loopOf(p) === 1)
+    expect(heard(pinnedLoop()).map((t) => [t.id, t.origin])).toEqual([['d', 1], ['d', 7], ['d', 13]])
+    player.pin(null)
+    expect(loops()).toHaveLength(2)
+    advance(30_000)
+    const later = heard(pinnedLoop()).slice(3)
+    expect(later[0].origin).toBe(19) // the break already under way stays a pinned one
+    expect(later[0].id).not.toBe('d')
   })
 })

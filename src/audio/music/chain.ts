@@ -16,8 +16,11 @@ export interface Chain {
   gate: GainNode
   /** The wobble delay's time, which the session's LFOs modulate. */
   wobble: AudioParam
-  /** Glides every part level, the reverb send and the tone cutoff towards `l` with time constant `tau`. */
-  setLevels(l: MixLevels, tau: number): void
+  /**
+   * Glides every part level, the reverb send and the tone cutoff towards `l` with time constant `tau`, from `at`
+   * (context time; now when left out).
+   */
+  setLevels(l: MixLevels, tau: number, at?: number): void
 }
 
 /** The running LFOs and crackle. */
@@ -112,8 +115,8 @@ export function buildChain(ctx: BaseAudioContext, dest: AudioNode, seed: number,
     input,
     gate,
     wobble: delay.delayTime,
-    setLevels(next, tau) {
-      const t = ctx.currentTime
+    setLevels(next, tau, at) {
+      const t = at ?? ctx.currentTime
       for (const inst of INSTS) input[inst].gain.setTargetAtTime(next.parts[PART_OF[inst]], t, tau)
       send.gain.setTargetAtTime(next.space, t, tau)
       tone.frequency.setTargetAtTime(next.tone, t, tau)
