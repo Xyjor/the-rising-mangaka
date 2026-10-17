@@ -1,8 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createSoundEngine } from '../engine'
+import type { MusicPlayer, PlayerOptions } from '../music/player'
+import type { MusicScene } from '../music/types'
+import { MUSIC_LOWPASS_HZ } from '../synth'
 import { DEFAULT_SOUND } from '../types'
 import {
-  FakeAudioContext, FakeBiquad, FakeBufferSource, FakeCompressor, FakeGain, FakeOscillator, asContext,
+  FakeAudioContext, FakeBiquad, FakeBufferSource, FakeCompressor, FakeGain, FakeNode, FakeOscillator, asContext,
 } from './fakeAudio'
 import { FakeTimers } from './fakeTimers'
 
@@ -27,6 +30,53 @@ function mixer(fake: FakeAudioContext) {
 }
 
 const MUTED = { ...DEFAULT_SOUND, muted: true }
+const STUDIO: MusicScene = { mood: 'studio', season: 'spring', calm: false }
+const CALM: MusicScene = { mood: 'studio', season: 'spring', calm: true }
+
+/** Every node `src` reaches by its node connections, stopping at (but including) `stop`. */
+function reached(src: FakeNode, stop: FakeNode): Set<FakeNode> {
+  const seen = new Set<FakeNode>()
+  const walk = (n: FakeNode): void => {
+    if (seen.has(n)) return
+    seen.add(n)
+    if (n !== stop) for (const next of n.connections) walk(next)
+  }
+  walk(src)
+  return seen
+}
+
+/** A Loop's seven fades: gains set to 0 at time 0 that ramp to 1 over the player's 2 s fade-in. */
+function loopFades(fake: FakeAudioContext): FakeGain[] {
+  return fake.nodes.filter((n): n is FakeGain => n instanceof FakeGain
+    && n.gain.events.some((e) => e.kind === 'setValueAtTime' && e.value === 0 && e.time === 0)
+    && n.gain.events.some((e) => e.kind === 'linearRampToValueAtTime' && e.value === 1 && e.time === 2))
+}
+
+/** An engine whose player is a recorder: `log` names each call made on it in order, `created` each creation. */
+function recorded(o: { seed: number }) {
+  const fake = new FakeAudioContext()
+  const log: string[] = []
+  const created: { dest: AudioNode; graphMusic: FakeGain; o: PlayerOptions }[] = []
+  const engine = createSoundEngine({
+    createContext: () => asContext(fake),
+    now: () => 0,
+    timers: new FakeTimers(),
+    seed: o.seed,
+    createMusic: (_ctx, dest, _timers, po) => {
+      created.push({ dest, graphMusic: mixer(fake).music, o: po })
+      log.push('create')
+      const player: MusicPlayer = {
+        start: () => log.push('start'),
+        stop: () => log.push('stop'),
+        setScene: (s) => log.push(`scene ${s.mood} ${s.season}${s.calm ? ' calm' : ''}`),
+        pin: (id) => log.push(`pin ${id}`),
+        dispose: () => log.push('dispose'),
+      }
+      return player
+    },
+  })
+  return { engine, log, created, fake }
+}
 
 describe('sound engine', () => {
   it('creates no context and plays nothing before the first unlock', () => {
@@ -56,7 +106,7 @@ describe('sound engine', () => {
     expect(m.fx.gain.target).toBe(0.8)
     expect(m.music.gain.target).toBe(0.5)
     expect(m.lowpass.type).toBe('lowpass')
-    expect(m.lowpass.frequency.target).toBe(1800)
+    expect(m.lowpass.frequency.target).toBe(MUSIC_LOWPASS_HZ)
   })
 
   it('plays cues through the fx bus', () => {
@@ -274,27 +324,6 @@ describe('sound engine', () => {
     expect(music.target).toBe(0.5)
   })
 
-  it('records startMusic before unlock, then plays the loop through its fade into the music bus once unlocked', () => {
-    const { fake, engine, createContext, timers } = setup()
-    engine.startMusic()
-    expect(createContext).not.toHaveBeenCalled()
-    expect(fake.nodes).toEqual([])
-    expect(timers.live).toEqual([])
-    engine.unlock()
-    fake.currentTime = 0.06
-    timers.fire() // 60 ms on: the first 50 ms tick
-    const { music } = mixer(fake)
-    const fades = fake.nodes.filter((n): n is FakeGain => n instanceof FakeGain && n.connections.includes(music))
-    expect(fades).toHaveLength(1)
-    const [fade] = fades
-    expect(fade.gain.events.at(-1)).toEqual({ kind: 'linearRampToValueAtTime', value: 1, time: 2 })
-    // Step 0: lead 76 and bass 48, each through its own envelope into the fade.
-    const oscillators = fake.sources as FakeOscillator[]
-    expect(oscillators.map((o) => o.type)).toEqual(['triangle', 'sine'])
-    for (const osc of oscillators) expect(osc.connections[0].connections).toEqual([fade])
-    expect(timers.live).toEqual([50])
-  })
-
   it('starts nothing on unlock when the music was never asked for, or asked for and withdrawn', () => {
     for (const ask of [false, true]) {
       const { fake, engine, timers } = setup()
@@ -308,37 +337,123 @@ describe('sound engine', () => {
     }
   })
 
-  it('plays one loop however often startMusic is called', () => {
+
+  it('passes the seed and the scene set before unlock to the player it creates, then the pin', () => {
+    const { engine, created, log } = recorded({ seed: 42 })
+    engine.setMusicScene(STUDIO)
+    engine.pinMusicTrack('kotatsu')
+    expect(created).toEqual([])
+    engine.unlock()
+    expect(created).toHaveLength(1)
+    expect(created[0].o).toEqual({ seed: 42, scene: STUDIO })
+    expect(created[0].dest).toBe(created[0].graphMusic)
+    expect(log).toEqual(['create', 'pin kotatsu'])
+  })
+
+  it('creates the player in the title scene, unpinned, when nothing was set', () => {
+    const { engine, created, log } = recorded({ seed: 1 })
+    engine.unlock()
+    expect(created[0].o.scene).toEqual({ mood: 'title', season: 'spring', calm: false })
+    expect(log).toEqual(['create'])
+  })
+
+  it('keeps only the last scene and pin set before unlock, and an unpin leaves the player unpinned', () => {
+    const { engine, created, log } = recorded({ seed: 1 })
+    engine.setMusicScene(STUDIO)
+    engine.setMusicScene(CALM)
+    engine.pinMusicTrack('kotatsu')
+    engine.pinMusicTrack(null)
+    engine.unlock()
+    expect(created[0].o.scene).toEqual(CALM)
+    expect(log).toEqual(['create'])
+  })
+
+  it('starts the player at creation when the music was asked for before unlock', () => {
+    const { engine, log } = recorded({ seed: 1 })
+    engine.pinMusicTrack('tea-break')
+    engine.startMusic()
+    engine.unlock()
+    expect(log).toEqual(['create', 'pin tea-break', 'start'])
+  })
+
+  it('forwards start, stop, scenes and pins to the player once it exists', () => {
+    const { engine, log } = recorded({ seed: 1 })
+    engine.unlock()
+    engine.startMusic()
+    engine.setMusicScene(CALM)
+    engine.pinMusicTrack('first-snow')
+    engine.pinMusicTrack(null)
+    engine.stopMusic()
+    expect(log).toEqual(['create', 'start', 'scene studio spring calm', 'pin first-snow', 'pin null', 'stop'])
+  })
+
+  it('disposes the player, then closes the context', () => {
+    const { engine, log, fake } = recorded({ seed: 1 })
+    engine.unlock()
+    fake.close = (() => {
+      log.push('close')
+      return Promise.resolve()
+    }) as typeof fake.close
+    engine.dispose()
+    expect(log).toEqual(['create', 'dispose', 'close'])
+    engine.startMusic()
+    engine.setMusicScene(STUDIO)
+    engine.pinMusicTrack('kotatsu')
+    expect(log).toEqual(['create', 'dispose', 'close'])
+  })
+
+  it('routes every music source through the music bus, never straight to the master', () => {
+    const { fake, engine, timers } = setup()
+    engine.startMusic()
+    engine.unlock()
+    for (let i = 1; i <= 20; i++) {
+      fake.currentTime = i * 0.05
+      timers.fire()
+    }
+    const m = mixer(fake)
+    expect(fake.sources.length).toBeGreaterThan(0)
+    let throughMusic = 0
+    for (const src of fake.sources) {
+      const above = reached(src, m.music)
+      for (const bypass of [m.master, m.lowpass, m.comp, fake.destination]) expect(above.has(bypass)).toBe(false)
+      if (above.has(m.music)) throughMusic++
+    }
+    expect(throughMusic).toBeGreaterThan(0)
+  })
+
+  it('plays one Loop however often startMusic is called', () => {
     const { fake, engine, timers } = setup()
     engine.startMusic()
     engine.startMusic()
     engine.unlock()
     engine.startMusic()
-    expect(fake.sources).toHaveLength(2)
+    expect(loopFades(fake)).toHaveLength(7)
     expect(timers.live).toEqual([50])
   })
 
-  it('stopMusic fades the loop to 0 over 0.4 s and leaves the music bus to prefs and duck', () => {
+  it('stopMusic fades the Loop to 0 over 0.4 s and leaves the music bus to prefs and duck', () => {
     const { fake, engine } = setup()
     engine.unlock()
     engine.startMusic()
     const { music } = mixer(fake)
-    const fade = fake.nodes.find((n): n is FakeGain => n instanceof FakeGain && n.connections.includes(music))!
+    const fades = loopFades(fake)
+    expect(fades).toHaveLength(7)
     const busEvents = music.gain.events.length
     fake.currentTime = 1
     engine.stopMusic()
-    expect(fade.gain.events.at(-1)).toEqual({ kind: 'linearRampToValueAtTime', value: 0, time: 1.4 })
+    for (const fade of fades) {
+      expect(fade.gain.events.at(-1)).toEqual({ kind: 'linearRampToValueAtTime', value: 0, time: 1.4 })
+    }
     expect(music.gain.events).toHaveLength(busEvents)
-    engine.stopMusic()
-    expect(fade.gain.events.filter((e) => e.kind === 'linearRampToValueAtTime' && e.value === 0)).toHaveLength(1)
   })
 
-  it('clears the music timer on dispose', () => {
-    const { engine, timers } = setup()
+  it('clears the music timer on dispose, closes the context and starts nothing after', () => {
+    const { fake, engine, timers } = setup()
     engine.startMusic()
     engine.unlock()
     engine.dispose()
     expect(timers.live).toEqual([])
+    expect(fake.calls).toEqual(['close'])
     engine.startMusic()
     expect(timers.live).toEqual([])
   })

@@ -5,7 +5,7 @@
  * Nothing in the app imports this file; it is run by hand from the dev preview.
  */
 import { MUSIC_LEVEL } from '../engine'
-import type { Timers } from '../music'
+import type { Timers } from './player'
 import { buildGraph } from '../synth'
 
 const RATE = 44100

@@ -4,6 +4,8 @@
  */
 import { levelsFor } from '../audio/engine'
 import type { SoundEngine } from '../audio/engine'
+import type { TrackId } from '../audio/music/tracks'
+import type { MusicScene } from '../audio/music/types'
 import { DEFAULT_SOUND } from '../audio/types'
 import type { CueId, SoundPrefs } from '../audio/types'
 
@@ -20,6 +22,10 @@ export interface FakeSound extends SoundEngine {
   readonly music: ('start' | 'stop')[]
   /** True after a startMusic until the next stopMusic. */
   readonly musicOn: boolean
+  /** Every setMusicScene call, in order (copies). */
+  readonly scenes: MusicScene[]
+  /** Every pinMusicTrack call, in order (null for an unpin). */
+  readonly pins: (TrackId | null)[]
   /** Every duck(level) call, in order. */
   readonly ducks: number[]
   readonly unlocks: number
@@ -36,6 +42,8 @@ export function createFakeSound(): FakeSound {
   const prefs: SoundPrefs[] = []
   const music: ('start' | 'stop')[] = []
   const ducks: number[] = []
+  const scenes: MusicScene[] = []
+  const pins: (TrackId | null)[] = []
   let unlocks = 0
   let suspends = 0
   let resumes = 0
@@ -48,6 +56,8 @@ export function createFakeSound(): FakeSound {
     prefs,
     music,
     ducks,
+    scenes,
+    pins,
     running: false,
     get musicOn() {
       return music.at(-1) === 'start'
@@ -88,6 +98,12 @@ export function createFakeSound(): FakeSound {
     },
     stopMusic() {
       music.push('stop')
+    },
+    setMusicScene(s) {
+      scenes.push({ ...s })
+    },
+    pinMusicTrack(id) {
+      pins.push(id)
     },
     duck(level) {
       ducks.push(level)

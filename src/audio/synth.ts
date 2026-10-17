@@ -1,5 +1,5 @@
 // The mixer graph, the shared noise buffer and one short-lived chain per cue voice (source, optional filter, envelope
-// gain). The music loop's notes and fades are made in music.ts. Scheduling is in context time (seconds).
+// gain). The music's notes, buses and fades are made in music/ (the player). Scheduling is in context time (seconds).
 import type { Voice } from './types'
 
 /** The mixer: the fx and music buses feed master, which feeds a gentle compressor and the speakers. */
@@ -9,7 +9,7 @@ export interface Graph {
   music: GainNode
 }
 
-export const MUSIC_LOWPASS_HZ = 1800
+export const MUSIC_LOWPASS_HZ = 6000
 
 const DEFAULT_ATTACK = 0.005
 /** The decay falls to this share of the peak... */

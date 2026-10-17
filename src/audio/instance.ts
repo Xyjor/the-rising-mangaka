@@ -13,6 +13,8 @@ export const nullEngine: SoundEngine = Object.freeze({
   levels: () => ({ master: 0, fx: 0, music: 0 }),
   startMusic: noop,
   stopMusic: noop,
+  setMusicScene: noop,
+  pinMusicTrack: noop,
   duck: noop,
   suspend: noop,
   resume: noop,
