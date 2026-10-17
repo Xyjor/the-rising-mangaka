@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect } from 'react'
 import { getPhase } from '../sim'
+import { clockRuns } from '../state/clockRuns'
 import { SPEED_MS, useStore } from '../state/store'
 import { useArrival } from './hooks/useArrival'
 import { useClockLoop, useClockSync } from './hooks/useClockLoop'
@@ -43,12 +44,8 @@ function useTheme() {
 /** The clock: ticks the sim while running and nothing needs a decision. */
 function useGameClock() {
   const speed = useStore((s) => s.speed)
-  const modal = useStore((s) => s.modal)
-  const blocked = useStore((s) => !!s.game?.pendingResult || !!s.game?.pendingOffer)
-  const hasGame = useStore((s) => !!s.game)
-  const readOnly = useStore((s) => s.readOnly)
   const tick = useStore((s) => s.tick)
-  const running = hasGame && speed > 0 && modal === 'none' && !blocked && !readOnly
+  const running = useStore((s) => clockRuns(s))
   useEffect(() => {
     if (!running || speed === 0) return
     const id = window.setInterval(tick, SPEED_MS[speed])
